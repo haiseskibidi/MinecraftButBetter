@@ -4,6 +4,8 @@ import com.za.minecraft.engine.graphics.Camera;
 import com.za.minecraft.engine.graphics.Renderer;
 import com.za.minecraft.engine.input.InputManager;
 import com.za.minecraft.entities.Player;
+import com.za.minecraft.network.GameClient;
+import com.za.minecraft.network.GameServer;
 import com.za.minecraft.utils.Logger;
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.blocks.Block;
@@ -27,14 +29,36 @@ public class GameLoop {
     private Player player;
     private boolean running;
     
+    private GameMode gameMode;
+    private GameServer localServer;
+    private GameClient networkClient;
+    private String playerName;
+    private String serverAddress;
+    
     private int fpsCounter = 0;
     private float currentFps = 0;
     private float fpsTimer = 0;
     private float debugTimer = 0;
     private RaycastResult highlightedBlock;
     
-    public void run() {
-        Logger.info("Starting game...");
+    public void runSingleplayer() {
+        runWithMode(GameMode.SINGLEPLAYER, "Player", null);
+    }
+    
+    public void runAsHost(String playerName) {
+        runWithMode(GameMode.MULTIPLAYER_HOST, playerName, null);
+    }
+    
+    public void runAsClient(String playerName, String serverAddress) {
+        runWithMode(GameMode.MULTIPLAYER_CLIENT, playerName, serverAddress);
+    }
+    
+    private void runWithMode(GameMode mode, String playerName, String serverAddress) {
+        this.gameMode = mode;
+        this.playerName = playerName;
+        this.serverAddress = serverAddress;
+        
+        Logger.info("Starting game in %s mode...", mode);
         
         try {
             init();
@@ -46,6 +70,11 @@ public class GameLoop {
         }
         
         Logger.info("Game stopped");
+    }
+    
+    @Deprecated
+    public void run() {
+        runSingleplayer();
     }
     
     private void init() {
@@ -70,9 +99,37 @@ public class GameLoop {
         renderer = new Renderer();
         renderer.init(window.getWidth(), window.getHeight());
         
+        setupMultiplayer();
+        
         running = true;
         
         Logger.info("Game initialized");
+    }
+    
+    private void setupMultiplayer() {
+        if (gameMode == GameMode.MULTIPLAYER_HOST) {
+            localServer = new GameServer(world.getSeed());
+            if (localServer.start()) {
+                Logger.info("Local server started successfully");
+                
+                networkClient = new GameClient(world, player, camera, playerName);
+                if (networkClient.connect("127.0.0.1")) {
+                    Logger.info("Connected to local server");
+                } else {
+                    Logger.error("Failed to connect to local server");
+                    running = false;
+                }
+            } else {
+                Logger.error("Failed to start local server");
+                running = false;
+            }
+        } else if (gameMode == GameMode.MULTIPLAYER_CLIENT) {
+            networkClient = new GameClient(world, player, camera, playerName);
+            if (!networkClient.connect(serverAddress)) {
+                Logger.error("Failed to connect to server at %s", serverAddress);
+                running = false;
+            }
+        }
     }
     
     private void gameLoop() {
@@ -80,6 +137,13 @@ public class GameLoop {
         float interval = 1f / TARGET_UPS;
         
         while (running && !window.shouldClose()) {
+            // Проверяем отключение сервера в мультиплеере
+            if (networkClient != null && networkClient.isServerDisconnected()) {
+                Logger.error("Server disconnected, closing game...");
+                running = false;
+                break;
+            }
+            
             timer.updateDelta();
             accumulator += timer.getDeltaF();
             
@@ -96,9 +160,9 @@ public class GameLoop {
     }
     
     private void input() {
-        if (window.isKeyPressed(GLFW_KEY_ESCAPE)) {
-            running = false;
-        }
+        // if (window.isKeyPressed(GLFW_KEY_ESCAPE)) {
+        //     running = false;
+        // }
         
         // Debug: показываем позицию игрока каждые 5 секунд
         debugTimer += timer.getDeltaF();
@@ -112,15 +176,19 @@ public class GameLoop {
             Logger.info("  Ground block: %s", groundBlock.isAir() ? "AIR" : groundBlock.getType().getName());
         }
         
-        highlightedBlock = inputManager.input(window, camera, player, timer.getDeltaF(), renderer, world);
+        highlightedBlock = inputManager.input(window, camera, player, timer.getDeltaF(), renderer, world, networkClient);
     }
     
     private void update(float interval) {
         player.update(interval, world);
+        
+        if (networkClient != null && networkClient.isConnected()) {
+            networkClient.sendPlayerPosition();
+        }
     }
     
     private void render() {
-        renderer.render(window, camera, world, highlightedBlock);
+        renderer.render(window, camera, world, highlightedBlock, networkClient);
         
         // Подсчет FPS
         updateFPS();
@@ -211,6 +279,12 @@ public class GameLoop {
     }
     
     private void cleanup() {
+        if (networkClient != null) {
+            networkClient.disconnect();
+        }
+        if (localServer != null) {
+            localServer.stop();
+        }
         if (renderer != null) {
             renderer.cleanup();
         }

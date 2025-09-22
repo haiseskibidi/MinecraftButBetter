@@ -553,6 +553,185 @@ public abstract class Block {
 }
 ```
 
+## Мультиплеер - Listen Server архитектура
+
+### ⚠️ ВАЖНО: В проекте есть полнофункциональный мультиплеер!
+
+**ВСЕГДА учитывай мультиплеер** при изменении кода. Игра поддерживает:
+- **SINGLEPLAYER** - обычная одиночная игра
+- **MULTIPLAYER_HOST** - хост (запускает сервер + играет)
+- **MULTIPLAYER_CLIENT** - клиент (подключается к серверу)
+
+### 1. Архитектура мультиплеера
+```java
+┌─────────────────┐     Network     ┌─────────────────┐
+│    GameClient   │ ←───────────→   │    GameServer   │
+│   (Host/Client) │    KryoNet      │   (на хосте)    │
+└─────────────────┘   TCP/UDP       └─────────────────┘
+         ↑                                     ↑
+         │                                     │
+┌─────────────────┐                  ┌─────────────────┐
+│     Player      │                  │  RemotePlayers  │
+│  LocalActions   │                  │   Sync Actions  │
+└─────────────────┘                  └─────────────────┘
+```
+
+### 2. Ключевые классы мультиплеера
+
+**ВСЕГДА проверяй эти классы** при изменениях:
+- `GameServer` - серверная логика (com.za.minecraft.network)
+- `GameClient` - клиентская логика (com.za.minecraft.network) 
+- `GameLoop` - поддерживает все режимы игры
+- `InputManager` - интегрирован с сетевой синхронизацией
+- `Renderer` - рендерит удаленных игроков
+
+### 3. Сетевые пакеты (com.za.minecraft.network.packets)
+
+```java
+// ОБЯЗАТЕЛЬНЫ для синхронизации
+PlayerPositionPacket - позиция и ротация игроков (UDP, 20 раз/сек)
+BlockUpdatePacket   - изменения блоков (TCP, надежно)
+PlayerJoinPacket    - подключение игрока (TCP)
+PlayerLeavePacket   - отключение игрока (TCP) 
+ChatMessagePacket   - сообщения чата (TCP)
+```
+
+### 4. Принципы синхронизации
+
+#### ✅ Что синхронизируется:
+- **Позиции и ротация игроков** (в реальном времени)
+- **Установка/разрушение блоков** (мгновенно)  
+- **Подключения/отключения игроков**
+- **Сообщения чата**
+
+#### ✅ Что НЕ синхронизируется (локально):
+- **Генерация мира** (детерминированная на всех клиентах)
+- **Физика** (просчитывается локально)
+- **Рендеринг** (каждый рендерит свой view)
+
+### 5. Правила разработки в мультиплеере
+
+#### При изменении блоков:
+```java
+// ПРАВИЛЬНО: с сетевой синхронизацией
+public void breakBlock(BlockPos pos) {
+    world.setBlock(pos, new Block(BlockType.AIR)); // Локально
+    
+    if (networkClient != null && networkClient.isConnected()) {
+        networkClient.sendBlockUpdate(pos.x(), pos.y(), pos.z(), BlockType.AIR);
+    }
+}
+
+// НЕПРАВИЛЬНО: только локально  
+public void breakBlock(BlockPos pos) {
+    world.setBlock(pos, new Block(BlockType.AIR)); // Только у себя!
+}
+```
+
+#### При добавлении новых действий:
+```java
+// Спрашивай себя: "Должны ли другие игроки видеть это действие?"
+// Если ДА - создавай новый сетевой пакет
+
+// Пример: новое действие "зажигание факела"
+public class LightTorchPacket extends NetworkPacket {
+    public int x, y, z;
+    public boolean lit;
+    // Не забудь зарегистрировать в GameClient/GameServer!
+}
+```
+
+#### При изменении GameLoop:
+```java
+// ВСЕГДА проверяй все игровые режимы
+public void update(float deltaTime) {
+    player.update(deltaTime, world);
+    
+    // В мультиплеере отправляй позицию
+    if (gameMode != GameMode.SINGLEPLAYER && networkClient != null) {
+        networkClient.sendPlayerPosition();
+    }
+}
+```
+
+#### При изменении рендеринга:
+```java
+// ПОМНИ про удаленных игроков
+public void render(float deltaTime) {
+    renderWorld();
+    renderLocalPlayer();
+    
+    // В мультиплеере рендери других игроков
+    if (networkClient != null) {
+        renderPlayers(networkClient.getRemotePlayers());
+    }
+}
+```
+
+### 6. Тестирование мультиплеера
+
+#### Команды запуска:
+```bash
+# Хост
+java -jar MinecraftButBetter.jar host "PlayerName"
+
+# Клиент  
+java -jar MinecraftButBetter.jar client "PlayerName" "HOST_IP"
+
+# Одиночная игра
+java -jar MinecraftButBetter.jar
+```
+
+#### Обязательные тесты:
+- [ ] Подключение клиента к хосту
+- [ ] Видимость игроков друг другу
+- [ ] Синхронизация блоков (разрушение/установка)
+- [ ] Корректное отключение (хост выходит → клиенты отключаются)
+- [ ] Работа через интернет (port forwarding)
+
+### 7. Сетевые порты
+
+```java
+// Фиксированные порты в GameServer
+TCP_PORT = 25565  // Надежная передача (блоки, чат) 
+UDP_PORT = 25566  // Быстрая передача (позиции игроков)
+```
+
+**НИКОГДА не меняй порты** без обновления документации!
+
+### 8. Обработка ошибок в мультиплеере
+
+```java
+// ПРАВИЛЬНО: graceful handling
+public void sendBlockUpdate(int x, int y, int z, BlockType type) {
+    if (!connected) {
+        Logger.warn("Cannot send block update - not connected");
+        return;
+    }
+    
+    try {
+        client.sendTCP(new BlockUpdatePacket(x, y, z, type));
+    } catch (Exception e) {
+        Logger.error("Failed to send block update: {}", e.getMessage());
+        // Не крашим игру, продолжаем работать
+    }
+}
+```
+
+### 9. Детерминированная генерация мира
+
+```java
+// КРИТИЧНО: одинаковый мир у всех игроков
+public World(long seed) {
+    this.seed = seed;
+    this.generator = new WorldGenerator(seed); // Тот же seed = тот же мир
+}
+
+// Seed передается в PlayerJoinPacket от сервера всем клиентам
+```
+
+---
+
 ## Чек-лист перед коммитом
 
 - [ ] Код компилируется без ошибок

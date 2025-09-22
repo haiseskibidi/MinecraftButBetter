@@ -2,6 +2,7 @@ package com.za.minecraft.engine.graphics;
 
 import com.za.minecraft.engine.core.Window;
 import com.za.minecraft.engine.graphics.ui.UIRenderer;
+import com.za.minecraft.network.GameClient;
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.chunks.Chunk;
 import com.za.minecraft.world.chunks.ChunkMeshGenerator;
@@ -25,6 +26,7 @@ public class Renderer {
     private UIRenderer uiRenderer;
     private boolean fxaaEnabled = false;
     private Mesh highlightMesh;
+    private Mesh playerMesh;
     
     public Renderer() {
         this.chunkMeshes = new ConcurrentHashMap<>();
@@ -69,7 +71,7 @@ public class Renderer {
         // debugRenderer.init(); // Временно отключено
     }
     
-    public void render(Window window, Camera camera, World world, RaycastResult highlightedBlock) {
+    public void render(Window window, Camera camera, World world, RaycastResult highlightedBlock, GameClient networkClient) {
         // Resize framebuffer if window size changed
         framebuffer.resize(window.getWidth(), window.getHeight());
         
@@ -77,7 +79,7 @@ public class Renderer {
         framebuffer.bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
-        renderScene(camera, world);
+        renderScene(camera, world, networkClient);
         
         // Render block highlighting
         if (highlightedBlock != null && highlightedBlock.isHit()) {
@@ -104,7 +106,7 @@ public class Renderer {
         uiRenderer.renderCrosshair(window.getWidth(), window.getHeight());
     }
     
-    private void renderScene(Camera camera, World world) {
+    private void renderScene(Camera camera, World world, GameClient networkClient) {
         blockShader.use();
         atlas.bind();
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
@@ -128,6 +130,8 @@ public class Renderer {
             }
         }
         
+        // Render other players
+        renderPlayers(camera, networkClient);
     }
     
     public void renderDebug(float fps, int windowWidth, int windowHeight) {
@@ -236,6 +240,99 @@ public class Renderer {
         highlightMesh = new Mesh(positions, texCoords, normals, blockTypes, indices);
     }
     
+    private void renderPlayers(Camera camera, GameClient networkClient) {
+        if (networkClient == null || !networkClient.isConnected()) return;
+        
+        // Убираем highlight режим если был включен
+        blockShader.setInt("highlightPass", 0);
+        
+        // Create player mesh if needed
+        if (playerMesh == null) {
+            createPlayerMesh();
+        }
+        
+        // Render each remote player as a colored cube
+        for (var player : networkClient.getRemotePlayers().values()) {
+            modelMatrix.identity()
+                .translate(player.getX(), player.getY(), player.getZ())
+                .scale(0.6f, 1.8f, 0.6f); // Player size (width, height, width)
+            
+            blockShader.setMatrix4f("model", modelMatrix);
+            
+            // Override color to make players stand out (blue-ish)
+            blockShader.setInt("highlightPass", 1);
+            blockShader.setVector3f("highlightColor", new Vector3f(0.3f, 0.6f, 1.0f)); // Blue color
+            
+            playerMesh.render();
+        }
+        
+        // Restore normal rendering
+        blockShader.setInt("highlightPass", 0);
+    }
+    
+    private void createPlayerMesh() {
+        // Simple cube for representing players
+        float[] positions = {
+            // Front face
+            -0.5f, -1.0f,  0.5f,
+             0.5f, -1.0f,  0.5f,
+             0.5f,  1.0f,  0.5f,
+            -0.5f,  1.0f,  0.5f,
+            
+            // Back face
+            -0.5f, -1.0f, -0.5f,
+             0.5f, -1.0f, -0.5f,
+             0.5f,  1.0f, -0.5f,
+            -0.5f,  1.0f, -0.5f,
+            
+            // Left face
+            -0.5f, -1.0f, -0.5f,
+            -0.5f, -1.0f,  0.5f,
+            -0.5f,  1.0f,  0.5f,
+            -0.5f,  1.0f, -0.5f,
+            
+            // Right face
+             0.5f, -1.0f, -0.5f,
+             0.5f, -1.0f,  0.5f,
+             0.5f,  1.0f,  0.5f,
+             0.5f,  1.0f, -0.5f,
+            
+            // Top face
+            -0.5f,  1.0f, -0.5f,
+             0.5f,  1.0f, -0.5f,
+             0.5f,  1.0f,  0.5f,
+            -0.5f,  1.0f,  0.5f,
+            
+            // Bottom face
+            -0.5f, -1.0f, -0.5f,
+             0.5f, -1.0f, -0.5f,
+             0.5f, -1.0f,  0.5f,
+            -0.5f, -1.0f,  0.5f
+        };
+        
+        int[] indices = {
+            // Front face
+            0, 1, 2,   2, 3, 0,
+            // Back face
+            4, 6, 5,   6, 4, 7,
+            // Left face
+            8, 9, 10,  10, 11, 8,
+            // Right face
+            12, 14, 13, 14, 12, 15,
+            // Top face
+            16, 17, 18, 18, 19, 16,
+            // Bottom face
+            20, 22, 21, 22, 20, 23
+        };
+        
+        // Create dummy texture coords and normals (needed for Mesh constructor)
+        float[] texCoords = new float[positions.length / 3 * 2]; // 2 coords per vertex
+        float[] normals = new float[positions.length]; // 3 coords per vertex  
+        float[] blockTypes = new float[positions.length / 3]; // 1 type per vertex
+        
+        playerMesh = new Mesh(positions, texCoords, normals, blockTypes, indices);
+    }
+    
     public void cleanup() {
         for (Mesh mesh : chunkMeshes.values()) {
             mesh.cleanup();
@@ -260,6 +357,10 @@ public class Renderer {
         
         if (highlightMesh != null) {
             highlightMesh.cleanup();
+        }
+        
+        if (playerMesh != null) {
+            playerMesh.cleanup();
         }
         
         if (atlas != null) {

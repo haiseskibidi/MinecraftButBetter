@@ -42,6 +42,16 @@ public class Shader {
     
     private String loadShaderSource(String path) {
         try {
+            // Убираем "src/main/resources/" из пути для ClassLoader
+            String resourcePath = path.replace("src/main/resources/", "");
+            
+            // Пробуем загрузить как ресурс из ClassPath (для JAR)
+            var inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath);
+            if (inputStream != null) {
+                return new String(inputStream.readAllBytes());
+            }
+            
+            // Fallback: загружаем как файл (для разработки)
             return Files.readString(Paths.get(path));
         } catch (IOException e) {
             Logger.error("Failed to load shader: %s", e, path);

@@ -12,12 +12,21 @@ import java.util.Map;
 public class World {
     private final Map<ChunkPos, Chunk> chunks;
     private final TerrainGenerator terrainGenerator;
+    private final long seed;
     
     public World() {
         this.chunks = new ConcurrentHashMap<>();
-        long randomSeed = System.currentTimeMillis(); // Random seed each time
-        com.za.minecraft.utils.Logger.info("Generating new world with seed: %d", randomSeed);
-        this.terrainGenerator = new TerrainGenerator(randomSeed);
+        this.seed = System.currentTimeMillis(); // Random seed each time
+        com.za.minecraft.utils.Logger.info("Generating new world with seed: %d", seed);
+        this.terrainGenerator = new TerrainGenerator(seed);
+        generateWorld();
+    }
+    
+    public World(long seed) {
+        this.chunks = new ConcurrentHashMap<>();
+        this.seed = seed;
+        com.za.minecraft.utils.Logger.info("Generating new world with seed: %d", seed);
+        this.terrainGenerator = new TerrainGenerator(seed);
         generateWorld();
     }
     
@@ -88,5 +97,13 @@ public class World {
     
     public Chunk getChunk(ChunkPos pos) {
         return chunks.get(pos);
+    }
+    
+    public long getSeed() {
+        return seed;
+    }
+    
+    public void setBlock(int x, int y, int z, BlockType blockType) {
+        setBlock(x, y, z, new Block(blockType));
     }
 }

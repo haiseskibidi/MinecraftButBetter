@@ -3,6 +3,7 @@ package com.za.minecraft.engine.graphics;
 import com.za.minecraft.utils.Logger;
 import org.lwjgl.system.MemoryStack;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
@@ -23,7 +24,22 @@ public class Texture {
             IntBuffer h = stack.mallocInt(1);
             IntBuffer channels = stack.mallocInt(1);
             
-            ByteBuffer image = stbi_load(path, w, h, channels, 4);
+            ByteBuffer image;
+            
+            // Пробуем загрузить как ресурс из ClassPath (для JAR)
+            String resourcePath = path.replace("src/main/resources/", "");
+            var inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath);
+            if (inputStream != null) {
+                byte[] imageData = inputStream.readAllBytes();
+                ByteBuffer imageBuffer = stack.malloc(imageData.length);
+                imageBuffer.put(imageData);
+                imageBuffer.flip();
+                image = stbi_load_from_memory(imageBuffer, w, h, channels, 4);
+                inputStream.close();
+            } else {
+                // Fallback: загружаем как файл (для разработки)
+                image = stbi_load(path, w, h, channels, 4);
+            }
             
             if (image == null) {
                 Logger.error("Failed to load texture: %s - %s", path, stbi_failure_reason());
@@ -47,6 +63,9 @@ public class Texture {
             stbi_image_free(image);
             
             Logger.info("Texture loaded: %s (%dx%d)", path, width, height);
+        } catch (IOException e) {
+            Logger.error("IOException while loading texture: %s", e, path);
+            throw new RuntimeException("Failed to load texture: " + path, e);
         }
     }
     

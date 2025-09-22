@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
 group = 'com.za.minecraft'
@@ -38,6 +39,7 @@ dependencies {
 
     implementation "org.joml:joml:$jomlVersion"
     implementation "com.google.code.gson:gson:2.10.1"
+    implementation "com.esotericsoftware:kryonet:2.22.0-RC1"
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.9.2'
 }

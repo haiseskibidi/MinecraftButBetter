@@ -66,7 +66,7 @@ public class InputManager {
         glfwSetInputMode(window.getWindowHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     }
     
-    public RaycastResult input(Window window, Camera camera, Player player, float deltaTime, com.za.minecraft.engine.graphics.Renderer renderer, World world) {
+    public RaycastResult input(Window window, Camera camera, Player player, float deltaTime, com.za.minecraft.engine.graphics.Renderer renderer, World world, com.za.minecraft.network.GameClient networkClient) {
         Vector2f rotVec = new Vector2f();
         
         if (firstMouse) {
@@ -218,6 +218,12 @@ public class InputManager {
             if (raycast.isHit()) {
                 com.za.minecraft.utils.Logger.info("Breaking block at: %s", raycast.getBlockPos());
                 world.setBlock(raycast.getBlockPos(), new Block(BlockType.AIR));
+                
+                // Синхронизация по сети
+                if (networkClient != null && networkClient.isConnected()) {
+                    BlockPos pos = raycast.getBlockPos();
+                    networkClient.sendBlockUpdate(pos.x(), pos.y(), pos.z(), BlockType.AIR);
+                }
             } else {
                 com.za.minecraft.utils.Logger.info("No block hit by raycast. Camera pos: %.2f, %.2f, %.2f. Direction: %.2f, %.2f, %.2f", 
                     cameraPos.x, cameraPos.y, cameraPos.z, lookDirection.x, lookDirection.y, lookDirection.z);
@@ -251,6 +257,11 @@ public class InputManager {
                 // Apply axis to any block (renderer will use it when needed)
                 selected = new com.za.minecraft.world.blocks.Block(selected.getType(), axis);
                 world.setBlock(placePos, selected);
+                
+                // Синхронизация по сети
+                if (networkClient != null && networkClient.isConnected()) {
+                    networkClient.sendBlockUpdate(placePos.x(), placePos.y(), placePos.z(), selected.getType());
+                }
             }
         }
         rightMousePressed = rightMouseCurrentlyPressed;

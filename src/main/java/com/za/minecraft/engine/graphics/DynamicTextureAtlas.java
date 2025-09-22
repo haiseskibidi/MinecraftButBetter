@@ -3,6 +3,7 @@ package com.za.minecraft.engine.graphics;
 import com.za.minecraft.utils.Logger;
 import org.lwjgl.system.MemoryStack;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.util.LinkedHashMap;
@@ -53,7 +54,7 @@ public class DynamicTextureAtlas {
                 IntBuffer w = stack.mallocInt(1);
                 IntBuffer h = stack.mallocInt(1);
                 IntBuffer c = stack.mallocInt(1);
-                ByteBuffer img = stbi_load(path, w, h, c, 4);
+                ByteBuffer img = loadImageFromPath(stack, path, w, h, c);
                 if (img == null) {
                     Logger.error("Failed to load block texture: %s (%s)", path, stbi_failure_reason());
                     img = createSolidImage(tileSize, tileSize, (byte) 255, (byte) 0, (byte) 255, (byte) 255);
@@ -158,6 +159,30 @@ public class DynamicTextureAtlas {
 
     public void cleanup() {
         glDeleteTextures(textureId);
+    }
+
+    private ByteBuffer loadImageFromPath(MemoryStack stack, String path, IntBuffer w, IntBuffer h, IntBuffer c) {
+        try {
+            // Убираем "src/main/resources/" из пути для ClassLoader
+            String resourcePath = path.replace("src/main/resources/", "");
+            
+            // Пробуем загрузить как ресурс из ClassPath (для JAR)
+            var inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath);
+            if (inputStream != null) {
+                byte[] imageData = inputStream.readAllBytes();
+                ByteBuffer imageBuffer = stack.malloc(imageData.length);
+                imageBuffer.put(imageData);
+                imageBuffer.flip();
+                inputStream.close();
+                return stbi_load_from_memory(imageBuffer, w, h, c, 4);
+            }
+            
+            // Fallback: загружаем как файл (для разработки)
+            return stbi_load(path, w, h, c, 4);
+        } catch (IOException e) {
+            Logger.error("IOException while loading texture: %s", e, path);
+            return null;
+        }
     }
 
     public float[] uvFor(String key) {
