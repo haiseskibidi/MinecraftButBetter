@@ -2,6 +2,7 @@ package com.za.minecraft.engine.core;
 
 import com.za.minecraft.engine.graphics.Camera;
 import com.za.minecraft.engine.graphics.Renderer;
+import com.za.minecraft.engine.graphics.ui.Hotbar;
 import com.za.minecraft.engine.input.InputManager;
 import com.za.minecraft.entities.Player;
 import com.za.minecraft.network.GameClient;
@@ -27,7 +28,10 @@ public class GameLoop {
     private Renderer renderer;
     private World world;
     private Player player;
+    private Hotbar hotbar;
+    private com.za.minecraft.engine.graphics.ui.PauseMenu pauseMenu;
     private boolean running;
+    private boolean paused = false;
     
     private GameMode gameMode;
     private GameServer localServer;
@@ -99,6 +103,12 @@ public class GameLoop {
         renderer = new Renderer();
         renderer.init(window.getWidth(), window.getHeight());
         
+        hotbar = new Hotbar(player);
+        renderer.setHotbar(hotbar);
+        
+        pauseMenu = new com.za.minecraft.engine.graphics.ui.PauseMenu();
+        renderer.setPauseMenu(pauseMenu);
+        
         setupMultiplayer();
         
         running = true;
@@ -123,12 +133,14 @@ public class GameLoop {
                 Logger.error("Failed to start local server");
                 running = false;
             }
+            pauseMenu.setCanPause(false);
         } else if (gameMode == GameMode.MULTIPLAYER_CLIENT) {
             networkClient = new GameClient(world, player, camera, playerName);
             if (!networkClient.connect(serverAddress)) {
                 Logger.error("Failed to connect to server at %s", serverAddress);
                 running = false;
             }
+            pauseMenu.setCanPause(false);
         }
     }
     
@@ -149,9 +161,13 @@ public class GameLoop {
             
             input();
             
-            while (accumulator >= interval) {
-                update(interval);
-                accumulator -= interval;
+            if (!paused) {
+                while (accumulator >= interval) {
+                    update(interval);
+                    accumulator -= interval;
+                }
+            } else {
+                accumulator = 0;
             }
             
             render();
@@ -160,11 +176,13 @@ public class GameLoop {
     }
     
     private void input() {
-        // if (window.isKeyPressed(GLFW_KEY_ESCAPE)) {
-        //     running = false;
-        // }
+        handleEscapeKey();
         
-        // Debug: показываем позицию игрока каждые 5 секунд
+        if (paused) {
+            handlePauseMenuInput();
+            return;
+        }
+        
         debugTimer += timer.getDeltaF();
         if (debugTimer >= 5.0f) {
             debugTimer = 0;
@@ -179,6 +197,54 @@ public class GameLoop {
         highlightedBlock = inputManager.input(window, camera, player, timer.getDeltaF(), renderer, world, networkClient);
     }
     
+    private boolean escKeyPressed = false;
+    
+    private void handleEscapeKey() {
+        boolean escCurrentlyPressed = window.isKeyPressed(GLFW_KEY_ESCAPE);
+        if (escCurrentlyPressed && !escKeyPressed) {
+            if (pauseMenu.isVisible()) {
+                pauseMenu.hide();
+                paused = false;
+                inputManager.enableMouseCapture(window);
+            } else {
+                pauseMenu.show();
+                paused = pauseMenu.isVisible();
+                if (paused) {
+                    inputManager.disableMouseCapture(window);
+                }
+            }
+        }
+        escKeyPressed = escCurrentlyPressed;
+    }
+    
+    private boolean mouseClickedInMenu = false;
+    
+    private void handlePauseMenuInput() {
+        boolean mouseClicked = window.isMouseButtonPressed(org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_LEFT);
+        
+        if (mouseClicked && !mouseClickedInMenu) {
+            double[] xpos = new double[1];
+            double[] ypos = new double[1];
+            org.lwjgl.glfw.GLFW.glfwGetCursorPos(window.getWindowHandle(), xpos, ypos);
+            
+            int mouseX = (int) xpos[0];
+            int mouseY = (int) ypos[0];
+            
+            com.za.minecraft.engine.graphics.ui.PauseMenu.ButtonType button = 
+                pauseMenu.getHoveredButton(mouseX, mouseY, window.getWidth(), window.getHeight());
+            
+            if (button == com.za.minecraft.engine.graphics.ui.PauseMenu.ButtonType.RESUME) {
+                pauseMenu.hide();
+                paused = false;
+                inputManager.enableMouseCapture(window);
+            } else if (button == com.za.minecraft.engine.graphics.ui.PauseMenu.ButtonType.EXIT_GAME) {
+                running = false;
+            }
+        }
+        
+        mouseClickedInMenu = mouseClicked;
+    }
+    
     private void update(float interval) {
         player.update(interval, world);
         
@@ -188,11 +254,11 @@ public class GameLoop {
     }
     
     private void render() {
+        camera.updateAspectRatio(window.getAspectRatio());
+        
         renderer.render(window, camera, world, highlightedBlock, networkClient);
         
-        // Подсчет FPS
         updateFPS();
-        // renderer.renderDebug(currentFps, window.getWidth(), window.getHeight()); // Временно отключено
         
         window.update();
     }

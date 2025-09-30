@@ -10,22 +10,22 @@ import java.util.Random;
 public class TerrainGenerator {
     private static final int SEA_LEVEL = 62;
     private static final int BEDROCK_LEVEL = 5;
+    private static final int MIN_HEIGHT = 1;
+    private static final int MAX_HEIGHT = 128;
     
-    private final NoiseGenerator heightNoise;
-    private final NoiseGenerator caveNoise;
-    private final NoiseGenerator densityNoise;
-    private final NoiseGenerator oreNoise;
-    private final NoiseGenerator riverNoise;
+    private final PerlinNoise heightNoise;
+    private final PerlinNoise caveNoise;
+    private final PerlinNoise densityNoise;
+    private final PerlinNoise oreNoise;
     private final BiomeGenerator biomeGenerator;
     private final TreeGenerator treeGenerator;
     private final Random random;
     
     public TerrainGenerator(long seed) {
-        this.heightNoise = new NoiseGenerator(seed);
-        this.caveNoise = new NoiseGenerator(seed + 1000);
-        this.densityNoise = new NoiseGenerator(seed + 4000);
-        this.oreNoise = new NoiseGenerator(seed + 5000);
-        this.riverNoise = new NoiseGenerator(seed + 6000);
+        this.heightNoise = new PerlinNoise(seed);
+        this.caveNoise = new PerlinNoise(seed + 1000);
+        this.densityNoise = new PerlinNoise(seed + 4000);
+        this.oreNoise = new PerlinNoise(seed + 5000);
         this.biomeGenerator = new BiomeGenerator(seed);
         this.treeGenerator = new TreeGenerator(seed);
         this.random = new Random(seed);
@@ -79,30 +79,39 @@ public class TerrainGenerator {
 		int chunkZ = chunk.getPosition().z();
 		long baseSeed = ((long)chunkX * 73428767L) ^ ((long)chunkZ * 912931L) ^ random.nextLong();
 		Random localRandom = new Random(baseSeed);
-		int caveSeeds = 2 + localRandom.nextInt(3);
-		for (int i = 0; i < caveSeeds; i++) {
+		
+		if (localRandom.nextDouble() < 0.15) {
 			int startX = chunkX * Chunk.CHUNK_SIZE + localRandom.nextInt(Chunk.CHUNK_SIZE);
 			int startZ = chunkZ * Chunk.CHUNK_SIZE + localRandom.nextInt(Chunk.CHUNK_SIZE);
-			int startY = 20 + localRandom.nextInt(40);
-			growCaveMarkov(world, startX, startY, startZ, localRandom);
+			int startY = 15 + localRandom.nextInt(40);
+			growLargeCave(world, startX, startY, startZ, localRandom);
 		}
-		placeOreVeins(world, chunkX, chunkZ, localRandom, BlockType.COAL_ORE, 8, 128, 6, 0.78);
-		placeOreVeins(world, chunkX, chunkZ, localRandom, BlockType.IRON_ORE, 8, 64, 5, 0.80);
-		placeOreVeins(world, chunkX, chunkZ, localRandom, BlockType.GOLD_ORE, 8, 32, 4, 0.85);
+		
+		int smallCaves = 1 + localRandom.nextInt(2);
+		for (int i = 0; i < smallCaves; i++) {
+			int startX = chunkX * Chunk.CHUNK_SIZE + localRandom.nextInt(Chunk.CHUNK_SIZE);
+			int startZ = chunkZ * Chunk.CHUNK_SIZE + localRandom.nextInt(Chunk.CHUNK_SIZE);
+			int startY = 10 + localRandom.nextInt(50);
+			growSmallCave(world, startX, startY, startZ, localRandom);
+		}
+		
+		placeOreVeins(world, chunkX, chunkZ, localRandom, BlockType.COAL_ORE, 10, 128, 7, 0.76);
+		placeOreVeins(world, chunkX, chunkZ, localRandom, BlockType.IRON_ORE, 8, 64, 6, 0.78);
+		placeOreVeins(world, chunkX, chunkZ, localRandom, BlockType.GOLD_ORE, 4, 32, 5, 0.82);
 	}
 
-	private void growCaveMarkov(World world, int x, int y, int z, Random rng) {
-		int length = 60 + rng.nextInt(80);
+	private void growSmallCave(World world, int x, int y, int z, Random rng) {
+		int length = 40 + rng.nextInt(60);
 		double dx = rng.nextDouble() * 2 - 1;
-		double dy = (rng.nextDouble() - 0.5) * 0.5;
+		double dy = (rng.nextDouble() - 0.5) * 0.4;
 		double dz = rng.nextDouble() * 2 - 1;
-		double speed = 0.9;
+		double speed = 0.8;
 		int state = 1;
 		for (int s = 0; s < length; s++) {
 			if (state == 0) break;
-			dx += (rng.nextDouble() - 0.5) * 0.4;
+			dx += (rng.nextDouble() - 0.5) * 0.3;
 			dy += (rng.nextDouble() - 0.5) * 0.2;
-			dz += (rng.nextDouble() - 0.5) * 0.4;
+			dz += (rng.nextDouble() - 0.5) * 0.3;
 			double invLen = 1.0 / Math.sqrt(dx*dx + dy*dy + dz*dz);
 			dx *= invLen * speed;
 			dy *= invLen * speed;
@@ -111,8 +120,39 @@ public class TerrainGenerator {
 			y += (int)Math.round(dy);
 			z += (int)Math.round(dz);
 			if (y <= 5 || y >= Chunk.CHUNK_HEIGHT - 8) break;
-			carveSphere(world, x, y, z, rng.nextBoolean() ? 2 : 1);
-			double continueProb = 0.88;
+			int radius = 1 + rng.nextInt(2);
+			carveSphere(world, x, y, z, radius);
+			double continueProb = 0.85;
+			if (rng.nextDouble() > continueProb) state = 0; else state = 1;
+		}
+	}
+	
+	private void growLargeCave(World world, int x, int y, int z, Random rng) {
+		int length = 100 + rng.nextInt(150);
+		double dx = rng.nextDouble() * 2 - 1;
+		double dy = (rng.nextDouble() - 0.5) * 0.5;
+		double dz = rng.nextDouble() * 2 - 1;
+		double speed = 1.5;
+		int state = 1;
+		for (int s = 0; s < length; s++) {
+			if (state == 0) break;
+			dx += (rng.nextDouble() - 0.5) * 0.6;
+			dy += (rng.nextDouble() - 0.5) * 0.3;
+			dz += (rng.nextDouble() - 0.5) * 0.6;
+			double invLen = 1.0 / Math.sqrt(dx*dx + dy*dy + dz*dz);
+			dx *= invLen * speed;
+			dy *= invLen * speed;
+			dz *= invLen * speed;
+			x += (int)Math.round(dx);
+			y += (int)Math.round(dy);
+			z += (int)Math.round(dz);
+			if (y <= 5 || y >= Chunk.CHUNK_HEIGHT - 8) break;
+			int radius = 3 + rng.nextInt(3);
+			if (rng.nextDouble() < 0.2) {
+				radius = 5 + rng.nextInt(4);
+			}
+			carveSphere(world, x, y, z, radius);
+			double continueProb = 0.94;
 			if (rng.nextDouble() > continueProb) state = 0; else state = 1;
 		}
 	}
@@ -166,37 +206,38 @@ public class TerrainGenerator {
 	}
     
     private int generateHeight(int x, int z, BiomeGenerator.Biome biome) {
-        double warpX = heightNoise.octaveNoise(x * 0.004, z * 0.004, 2, 0.55, 1.0) * 35.0;
-        double warpZ = heightNoise.octaveNoise(x * 0.004 + 100.0, z * 0.004 + 100.0, 2, 0.55, 1.0) * 35.0;
-        double xw = x + warpX;
-        double zw = z + warpZ;
-
-        double continental = heightNoise.octaveNoise(xw * 0.0008, zw * 0.0008, 4, 0.55, 1.0) * 18.0;
-        double ridges = Math.abs(heightNoise.noise(xw * 0.003, zw * 0.003));
-        ridges = ridges * ridges * ridges * 35.0 - 6.0;
-        double hills = heightNoise.octaveNoise(xw * 0.006, zw * 0.006, 3, 0.6, 1.0) * 10.0;
-        double erosion = heightNoise.octaveNoise(xw * 0.02, zw * 0.02, 2, 0.5, 1.0) * -6.0;
-
-        double r = Math.abs(riverNoise.noise(x * 0.003, z * 0.003));
-        double river = 1.0 - smoothStep(0.0, 0.06, r);
-
-        double h = biome.getBaseHeight() + continental + hills + ridges + erosion - river * 12.0;
-        int finalHeight = (int) Math.round(h);
-        int minH = SEA_LEVEL - 6;
-        int maxH = biome.getMaxHeight();
-        if (finalHeight < minH) finalHeight = minH;
-        if (finalHeight > maxH) finalHeight = maxH;
-        return finalHeight;
+        double result = 0;
+        double amplitude = 1;
+        double frequency = 1;
+        double maxValue = 0;
+        
+        for (int i = 0; i < 4; i++) {
+            double sampleX = x / 80.0 * frequency;
+            double sampleZ = z / 80.0 * frequency;
+            
+            double perlinValue = heightNoise.noise(sampleX, sampleZ);
+            result += perlinValue * amplitude;
+            
+            maxValue += amplitude;
+            amplitude *= 0.5;
+            frequency *= 2;
+        }
+        
+        result = result / maxValue;
+        
+        double continentalnessX = x / 400.0;
+        double continentalnessZ = z / 400.0;
+        double continentalness = heightNoise.noise(continentalnessX, continentalnessZ);
+        
+        double baseHeight = 64;
+        double heightVariation = 20 + continentalness * 15;
+        double height = baseHeight + result * heightVariation;
+        
+        return (int)Math.round(height);
     }
 
-    private double smoothStep(double edge0, double edge1, double v) {
-        double x = (v - edge0) / (edge1 - edge0);
-        if (x < 0.0) x = 0.0;
-        if (x > 1.0) x = 1.0;
-        return x * x * (3.0 - 2.0 * x);
-    }
 
-    private double octave3D(NoiseGenerator n, double x, double y, double z, int octaves, double persistence, double scale) {
+    private double octave3D(PerlinNoise n, double x, double y, double z, int octaves, double persistence, double scale) {
         double value = 0.0;
         double amplitude = 1.0;
         double frequency = scale;
@@ -242,12 +283,11 @@ public class TerrainGenerator {
             if (y >= surfaceHeight - 3) return new Block(BlockType.DIRT);
         }
         
-        if (y > 6 && y < surfaceHeight - 5) {
-            double cavern = octave3D(caveNoise, x, y, z, 4, 0.55, 0.02);
-            double carve = octave3D(densityNoise, x + 100.0, y, z + 100.0, 3, 0.6, 0.03);
-            if (cavern > 0.42 && carve > 0.40) return new Block(BlockType.AIR);
-            double worm = Math.sin(x * 0.08) + Math.cos(z * 0.08);
-            if (worm > 1.6 && y > 15 && y < 55) return new Block(BlockType.AIR);
+        if (y > 8 && y < surfaceHeight - 5) {
+            double spaghetti = Math.abs(octave3D(caveNoise, x + 500, y, z, 3, 0.5, 0.035));
+            if (spaghetti < 0.08 && y > 10 && y < 55) {
+                return new Block(BlockType.AIR);
+            }
         }
         
         if (y < 80) {

@@ -40,10 +40,8 @@ public class InputManager {
     }
     
     public void init(Window window) {
-        // Устанавливаем курсор в центр окна перед переводом в disabled режим
         glfwSetCursorPos(window.getWindowHandle(), window.getWidth() / 2.0, window.getHeight() / 2.0);
         
-        // Инициализируем позицию мыши в центре экрана
         currentPos.x = window.getWidth() / 2.0f;
         currentPos.y = window.getHeight() / 2.0f;
         previousPos.x = currentPos.x;
@@ -63,7 +61,16 @@ public class InputManager {
             rightButtonPressed = button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS;
         });
         
+        enableMouseCapture(window);
+    }
+    
+    public void enableMouseCapture(Window window) {
         glfwSetInputMode(window.getWindowHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        firstMouse = true;
+    }
+    
+    public void disableMouseCapture(Window window) {
+        glfwSetInputMode(window.getWindowHandle(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
     
     public RaycastResult input(Window window, Camera camera, Player player, float deltaTime, com.za.minecraft.engine.graphics.Renderer renderer, World world, com.za.minecraft.network.GameClient networkClient) {
@@ -198,6 +205,14 @@ public class InputManager {
             player.getInventory().nextBlock();
         }
         eKeyPressed = eKeyCurrentlyPressed;
+        
+        // Клавиши 1-9 для выбора слота хотбара
+        for (int i = 0; i < 9; i++) {
+            if (window.isKeyPressed(GLFW_KEY_1 + i)) {
+                player.getInventory().setSelectedSlot(i);
+                break; // Выбираем только первую нажатую клавишу
+            }
+        }
         
         // Raycast для определения блока, на который смотрит игрок
         Vector3f cameraPos = camera.getPosition();

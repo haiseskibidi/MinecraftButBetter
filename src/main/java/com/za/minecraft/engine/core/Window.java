@@ -49,10 +49,6 @@ public class Window {
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-        glfwWindowHint(GLFW_FOCUSED, GL_TRUE);
-        glfwWindowHint(GLFW_FOCUS_ON_SHOW, GL_TRUE);
-        glfwWindowHint(GLFW_FLOATING, GL_TRUE);
-        glfwWindowHint(GLFW_AUTO_ICONIFY, GL_FALSE);
         
         windowHandle = glfwCreateWindow(width, height, title, NULL, NULL);
         if (windowHandle == NULL) {
@@ -80,18 +76,13 @@ public class Window {
             glfwSwapInterval(1);
         }
         
+        glfwSetFramebufferSizeCallback(windowHandle, (window, w, h) -> {
+            this.width = w;
+            this.height = h;
+            glViewport(0, 0, w, h);
+        });
+        
         glfwShowWindow(windowHandle);
-        
-        // Принудительно получаем фокус и выводим окно поверх всех других
-        glfwFocusWindow(windowHandle);
-        glfwRequestWindowAttention(windowHandle);
-        
-        // Дополнительная попытка получить фокус через небольшую задержку
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException ignored) {
-        }
-        glfwFocusWindow(windowHandle);
         
         GL.createCapabilities();
         

@@ -102,8 +102,9 @@ public class Renderer {
             postProcessor.processPassthrough(framebuffer.getColorTextureId());
         }
         
-        // Рендерим UI элементы поверх всего
         uiRenderer.renderCrosshair(window.getWidth(), window.getHeight());
+        uiRenderer.renderHotbar(window.getWidth(), window.getHeight());
+        uiRenderer.renderPauseMenu(window.getWidth(), window.getHeight());
     }
     
     private void renderScene(Camera camera, World world, GameClient networkClient) {
@@ -147,6 +148,18 @@ public class Renderer {
     
     public boolean isFXAAEnabled() {
         return fxaaEnabled;
+    }
+    
+    public void setHotbar(com.za.minecraft.engine.graphics.ui.Hotbar hotbar) {
+        if (uiRenderer != null) {
+            uiRenderer.setHotbar(hotbar);
+        }
+    }
+    
+    public void setPauseMenu(com.za.minecraft.engine.graphics.ui.PauseMenu pauseMenu) {
+        if (uiRenderer != null) {
+            uiRenderer.setPauseMenu(pauseMenu);
+        }
     }
     
     private void updateChunkMesh(Chunk chunk) {

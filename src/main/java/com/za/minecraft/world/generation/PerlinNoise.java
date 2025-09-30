@@ -1,6 +1,6 @@
 package com.za.minecraft.world.generation;
 
-public class NoiseGenerator {
+public class PerlinNoise {
     private static final int[] PERMUTATION = {
         151,160,137,91,90,15,131,13,201,95,96,53,194,233,7,225,140,36,103,30,69,142,
         8,99,37,240,21,10,23,190,6,148,247,120,234,75,0,26,197,62,94,252,219,203,117,
@@ -18,8 +18,7 @@ public class NoiseGenerator {
     
     private int[] p = new int[512];
     
-    public NoiseGenerator(long seed) {
-        // Initialize permutation table with seed
+    public PerlinNoise(long seed) {
         java.util.Random random = new java.util.Random(seed);
         for (int i = 0; i < 256; i++) {
             p[i] = PERMUTATION[i];

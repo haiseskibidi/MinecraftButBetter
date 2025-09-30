@@ -17,9 +17,9 @@ public class Texture {
     private final int width;
     private final int height;
     
-    public Texture(String path) {
+    public Texture(String path, boolean flipVertically, boolean useMipmap) {
         try (MemoryStack stack = stackPush()) {
-            stbi_set_flip_vertically_on_load(true);
+            stbi_set_flip_vertically_on_load(flipVertically);
             IntBuffer w = stack.mallocInt(1);
             IntBuffer h = stack.mallocInt(1);
             IntBuffer channels = stack.mallocInt(1);
@@ -54,11 +54,20 @@ public class Texture {
             
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            
+            if (useMipmap) {
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            } else {
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            }
             
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
-            glGenerateMipmap(GL_TEXTURE_2D);
+            
+            if (useMipmap) {
+                glGenerateMipmap(GL_TEXTURE_2D);
+            }
             
             stbi_image_free(image);
             
@@ -67,6 +76,10 @@ public class Texture {
             Logger.error("IOException while loading texture: %s", e, path);
             throw new RuntimeException("Failed to load texture: " + path, e);
         }
+    }
+    
+    public Texture(String path) {
+        this(path, true, true);
     }
     
     public Texture() {

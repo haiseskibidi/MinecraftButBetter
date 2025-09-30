@@ -3,56 +3,39 @@ package com.za.minecraft.world.generation;
 import com.za.minecraft.world.blocks.BlockType;
 
 public class BiomeGenerator {
-    private final NoiseGenerator temperatureNoise;
-    private final NoiseGenerator humidityNoise;
+    private final SimplexNoise temperatureNoise;
+    private final SimplexNoise humidityNoise;
     
     public BiomeGenerator(long seed) {
-        this.temperatureNoise = new NoiseGenerator(seed + 2000);
-        this.humidityNoise = new NoiseGenerator(seed + 3000);
+        this.temperatureNoise = new SimplexNoise(seed + 7000);
+        this.humidityNoise = new SimplexNoise(seed + 8000);
     }
     
     public Biome getBiome(int x, int z) {
-        // Larger scale for more visible biome regions
-        double temperature = temperatureNoise.octaveNoise(x * 0.002, z * 0.002, 2, 0.6, 1.0);
-        double humidity = humidityNoise.octaveNoise(x * 0.003, z * 0.003, 2, 0.6, 1.0);
+        double scale = 0.001;
         
-        // Normalize to 0-1 range
-        temperature = (temperature + 1) / 2;
-        humidity = (humidity + 1) / 2;
+        double temperature = temperatureNoise.noise(x * scale, z * scale);
+        double humidity = humidityNoise.noise(x * scale + 1000, z * scale + 1000);
         
-        // Determine biome based on temperature and humidity
-        if (temperature < 0.2) {
-            return Biome.TUNDRA;
-        } else if (temperature < 0.5) {
-            if (humidity < 0.3) {
-                return Biome.TAIGA;
-            } else {
-                return Biome.FOREST;
-            }
-        } else if (temperature < 0.8) {
-            if (humidity < 0.3) {
-                return Biome.DESERT;
-            } else if (humidity < 0.7) {
-                return Biome.PLAINS;
-            } else {
-                return Biome.FOREST;
-            }
+        if (temperature > 0.3) {
+            return Biome.DESERT;
+        } else if (temperature > 0) {
+            return Biome.PLAINS;
+        } else if (humidity > 0) {
+            return Biome.FOREST;
         } else {
-            if (humidity < 0.5) {
-                return Biome.DESERT;
-            } else {
-                return Biome.JUNGLE;
-            }
+            return Biome.PLAINS;
         }
     }
     
     public enum Biome {
-        PLAINS(65, 75, BlockType.GRASS, 0.03),
-        FOREST(70, 85, BlockType.GRASS, 0.12),
-        DESERT(60, 70, BlockType.SAND, 0.001),
-        TAIGA(68, 80, BlockType.GRASS, 0.08),
-        JUNGLE(72, 90, BlockType.GRASS, 0.20),
-        TUNDRA(62, 72, BlockType.GRASS, 0.005);
+        PLAINS(64, 85, BlockType.GRASS, 0.01),
+        FOREST(66, 88, BlockType.GRASS, 0.15),
+        DESERT(62, 75, BlockType.SAND, 0.001),
+        TAIGA(64, 90, BlockType.GRASS, 0.10),
+        JUNGLE(65, 92, BlockType.GRASS, 0.25),
+        TUNDRA(63, 80, BlockType.GRASS, 0.005),
+        SWAMP(60, 65, BlockType.GRASS, 0.08);
         
         private final int baseHeight;
         private final int maxHeight;
