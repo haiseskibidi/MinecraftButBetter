@@ -15,6 +15,8 @@ uniform vec4 grassTopUV; // UV координаты grass_block_top.png (min_u, 
 uniform vec4 leavesUV;   // UV координаты oak_leaves.png (min_u, min_v, max_u, max_v)
 uniform bool highlightPass; // Если true — рисуем однотонный контур
 uniform vec3 highlightColor;
+uniform bool previewPass; // Если true — рисуем полупрозрачный блок
+uniform float previewAlpha;
 
 void main() {
     if (highlightPass) {
@@ -55,4 +57,9 @@ void main() {
     vec3 lighting = ambientLight + lightColor * diffuse;
     
     fragColor = vec4(lighting * textureColor.rgb, textureColor.a);
+    
+    if (previewPass) {
+        fragColor.rgb = mix(fragColor.rgb, vec3(1.0, 1.0, 1.0), 0.3); // Добавляем 30% белого
+        fragColor.a *= previewAlpha;
+    }
 }

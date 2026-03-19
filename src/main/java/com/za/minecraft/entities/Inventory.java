@@ -28,7 +28,7 @@ public class Inventory {
         hotbarSlots[selectedSlot] = block;
     }
     
-    public void selectBlockType(BlockType type) {
+    public void selectBlockType(byte type) {
         hotbarSlots[selectedSlot] = new Block(type);
     }
     
@@ -56,25 +56,28 @@ public class Inventory {
     }
     
     // Available block types for building
-    private static final BlockType[] AVAILABLE_BLOCKS = {
+    private static final byte[] AVAILABLE_BLOCKS = {
         BlockType.STONE, BlockType.DIRT, BlockType.GRASS, BlockType.WOOD, BlockType.LEAVES,
         BlockType.OAK_PLANKS, BlockType.COBBLESTONE, BlockType.SAND, BlockType.GRAVEL,
         BlockType.GOLD_ORE, BlockType.IRON_ORE, BlockType.COAL_ORE, BlockType.BOOKSHELF,
-        BlockType.MOSSY_COBBLESTONE, BlockType.OBSIDIAN
+        BlockType.MOSSY_COBBLESTONE, BlockType.OBSIDIAN, BlockType.ASPHALT, BlockType.RUSTY_METAL,
+        BlockType.GLASS, BlockType.BRICKS, BlockType.STONE_BRICKS, BlockType.CYAN_CONCRETE,
+        BlockType.GRAY_CONCRETE, BlockType.WHITE_CONCRETE,
+        BlockType.STONE_SLAB, BlockType.STONE_STAIRS, BlockType.BRICK_SLAB, BlockType.BRICK_STAIRS
     };
     
     // Циклическое переключение между слотами хотбара  
     public void nextBlock() {
         selectedSlot = (selectedSlot + 1) % HOTBAR_SIZE;
         Block currentBlock = getSelectedBlock();
-        String blockName = (currentBlock != null) ? currentBlock.getType().getName() : "EMPTY";
+        String blockName = (currentBlock != null) ? com.za.minecraft.world.blocks.BlockRegistry.getBlock(currentBlock.getType()).getName() : "EMPTY";
         com.za.minecraft.utils.Logger.info("Selected slot %d: %s", selectedSlot, blockName);
     }
     
     public void previousBlock() {
         selectedSlot = (selectedSlot - 1 + HOTBAR_SIZE) % HOTBAR_SIZE;
         Block currentBlock = getSelectedBlock();
-        String blockName = (currentBlock != null) ? currentBlock.getType().getName() : "EMPTY";
+        String blockName = (currentBlock != null) ? com.za.minecraft.world.blocks.BlockRegistry.getBlock(currentBlock.getType()).getName() : "EMPTY";
         com.za.minecraft.utils.Logger.info("Selected slot %d: %s", selectedSlot, blockName);
     }
 }

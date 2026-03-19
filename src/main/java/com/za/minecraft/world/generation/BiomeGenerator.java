@@ -5,53 +5,65 @@ import com.za.minecraft.world.blocks.BlockType;
 public class BiomeGenerator {
     private final SimplexNoise temperatureNoise;
     private final SimplexNoise humidityNoise;
+    private final SimplexNoise detailNoise;
     
     public BiomeGenerator(long seed) {
         this.temperatureNoise = new SimplexNoise(seed + 7000);
         this.humidityNoise = new SimplexNoise(seed + 8000);
+        this.detailNoise = new SimplexNoise(seed + 15000);
     }
     
     public Biome getBiome(int x, int z) {
-        double scale = 0.001;
+        double scale = 0.0005;
         
-        double temperature = temperatureNoise.noise(x * scale, z * scale);
-        double humidity = humidityNoise.noise(x * scale + 1000, z * scale + 1000);
+        double fuzzX = detailNoise.noise(x * 0.01, z * 0.01) * 12.0;
+        double fuzzZ = detailNoise.noise(x * 0.01 + 500, z * 0.01 + 500) * 12.0;
         
-        if (temperature > 0.3) {
-            return Biome.DESERT;
-        } else if (temperature > 0) {
-            return Biome.PLAINS;
-        } else if (humidity > 0) {
-            return Biome.FOREST;
+        double temp = (temperatureNoise.noise((x + fuzzX) * scale, (z + fuzzZ) * scale) + 1.0) / 2.0;
+        double hum = (humidityNoise.noise((x + fuzzX) * scale + 1000, (z + fuzzZ) * scale + 1000) + 1.0) / 2.0;
+        
+        if (temp < 0.3) {
+            if (hum < 0.3) return Biome.TUNDRA;
+            return Biome.TAIGA;
+        } else if (temp < 0.6) {
+            if (hum < 0.3) return Biome.PLAINS;
+            if (hum < 0.7) return Biome.FOREST;
+            return Biome.SWAMP;
         } else {
-            return Biome.PLAINS;
+            if (hum < 0.2) return Biome.DESERT;
+            if (hum < 0.5) return Biome.SAVANNA;
+            return Biome.JUNGLE;
         }
     }
     
     public enum Biome {
-        PLAINS(64, 85, BlockType.GRASS, 0.01),
-        FOREST(66, 88, BlockType.GRASS, 0.15),
-        DESERT(62, 75, BlockType.SAND, 0.001),
-        TAIGA(64, 90, BlockType.GRASS, 0.10),
-        JUNGLE(65, 92, BlockType.GRASS, 0.25),
-        TUNDRA(63, 80, BlockType.GRASS, 0.005),
-        SWAMP(60, 65, BlockType.GRASS, 0.08);
+        PLAINS(64, 10, BlockType.GRASS, 0.05, 1.2),
+        FOREST(68, 20, BlockType.GRASS, 0.40, 0.8),
+        DESERT(62, 8, BlockType.SAND, 0.00, 1.5),
+        TAIGA(72, 40, BlockType.GRASS, 0.30, 0.6),
+        JUNGLE(65, 30, BlockType.GRASS, 0.70, 0.5),
+        TUNDRA(63, 15, BlockType.GRASS, 0.02, 1.0),
+        SWAMP(60, 5, BlockType.GRASS, 0.25, 1.8),
+        SAVANNA(66, 12, BlockType.GRASS, 0.10, 1.3);
         
         private final int baseHeight;
-        private final int maxHeight;
-        private final BlockType surfaceBlock;
+        private final int heightVariation;
+        private final byte surfaceBlock;
         private final double treeDensity;
-        
-        Biome(int baseHeight, int maxHeight, BlockType surfaceBlock, double treeDensity) {
+        private final double erosionFactor;
+
+        Biome(int baseHeight, int heightVariation, byte surfaceBlock, double treeDensity, double erosionFactor) {
             this.baseHeight = baseHeight;
-            this.maxHeight = maxHeight;
+            this.heightVariation = heightVariation;
             this.surfaceBlock = surfaceBlock;
             this.treeDensity = treeDensity;
+            this.erosionFactor = erosionFactor;
         }
-        
+
         public int getBaseHeight() { return baseHeight; }
-        public int getMaxHeight() { return maxHeight; }
-        public BlockType getSurfaceBlock() { return surfaceBlock; }
+        public int getHeightVariation() { return heightVariation; }
+        public byte getSurfaceBlock() { return surfaceBlock; }
         public double getTreeDensity() { return treeDensity; }
+        public double getErosionFactor() { return erosionFactor; }
     }
 }

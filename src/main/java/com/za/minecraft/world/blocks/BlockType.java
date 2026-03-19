@@ -1,58 +1,33 @@
 package com.za.minecraft.world.blocks;
 
-public enum BlockType {
-    AIR(0, "air", false, false),
-    GRASS(1, "grass", true, false),
-    DIRT(2, "dirt", true, false),
-    STONE(3, "stone", true, false),
-    WOOD(4, "wood", true, false),
-    LEAVES(5, "leaves", true, true),
-    OAK_PLANKS(6, "oak_planks", true, false),
-    COBBLESTONE(7, "cobblestone", true, false),
-    BEDROCK(8, "bedrock", true, false),
-    SAND(9, "sand", true, false),
-    GRAVEL(10, "gravel", true, false),
-    GOLD_ORE(11, "gold_ore", true, false),
-    IRON_ORE(12, "iron_ore", true, false),
-    COAL_ORE(13, "coal_ore", true, false),
-    BOOKSHELF(14, "bookshelf", true, false),
-    MOSSY_COBBLESTONE(15, "mossy_cobblestone", true, false),
-    OBSIDIAN(16, "obsidian", true, false);
-    
-    private final int id;
-    private final String name;
-    private final boolean solid;
-    private final boolean transparent;
-    
-    BlockType(int id, String name, boolean solid, boolean transparent) {
-        this.id = id;
-        this.name = name;
-        this.solid = solid;
-        this.transparent = transparent;
-    }
-    
-    public int getId() {
-        return id;
-    }
-    
-    public String getName() {
-        return name;
-    }
-    
-    public boolean isSolid() {
-        return solid;
-    }
-    
-    public boolean isTransparent() {
-        return transparent;
-    }
-    
-    public static BlockType fromId(int id) {
-        for (BlockType type : values()) {
-            if (type.id == id) {
-                return type;
-            }
-        }
-        return AIR;
-    }
+public class BlockType {
+    public static final byte AIR = 0;
+    public static final byte GRASS = 1;
+    public static final byte DIRT = 2;
+    public static final byte STONE = 3;
+    public static final byte WOOD = 4;
+    public static final byte LEAVES = 5;
+    public static final byte OAK_PLANKS = 6;
+    public static final byte COBBLESTONE = 7;
+    public static final byte BEDROCK = 8;
+    public static final byte SAND = 9;
+    public static final byte GRAVEL = 10;
+    public static final byte GOLD_ORE = 11;
+    public static final byte IRON_ORE = 12;
+    public static final byte COAL_ORE = 13;
+    public static final byte BOOKSHELF = 14;
+    public static final byte MOSSY_COBBLESTONE = 15;
+    public static final byte OBSIDIAN = 16;
+    public static final byte ASPHALT = 17;
+    public static final byte RUSTY_METAL = 18;
+    public static final byte GLASS = 19;
+    public static final byte BRICKS = 20;
+    public static final byte STONE_BRICKS = 21;
+    public static final byte CYAN_CONCRETE = 22;
+    public static final byte GRAY_CONCRETE = 23;
+    public static final byte WHITE_CONCRETE = 24;
+    public static final byte STONE_SLAB = 25;
+    public static final byte STONE_STAIRS = 26;
+    public static final byte BRICK_SLAB = 27;
+    public static final byte BRICK_STAIRS = 28;
 }

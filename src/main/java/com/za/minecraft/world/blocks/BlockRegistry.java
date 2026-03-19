@@ -6,75 +6,73 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class BlockRegistry {
-    private static final Map<BlockType, BlockTextures> BLOCK_TEXTURES = new HashMap<>();
-    
+    private static final Map<Byte, BlockDefinition> BLOCKS = new HashMap<>();
+
     static {
-        // Base path for minecraft textures
         String base = "minecraft/textures/block/";
         
-        // Simple blocks (all faces same) - using existing textures
-        BLOCK_TEXTURES.put(BlockType.DIRT, new BlockTextures(base + "dirt.png"));
-        BLOCK_TEXTURES.put(BlockType.STONE, new BlockTextures(base + "stone.png"));
-        BLOCK_TEXTURES.put(BlockType.LEAVES, new BlockTextures(base + "oak_leaves.png"));
-        BLOCK_TEXTURES.put(BlockType.OAK_PLANKS, new BlockTextures(base + "oak_planks.png"));
-        BLOCK_TEXTURES.put(BlockType.COBBLESTONE, new BlockTextures(base + "cobblestone.png"));
-        BLOCK_TEXTURES.put(BlockType.BEDROCK, new BlockTextures(base + "bedrock.png"));
-        BLOCK_TEXTURES.put(BlockType.SAND, new BlockTextures(base + "sand.png"));
-        BLOCK_TEXTURES.put(BlockType.GRAVEL, new BlockTextures(base + "gravel.png"));
-        BLOCK_TEXTURES.put(BlockType.GOLD_ORE, new BlockTextures(base + "gold_ore.png"));
-        BLOCK_TEXTURES.put(BlockType.IRON_ORE, new BlockTextures(base + "iron_ore.png"));
-        BLOCK_TEXTURES.put(BlockType.COAL_ORE, new BlockTextures(base + "coal_ore.png"));
-        BLOCK_TEXTURES.put(BlockType.MOSSY_COBBLESTONE, new BlockTextures(base + "mossy_cobblestone.png"));
-        BLOCK_TEXTURES.put(BlockType.OBSIDIAN, new BlockTextures(base + "obsidian.png"));
+        registerBlock(new BlockDefinition(BlockType.AIR, "air", false, false));
+        registerBlock(new BlockDefinition(BlockType.GRASS, "grass", true, false).setTextures(new BlockTextures(base + "grass_block_top.png", base + "dirt.png", base + "grass_block_side.png")));
+        registerBlock(new BlockDefinition(BlockType.DIRT, "dirt", true, false).setTextures(new BlockTextures(base + "dirt.png")));
+        registerBlock(new BlockDefinition(BlockType.STONE, "stone", true, false).setTextures(new BlockTextures(base + "stone.png")));
+        registerBlock(new BlockDefinition(BlockType.WOOD, "wood", true, false).setTextures(new BlockTextures(base + "oak_log_top.png", base + "oak_log_top.png", base + "oak_log.png")));
+        registerBlock(new BlockDefinition(BlockType.LEAVES, "leaves", true, true).setTextures(new BlockTextures(base + "oak_leaves.png")));
+        registerBlock(new BlockDefinition(BlockType.OAK_PLANKS, "oak_planks", true, false).setTextures(new BlockTextures(base + "oak_planks.png")));
+        registerBlock(new BlockDefinition(BlockType.COBBLESTONE, "cobblestone", true, false).setTextures(new BlockTextures(base + "cobblestone.png")));
+        registerBlock(new BlockDefinition(BlockType.BEDROCK, "bedrock", true, false).setTextures(new BlockTextures(base + "bedrock.png")));
+        registerBlock(new BlockDefinition(BlockType.SAND, "sand", true, false).setTextures(new BlockTextures(base + "sand.png")));
+        registerBlock(new BlockDefinition(BlockType.GRAVEL, "gravel", true, false).setTextures(new BlockTextures(base + "gravel.png")));
+        registerBlock(new BlockDefinition(BlockType.GOLD_ORE, "gold_ore", true, false).setTextures(new BlockTextures(base + "gold_ore.png")));
+        registerBlock(new BlockDefinition(BlockType.IRON_ORE, "iron_ore", true, false).setTextures(new BlockTextures(base + "iron_ore.png")));
+        registerBlock(new BlockDefinition(BlockType.COAL_ORE, "coal_ore", true, false).setTextures(new BlockTextures(base + "coal_ore.png")));
+        registerBlock(new BlockDefinition(BlockType.BOOKSHELF, "bookshelf", true, false).setTextures(new BlockTextures(base + "oak_planks.png", base + "oak_planks.png", base + "bookshelf.png")));
+        registerBlock(new BlockDefinition(BlockType.MOSSY_COBBLESTONE, "mossy_cobblestone", true, false).setTextures(new BlockTextures(base + "mossy_cobblestone.png")));
+        registerBlock(new BlockDefinition(BlockType.OBSIDIAN, "obsidian", true, false).setTextures(new BlockTextures(base + "obsidian.png")));
+        registerBlock(new BlockDefinition(BlockType.ASPHALT, "asphalt", true, false).setTextures(new BlockTextures(base + "gray_concrete.png")));
+        registerBlock(new BlockDefinition(BlockType.RUSTY_METAL, "rusty_metal", true, false).setTextures(new BlockTextures(base + "oxidized_copper.png")));
+        registerBlock(new BlockDefinition(BlockType.GLASS, "glass", true, true).setTextures(new BlockTextures(base + "glass.png")));
+        registerBlock(new BlockDefinition(BlockType.BRICKS, "bricks", true, false).setTextures(new BlockTextures(base + "bricks.png")));
+        registerBlock(new BlockDefinition(BlockType.STONE_BRICKS, "stone_bricks", true, false).setTextures(new BlockTextures(base + "stone_bricks.png")));
+        registerBlock(new BlockDefinition(BlockType.CYAN_CONCRETE, "cyan_concrete", true, false).setTextures(new BlockTextures(base + "cyan_concrete.png")));
+        registerBlock(new BlockDefinition(BlockType.GRAY_CONCRETE, "gray_concrete", true, false).setTextures(new BlockTextures(base + "gray_concrete.png")));
+        registerBlock(new BlockDefinition(BlockType.WHITE_CONCRETE, "white_concrete", true, false).setTextures(new BlockTextures(base + "white_concrete.png")));
         
-        // Complex blocks with different faces
-        BLOCK_TEXTURES.put(BlockType.GRASS, new BlockTextures(
-            base + "grass_block_top.png",    // top
-            base + "dirt.png",               // bottom
-            base + "grass_block_side.png"    // sides
-        ));
-        
-        BLOCK_TEXTURES.put(BlockType.WOOD, new BlockTextures(
-            base + "oak_log_top.png",        // top
-            base + "oak_log_top.png",        // bottom  
-            base + "oak_log.png"             // sides
-        ));
-        
-        // Bookshelf - special case with different top/bottom/sides
-        BLOCK_TEXTURES.put(BlockType.BOOKSHELF, new BlockTextures(
-            base + "oak_planks.png",         // top
-            base + "oak_planks.png",         // bottom
-            base + "bookshelf.png"           // sides
-        ));
+        registerBlock(new SlabBlockDefinition(BlockType.STONE_SLAB, "stone_slab", true, true).setTextures(new BlockTextures(base + "stone.png")));
+        registerBlock(new StairsBlockDefinition(BlockType.STONE_STAIRS, "stone_stairs", true, true).setTextures(new BlockTextures(base + "stone.png")));
+        registerBlock(new SlabBlockDefinition(BlockType.BRICK_SLAB, "brick_slab", true, true).setTextures(new BlockTextures(base + "bricks.png")));
+        registerBlock(new StairsBlockDefinition(BlockType.BRICK_STAIRS, "brick_stairs", true, true).setTextures(new BlockTextures(base + "bricks.png")));
     }
-    
-    public static BlockTextures getTextures(BlockType type) {
-        return BLOCK_TEXTURES.get(type);
+
+    public static void registerBlock(BlockDefinition def) {
+        BLOCKS.put(def.getId(), def);
     }
-    
-    public static void registerBlock(BlockType type, BlockTextures textures) {
-        BLOCK_TEXTURES.put(type, textures);
+
+    public static BlockDefinition getBlock(byte id) {
+        return BLOCKS.getOrDefault(id, BLOCKS.get(BlockType.AIR));
     }
-    
-    // Helper methods for easy registration
-    public static void registerSimpleBlock(BlockType type, String texture) {
-        registerBlock(type, new BlockTextures(texture));
-    }
-    
-    public static void registerTopBottomSidesBlock(BlockType type, String top, String bottom, String sides) {
-        registerBlock(type, new BlockTextures(top, bottom, sides));
+
+    public static BlockTextures getTextures(byte id) {
+        BlockDefinition def = BLOCKS.get(id);
+        return def != null ? def.getTextures() : null;
     }
 
     public static Set<String> allTextureKeys() {
         Set<String> keys = new HashSet<>();
-        for (BlockTextures t : BLOCK_TEXTURES.values()) {
-            keys.add(t.getTop());
-            keys.add(t.getBottom());
-            keys.add(t.getNorth());
-            keys.add(t.getSouth());
-            keys.add(t.getEast());
-            keys.add(t.getWest());
+        for (BlockDefinition def : BLOCKS.values()) {
+            BlockTextures t = def.getTextures();
+            if (t != null) {
+                keys.add(t.getTop());
+                keys.add(t.getBottom());
+                keys.add(t.getNorth());
+                keys.add(t.getSouth());
+                keys.add(t.getEast());
+                keys.add(t.getWest());
+            }
         }
         return keys;
+    }
+
+    public static Map<Byte, BlockDefinition> getRegisteredBlocks() {
+        return BLOCKS;
     }
 }

@@ -1,5 +1,6 @@
 package com.za.minecraft.engine.input;
 
+import com.za.minecraft.engine.core.GameLoop;
 import com.za.minecraft.engine.core.Window;
 import com.za.minecraft.engine.graphics.Camera;
 import com.za.minecraft.entities.Player;
@@ -7,6 +8,7 @@ import com.za.minecraft.world.World;
 import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.physics.Raycast;
 import com.za.minecraft.world.physics.RaycastResult;
 import org.joml.Vector2f;
@@ -31,8 +33,8 @@ public class InputManager {
     private boolean firstMouse = true;
     private boolean leftMousePressed = false;
     private boolean rightMousePressed = false;
-    private boolean qKeyPressed = false;
-    private boolean eKeyPressed = false;
+    private boolean rKeyPressed = false;
+    private boolean verticalMode = false;
     
     public InputManager() {
         previousPos = new Vector2f();
@@ -57,13 +59,61 @@ public class InputManager {
         });
         
         glfwSetMouseButtonCallback(window.getWindowHandle(), (windowHandle, button, action, mode) -> {
-            leftButtonPressed = button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS;
-            rightButtonPressed = button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS;
+            if (GameLoop.getInstance().isInventoryOpen()) {
+                if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) {
+                    handleInventoryClick(window);
+                }
+            } else {
+                leftButtonPressed = button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS;
+                rightButtonPressed = button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS;
+            }
+        });
+        
+        glfwSetScrollCallback(window.getWindowHandle(), (windowHandle, xoffset, yoffset) -> {
+            Player p = GameLoop.getInstance().getPlayer();
+            if (p != null) {
+                if (yoffset > 0) p.getInventory().previousBlock();
+                else if (yoffset < 0) p.getInventory().nextBlock();
+            }
         });
         
         enableMouseCapture(window);
     }
     
+    private void handleInventoryClick(Window window) {
+        // Логика клика по сетке инвентаря
+        int padding = 50;
+        int slotSize = 40;
+        int spacing = 10;
+        int columns = (window.getWidth() - padding * 2) / (slotSize + spacing);
+        
+        float mx = currentPos.x;
+        float my = currentPos.y;
+        
+        var blocks = BlockRegistry.getRegisteredBlocks();
+        int index = 0;
+        for (var entry : blocks.entrySet()) {
+            if (entry.getValue().getId() == BlockType.AIR) continue;
+            
+            int col = index % columns;
+            int row = index / columns;
+            
+            int x = padding + col * (slotSize + spacing);
+            int y = padding + row * (slotSize + spacing);
+            
+            if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
+                // Кликнули по блоку! Кладем его в текущий слот хотбара
+                Player p = GameLoop.getInstance().getPlayer();
+                if (p != null) {
+                    p.getInventory().setSelectedBlock(new Block(entry.getKey()));
+                    com.za.minecraft.utils.Logger.info("Picked block from inventory: %s", entry.getValue().getName());
+                }
+                return;
+            }
+            index++;
+        }
+    }
+
     public void enableMouseCapture(Window window) {
         glfwSetInputMode(window.getWindowHandle(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         firstMouse = true;
@@ -74,59 +124,48 @@ public class InputManager {
     }
     
     public RaycastResult input(Window window, Camera camera, Player player, float deltaTime, com.za.minecraft.engine.graphics.Renderer renderer, World world, com.za.minecraft.network.GameClient networkClient) {
+        // Клавиши 1-9 доступны всегда (даже если инвентарь открыт, но GameLoop должен вызывать этот метод)
+        for (int i = 0; i < 9; i++) {
+            if (window.isKeyPressed(GLFW_KEY_1 + i)) {
+                player.getInventory().setSelectedSlot(i);
+                break;
+            }
+        }
+
+        if (GameLoop.getInstance().isInventoryOpen()) {
+            return new RaycastResult();
+        }
+
         Vector2f rotVec = new Vector2f();
         
         if (firstMouse) {
             previousPos.x = currentPos.x;
             previousPos.y = currentPos.y;
             firstMouse = false;
-            // Пропускаем первый кадр движения мыши полностью
             return new RaycastResult();
         }
         
         if (inWindow) {
             double deltaX = currentPos.x - previousPos.x;
             double deltaY = currentPos.y - previousPos.y;
-            
-            if (deltaX != 0) {
-                rotVec.y = (float) -deltaX;
-            }
-            if (deltaY != 0) {
-                rotVec.x = (float) -deltaY;
-            }
+            rotVec.y = (float) -deltaX; // Restore minus
+            rotVec.x = (float) -deltaY; // Restore minus
         }
-        
+
         previousPos.x = currentPos.x;
         previousPos.y = currentPos.y;
-        
-        camera.moveRotation(
-            rotVec.x * MOUSE_SENSITIVITY,
-            rotVec.y * MOUSE_SENSITIVITY,
-            0
-        );
+
+        camera.moveRotation(rotVec.x * MOUSE_SENSITIVITY, rotVec.y * MOUSE_SENSITIVITY, 0);
         
         Vector2f moveVector = new Vector2f();
-        
-        if (window.isKeyPressed(GLFW_KEY_W)) {
-            moveVector.y = 1;
-        }
-        if (window.isKeyPressed(GLFW_KEY_S)) {
-            moveVector.y = -1;
-        }
-        if (window.isKeyPressed(GLFW_KEY_A)) {
-            moveVector.x = -1;
-        }
-        if (window.isKeyPressed(GLFW_KEY_D)) {
-            moveVector.x = 1;
-        }
+        if (window.isKeyPressed(GLFW_KEY_W)) moveVector.y = 1;
+        if (window.isKeyPressed(GLFW_KEY_S)) moveVector.y = -1;
+        if (window.isKeyPressed(GLFW_KEY_A)) moveVector.x = -1;
+        if (window.isKeyPressed(GLFW_KEY_D)) moveVector.x = 1;
         
         float moveY = 0;
-        if (window.isKeyPressed(GLFW_KEY_SPACE)) {
-            moveY = 1;
-        }
-        if (window.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
-            moveY = -1;
-        }
+        if (window.isKeyPressed(GLFW_KEY_SPACE)) moveY = 1;
+        if (window.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) moveY = -1;
         
         boolean sprinting = window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL);
         float baseSpeed = player.isFlying() ? FLY_SPEED : MOVE_SPEED;
@@ -134,187 +173,133 @@ public class InputManager {
 
         if (moveVector.length() > 0) {
             moveVector.normalize();
-            
-            // Инвертируем yaw, поскольку Camera.getViewMatrix() использует -rotation.y
             float yaw = -camera.getRotation().y;
-            
-            // Стандартные формулы FPS камеры
-            float forwardX = (float) Math.sin(yaw);
-            float forwardZ = -(float) Math.cos(yaw);
-            
-            // Right vector (перпендикуляр к forward)
-            float rightX = (float) Math.cos(yaw);
-            float rightZ = (float) Math.sin(yaw);
-            
-            // Calculate movement direction
-            float moveX = forwardX * moveVector.y + rightX * moveVector.x;
-            float moveZ = forwardZ * moveVector.y + rightZ * moveVector.x;
-            
-            // Normalize and apply speed
-            float length = (float) Math.sqrt(moveX * moveX + moveZ * moveZ);
-            if (length > 0) {
-                moveX /= length;
-                moveZ /= length;
-            }
-            
-            // Apply acceleration for slight inertia
+            float moveX = (float)Math.sin(yaw) * moveVector.y + (float)Math.cos(yaw) * moveVector.x;
+            float moveZ = -(float)Math.cos(yaw) * moveVector.y + (float)Math.sin(yaw) * moveVector.x;
             float targetVx = moveX * baseSpeed;
             float targetVz = moveZ * baseSpeed;
             float accelGain = player.isFlying() ? 24.0f : 18.0f;
-            float ax = (targetVx - player.getVelocity().x) * accelGain * deltaTime;
-            float az = (targetVz - player.getVelocity().z) * accelGain * deltaTime;
-            player.applyHorizontalAcceleration(ax, az, baseSpeed);
+            player.applyHorizontalAcceleration((targetVx - player.getVelocity().x) * accelGain * deltaTime, (targetVz - player.getVelocity().z) * accelGain * deltaTime, baseSpeed);
         } else {
             float decelGain = player.isFlying() ? 20.0f : 15.0f;
-            float ax = -player.getVelocity().x * decelGain * deltaTime;
-            float az = -player.getVelocity().z * decelGain * deltaTime;
-            player.applyHorizontalAcceleration(ax, az, baseSpeed);
+            player.applyHorizontalAcceleration(-player.getVelocity().x * decelGain * deltaTime, -player.getVelocity().z * decelGain * deltaTime, baseSpeed);
         }
         
         if (player.isFlying()) {
-            float currentVy = player.getVelocity().y;
-            float targetVy = moveY * baseSpeed;
-            float vyGain = 25.0f;
-            float ay = (targetVy - currentVy) * vyGain * deltaTime;
-            player.addVelocity(0, ay, 0);
+            player.addVelocity(0, (moveY * baseSpeed - player.getVelocity().y) * 25.0f * deltaTime, 0);
         } else if (moveY > 0) {
             player.jump();
         }
         
         boolean fKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_F);
-        if (fKeyCurrentlyPressed && !fKeyPressed) {
-            player.setFlying(!player.isFlying());
-        }
+        if (fKeyCurrentlyPressed && !fKeyPressed) player.setFlying(!player.isFlying());
         fKeyPressed = fKeyCurrentlyPressed;
         
+        boolean rKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_R);
+        if (rKeyCurrentlyPressed && !rKeyPressed) verticalMode = !verticalMode;
+        rKeyPressed = rKeyCurrentlyPressed;
+        
         boolean gKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_G);
-        if (gKeyCurrentlyPressed && !gKeyPressed) {
-            renderer.toggleFXAA();
-        }
+        if (gKeyCurrentlyPressed && !gKeyPressed) renderer.toggleFXAA();
         gKeyPressed = gKeyCurrentlyPressed;
         
-        // Переключение блоков в инвентаре
-        boolean qKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_Q);
-        if (qKeyCurrentlyPressed && !qKeyPressed) {
-            player.getInventory().previousBlock();
-        }
-        qKeyPressed = qKeyCurrentlyPressed;
+        Vector3f lookDir = new Vector3f(0, 0, -1).rotateX(camera.getRotation().x).rotateY(camera.getRotation().y).normalize();
+        RaycastResult raycast = Raycast.raycast(world, camera.getPosition(), lookDir);
         
-        boolean eKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_E);
-        if (eKeyCurrentlyPressed && !eKeyPressed) {
-            player.getInventory().nextBlock();
-        }
-        eKeyPressed = eKeyCurrentlyPressed;
-        
-        // Клавиши 1-9 для выбора слота хотбара
-        for (int i = 0; i < 9; i++) {
-            if (window.isKeyPressed(GLFW_KEY_1 + i)) {
-                player.getInventory().setSelectedSlot(i);
-                break; // Выбираем только первую нажатую клавишу
+        boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
+        if (lm && !leftMousePressed && raycast.isHit()) {
+            world.setBlock(raycast.getBlockPos(), new Block(BlockType.AIR));
+            if (networkClient != null && networkClient.isConnected()) {
+                BlockPos pos = raycast.getBlockPos();
+                networkClient.sendBlockUpdate(pos.x(), pos.y(), pos.z(), BlockType.AIR);
             }
         }
+        leftMousePressed = lm;
         
-        // Raycast для определения блока, на который смотрит игрок
-        Vector3f cameraPos = camera.getPosition();
-        Vector3f cameraRot = camera.getRotation();
-        
-        // Направление взгляда: поворачиваем вектор (0,0,-1) камерой
-        Vector3f lookDirection = new Vector3f(0, 0, -1)
-            .rotateX(cameraRot.x)
-            .rotateY(cameraRot.y)
-            .normalize();
-        
-        RaycastResult raycast = Raycast.raycast(world, cameraPos, lookDirection);
-        
-        // Ломание блоков (левая кнопка мыши)
-        boolean leftMouseCurrentlyPressed = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
-        if (leftMouseCurrentlyPressed && !leftMousePressed) {
-            com.za.minecraft.utils.Logger.info("Left click detected");
-            if (raycast.isHit()) {
-                com.za.minecraft.utils.Logger.info("Breaking block at: %s", raycast.getBlockPos());
-                world.setBlock(raycast.getBlockPos(), new Block(BlockType.AIR));
+        boolean rm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT);
+        if (raycast.isHit()) {
+            Block selected = player.getInventory().getSelectedBlock();
+            if (selected != null) {
+                Vector3f normal = raycast.getNormal();
+                BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
                 
-                // Синхронизация по сети
-                if (networkClient != null && networkClient.isConnected()) {
-                    BlockPos pos = raycast.getBlockPos();
-                    networkClient.sendBlockUpdate(pos.x(), pos.y(), pos.z(), BlockType.AIR);
-                }
-            } else {
-                com.za.minecraft.utils.Logger.info("No block hit by raycast. Camera pos: %.2f, %.2f, %.2f. Direction: %.2f, %.2f, %.2f", 
-                    cameraPos.x, cameraPos.y, cameraPos.z, lookDirection.x, lookDirection.y, lookDirection.z);
-            }
-        }
-        leftMousePressed = leftMouseCurrentlyPressed;
-        
-        // Установка блоков (правая кнопка мыши)
-        boolean rightMouseCurrentlyPressed = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT);
-        if (rightMouseCurrentlyPressed && !rightMousePressed && raycast.isHit()) {
-            // Размещаем блок на противоположной стороне от точки попадания
-            Vector3f normal = raycast.getNormal();
-            BlockPos hitPos = raycast.getBlockPos();
-            BlockPos placePos = new BlockPos(
-                hitPos.x() + (int)normal.x,
-                hitPos.y() + (int)normal.y,
-                hitPos.z() + (int)normal.z
-            );
-            
-            com.za.minecraft.utils.Logger.info("Placing block: hit=(%d,%d,%d), normal=(%.1f,%.1f,%.1f), place=(%d,%d,%d)", 
-                hitPos.x(), hitPos.y(), hitPos.z(), normal.x, normal.y, normal.z, placePos.x(), placePos.y(), placePos.z());
-            
-            // Проверяем, что позиция не занята игроком
-            if (!isPlayerAt(player, placePos)) {
-                com.za.minecraft.world.blocks.Block selected = player.getInventory().getSelectedBlock();
-                // Determine axis from normal for orientation-aware blocks (e.g., WOOD logs)
-                com.za.minecraft.world.blocks.Block.Axis axis;
-                if (Math.abs(normal.x) > 0.5f) axis = com.za.minecraft.world.blocks.Block.Axis.X;
-                else if (Math.abs(normal.y) > 0.5f) axis = com.za.minecraft.world.blocks.Block.Axis.Y;
-                else axis = com.za.minecraft.world.blocks.Block.Axis.Z;
-                // Apply axis to any block (renderer will use it when needed)
-                selected = new com.za.minecraft.world.blocks.Block(selected.getType(), axis);
-                world.setBlock(placePos, selected);
+                byte meta = calculateMetadata(selected.getType(), normal, raycast.getHitPoint(), camera);
+                Block previewBlock = new Block(selected.getType(), meta);
                 
-                // Синхронизация по сети
-                if (networkClient != null && networkClient.isConnected()) {
-                    networkClient.sendBlockUpdate(placePos.x(), placePos.y(), placePos.z(), selected.getType());
+                if (!isPlayerAt(player, pPos)) {
+                    if (needsPreview(selected.getType())) {
+                        renderer.setPreviewBlock(pPos, previewBlock);
+                    } else {
+                        renderer.setPreviewBlock(null, null);
+                    }
+                    
+                    if (rm && !rightMousePressed) {
+                        world.setBlock(pPos, previewBlock);
+                        if (networkClient != null && networkClient.isConnected()) {
+                            networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), previewBlock.getType());
+                        }
+                    }
+                } else {
+                    renderer.setPreviewBlock(null, null);
                 }
             }
+        } else {
+            renderer.setPreviewBlock(null, null);
         }
-        rightMousePressed = rightMouseCurrentlyPressed;
+        rightMousePressed = rm;
         
-        camera.setPosition(
-            player.getPosition().x,
-            player.getPosition().y + 1.62f,
-            player.getPosition().z
-        );
-        
+        camera.setPosition(player.getPosition().x, player.getPosition().y + 1.62f, player.getPosition().z);
         return raycast;
     }
     
+    private boolean needsPreview(byte type) {
+        return type == BlockType.STONE_SLAB || 
+               type == BlockType.BRICK_SLAB || 
+               type == BlockType.STONE_STAIRS || 
+               type == BlockType.BRICK_STAIRS ||
+               type == BlockType.WOOD;
+    }
+
+    private byte calculateMetadata(byte type, Vector3f normal, Vector3f hitPoint, Camera camera) {
+        float yaw = camera.getRotation().y;
+        float deg = (float) Math.toDegrees(yaw) % 360;
+        if (deg < 0) deg += 360;
+        
+        // Correct Mapping based on Camera.movePosition: 
+        // 0 is North (-Z), 90 is West (-X), 180 is South (+Z), 270 is East (+X)
+        byte viewDir;
+        if (deg >= 45 && deg < 135) viewDir = Block.DIR_WEST;
+        else if (deg >= 135 && deg < 225) viewDir = Block.DIR_SOUTH;
+        else if (deg >= 225 && deg < 315) viewDir = Block.DIR_EAST;
+        else viewDir = Block.DIR_NORTH;
+
+        if (type == BlockType.STONE_SLAB || type == BlockType.BRICK_SLAB) {
+            if (verticalMode) {
+                // Если мы в вертикальном режиме, возвращаем сторону взгляда
+                // Чтобы блок был вплотную к тому, на который мы смотрим
+                return viewDir;
+            }
+            
+            if (Math.abs(normal.y) > 0.5f) {
+                return normal.y > 0 ? Block.DIR_DOWN : Block.DIR_UP;
+            }
+            float relativeY = hitPoint.y - (float)Math.floor(hitPoint.y);
+            return relativeY > 0.5f ? Block.DIR_UP : Block.DIR_DOWN;
+        }
+        
+        if (type == BlockType.STONE_STAIRS || type == BlockType.BRICK_STAIRS) {
+            // Для ступенек: возвращаем сторону взгляда, чтобы они смотрели в сторону взгляда
+            // (тогда ступеньки будут повернуты к игроку)
+            return viewDir;
+        }
+
+        if (Math.abs(normal.x) > 0.5f) return normal.x > 0 ? Block.DIR_EAST : Block.DIR_WEST;
+        if (Math.abs(normal.y) > 0.5f) return normal.y > 0 ? Block.DIR_UP : Block.DIR_DOWN;
+        return normal.z > 0 ? Block.DIR_SOUTH : Block.DIR_NORTH;
+    }
+    
     private boolean isPlayerAt(Player player, BlockPos blockPos) {
-        // Проверяем, пересекается ли bounding box игрока с блоком
-        Vector3f playerPos = player.getPosition();
-        float playerWidth = 0.6f;
-        float playerHeight = 1.8f;
-        
-        // Границы игрока
-        float playerMinX = playerPos.x - playerWidth / 2;
-        float playerMaxX = playerPos.x + playerWidth / 2;
-        float playerMinY = playerPos.y;
-        float playerMaxY = playerPos.y + playerHeight;
-        float playerMinZ = playerPos.z - playerWidth / 2;
-        float playerMaxZ = playerPos.z + playerWidth / 2;
-        
-        // Границы блока
-        float blockMinX = blockPos.x();
-        float blockMaxX = blockPos.x() + 1;
-        float blockMinY = blockPos.y();
-        float blockMaxY = blockPos.y() + 1;
-        float blockMinZ = blockPos.z();
-        float blockMaxZ = blockPos.z() + 1;
-        
-        // Проверка пересечения AABB
-        return !(playerMaxX <= blockMinX || playerMinX >= blockMaxX ||
-                 playerMaxY <= blockMinY || playerMinY >= blockMaxY ||
-                 playerMaxZ <= blockMinZ || playerMinZ >= blockMaxZ);
+        Vector3f p = player.getPosition();
+        return !(p.x + 0.3f <= blockPos.x() || p.x - 0.3f >= blockPos.x() + 1 || p.y + 1.8f <= blockPos.y() || p.y >= blockPos.y() + 1 || p.z + 0.3f <= blockPos.z() || p.z - 0.3f >= blockPos.z() + 1);
     }
 }

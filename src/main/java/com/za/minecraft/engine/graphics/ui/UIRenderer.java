@@ -131,7 +131,7 @@ public class UIRenderer {
         glDisable(GL_BLEND);
     }
     
-    public void renderHotbar(int screenWidth, int screenHeight) {
+    public void renderHotbar(int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
         if (hotbar == null) return;
         
         glDisable(GL_DEPTH_TEST);
@@ -146,8 +146,49 @@ public class UIRenderer {
         
         renderHotbarSelection(screenWidth, screenHeight);
         
+        renderHotbarItems(screenWidth, screenHeight, atlas);
+        
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
+    }
+    
+    private void renderHotbarItems(int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
+        atlas.bind(); // Биндим атлас с текстурами блоков
+        
+        float slotSizePx = 16.0f * Hotbar.HOTBAR_SCALE; // Размер иконки внутри слота
+        
+        for (int i = 0; i < Hotbar.HOTBAR_SLOTS; i++) {
+            com.za.minecraft.world.blocks.Block block = hotbar.getBlockInSlot(i);
+            if (block == null || block.isAir()) continue;
+            
+            // Получаем UV координаты текстуры (берем верхнюю грань - face 4, или переднюю - 0)
+            float[] uv = com.za.minecraft.world.blocks.BlockTextureMapper.uvFor(block, 0, atlas);
+            
+            // X, Y центра слота
+            int slotX = hotbar.getSlotScreenX(screenWidth, i);
+            int slotY = hotbar.getSlotScreenY(screenHeight);
+            
+            float scaleX = slotSizePx / screenWidth;
+            float scaleY = slotSizePx / screenHeight;
+            
+            float posX = (2.0f * slotX / screenWidth) - 1.0f + scaleX;
+            float posY = 1.0f - (2.0f * slotY / screenHeight) - scaleY;
+            
+            uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+            uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+            
+            float uMin = Math.min(uv[0], uv[4]);
+            float vMin = Math.min(uv[1], uv[5]);
+            float uMax = Math.max(uv[0], uv[4]);
+            float vMax = Math.max(uv[1], uv[5]);
+            
+            uiShader.setUniform("uvOffset", uMin, vMin, 0.0f, 0.0f);
+            uiShader.setUniform("uvScale", uMax - uMin, vMax - vMin, 0.0f, 0.0f);
+            
+            glBindVertexArray(quadVAO);
+            glDrawElements(org.lwjgl.opengl.GL11.GL_TRIANGLES, QUAD_INDICES.length, org.lwjgl.opengl.GL11.GL_UNSIGNED_INT, 0);
+        }
+        glBindVertexArray(0);
     }
     
     public void renderPauseMenu(int screenWidth, int screenHeight) {
@@ -287,6 +328,68 @@ public class UIRenderer {
         glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+    }
+    
+    public void renderInventory(int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
+        // 1. Темный фон
+        renderDarkenedBackground();
+        
+        uiShader.use();
+        uiShader.setInt("useTexture", 1);
+        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+        atlas.bind();
+        
+        // 2. Сетка блоков
+        int padding = 50;
+        int slotSize = 40;
+        int spacing = 10;
+        int columns = (screenWidth - padding * 2) / (slotSize + spacing);
+        
+        var blocks = com.za.minecraft.world.blocks.BlockRegistry.getRegisteredBlocks();
+        int index = 0;
+        
+        for (var entry : blocks.entrySet()) {
+            if (entry.getValue().getId() == com.za.minecraft.world.blocks.BlockType.AIR) continue;
+            
+            int col = index % columns;
+            int row = index / columns;
+            
+            int x = padding + col * (slotSize + spacing);
+            int y = padding + row * (slotSize + spacing);
+            
+            // Отрисовка иконки блока
+            float[] uv = com.za.minecraft.world.blocks.BlockTextureMapper.uvFor(new com.za.minecraft.world.blocks.Block(entry.getKey()), 0, atlas);
+            
+            float scaleX = (float)slotSize / screenWidth;
+            float scaleY = (float)slotSize / screenHeight;
+            float posX = (2.0f * (x + slotSize/2) / screenWidth) - 1.0f;
+            float posY = 1.0f - (2.0f * (y + slotSize/2) / screenHeight);
+            
+            uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+            uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+            
+            float uMin = Math.min(uv[0], uv[4]);
+            float vMin = Math.min(uv[1], uv[5]);
+            float uMax = Math.max(uv[0], uv[4]);
+            float vMax = Math.max(uv[1], uv[5]);
+            uiShader.setUniform("uvOffset", uMin, vMin, 0.0f, 0.0f);
+            uiShader.setUniform("uvScale", uMax - uMin, vMax - vMin, 0.0f, 0.0f);
+            
+            glBindVertexArray(quadVAO);
+            glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+            
+            index++;
+        }
+        
+        // 3. Также рисуем хотбар внизу для наглядности
+        renderHotbar(screenWidth, screenHeight, atlas);
+        
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
     }
     
     public void cleanup() {

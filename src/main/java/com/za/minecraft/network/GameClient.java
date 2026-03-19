@@ -82,7 +82,7 @@ public class GameClient {
         client.sendUDP(packet);
     }
     
-    public void sendBlockUpdate(int x, int y, int z, com.za.minecraft.world.blocks.BlockType blockType) {
+    public void sendBlockUpdate(int x, int y, int z, byte blockType) {
         if (!connected) return;
         
         BlockUpdatePacket packet = new BlockUpdatePacket(x, y, z, blockType);
@@ -186,7 +186,7 @@ public class GameClient {
     
     private void handleBlockUpdate(BlockUpdatePacket packet) {
         world.setBlock(packet.x, packet.y, packet.z, packet.blockType);
-        Logger.debug("Block updated at (%d, %d, %d): %s", packet.x, packet.y, packet.z, packet.blockType.getName());
+        Logger.debug("Block updated at (%d, %d, %d): %s", packet.x, packet.y, packet.z, com.za.minecraft.world.blocks.BlockRegistry.getBlock(packet.blockType).getName());
     }
     
     private void handleChatMessage(ChatMessagePacket packet) {

@@ -3,7 +3,9 @@ package com.za.minecraft.engine.graphics;
 import com.za.minecraft.engine.core.Window;
 import com.za.minecraft.engine.graphics.ui.UIRenderer;
 import com.za.minecraft.network.GameClient;
+import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.World;
+import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.chunks.Chunk;
 import com.za.minecraft.world.chunks.ChunkMeshGenerator;
 import com.za.minecraft.world.physics.RaycastResult;
@@ -18,7 +20,7 @@ import static org.lwjgl.opengl.GL11.*;
 public class Renderer {
     private Shader blockShader;
     private DynamicTextureAtlas atlas;
-    private final Map<Chunk, Mesh> chunkMeshes;
+    private final Map<Chunk, ChunkMeshGenerator.ChunkMeshResult> chunkMeshes;
     private final Matrix4f modelMatrix;
     private DebugRenderer debugRenderer;
     private Framebuffer framebuffer;
@@ -27,13 +29,36 @@ public class Renderer {
     private boolean fxaaEnabled = false;
     private Mesh highlightMesh;
     private Mesh playerMesh;
+    private Mesh previewMesh;
+    private Block currentPreviewBlock;
+    private com.za.minecraft.world.BlockPos previewPos;
     
     public Renderer() {
         this.chunkMeshes = new ConcurrentHashMap<>();
         this.modelMatrix = new Matrix4f();
     }
     
+    public void setPreviewBlock(com.za.minecraft.world.BlockPos pos, Block block) {
+        if (block == null) {
+            this.previewPos = null;
+            this.currentPreviewBlock = null;
+            return;
+        }
+        
+        if (currentPreviewBlock == null || currentPreviewBlock.getType() != block.getType() || currentPreviewBlock.getMetadata() != block.getMetadata()) {
+            if (previewMesh != null) previewMesh.cleanup();
+            previewMesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas);
+            currentPreviewBlock = block;
+        }
+        this.previewPos = pos;
+    }
+    
     public void init(int windowWidth, int windowHeight) {
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_CULL_FACE);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
         blockShader = new Shader(
             "src/main/resources/shaders/vertex.glsl",
             "src/main/resources/shaders/fragment.glsl"
@@ -86,6 +111,11 @@ public class Renderer {
             renderBlockHighlight(camera, highlightedBlock);
         }
         
+        // Render preview block
+        if (previewPos != null && previewMesh != null) {
+            renderPreviewBlock(camera);
+        }
+        
         // Render to screen with post-processing
         framebuffer.unbind();
         glViewport(0, 0, window.getWidth(), window.getHeight());
@@ -103,8 +133,26 @@ public class Renderer {
         }
         
         uiRenderer.renderCrosshair(window.getWidth(), window.getHeight());
-        uiRenderer.renderHotbar(window.getWidth(), window.getHeight());
+        uiRenderer.renderHotbar(window.getWidth(), window.getHeight(), atlas);
         uiRenderer.renderPauseMenu(window.getWidth(), window.getHeight());
+    }
+    
+    private void renderPreviewBlock(Camera camera) {
+        glDisable(GL_CULL_FACE);
+        blockShader.use();
+        blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
+        blockShader.setMatrix4f("view", camera.getViewMatrix());
+        
+        modelMatrix.identity().translate(previewPos.x(), previewPos.y(), previewPos.z());
+        blockShader.setMatrix4f("model", modelMatrix);
+        
+        blockShader.setInt("previewPass", 1);
+        blockShader.setFloat("previewAlpha", 0.35f);
+        
+        previewMesh.render();
+        
+        blockShader.setInt("previewPass", 0);
+        glEnable(GL_CULL_FACE);
     }
     
     private void renderScene(Camera camera, World world, GameClient networkClient) {
@@ -113,23 +161,41 @@ public class Renderer {
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
         blockShader.setMatrix4f("view", camera.getViewMatrix());
         
+        // First pass: opaque blocks
         for (Chunk chunk : world.getLoadedChunks()) {
             if (chunk.needsMeshUpdate() || !chunkMeshes.containsKey(chunk)) {
                 updateChunkMesh(chunk);
             }
             
-            Mesh mesh = chunkMeshes.get(chunk);
-            if (mesh != null) {
+            ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.get(chunk);
+            if (result != null && result.opaqueMesh != null) {
                 modelMatrix.identity().translate(
                     chunk.getPosition().x() * Chunk.CHUNK_SIZE,
                     0,
                     chunk.getPosition().z() * Chunk.CHUNK_SIZE
                 );
-                
                 blockShader.setMatrix4f("model", modelMatrix);
-                mesh.render();
+                result.opaqueMesh.render();
             }
         }
+        
+        // Second pass: translucent blocks (glass)
+        // Disable depth writing to prevent translucent objects from occluding each other weirdly,
+        // but keep depth testing.
+        glDepthMask(false);
+        for (Chunk chunk : world.getLoadedChunks()) {
+            ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.get(chunk);
+            if (result != null && result.translucentMesh != null) {
+                modelMatrix.identity().translate(
+                    chunk.getPosition().x() * Chunk.CHUNK_SIZE,
+                    0,
+                    chunk.getPosition().z() * Chunk.CHUNK_SIZE
+                );
+                blockShader.setMatrix4f("model", modelMatrix);
+                result.translucentMesh.render();
+            }
+        }
+        glDepthMask(true);
         
         // Render other players
         renderPlayers(camera, networkClient);
@@ -150,6 +216,14 @@ public class Renderer {
         return fxaaEnabled;
     }
     
+    public DynamicTextureAtlas getAtlas() {
+        return atlas;
+    }
+    
+    public UIRenderer getUIRenderer() {
+        return uiRenderer;
+    }
+    
     public void setHotbar(com.za.minecraft.engine.graphics.ui.Hotbar hotbar) {
         if (uiRenderer != null) {
             uiRenderer.setHotbar(hotbar);
@@ -163,11 +237,12 @@ public class Renderer {
     }
     
     private void updateChunkMesh(Chunk chunk) {
-        Mesh oldMesh = chunkMeshes.get(chunk);
+        ChunkMeshGenerator.ChunkMeshResult oldMesh = chunkMeshes.get(chunk);
         if (oldMesh != null) {
-            oldMesh.cleanup();
+            if (oldMesh.opaqueMesh != null) oldMesh.opaqueMesh.cleanup();
+            if (oldMesh.translucentMesh != null) oldMesh.translucentMesh.cleanup();
         }
-        Mesh newMesh = ChunkMeshGenerator.generateMesh(chunk, atlas);
+        ChunkMeshGenerator.ChunkMeshResult newMesh = ChunkMeshGenerator.generateMesh(chunk, atlas);
         chunkMeshes.put(chunk, newMesh);
         chunk.setMeshUpdated();
     }
@@ -347,8 +422,9 @@ public class Renderer {
     }
     
     public void cleanup() {
-        for (Mesh mesh : chunkMeshes.values()) {
-            mesh.cleanup();
+        for (ChunkMeshGenerator.ChunkMeshResult result : chunkMeshes.values()) {
+            if (result.opaqueMesh != null) result.opaqueMesh.cleanup();
+            if (result.translucentMesh != null) result.translucentMesh.cleanup();
         }
         chunkMeshes.clear();
         
@@ -376,6 +452,10 @@ public class Renderer {
             playerMesh.cleanup();
         }
         
+        if (previewMesh != null) {
+            previewMesh.cleanup();
+        }
+        
         if (atlas != null) {
             atlas.cleanup();
         }
@@ -385,3 +465,4 @@ public class Renderer {
         }
     }
 }
+

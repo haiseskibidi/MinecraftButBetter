@@ -1,0 +1,16 @@
+{
+    "system_prompt_files": [
+      ".gemini/GEMINI.md",
+      ".gemini/memory/lore.md",
+      ".gemini/memory/architecture.md",
+      ".gemini/memory/current_state.md"
+    ],
+    "ignore_patterns": [
+      "node_modules",
+      "target",
+      ".git",
+      "build"
+    ],
+    "skills_dir": ".gemini/skills",
+    "context_ttl": "24h"
+  }

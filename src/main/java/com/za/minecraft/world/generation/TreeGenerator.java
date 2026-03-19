@@ -41,7 +41,7 @@ public class TreeGenerator {
         
         // Generate trunk
         for (int dy = 0; dy < height; dy++) {
-            world.setBlock(new BlockPos(x, y + dy, z), new Block(BlockType.WOOD, Block.Axis.Y));
+            world.setBlock(new BlockPos(x, y + dy, z), new Block(BlockType.WOOD, Block.DIR_UP));
         }
         
         // Generate leaves crown
@@ -104,7 +104,7 @@ public class TreeGenerator {
         
         // Generate trunk (using wood blocks for now - could add birch wood later)
         for (int dy = 0; dy < height; dy++) {
-            world.setBlock(new BlockPos(x, y + dy, z), new Block(BlockType.WOOD, Block.Axis.Y));
+            world.setBlock(new BlockPos(x, y + dy, z), new Block(BlockType.WOOD, Block.DIR_UP));
         }
         
         // Smaller, more compact crown

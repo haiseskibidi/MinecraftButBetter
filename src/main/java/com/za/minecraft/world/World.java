@@ -103,7 +103,7 @@ public class World {
         return seed;
     }
     
-    public void setBlock(int x, int y, int z, BlockType blockType) {
+    public void setBlock(int x, int y, int z, byte blockType) {
         setBlock(x, y, z, new Block(blockType));
     }
 }

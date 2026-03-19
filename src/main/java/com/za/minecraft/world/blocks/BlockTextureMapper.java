@@ -9,12 +9,12 @@ public class BlockTextureMapper {
         float[] uv = atlas.uvFor(key);
         // For logs on horizontal axes, rotate side texture 90° so fibers align with axis
         if (block.getType() == BlockType.WOOD) {
-            Block.Axis axis = block.getAxis();
-            if (axis == Block.Axis.X) {
+            byte meta = block.getMetadata();
+            if (meta == Block.DIR_EAST || meta == Block.DIR_WEST) {
                 if (face == 0 || face == 1 || face == 4 || face == 5) {
                     return rotateUv90(uv, true);
                 }
-            } else if (axis == Block.Axis.Z) {
+            } else if (meta == Block.DIR_NORTH || meta == Block.DIR_SOUTH) {
                 if (face == 2 || face == 3) {
                     return rotateUv90(uv, true);
                 }
@@ -44,7 +44,7 @@ public class BlockTextureMapper {
     }
     
     private static String keyFor(Block block, int face) {
-        BlockType type = block.getType();
+        byte type = block.getType();
         BlockTextures textures = BlockRegistry.getTextures(type);
         if (textures == null) {
             return "minecraft/textures/block/dirt.png";
@@ -52,14 +52,13 @@ public class BlockTextureMapper {
 
         // Orientation-sensitive mapping for logs (WOOD)
         if (type == BlockType.WOOD) {
-            Block.Axis axis = block.getAxis();
+            byte meta = block.getMetadata();
             String cap = textures.getTop();
             String side = textures.getNorth(); // any side is fine; all equal
-            return switch (axis) {
-                case Y -> (face == 4 || face == 5) ? cap : side;
-                case X -> (face == 2 || face == 3) ? cap : side;
-                case Z -> (face == 0 || face == 1) ? cap : side;
-            };
+            if (meta == Block.DIR_UP || meta == Block.DIR_DOWN) return (face == 4 || face == 5) ? cap : side;
+            if (meta == Block.DIR_EAST || meta == Block.DIR_WEST) return (face == 2 || face == 3) ? cap : side;
+            if (meta == Block.DIR_NORTH || meta == Block.DIR_SOUTH) return (face == 0 || face == 1) ? cap : side;
+            return side;
         }
 
         return textures.getTextureForFace(face);
