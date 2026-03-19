@@ -16,11 +16,23 @@ public class ItemRegistry {
     public static final byte CANNED_FOOD = (byte) 203;
 
     static {
+        // Register default "Hand" for empty slot
+        ITEMS.put(BlockType.AIR, new Item(BlockType.AIR, "Hand", ""));
+
         // Register Tools
         registerItem(new ToolItem(ItemType.STONE_KNIFE, "Stone Knife", "minecraft/textures/item/flint.png", ToolItem.ToolType.KNIFE, 1.5f, 50));
         registerItem(new ToolItem(ItemType.SCRAP_PICKAXE, "Scrap Pickaxe", "minecraft/textures/item/wooden_pickaxe.png", ToolItem.ToolType.PICKAXE, 2.0f, 100));
         registerItem(new ToolItem(ItemType.CROWBAR, "Crowbar", "minecraft/textures/block/lever.png", ToolItem.ToolType.CROWBAR, 3.0f, 200));
-        registerItem(new ToolItem(ItemType.ADMIN_HAMMER, "Admin Hammer", "minecraft/textures/item/nether_star.png", ToolItem.ToolType.PICKAXE, 999.0f, 9999));
+        registerItem(new ToolItem(ItemType.ADMIN_HAMMER, "Admin Hammer", "minecraft/textures/item/nether_star.png", ToolItem.ToolType.PICKAXE, 1000.0f, 9999) {
+            @Override
+            public boolean isEffectiveAgainst(byte blockType) {
+                return true; // Effective against everything
+            }
+            @Override
+            public float getMiningSpeed(byte blockType) {
+                return 1000.0f; // Instant break
+            }
+        });
 
         // Register Food
         registerItem(new FoodItem(RAW_MEAT, "Raw Meat", "minecraft/textures/item/beef.png", 2.0f, 1.0f));

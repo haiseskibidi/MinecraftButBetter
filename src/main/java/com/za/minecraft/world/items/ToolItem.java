@@ -68,4 +68,13 @@ public class ToolItem extends Item {
     public boolean isTool() {
         return true;
     }
+
+    @Override
+    public float getMiningSpeed(byte blockType) {
+        float speed = efficiency;
+        if (!isEffectiveAgainst(blockType)) {
+            speed *= 0.3f; // 3x slower for non-effective tools
+        }
+        return speed;
+    }
 }

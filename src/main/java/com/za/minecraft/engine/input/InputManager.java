@@ -14,6 +14,7 @@ import com.za.minecraft.world.items.ItemRegistry;
 import com.za.minecraft.world.items.ItemStack;
 import com.za.minecraft.world.items.ToolItem;
 import com.za.minecraft.world.items.FoodItem;
+import com.za.minecraft.world.items.ItemType;
 import com.za.minecraft.world.physics.Raycast;
 import com.za.minecraft.world.physics.RaycastResult;
 import org.joml.Vector2f;
@@ -44,6 +45,8 @@ public class InputManager {
     // Breaking block state
     private BlockPos breakingBlockPos = null;
     private float breakingProgress = 0.0f;
+    private float breakDelayTimer = 0.0f;
+    private static final float BREAK_COOLDOWN = 1.0f / 25.0f; // 25 blocks per second limit
     
     public InputManager() {
         previousPos = new Vector2f();
@@ -148,6 +151,8 @@ public class InputManager {
             return new RaycastResult();
         }
 
+        breakDelayTimer = Math.max(0, breakDelayTimer - deltaTime);
+
         Vector2f rotVec = new Vector2f();
         
         if (firstMouse) {
@@ -233,7 +238,7 @@ public class InputManager {
             byte blockType = world.getBlock(currentPos).getType();
             float hardness = BlockRegistry.getBlock(blockType).getHardness();
             
-            // Если блок неразрушим (hardness < 0), ничего не делаем
+            // If block is unbreakable (hardness < 0), do nothing
             if (hardness >= 0) {
                 if (!currentPos.equals(breakingBlockPos)) {
                     breakingBlockPos = currentPos;
@@ -241,28 +246,17 @@ public class InputManager {
                 }
                 
                 ItemStack stack = player.getInventory().getSelectedItemStack();
-                float speedMultiplier = 1.0f;
+                Item item = stack != null ? stack.getItem() : ItemRegistry.getItem(BlockType.AIR);
                 
-                if (stack != null && stack.getItem().isTool()) {
-                    ToolItem tool = (ToolItem) stack.getItem();
-                    speedMultiplier = tool.getEfficiency();
-                    if (!tool.isEffectiveAgainst(blockType)) {
-                        speedMultiplier *= 0.3f; // Неподходящий инструмент в 3 раза медленнее
-                    }
-                } else {
-                    speedMultiplier = 0.5f; // Руками в 2 раза медленнее
-                }
-                
-                float breakSpeed = speedMultiplier / hardness;
-                breakingProgress += breakSpeed * deltaTime;
-                
-                // Noise from breaking (depends on hardness)
-                // We use setContinuousNoise so it acts as a floor, plus a small additive component
-                player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
-                player.addNoise(hardness * 0.05f * deltaTime);
-
-                if (stack != null && stack.getItem().getId() == ItemType.ADMIN_HAMMER) {
-                    breakingProgress = 1.0f; // Instant break
+                // Only progress if cooldown is over and item is valid
+                if (breakDelayTimer <= 0 && item != null) {
+                    float speed = item.getMiningSpeed(blockType);
+                    float breakSpeed = speed / hardness;
+                    breakingProgress += breakSpeed * deltaTime;
+                    
+                    // Noise from breaking (depends on hardness)
+                    player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
+                    player.addNoise(hardness * 0.05f * deltaTime);
                 }
 
                 if (breakingProgress >= 1.0f) {
@@ -272,8 +266,9 @@ public class InputManager {
                     }
                     breakingBlockPos = null;
                     breakingProgress = 0.0f;
+                    breakDelayTimer = BREAK_COOLDOWN; // Apply cooldown after EVERY break
                     
-                    // Повреждаем инструмент
+                    // Damage tool
                     if (stack != null && stack.getItem().isTool()) {
                         stack.setDurability(stack.getDurability() - 1);
                         if (stack.getDurability() <= 0) {
@@ -290,32 +285,42 @@ public class InputManager {
         leftMousePressed = lm;
         
         boolean rm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT);
-        if (raycast.isHit()) {
+        if (rm && !rightMousePressed) {
             ItemStack stack = player.getInventory().getSelectedItemStack();
             Item selectedItem = stack != null ? stack.getItem() : null;
-            byte hitBlockType = world.getBlock(raycast.getBlockPos()).getType();
+            
+            boolean actionConsumed = false;
 
-            if (rm && !rightMousePressed) {
-                // Interacting with Campfire
+            // 1. Interaction with blocks (highest priority)
+            if (raycast.isHit()) {
+                byte hitBlockType = world.getBlock(raycast.getBlockPos()).getType();
                 if (hitBlockType == BlockType.CAMPFIRE) {
                     if (selectedItem != null && selectedItem.getId() == ItemRegistry.RAW_MEAT) {
                         player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), new ItemStack(ItemRegistry.getItem(ItemRegistry.COOKED_MEAT)));
                         com.za.minecraft.utils.Logger.info("Cooked raw meat on campfire");
-                        rightMousePressed = true;
-                        return raycast;
-                    }
-                }
-
-                // Eating food
-                if (selectedItem != null && selectedItem.isFood()) {
-                    if (player.getHunger() < 20.0f) {
-                        player.eat((FoodItem) selectedItem);
-                        player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
-                        rightMousePressed = true;
-                        return raycast;
+                        actionConsumed = true;
                     }
                 }
             }
+
+            // 2. Using items (eating)
+            if (!actionConsumed && selectedItem != null && selectedItem.isFood()) {
+                if (player.getHunger() < 20.0f) {
+                    player.eat((FoodItem) selectedItem);
+                    player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
+                    actionConsumed = true;
+                }
+            }
+            
+            if (actionConsumed) {
+                rightMousePressed = true;
+            }
+        }
+
+        // 3. Block Placement (preview and placement)
+        if (raycast.isHit()) {
+            ItemStack stack = player.getInventory().getSelectedItemStack();
+            Item selectedItem = stack != null ? stack.getItem() : null;
 
             if (selectedItem != null && !selectedItem.isTool() && !selectedItem.isFood()) {
                 byte blockType = selectedItem.getId();

@@ -63,7 +63,7 @@
 
 ### com.za.minecraft.world.chunks.Chunk
 Назначение: Контейнер для блоков 16x256x16.
-Функции: getBlock(int x, int y, int z), setBlock(int x, int y, int z, Block block), buildMesh(TextureAtlas atlas)
+Функции: getBlock(int x, int y, int z), setBlock(int x, int y, int z, Block block), buildMesh(TextureAtlas atlas), setNeedsMeshUpdate(boolean)
 Зависимости: Block, Mesh, ChunkMeshGenerator
 
 ### com.za.minecraft.world.blocks.BlockRegistry
@@ -100,10 +100,27 @@
 Функции: registerItem(Item item), getItem(byte id), getAllItems()
 
 ## Entities & Physics
+### com.za.minecraft.entities.Entity (NEW)
+Назначение: Базовый физический объект в мире. 
+Функции: update(float delta, World world), move(World world, float dx, float dy, float dz), getPosition(), getVelocity(), getRotation(), getBoundingBox(), isOnGround(), setFlying(boolean)
+Зависимости: Vector3f, AABB, World
+
+### com.za.minecraft.entities.LivingEntity (NEW)
+Назначение: Сущность со здоровьем (Игрок, Мобы). Наследует Entity.
+Функции: takeDamage(float amount), heal(float amount), isDead()
+
 ### com.za.minecraft.entities.Player
-Назначение: Сущность игрока, физика перемещения, инвентарь, управление шумом и голодом.
-Функции: update(float delta, World world), jump(), setFlying(boolean flying), addNoise(float), setContinuousNoise(float), setSneaking(boolean), setMoving(boolean), getNoiseLevel()
-Зависимости: Vector3f, Inventory, AABB
+Назначение: Сущность игрока под управлением человека. Наследует LivingEntity. 
+Функции: update(float delta, World world), jump(), addNoise(float), setContinuousNoise(float), eat(FoodItem), getNoiseLevel(), getHunger()
+Зависимости: Vector3f, Inventory, LivingEntity
+
+### com.za.minecraft.entities.ScoutEntity (NEW)
+Назначение: Зараженный-скаут. ИИ логика слуха и погони. Наследует LivingEntity.
+Функции: update(float delta, World world), getCurrentState()
+Зависимости: AIState, Player, World
+
+### com.za.minecraft.entities.ai.AIState (NEW)
+Назначение: Перечисление состояний ИИ (IDLE, WANDER, SEARCH, CHASE, ATTACK).
 
 ### com.za.minecraft.entities.Inventory
 Назначение: Хранилище предметов игрока (хотбар).

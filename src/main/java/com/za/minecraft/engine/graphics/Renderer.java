@@ -201,8 +201,53 @@ public class Renderer {
         }
         glDepthMask(true);
         
+        // Render entities (mobs, etc.)
+        renderEntities(camera, world);
+        
         // Render other players
         renderPlayers(camera, networkClient);
+    }
+    
+    private void renderEntities(Camera camera, World world) {
+        if (world.getEntities().isEmpty()) return;
+        
+        if (playerMesh == null) {
+            createPlayerMesh();
+        }
+        
+        blockShader.use();
+        
+        for (com.za.minecraft.entities.Entity entity : world.getEntities()) {
+            modelMatrix.identity()
+                .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z());
+            
+            // Apply rotation if any
+            modelMatrix.rotateY(entity.getRotation().y);
+            
+            blockShader.setMatrix4f("model", modelMatrix);
+            
+            // Different colors for different states if it's a Scout
+            if (entity instanceof com.za.minecraft.entities.ScoutEntity scout) {
+                blockShader.setInt("highlightPass", 1);
+                switch (scout.getCurrentState()) {
+                    case CHASE: 
+                        blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 0.0f, 0.0f)); // Red
+                        break;
+                    case SEARCH:
+                        blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 0.5f, 0.0f)); // Orange
+                        break;
+                    default:
+                        blockShader.setVector3f("highlightColor", new Vector3f(0.5f, 0.5f, 0.5f)); // Grey
+                        break;
+                }
+            } else {
+                blockShader.setInt("highlightPass", 0);
+            }
+            
+            playerMesh.render();
+        }
+        
+        blockShader.setInt("highlightPass", 0);
     }
     
     public void renderDebug(float fps, int windowWidth, int windowHeight) {

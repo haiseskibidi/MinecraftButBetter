@@ -103,6 +103,7 @@ public class GameLoop {
         
         world = new World(seed);
         player = new Player(new Vector3f(8, 65, 8));
+        world.setPlayer(player);
         
         // Give Admin Hammer to dev
         player.getInventory().setStackInSlot(0, new com.za.minecraft.world.items.ItemStack(com.za.minecraft.world.items.ItemRegistry.getItem(com.za.minecraft.world.items.ItemType.ADMIN_HAMMER)));
@@ -187,7 +188,7 @@ public class GameLoop {
     private void update(float interval) {
         if (paused || inventoryOpen) return;
         
-        player.update(interval, world);
+        world.update(interval);
         
         if (networkClient != null && networkClient.isConnected()) {
             networkClient.sendPlayerPosition();

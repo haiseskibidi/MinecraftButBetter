@@ -34,4 +34,8 @@ public class Item {
     public boolean isBlock() {
         return false;
     }
+
+    public float getMiningSpeed(byte blockType) {
+        return 0.5f; // Base hand speed
+    }
 }

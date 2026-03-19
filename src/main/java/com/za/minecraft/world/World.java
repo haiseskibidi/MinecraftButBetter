@@ -6,16 +6,26 @@ import com.za.minecraft.world.chunks.Chunk;
 import com.za.minecraft.world.chunks.ChunkPos;
 import com.za.minecraft.world.generation.TerrainGenerator;
 
+import com.za.minecraft.entities.Entity;
+import com.za.minecraft.entities.Player;
+import com.za.minecraft.entities.ScoutEntity;
+import org.joml.Vector3f;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
 public class World {
     private final Map<ChunkPos, Chunk> chunks;
+    private final List<Entity> entities;
+    private Player player;
     private final TerrainGenerator terrainGenerator;
     private final long seed;
     
     public World() {
         this.chunks = new ConcurrentHashMap<>();
+        this.entities = new ArrayList<>();
         this.seed = System.currentTimeMillis(); // Random seed each time
         com.za.minecraft.utils.Logger.info("Generating new world with seed: %d", seed);
         this.terrainGenerator = new TerrainGenerator(seed);
@@ -24,6 +34,7 @@ public class World {
     
     public World(long seed) {
         this.chunks = new ConcurrentHashMap<>();
+        this.entities = new ArrayList<>();
         this.seed = seed;
         com.za.minecraft.utils.Logger.info("Generating new world with seed: %d", seed);
         this.terrainGenerator = new TerrainGenerator(seed);
@@ -55,7 +66,50 @@ public class World {
                 }
             }
         }
+        
+        // Spawn some initial scouts
+        for (int i = 0; i < 10; i++) {
+            float rx = (float) (Math.random() - 0.5) * 100;
+            float rz = (float) (Math.random() - 0.5) * 100;
+            spawnEntity(new ScoutEntity(new Vector3f(rx, 80, rz)));
+        }
+        
         com.za.minecraft.utils.Logger.info("World generation completed!");
+    }
+
+    public void update(float deltaTime) {
+        // Update all entities
+        for (int i = entities.size() - 1; i >= 0; i--) {
+            Entity entity = entities.get(i);
+            entity.update(deltaTime, this);
+            
+            // Remove dead entities (if they are LivingEntity)
+            if (entity instanceof com.za.minecraft.entities.LivingEntity living) {
+                if (living.isDead()) {
+                    entities.remove(i);
+                }
+            }
+        }
+        
+        if (player != null) {
+            player.update(deltaTime, this);
+        }
+    }
+
+    public void spawnEntity(Entity entity) {
+        entities.add(entity);
+    }
+
+    public List<Entity> getEntities() {
+        return entities;
+    }
+
+    public void setPlayer(Player player) {
+        this.player = player;
+    }
+
+    public Player getPlayer() {
+        return player;
     }
     
     public Block getBlock(BlockPos pos) {
@@ -88,6 +142,20 @@ public class World {
             int localX = x - chunkPos.x() * Chunk.CHUNK_SIZE;
             int localZ = z - chunkPos.z() * Chunk.CHUNK_SIZE;
             chunk.setBlock(localX, y, localZ, block);
+            chunk.setNeedsMeshUpdate(true);
+            
+            // Notify neighbors if block is on the edge
+            if (localX == 0) notifyChunkUpdate(chunkPos.x() - 1, chunkPos.z());
+            if (localX == Chunk.CHUNK_SIZE - 1) notifyChunkUpdate(chunkPos.x() + 1, chunkPos.z());
+            if (localZ == 0) notifyChunkUpdate(chunkPos.x(), chunkPos.z() - 1);
+            if (localZ == Chunk.CHUNK_SIZE - 1) notifyChunkUpdate(chunkPos.x(), chunkPos.z() + 1);
+        }
+    }
+    
+    private void notifyChunkUpdate(int cx, int cz) {
+        Chunk neighbor = chunks.get(new ChunkPos(cx, cz));
+        if (neighbor != null) {
+            neighbor.setNeedsMeshUpdate(true);
         }
     }
     

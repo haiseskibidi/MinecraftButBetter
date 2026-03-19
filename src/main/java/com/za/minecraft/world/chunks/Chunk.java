@@ -50,6 +50,10 @@ public class Chunk {
         return needsMeshUpdate;
     }
     
+    public void setNeedsMeshUpdate(boolean needsUpdate) {
+        this.needsMeshUpdate = needsUpdate;
+    }
+    
     public void setMeshUpdated() {
         needsMeshUpdate = false;
     }
