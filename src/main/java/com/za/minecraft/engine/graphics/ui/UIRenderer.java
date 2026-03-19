@@ -3,10 +3,19 @@ package com.za.minecraft.engine.graphics.ui;
 import com.za.minecraft.engine.graphics.Shader;
 import com.za.minecraft.engine.graphics.Texture;
 import com.za.minecraft.utils.Logger;
+import com.za.minecraft.world.items.Item;
+import com.za.minecraft.world.items.ItemStack;
+import com.za.minecraft.world.items.ToolItem;
+import com.za.minecraft.world.blocks.Block;
+import com.za.minecraft.world.blocks.BlockTextureMapper;
+import com.za.minecraft.world.blocks.BlockRegistry;
+import com.za.minecraft.world.items.ItemRegistry;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -18,6 +27,8 @@ public class UIRenderer {
     private Texture crosshairTexture;
     private Texture hotbarTexture;
     private Texture hotbarSelectionTexture;
+    private Map<Byte, Texture> itemTextures = new HashMap<>();
+    
     private int quadVAO;
     private int quadVBO;
     private int quadEBO;
@@ -26,11 +37,10 @@ public class UIRenderer {
     private FontRenderer fontRenderer;
     
     private static final float[] QUAD_VERTICES = {
-        // Позиции    // UV координаты
-        -1.0f, -1.0f, 0.0f, 0.0f,
-         1.0f, -1.0f, 1.0f, 0.0f,
-         1.0f,  1.0f, 1.0f, 1.0f,
-        -1.0f,  1.0f, 0.0f, 1.0f
+        -1.0f, -1.0f, 0.0f, 1.0f,
+         1.0f, -1.0f, 1.0f, 1.0f,
+         1.0f,  1.0f, 1.0f, 0.0f,
+        -1.0f,  1.0f, 0.0f, 0.0f
     };
     
     private static final int[] QUAD_INDICES = {
@@ -113,13 +123,8 @@ public class UIRenderer {
         
         uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
         uiShader.setUniform("position_offset", 0.0f, 0.0f, 0.0f, 0.0f);
-        
-        float u = 0.0f;
-        float v = 0.0f;
-        float uvSize = 1.0f;
-        
-        uiShader.setUniform("uvOffset", u, v, 0.0f, 0.0f);
-        uiShader.setUniform("uvScale", uvSize, uvSize, 0.0f, 0.0f);
+        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
         
         crosshairTexture.bind();
         
@@ -138,123 +143,301 @@ public class UIRenderer {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
-        uiShader.use();
-        uiShader.setInt("useTexture", 1);
-        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
-        
         renderHotbarBackground(screenWidth, screenHeight);
-        
         renderHotbarSelection(screenWidth, screenHeight);
-        
         renderHotbarItems(screenWidth, screenHeight, atlas);
         
+        // Отрисовка названия выбранного предмета
+        ItemStack selected = hotbar.getSelectedItemStack();
+        if (selected != null) {
+            String name = selected.getItem().getName();
+            int nameSize = 20;
+            int textWidth = fontRenderer.getStringWidth(name, nameSize);
+            int x = (screenWidth - textWidth) / 2;
+            int y = hotbar.getScreenY(screenHeight) - 30; // Над хотбаром
+            fontRenderer.drawString(name, x, y, nameSize, screenWidth, screenHeight);
+        }
+
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+    }
+    
+    public void renderMiningProgress(int screenWidth, int screenHeight, float progress) {
+        if (progress <= 0.0f) return;
+
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        String text = String.format("Breaking: %d%%", (int)(progress * 100));
+        int textSize = 18;
+        int textWidth = fontRenderer.getStringWidth(text, textSize);
+        int x = (screenWidth - textWidth) / 2;
+        int y = (screenHeight / 2) + 30; // Чуть ниже прицела
+
+        fontRenderer.drawString(text, x, y, textSize, screenWidth, screenHeight);
+
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+    }
+
+    public void renderHunger(int screenWidth, int screenHeight, float hunger) {
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        String text = String.format("Hunger: %.1f/20", hunger);
+        int textSize = 18;
+        int textWidth = fontRenderer.getStringWidth(text, textSize);
+        
+        // Позиция справа от хотбара
+        int x = (screenWidth + (int)(Hotbar.HOTBAR_WIDTH * Hotbar.HOTBAR_SCALE)) / 2 + 20;
+        int y = hotbar.getScreenY(screenHeight) + 10;
+
+        fontRenderer.drawString(text, x, y, textSize, screenWidth, screenHeight);
+
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+    }
+
+    public void renderNoise(int screenWidth, int screenHeight, float noise) {
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        String text = String.format("Noise: %d%%", (int)(noise * 100));
+        int textSize = 18;
+        int textWidth = fontRenderer.getStringWidth(text, textSize);
+        
+        // Позиция слева от хотбара
+        int x = (screenWidth - (int)(Hotbar.HOTBAR_WIDTH * Hotbar.HOTBAR_SCALE)) / 2 - textWidth - 20;
+        int y = hotbar.getScreenY(screenHeight) + 10;
+
+        // Цвет текста меняется от белого к красному в зависимости от шума
+        float r = 1.0f;
+        float g = 1.0f - noise;
+        float b = 1.0f - noise;
+        uiShader.setUniform("tintColor", r, g, b, 1.0f);
+
+        fontRenderer.drawString(text, x, y, textSize, screenWidth, screenHeight);
+        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
     }
     
     private void renderHotbarItems(int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
-        atlas.bind(); // Биндим атлас с текстурами блоков
-        
-        float slotSizePx = 16.0f * Hotbar.HOTBAR_SCALE; // Размер иконки внутри слота
+        float slotSizePx = 16.0f * Hotbar.HOTBAR_SCALE;
         
         for (int i = 0; i < Hotbar.HOTBAR_SLOTS; i++) {
-            com.za.minecraft.world.blocks.Block block = hotbar.getBlockInSlot(i);
-            if (block == null || block.isAir()) continue;
+            ItemStack stack = hotbar.getStackInSlot(i);
+            if (stack == null) continue;
             
-            // Получаем UV координаты текстуры (берем верхнюю грань - face 4, или переднюю - 0)
-            float[] uv = com.za.minecraft.world.blocks.BlockTextureMapper.uvFor(block, 0, atlas);
-            
-            // X, Y центра слота
+            Item item = stack.getItem();
             int slotX = hotbar.getSlotScreenX(screenWidth, i);
             int slotY = hotbar.getSlotScreenY(screenHeight);
             
-            float scaleX = slotSizePx / screenWidth;
-            float scaleY = slotSizePx / screenHeight;
-            
-            float posX = (2.0f * slotX / screenWidth) - 1.0f + scaleX;
-            float posY = 1.0f - (2.0f * slotY / screenHeight) - scaleY;
-            
-            uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
-            uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
-            
+            renderItemIcon(item, slotX, slotY, slotSizePx, screenWidth, screenHeight, atlas);
+        }
+    }
+
+    private void renderItemIcon(Item item, int x, int y, float size, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
+        float scaleX = size / screenWidth;
+        float scaleY = size / screenHeight;
+        float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
+        float posY = 1.0f - (2.0f * y / screenHeight) - scaleY;
+        
+        uiShader.use();
+        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+
+        if (item.isBlock()) {
+            // Это блок, берем из атласа
+            atlas.bind();
+            uiShader.setInt("useTexture", 1);
+            float[] uv = BlockTextureMapper.uvFor(new Block(item.getId()), 0, atlas);
             float uMin = Math.min(uv[0], uv[4]);
             float vMin = Math.min(uv[1], uv[5]);
             float uMax = Math.max(uv[0], uv[4]);
             float vMax = Math.max(uv[1], uv[5]);
-            
             uiShader.setUniform("uvOffset", uMin, vMin, 0.0f, 0.0f);
             uiShader.setUniform("uvScale", uMax - uMin, vMax - vMin, 0.0f, 0.0f);
-            
-            glBindVertexArray(quadVAO);
-            glDrawElements(org.lwjgl.opengl.GL11.GL_TRIANGLES, QUAD_INDICES.length, org.lwjgl.opengl.GL11.GL_UNSIGNED_INT, 0);
+        } else {
+            // Это предмет (инструмент или еда)
+            String path = item.getTexturePath();
+            if (path != null && !path.isEmpty()) {
+                Texture tex = itemTextures.get(item.getId());
+                if (tex == null) {
+                    try {
+                        tex = new Texture("src/main/resources/" + path, false, false);
+                        itemTextures.put(item.getId(), tex);
+                    } catch (Exception e) {
+                        Logger.error("Failed to load item texture: " + path);
+                    }
+                }
+                
+                if (tex != null) {
+                    tex.bind();
+                    uiShader.setInt("useTexture", 1);
+                    uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+                    uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
+                } else {
+                    drawFallbackIcon(item);
+                }
+            } else {
+                drawFallbackIcon(item);
+            }
         }
+        
+        glBindVertexArray(quadVAO);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
+
+    private void drawFallbackIcon(Item item) {
+        uiShader.setInt("useTexture", 0);
+        if (item.isTool()) {
+            ToolItem tool = (ToolItem) item;
+            switch (tool.getToolType()) {
+                case KNIFE: uiShader.setUniform("tintColor", 0.7f, 0.7f, 0.7f, 1.0f); break;
+                case PICKAXE: uiShader.setUniform("tintColor", 0.5f, 0.3f, 0.1f, 1.0f); break;
+                case CROWBAR: uiShader.setUniform("tintColor", 0.2f, 0.6f, 0.8f, 1.0f); break;
+                default: uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+            }
+        } else if (item.isFood()) {
+            uiShader.setUniform("tintColor", 1.0f, 0.5f, 0.5f, 1.0f); // Розоватый для еды
+        } else {
+            uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+        }
+        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
+    }
     
-    public void renderPauseMenu(int screenWidth, int screenHeight) {
-        if (pauseMenu == null || !pauseMenu.isVisible()) return;
-        
+    public void renderInventory(int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
         renderDarkenedBackground();
         
-        renderMenuButtons(screenWidth, screenHeight);
+        int padding = 50;
+        int slotSize = 40;
+        int spacing = 10;
+        int columns = (screenWidth - padding * 2) / (slotSize + spacing);
+        
+        var allItems = ItemRegistry.getAllItems();
+        int index = 0;
+        
+        for (var entry : allItems.entrySet()) {
+            Item item = entry.getValue();
+            if (item.getId() == 0 && !item.isTool()) continue; // Skip air
+            
+            int col = index % columns;
+            int row = index / columns;
+            
+            int x = padding + col * (slotSize + spacing);
+            int y = padding + row * (slotSize + spacing);
+            
+            renderItemIcon(item, x + slotSize/2, y + slotSize/2, slotSize/2.0f, screenWidth, screenHeight, atlas);
+            index++;
+        }
+        
+        renderHotbar(screenWidth, screenHeight, atlas);
         
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
     }
+
+    private void renderHotbarBackground(int screenWidth, int screenHeight) {
+        hotbarTexture.bind();
+        int hotbarX = hotbar.getScreenX(screenWidth);
+        int hotbarY = hotbar.getScreenY(screenHeight);
+        float hotbarWidth = Hotbar.HOTBAR_WIDTH * Hotbar.HOTBAR_SCALE;
+        float hotbarHeight = Hotbar.HOTBAR_HEIGHT * Hotbar.HOTBAR_SCALE;
+        float scaleX = hotbarWidth / screenWidth;
+        float scaleY = hotbarHeight / screenHeight;
+        float posX = (2.0f * hotbarX / screenWidth) - 1.0f + scaleX;
+        float posY = 1.0f - (2.0f * hotbarY / screenHeight) - scaleY;
+        uiShader.use();
+        uiShader.setInt("useTexture", 1);
+        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
+        glBindVertexArray(quadVAO);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+    }
     
+    private void renderHotbarSelection(int screenWidth, int screenHeight) {
+        hotbarSelectionTexture.bind();
+        int selectionX = hotbar.getSelectionScreenX(screenWidth);
+        int selectionY = hotbar.getSelectionScreenY(screenHeight);
+        float selectionWidth = Hotbar.HOTBAR_SELECTION_WIDTH * Hotbar.HOTBAR_SCALE;
+        float selectionHeight = Hotbar.HOTBAR_SELECTION_HEIGHT * Hotbar.HOTBAR_SCALE;
+        float scaleX = selectionWidth / screenWidth;
+        float scaleY = selectionHeight / screenHeight;
+        float posX = (2.0f * selectionX / screenWidth) - 1.0f + scaleX;
+        float posY = 1.0f - (2.0f * selectionY / screenHeight) - scaleY;
+        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
+        glBindVertexArray(quadVAO);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+    }
+
     private void renderDarkenedBackground() {
         uiShader.use();
-        
         uiShader.setInt("useTexture", 0);
         uiShader.setUniform("scale", 1.0f, 1.0f, 0.0f, 0.0f);
         uiShader.setUniform("position_offset", 0.0f, 0.0f, 0.0f, 0.0f);
         uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
         uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
         uiShader.setUniform("tintColor", 0.0f, 0.0f, 0.0f, 0.6f);
-        
         glBindTexture(GL_TEXTURE_2D, 0);
-        
         glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
-        
         uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+    }
+
+    public void renderPauseMenu(int screenWidth, int screenHeight) {
+        if (pauseMenu == null || !pauseMenu.isVisible()) return;
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        renderDarkenedBackground();
+        renderMenuButtons(screenWidth, screenHeight);
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
     }
     
     private void renderMenuButtons(int screenWidth, int screenHeight) {
         int centerX = screenWidth / 2;
         int centerY = screenHeight / 2;
-        
         int buttonWidth = pauseMenu.getButtonWidth();
         int buttonHeight = pauseMenu.getButtonHeight();
         int spacing = pauseMenu.getButtonSpacing();
-        
         renderButton(centerX, centerY - spacing, buttonWidth, buttonHeight, screenWidth, screenHeight, null, 0.4f, 0.7f, 1.0f);
         renderButton(centerX, centerY + spacing, buttonWidth, buttonHeight, screenWidth, screenHeight, null, 1.0f, 0.4f, 0.4f);
     }
     
     private void renderButton(int x, int y, int width, int height, int screenWidth, int screenHeight, String text, float r, float g, float b) {
         uiShader.use();
-        
         uiShader.setInt("useTexture", 0);
         float scaleX = (float)width / screenWidth;
         float scaleY = (float)height / screenHeight;
-        
         float posX = (2.0f * x / screenWidth) - 1.0f;
         float posY = 1.0f - (2.0f * y / screenHeight);
-        
         uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
         uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
         uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
         uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
         uiShader.setUniform("tintColor", r, g, b, 0.9f);
-        
         glBindTexture(GL_TEXTURE_2D, 0);
-        
         glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
@@ -264,150 +447,16 @@ public class UIRenderer {
             int textWidth = fontRenderer.getStringWidth(text, textSize);
             int textX = x - textWidth / 2;
             int textY = y - textSize / 2;
-            
             fontRenderer.drawString(text, textX, textY, textSize, screenWidth, screenHeight);
         }
     }
-    
-    private void renderHotbarBackground(int screenWidth, int screenHeight) {
-        hotbarTexture.bind();
-        
-        // Позиция хотбара на экране
-        int hotbarX = hotbar.getScreenX(screenWidth);
-        int hotbarY = hotbar.getScreenY(screenHeight);
-        
-        // Размеры хотбара с учетом масштабирования
-        float hotbarWidth = Hotbar.HOTBAR_WIDTH * Hotbar.HOTBAR_SCALE;
-        float hotbarHeight = Hotbar.HOTBAR_HEIGHT * Hotbar.HOTBAR_SCALE;
-        
-        // Преобразование в нормализованные координаты экрана (-1 to 1)
-        float scaleX = hotbarWidth / screenWidth;
-        float scaleY = hotbarHeight / screenHeight;
-        
-        // Позиция в нормализованных координатах
-        float posX = (2.0f * hotbarX / screenWidth) - 1.0f + scaleX;
-        float posY = 1.0f - (2.0f * hotbarY / screenHeight) - scaleY;
-        
-        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
-        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
-        
-        // Используем всю текстуру (отдельный файл 182x22)
-        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
-        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-        
-        glBindVertexArray(quadVAO);
-        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
-    }
-    
-    private void renderHotbarSelection(int screenWidth, int screenHeight) {
-        hotbarSelectionTexture.bind();
-        
-        // Позиция выделения на экране
-        int selectionX = hotbar.getSelectionScreenX(screenWidth);
-        int selectionY = hotbar.getSelectionScreenY(screenHeight);
-        
-        // Размеры выделения с учетом масштабирования
-        float selectionWidth = Hotbar.HOTBAR_SELECTION_WIDTH * Hotbar.HOTBAR_SCALE;
-        float selectionHeight = Hotbar.HOTBAR_SELECTION_HEIGHT * Hotbar.HOTBAR_SCALE;
-        
-        // Преобразование в нормализованные координаты экрана
-        float scaleX = selectionWidth / screenWidth;
-        float scaleY = selectionHeight / screenHeight;
-        
-        float posX = (2.0f * selectionX / screenWidth) - 1.0f + scaleX;
-        float posY = 1.0f - (2.0f * selectionY / screenHeight) - scaleY;
-        
-        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
-        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
-        
-        // Используем всю текстуру (отдельный файл 24x24)
-        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
-        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-        
-        glBindVertexArray(quadVAO);
-        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
-    }
-    
-    public void renderInventory(int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
-        glDisable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        
-        // 1. Темный фон
-        renderDarkenedBackground();
-        
-        uiShader.use();
-        uiShader.setInt("useTexture", 1);
-        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
-        atlas.bind();
-        
-        // 2. Сетка блоков
-        int padding = 50;
-        int slotSize = 40;
-        int spacing = 10;
-        int columns = (screenWidth - padding * 2) / (slotSize + spacing);
-        
-        var blocks = com.za.minecraft.world.blocks.BlockRegistry.getRegisteredBlocks();
-        int index = 0;
-        
-        for (var entry : blocks.entrySet()) {
-            if (entry.getValue().getId() == com.za.minecraft.world.blocks.BlockType.AIR) continue;
-            
-            int col = index % columns;
-            int row = index / columns;
-            
-            int x = padding + col * (slotSize + spacing);
-            int y = padding + row * (slotSize + spacing);
-            
-            // Отрисовка иконки блока
-            float[] uv = com.za.minecraft.world.blocks.BlockTextureMapper.uvFor(new com.za.minecraft.world.blocks.Block(entry.getKey()), 0, atlas);
-            
-            float scaleX = (float)slotSize / screenWidth;
-            float scaleY = (float)slotSize / screenHeight;
-            float posX = (2.0f * (x + slotSize/2) / screenWidth) - 1.0f;
-            float posY = 1.0f - (2.0f * (y + slotSize/2) / screenHeight);
-            
-            uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
-            uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
-            
-            float uMin = Math.min(uv[0], uv[4]);
-            float vMin = Math.min(uv[1], uv[5]);
-            float uMax = Math.max(uv[0], uv[4]);
-            float vMax = Math.max(uv[1], uv[5]);
-            uiShader.setUniform("uvOffset", uMin, vMin, 0.0f, 0.0f);
-            uiShader.setUniform("uvScale", uMax - uMin, vMax - vMin, 0.0f, 0.0f);
-            
-            glBindVertexArray(quadVAO);
-            glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
-            
-            index++;
-        }
-        
-        // 3. Также рисуем хотбар внизу для наглядности
-        renderHotbar(screenWidth, screenHeight, atlas);
-        
-        glEnable(GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
-    }
-    
+
     public void cleanup() {
-        if (uiShader != null) {
-            uiShader.cleanup();
-        }
-        if (crosshairTexture != null) {
-            crosshairTexture.cleanup();
-        }
-        if (hotbarTexture != null) {
-            hotbarTexture.cleanup();
-        }
-        if (hotbarSelectionTexture != null) {
-            hotbarSelectionTexture.cleanup();
-        }
-        if (fontRenderer != null) {
-            fontRenderer.cleanup();
-        }
+        if (uiShader != null) uiShader.cleanup();
+        if (crosshairTexture != null) crosshairTexture.cleanup();
+        if (hotbarTexture != null) hotbarTexture.cleanup();
+        if (hotbarSelectionTexture != null) hotbarSelectionTexture.cleanup();
+        if (fontRenderer != null) fontRenderer.cleanup();
         glDeleteVertexArrays(quadVAO);
         glDeleteBuffers(quadVBO);
         glDeleteBuffers(quadEBO);

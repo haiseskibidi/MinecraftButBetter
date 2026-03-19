@@ -1,7 +1,10 @@
 package com.za.minecraft.world.chunks;
 
 import com.za.minecraft.engine.graphics.Mesh;
+import com.za.minecraft.world.World;
+import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.blocks.Block;
+import com.za.minecraft.world.blocks.BlockType;
 import com.za.minecraft.world.physics.AABB;
 import com.za.minecraft.world.physics.VoxelShape;
 import com.za.minecraft.engine.graphics.DynamicTextureAtlas;
@@ -35,10 +38,11 @@ public class ChunkMeshGenerator {
         List<Float> texCoords = new ArrayList<>();
         List<Float> normals = new ArrayList<>();
         List<Float> blockTypes = new ArrayList<>();
+        List<Float> neighborData = new ArrayList<>(); // Packed: 4-bits neighbor info
         List<Integer> indices = new ArrayList<>();
         int vertexIndex = 0;
 
-        void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz) {
+        void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask) {
             for (int v = 0; v < 4; v++) {
                 positions.add(fp[v*3] + ox);
                 positions.add(fp[v*3+1] + oy);
@@ -47,6 +51,7 @@ public class ChunkMeshGenerator {
                 normals.add(fn[v*3+1]);
                 normals.add(fn[v*3+2]);
                 blockTypes.add(blockTypeId);
+                neighborData.add(neighborMask);
             }
             for (int v = 0; v < 4; v++) {
                 float vx = fp[v*3];
@@ -74,14 +79,15 @@ public class ChunkMeshGenerator {
 
         Mesh build() {
             if (positions.isEmpty()) return null;
-            float[] p = new float[positions.size()], t = new float[texCoords.size()], n = new float[normals.size()], b = new float[blockTypes.size()];
+            float[] p = new float[positions.size()], t = new float[texCoords.size()], n = new float[normals.size()], b = new float[blockTypes.size()], nd = new float[neighborData.size()];
             int[] ind = new int[indices.size()];
             for(int i=0; i<p.length; i++) p[i]=positions.get(i);
             for(int i=0; i<t.length; i++) t[i]=texCoords.get(i);
             for(int i=0; i<n.length; i++) n[i]=normals.get(i);
             for(int i=0; i<b.length; i++) b[i]=blockTypes.get(i);
+            for(int i=0; i<nd.length; i++) nd[i]=neighborData.get(i);
             for(int i=0; i<ind.length; i++) ind[i]=indices.get(i);
-            return new Mesh(p, t, n, b, ind);
+            return new Mesh(p, t, n, b, nd, ind); // Added neighborData attribute to Mesh
         }
     }
 
@@ -100,16 +106,28 @@ public class ChunkMeshGenerator {
                 {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
             };
             for (int face = 0; face < 6; face++) {
-                data.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0);
+                data.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0);
             }
         }
         return data.build();
     }
 
-    public static ChunkMeshResult generateMesh(Chunk chunk, DynamicTextureAtlas atlas) {
+    public static ChunkMeshResult generateMesh(Chunk chunk, World world, DynamicTextureAtlas atlas) {
         MeshData opaque = new MeshData();
         MeshData translucent = new MeshData();
         int[][] neighborOffsets = new int[][]{{0,0,1},{0,0,-1},{1,0,0},{-1,0,0},{0,1,0},{0,-1,0}};
+        
+        // Neighbor directions for each face (relative coordinates)
+        // Correctly mapped to local UVs: [Negative_H, Positive_H, Negative_V, Positive_V]
+        // Mask bits: bit0: -H, bit1: +H, bit2: -V, bit3: +V
+        int[][][] faceNeighbors = new int[][][]{
+            {{-1,0,0}, {1,0,0}, {0,-1,0}, {0,1,0}}, // Face 0: NORTH (+Z) -> lu=vx, lv=vy. -H is -X, +H is +X, -V is -Y, +V is +Y
+            {{1,0,0}, {-1,0,0}, {0,-1,0}, {0,1,0}}, // Face 1: SOUTH (-Z) -> lu=1-vx, lv=vy. -H is +X, +H is -X, -V is -Y, +V is +Y
+            {{0,0,1}, {0,0,-1}, {0,-1,0}, {0,1,0}}, // Face 2: EAST (+X)  -> lu=1-vz, lv=vy. -H is +Z, +H is -Z, -V is -Y, +V is +Y
+            {{0,0,-1}, {0,0,1}, {0,-1,0}, {0,1,0}}, // Face 3: WEST (-X)  -> lu=vz, lv=vy. -H is -Z, +H is +Z, -V is -Y, +V is +Y
+            {{-1,0,0}, {1,0,0}, {0,0,1}, {0,0,-1}}, // Face 4: UP (+Y)    -> lu=vx, lv=1-vz. -H is -X, +H is +X, -V is +Z, +V is -Z
+            {{-1,0,0}, {1,0,0}, {0,0,-1}, {0,0,1}}  // Face 5: DOWN (-Y)  -> lu=vx, lv=vz. -H is -X, +H is +X, -V is -Z, +V is +Z
+        };
 
         for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
             for (int y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
@@ -119,9 +137,12 @@ public class ChunkMeshGenerator {
                     VoxelShape shape = block.getShape();
                     if (shape == null) continue;
 
-                    // Стекло и подобные блоки (но не листья, листья - непрозрачные с альфа-тестом)
                     boolean isTranslucent = (block.getType() == com.za.minecraft.world.blocks.BlockType.GLASS);
                     MeshData current = isTranslucent ? translucent : opaque;
+
+                    int worldX = chunk.getPosition().x() * Chunk.CHUNK_SIZE + x;
+                    int worldY = y;
+                    int worldZ = chunk.getPosition().z() * Chunk.CHUNK_SIZE + z;
 
                     for (AABB box : shape.getBoxes()) {
                         Vector3f min = box.getMin(), max = box.getMax();
@@ -134,36 +155,30 @@ public class ChunkMeshGenerator {
                             {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
                         };
                         for (int face = 0; face < 6; face++) {
-                            boolean drawFace = true, onBoundary = false;
-                            switch (face) {
-                                case 0: onBoundary = (max.z >= 1.0f); break;
-                                case 1: onBoundary = (min.z <= 0.0f); break;
-                                case 2: onBoundary = (max.x >= 1.0f); break;
-                                case 3: onBoundary = (min.x <= 0.0f); break;
-                                case 4: onBoundary = (max.y >= 1.0f); break;
-                                case 5: onBoundary = (min.y <= 0.0f); break;
+                            Block neighbor = world.getBlock(worldX + neighborOffsets[face][0], worldY + neighborOffsets[face][1], worldZ + neighborOffsets[face][2]);
+                            
+                            boolean drawFace = true;
+                            if (neighbor.isAir()) {
+                                drawFace = true;
+                            } else if (neighbor.isFullCube() && !neighbor.isTransparent()) {
+                                drawFace = false;
+                            } else if (isTranslucent && neighbor.getType() == block.getType()) {
+                                drawFace = false;
+                            } else {
+                                drawFace = true;
                             }
-                            if (onBoundary) {
-                                Block neighbor = chunk.getBlock(x + neighborOffsets[face][0], y + neighborOffsets[face][1], z + neighborOffsets[face][2]);
-                                
-                                // Culling logic fix:
-                                // 1. If neighbor is a full opaque cube, hide our face.
-                                // 2. If neighbor is identical to us AND it's a type that supports culling (like glass or full cubes), hide face.
-                                // 3. For stairs and slabs, we NEVER hide the face unless the neighbor is a full opaque cube.
-                                
-                                if (!neighbor.isAir() && !neighbor.isTransparent()) {
-                                    // Neighbor is full opaque cube (Stone, etc.)
-                                    drawFace = false;
-                                } else if (neighbor.getType() == block.getType() && isTranslucent) {
-                                    // Two glass blocks: hide internal face
-                                    drawFace = false;
-                                } else if (neighbor.getType() == block.getType() && !block.isTransparent()) {
-                                    // Two identical opaque full blocks (should be handled by first case, but for safety)
-                                    drawFace = false;
-                                }
-                            }
+
                             if (drawFace) {
-                                current.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z);
+                                float neighborMask = 0;
+                                if (isTranslucent) {
+                                    for (int i = 0; i < 4; i++) {
+                                        Block n = world.getBlock(worldX + faceNeighbors[face][i][0], worldY + faceNeighbors[face][i][1], worldZ + faceNeighbors[face][i][2]);
+                                        if (n.getType() == block.getType()) {
+                                            neighborMask += (float)Math.pow(2, i);
+                                        }
+                                    }
+                                }
+                                current.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask);
                             }
                         }
                     }

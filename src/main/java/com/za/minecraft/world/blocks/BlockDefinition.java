@@ -7,6 +7,7 @@ public class BlockDefinition {
     private final String name;
     private final boolean solid;
     private final boolean transparent;
+    private float hardness = 1.0f; // Default hardness
     private BlockTextures textures;
     
     // Default shape is a full cube. Subclasses can override.
@@ -45,8 +46,21 @@ public class BlockDefinition {
         return transparent;
     }
 
+    public boolean isFullCube() {
+        return true;
+    }
+
     public BlockTextures getTextures() {
         return textures;
+    }
+
+    public float getHardness() {
+        return hardness;
+    }
+
+    public BlockDefinition setHardness(float hardness) {
+        this.hardness = hardness;
+        return this;
     }
     
     public VoxelShape getShape(byte metadata) {

@@ -1,35 +1,43 @@
 package com.za.minecraft.entities;
 
-import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.items.Item;
+import com.za.minecraft.world.items.ItemRegistry;
+import com.za.minecraft.world.items.ItemStack;
+import com.za.minecraft.world.items.ItemType;
+import com.za.minecraft.world.items.ToolItem;
 
 public class Inventory {
     public static final int HOTBAR_SIZE = 9;
     
-    private Block[] hotbarSlots;
+    private ItemStack[] hotbarSlots;
     private int selectedSlot;
     
     public Inventory() {
-        this.hotbarSlots = new Block[HOTBAR_SIZE];
+        this.hotbarSlots = new ItemStack[HOTBAR_SIZE];
         this.selectedSlot = 0;
         
-        // Заполняем хотбар доступными блоками
-        for (int i = 0; i < Math.min(HOTBAR_SIZE, AVAILABLE_BLOCKS.length); i++) {
-            hotbarSlots[i] = new Block(AVAILABLE_BLOCKS[i]);
-        }
-        // Остальные слоты оставляем null (пустые)
+        // Добавляем инструменты в начало хотбара
+        hotbarSlots[0] = new ItemStack(ItemRegistry.getItem(ItemType.STONE_KNIFE));
+        hotbarSlots[1] = new ItemStack(ItemRegistry.getItem(ItemType.SCRAP_PICKAXE));
+        hotbarSlots[2] = new ItemStack(ItemRegistry.getItem(ItemType.CROWBAR));
+        
+        // Заполняем остальные слоты базовыми блоками
+        hotbarSlots[3] = new ItemStack(ItemRegistry.getItem(BlockType.STONE));
+        hotbarSlots[4] = new ItemStack(ItemRegistry.getItem(BlockType.WOOD));
+        hotbarSlots[5] = new ItemStack(ItemRegistry.getItem(BlockType.OAK_PLANKS));
+        hotbarSlots[6] = new ItemStack(ItemRegistry.getItem(BlockType.COBBLESTONE));
+        hotbarSlots[7] = new ItemStack(ItemRegistry.getItem(BlockType.RUSTY_METAL));
+        hotbarSlots[8] = new ItemStack(ItemRegistry.getItem(BlockType.ASPHALT));
     }
     
-    public Block getSelectedBlock() {
+    public ItemStack getSelectedItemStack() {
         return hotbarSlots[selectedSlot];
     }
     
-    public void setSelectedBlock(Block block) {
-        hotbarSlots[selectedSlot] = block;
-    }
-    
-    public void selectBlockType(byte type) {
-        hotbarSlots[selectedSlot] = new Block(type);
+    public Item getSelectedItem() {
+        ItemStack stack = getSelectedItemStack();
+        return stack != null ? stack.getItem() : null;
     }
     
     public int getSelectedSlot() {
@@ -42,42 +50,32 @@ public class Inventory {
         }
     }
     
-    public Block getBlockInSlot(int slot) {
+    public ItemStack getStackInSlot(int slot) {
         if (slot >= 0 && slot < HOTBAR_SIZE) {
             return hotbarSlots[slot];
         }
         return null;
     }
     
-    public void setBlockInSlot(int slot, Block block) {
+    public void setStackInSlot(int slot, ItemStack stack) {
         if (slot >= 0 && slot < HOTBAR_SIZE) {
-            hotbarSlots[slot] = block;
+            hotbarSlots[slot] = stack;
         }
     }
     
-    // Available block types for building
-    private static final byte[] AVAILABLE_BLOCKS = {
-        BlockType.STONE, BlockType.DIRT, BlockType.GRASS, BlockType.WOOD, BlockType.LEAVES,
-        BlockType.OAK_PLANKS, BlockType.COBBLESTONE, BlockType.SAND, BlockType.GRAVEL,
-        BlockType.GOLD_ORE, BlockType.IRON_ORE, BlockType.COAL_ORE, BlockType.BOOKSHELF,
-        BlockType.MOSSY_COBBLESTONE, BlockType.OBSIDIAN, BlockType.ASPHALT, BlockType.RUSTY_METAL,
-        BlockType.GLASS, BlockType.BRICKS, BlockType.STONE_BRICKS, BlockType.CYAN_CONCRETE,
-        BlockType.GRAY_CONCRETE, BlockType.WHITE_CONCRETE,
-        BlockType.STONE_SLAB, BlockType.STONE_STAIRS, BlockType.BRICK_SLAB, BlockType.BRICK_STAIRS
-    };
-    
-    // Циклическое переключение между слотами хотбара  
-    public void nextBlock() {
+    public void nextSlot() {
         selectedSlot = (selectedSlot + 1) % HOTBAR_SIZE;
-        Block currentBlock = getSelectedBlock();
-        String blockName = (currentBlock != null) ? com.za.minecraft.world.blocks.BlockRegistry.getBlock(currentBlock.getType()).getName() : "EMPTY";
-        com.za.minecraft.utils.Logger.info("Selected slot %d: %s", selectedSlot, blockName);
+        logSelection();
     }
     
-    public void previousBlock() {
+    public void previousSlot() {
         selectedSlot = (selectedSlot - 1 + HOTBAR_SIZE) % HOTBAR_SIZE;
-        Block currentBlock = getSelectedBlock();
-        String blockName = (currentBlock != null) ? com.za.minecraft.world.blocks.BlockRegistry.getBlock(currentBlock.getType()).getName() : "EMPTY";
-        com.za.minecraft.utils.Logger.info("Selected slot %d: %s", selectedSlot, blockName);
+        logSelection();
+    }
+    
+    private void logSelection() {
+        Item current = getSelectedItem();
+        String name = (current != null) ? current.getName() : "EMPTY";
+        com.za.minecraft.utils.Logger.info("Selected slot %d: %s", selectedSlot, name);
     }
 }

@@ -193,10 +193,10 @@ public class FontRenderer {
         glBindVertexArray(vao);
 
         float[] vertices = {
-            -1.0f, -1.0f, 0.0f, 0.0f,
-             1.0f, -1.0f, 1.0f, 0.0f,
-             1.0f,  1.0f, 1.0f, 1.0f,
-            -1.0f,  1.0f, 0.0f, 1.0f
+            -1.0f, -1.0f, 0.0f, 1.0f, // LB
+             1.0f, -1.0f, 1.0f, 1.0f, // RB
+             1.0f,  1.0f, 1.0f, 0.0f, // RT
+            -1.0f,  1.0f, 0.0f, 0.0f  // LT
         };
 
         FloatBuffer vertexBuffer = MemoryUtil.memAllocFloat(vertices.length);

@@ -45,6 +45,10 @@ public class Block {
         return BlockRegistry.getBlock(type).isTransparent();
     }
     
+    public boolean isFullCube() {
+        return BlockRegistry.getBlock(type).isFullCube();
+    }
+    
     public boolean isAir() {
         return type == BlockType.AIR;
     }

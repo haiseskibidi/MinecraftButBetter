@@ -9,6 +9,11 @@ import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.blocks.BlockType;
 import com.za.minecraft.world.blocks.BlockRegistry;
+import com.za.minecraft.world.items.Item;
+import com.za.minecraft.world.items.ItemRegistry;
+import com.za.minecraft.world.items.ItemStack;
+import com.za.minecraft.world.items.ToolItem;
+import com.za.minecraft.world.items.FoodItem;
 import com.za.minecraft.world.physics.Raycast;
 import com.za.minecraft.world.physics.RaycastResult;
 import org.joml.Vector2f;
@@ -35,6 +40,10 @@ public class InputManager {
     private boolean rightMousePressed = false;
     private boolean rKeyPressed = false;
     private boolean verticalMode = false;
+    
+    // Breaking block state
+    private BlockPos breakingBlockPos = null;
+    private float breakingProgress = 0.0f;
     
     public InputManager() {
         previousPos = new Vector2f();
@@ -72,8 +81,8 @@ public class InputManager {
         glfwSetScrollCallback(window.getWindowHandle(), (windowHandle, xoffset, yoffset) -> {
             Player p = GameLoop.getInstance().getPlayer();
             if (p != null) {
-                if (yoffset > 0) p.getInventory().previousBlock();
-                else if (yoffset < 0) p.getInventory().nextBlock();
+                if (yoffset > 0) p.getInventory().previousSlot();
+                else if (yoffset < 0) p.getInventory().nextSlot();
             }
         });
         
@@ -90,10 +99,11 @@ public class InputManager {
         float mx = currentPos.x;
         float my = currentPos.y;
         
-        var blocks = BlockRegistry.getRegisteredBlocks();
+        var allItems = ItemRegistry.getAllItems();
         int index = 0;
-        for (var entry : blocks.entrySet()) {
-            if (entry.getValue().getId() == BlockType.AIR) continue;
+        for (var entry : allItems.entrySet()) {
+            Item item = entry.getValue();
+            if (item.getId() == BlockType.AIR) continue;
             
             int col = index % columns;
             int row = index / columns;
@@ -102,11 +112,10 @@ public class InputManager {
             int y = padding + row * (slotSize + spacing);
             
             if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
-                // Кликнули по блоку! Кладем его в текущий слот хотбара
                 Player p = GameLoop.getInstance().getPlayer();
                 if (p != null) {
-                    p.getInventory().setSelectedBlock(new Block(entry.getKey()));
-                    com.za.minecraft.utils.Logger.info("Picked block from inventory: %s", entry.getValue().getName());
+                    p.getInventory().setStackInSlot(p.getInventory().getSelectedSlot(), new ItemStack(item));
+                    com.za.minecraft.utils.Logger.info("Picked item from inventory: %s", item.getName());
                 }
                 return;
             }
@@ -123,8 +132,11 @@ public class InputManager {
         glfwSetInputMode(window.getWindowHandle(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     }
     
+    public float getBreakingProgress() {
+        return breakingProgress;
+    }
+
     public RaycastResult input(Window window, Camera camera, Player player, float deltaTime, com.za.minecraft.engine.graphics.Renderer renderer, World world, com.za.minecraft.network.GameClient networkClient) {
-        // Клавиши 1-9 доступны всегда (даже если инвентарь открыт, но GameLoop должен вызывать этот метод)
         for (int i = 0; i < 9; i++) {
             if (window.isKeyPressed(GLFW_KEY_1 + i)) {
                 player.getInventory().setSelectedSlot(i);
@@ -148,8 +160,8 @@ public class InputManager {
         if (inWindow) {
             double deltaX = currentPos.x - previousPos.x;
             double deltaY = currentPos.y - previousPos.y;
-            rotVec.y = (float) -deltaX; // Restore minus
-            rotVec.x = (float) -deltaY; // Restore minus
+            rotVec.y = (float) -deltaX;
+            rotVec.x = (float) -deltaY;
         }
 
         previousPos.x = currentPos.x;
@@ -165,12 +177,18 @@ public class InputManager {
         
         float moveY = 0;
         if (window.isKeyPressed(GLFW_KEY_SPACE)) moveY = 1;
-        if (window.isKeyPressed(GLFW_KEY_LEFT_SHIFT)) moveY = -1;
+        boolean shiftPressed = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT);
+        if (shiftPressed) moveY = -1;
+        
+        boolean sneaking = shiftPressed && !player.isFlying();
+        player.setSneaking(sneaking);
         
         boolean sprinting = window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL);
-        float baseSpeed = player.isFlying() ? FLY_SPEED : MOVE_SPEED;
-        if (sprinting) baseSpeed *= (player.isFlying() ? FLY_FAST_MULTIPLIER : GROUND_SPRINT_MULTIPLIER);
+        player.setSprinting(sprinting);
+        float baseSpeed = player.isFlying() ? FLY_SPEED : (sneaking ? MOVE_SPEED * 0.3f : MOVE_SPEED);
+        if (sprinting && !sneaking) baseSpeed *= (player.isFlying() ? FLY_FAST_MULTIPLIER : GROUND_SPRINT_MULTIPLIER);
 
+        player.setMoving(moveVector.length() > 0);
         if (moveVector.length() > 0) {
             moveVector.normalize();
             float yaw = -camera.getRotation().y;
@@ -188,6 +206,9 @@ public class InputManager {
         if (player.isFlying()) {
             player.addVelocity(0, (moveY * baseSpeed - player.getVelocity().y) * 25.0f * deltaTime, 0);
         } else if (moveY > 0) {
+            if (player.isOnGround()) {
+                player.addNoise(0.20f); // Spike above the floor
+            }
             player.jump();
         }
         
@@ -207,27 +228,105 @@ public class InputManager {
         RaycastResult raycast = Raycast.raycast(world, camera.getPosition(), lookDir);
         
         boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
-        if (lm && !leftMousePressed && raycast.isHit()) {
-            world.setBlock(raycast.getBlockPos(), new Block(BlockType.AIR));
-            if (networkClient != null && networkClient.isConnected()) {
-                BlockPos pos = raycast.getBlockPos();
-                networkClient.sendBlockUpdate(pos.x(), pos.y(), pos.z(), BlockType.AIR);
+        if (lm && raycast.isHit()) {
+            BlockPos currentPos = raycast.getBlockPos();
+            byte blockType = world.getBlock(currentPos).getType();
+            float hardness = BlockRegistry.getBlock(blockType).getHardness();
+            
+            // Если блок неразрушим (hardness < 0), ничего не делаем
+            if (hardness >= 0) {
+                if (!currentPos.equals(breakingBlockPos)) {
+                    breakingBlockPos = currentPos;
+                    breakingProgress = 0.0f;
+                }
+                
+                ItemStack stack = player.getInventory().getSelectedItemStack();
+                float speedMultiplier = 1.0f;
+                
+                if (stack != null && stack.getItem().isTool()) {
+                    ToolItem tool = (ToolItem) stack.getItem();
+                    speedMultiplier = tool.getEfficiency();
+                    if (!tool.isEffectiveAgainst(blockType)) {
+                        speedMultiplier *= 0.3f; // Неподходящий инструмент в 3 раза медленнее
+                    }
+                } else {
+                    speedMultiplier = 0.5f; // Руками в 2 раза медленнее
+                }
+                
+                float breakSpeed = speedMultiplier / hardness;
+                breakingProgress += breakSpeed * deltaTime;
+                
+                // Noise from breaking (depends on hardness)
+                // We use setContinuousNoise so it acts as a floor, plus a small additive component
+                player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
+                player.addNoise(hardness * 0.05f * deltaTime);
+
+                if (stack != null && stack.getItem().getId() == ItemType.ADMIN_HAMMER) {
+                    breakingProgress = 1.0f; // Instant break
+                }
+
+                if (breakingProgress >= 1.0f) {
+                    world.setBlock(currentPos, new Block(BlockType.AIR));
+                    if (networkClient != null && networkClient.isConnected()) {
+                        networkClient.sendBlockUpdate(currentPos.x(), currentPos.y(), currentPos.z(), BlockType.AIR);
+                    }
+                    breakingBlockPos = null;
+                    breakingProgress = 0.0f;
+                    
+                    // Повреждаем инструмент
+                    if (stack != null && stack.getItem().isTool()) {
+                        stack.setDurability(stack.getDurability() - 1);
+                        if (stack.getDurability() <= 0) {
+                            player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
+                            com.za.minecraft.utils.Logger.info("Tool broken!");
+                        }
+                    }
+                }
             }
+        } else {
+            breakingBlockPos = null;
+            breakingProgress = 0.0f;
         }
         leftMousePressed = lm;
         
         boolean rm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT);
         if (raycast.isHit()) {
-            Block selected = player.getInventory().getSelectedBlock();
-            if (selected != null) {
+            ItemStack stack = player.getInventory().getSelectedItemStack();
+            Item selectedItem = stack != null ? stack.getItem() : null;
+            byte hitBlockType = world.getBlock(raycast.getBlockPos()).getType();
+
+            if (rm && !rightMousePressed) {
+                // Interacting with Campfire
+                if (hitBlockType == BlockType.CAMPFIRE) {
+                    if (selectedItem != null && selectedItem.getId() == ItemRegistry.RAW_MEAT) {
+                        player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), new ItemStack(ItemRegistry.getItem(ItemRegistry.COOKED_MEAT)));
+                        com.za.minecraft.utils.Logger.info("Cooked raw meat on campfire");
+                        rightMousePressed = true;
+                        return raycast;
+                    }
+                }
+
+                // Eating food
+                if (selectedItem != null && selectedItem.isFood()) {
+                    if (player.getHunger() < 20.0f) {
+                        player.eat((FoodItem) selectedItem);
+                        player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
+                        rightMousePressed = true;
+                        return raycast;
+                    }
+                }
+            }
+
+            if (selectedItem != null && !selectedItem.isTool() && !selectedItem.isFood()) {
+                byte blockType = selectedItem.getId();
                 Vector3f normal = raycast.getNormal();
                 BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
                 
-                byte meta = calculateMetadata(selected.getType(), normal, raycast.getHitPoint(), camera);
-                Block previewBlock = new Block(selected.getType(), meta);
+                byte meta = calculateMetadata(blockType, normal, raycast.getHitPoint(), camera);
+                Block previewBlock = new Block(blockType, meta);
                 
                 if (!isPlayerAt(player, pPos)) {
-                    if (needsPreview(selected.getType())) {
+                    if (needsPreview(blockType)) {
                         renderer.setPreviewBlock(pPos, previewBlock);
                     } else {
                         renderer.setPreviewBlock(null, null);
@@ -242,12 +341,16 @@ public class InputManager {
                 } else {
                     renderer.setPreviewBlock(null, null);
                 }
+            } else {
+                renderer.setPreviewBlock(null, null);
             }
         } else {
             renderer.setPreviewBlock(null, null);
         }
+
         rightMousePressed = rm;
-        
+        leftMousePressed = lm;
+
         camera.setPosition(player.getPosition().x, player.getPosition().y + 1.62f, player.getPosition().z);
         return raycast;
     }
@@ -265,8 +368,6 @@ public class InputManager {
         float deg = (float) Math.toDegrees(yaw) % 360;
         if (deg < 0) deg += 360;
         
-        // Correct Mapping based on Camera.movePosition: 
-        // 0 is North (-Z), 90 is West (-X), 180 is South (+Z), 270 is East (+X)
         byte viewDir;
         if (deg >= 45 && deg < 135) viewDir = Block.DIR_WEST;
         else if (deg >= 135 && deg < 225) viewDir = Block.DIR_SOUTH;
@@ -274,24 +375,13 @@ public class InputManager {
         else viewDir = Block.DIR_NORTH;
 
         if (type == BlockType.STONE_SLAB || type == BlockType.BRICK_SLAB) {
-            if (verticalMode) {
-                // Если мы в вертикальном режиме, возвращаем сторону взгляда
-                // Чтобы блок был вплотную к тому, на который мы смотрим
-                return viewDir;
-            }
-            
-            if (Math.abs(normal.y) > 0.5f) {
-                return normal.y > 0 ? Block.DIR_DOWN : Block.DIR_UP;
-            }
+            if (verticalMode) return viewDir;
+            if (Math.abs(normal.y) > 0.5f) return normal.y > 0 ? Block.DIR_DOWN : Block.DIR_UP;
             float relativeY = hitPoint.y - (float)Math.floor(hitPoint.y);
             return relativeY > 0.5f ? Block.DIR_UP : Block.DIR_DOWN;
         }
         
-        if (type == BlockType.STONE_STAIRS || type == BlockType.BRICK_STAIRS) {
-            // Для ступенек: возвращаем сторону взгляда, чтобы они смотрели в сторону взгляда
-            // (тогда ступеньки будут повернуты к игроку)
-            return viewDir;
-        }
+        if (type == BlockType.STONE_STAIRS || type == BlockType.BRICK_STAIRS) return viewDir;
 
         if (Math.abs(normal.x) > 0.5f) return normal.x > 0 ? Block.DIR_EAST : Block.DIR_WEST;
         if (Math.abs(normal.y) > 0.5f) return normal.y > 0 ? Block.DIR_UP : Block.DIR_DOWN;

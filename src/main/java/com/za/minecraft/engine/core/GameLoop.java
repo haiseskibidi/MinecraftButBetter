@@ -103,6 +103,10 @@ public class GameLoop {
         
         world = new World(seed);
         player = new Player(new Vector3f(8, 65, 8));
+        
+        // Give Admin Hammer to dev
+        player.getInventory().setStackInSlot(0, new com.za.minecraft.world.items.ItemStack(com.za.minecraft.world.items.ItemRegistry.getItem(com.za.minecraft.world.items.ItemType.ADMIN_HAMMER)));
+        
         hotbar = new Hotbar(player);
         renderer.setHotbar(hotbar);
         
@@ -205,6 +209,15 @@ public class GameLoop {
         if (inventoryOpen) {
             renderer.getUIRenderer().renderInventory(window.getWidth(), window.getHeight(), renderer.getAtlas());
         }
+        
+        // Отрисовка прогресса разрушения блока
+        renderer.getUIRenderer().renderMiningProgress(window.getWidth(), window.getHeight(), inputManager.getBreakingProgress());
+        
+        // Отрисовка голода
+        renderer.getUIRenderer().renderHunger(window.getWidth(), window.getHeight(), player.getHunger());
+        
+        // Отрисовка шума
+        renderer.getUIRenderer().renderNoise(window.getWidth(), window.getHeight(), player.getNoiseLevel());
         
         renderer.renderDebug(currentFps, window.getWidth(), window.getHeight());
         window.update();

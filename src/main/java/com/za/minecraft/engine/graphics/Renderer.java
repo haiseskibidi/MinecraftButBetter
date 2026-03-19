@@ -84,6 +84,10 @@ public class Renderer {
         // Передаем UV координаты oak_leaves.png для окрашивания листвы
         float[] leavesUV = atlas.uvFor("minecraft/textures/block/oak_leaves.png");
         blockShader.setUniform("leavesUV", leavesUV[0], leavesUV[1], leavesUV[2], leavesUV[5]); // min_u, min_v, max_u, max_v
+
+        // Connected Glass UVs
+        float[] glassUV = atlas.uvFor("minecraft/textures/block/glass.png");
+        blockShader.setUniform("glassUV", glassUV[0], glassUV[1], glassUV[2], glassUV[5]);
         
         framebuffer = new Framebuffer(windowWidth, windowHeight);
         postProcessor = new PostProcessor();
@@ -164,7 +168,7 @@ public class Renderer {
         // First pass: opaque blocks
         for (Chunk chunk : world.getLoadedChunks()) {
             if (chunk.needsMeshUpdate() || !chunkMeshes.containsKey(chunk)) {
-                updateChunkMesh(chunk);
+                updateChunkMesh(chunk, world);
             }
             
             ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.get(chunk);
@@ -236,13 +240,13 @@ public class Renderer {
         }
     }
     
-    private void updateChunkMesh(Chunk chunk) {
+    private void updateChunkMesh(Chunk chunk, World world) {
         ChunkMeshGenerator.ChunkMeshResult oldMesh = chunkMeshes.get(chunk);
         if (oldMesh != null) {
             if (oldMesh.opaqueMesh != null) oldMesh.opaqueMesh.cleanup();
             if (oldMesh.translucentMesh != null) oldMesh.translucentMesh.cleanup();
         }
-        ChunkMeshGenerator.ChunkMeshResult newMesh = ChunkMeshGenerator.generateMesh(chunk, atlas);
+        ChunkMeshGenerator.ChunkMeshResult newMesh = ChunkMeshGenerator.generateMesh(chunk, world, atlas);
         chunkMeshes.put(chunk, newMesh);
         chunk.setMeshUpdated();
     }

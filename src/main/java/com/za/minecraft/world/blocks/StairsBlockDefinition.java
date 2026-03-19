@@ -34,4 +34,9 @@ public class StairsBlockDefinition extends BlockDefinition {
         }
         return SHAPES[Block.DIR_NORTH];
     }
+
+    @Override
+    public boolean isFullCube() {
+        return false;
+    }
 }

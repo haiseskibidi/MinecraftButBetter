@@ -20,6 +20,18 @@ public class Player {
     
     private boolean onGround = false;
     private boolean flying = false;
+    private boolean sprinting = false;
+
+    // Survival stats
+    private float hunger = 20.0f;
+    private float saturation = 5.0f;
+    private float noiseLevel = 0.0f;
+    private float continuousNoise = 0.0f;
+    private boolean sneaking = false;
+    private boolean moving = false;
+    private static final float MAX_HUNGER = 20.0f;
+    private static final float HUNGER_DEPletion_RATE = 0.005f; // Base loss per second
+    private static final float NOISE_DECAY_RATE = 0.5f; // Fades from 100% to 0% in 2 seconds
     
     public Player(Vector3f startPosition) {
         this.position = new Vector3f(startPosition);
@@ -36,12 +48,95 @@ public class Player {
             velocity.y = Math.max(velocity.y + GRAVITY * deltaTime, TERMINAL_VELOCITY);
         }
         
+        updateHunger(deltaTime);
+        updateNoise(deltaTime);
         move(world, velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
 
         // Snap very small residual velocities to zero to end micro-sliding
         if (Math.abs(velocity.x) < 0.005f) velocity.x = 0f;
         if (Math.abs(velocity.z) < 0.005f) velocity.z = 0f;
         if (onGround && Math.abs(velocity.y) < 0.005f) velocity.y = 0f;
+    }
+
+    private void updateNoise(float deltaTime) {
+        // Calculate floor noise based on current movement state
+        float floorNoise = 0.0f;
+        if (!flying && moving) {
+            if (sprinting) floorNoise = 0.35f;
+            else if (sneaking) floorNoise = 0.02f;
+            else floorNoise = 0.10f;
+        }
+        
+        // Also consider other continuous sources (like breaking blocks)
+        floorNoise = Math.max(floorNoise, continuousNoise);
+        
+        if (noiseLevel > floorNoise) {
+            // Smoothly decay towards the floor
+            noiseLevel = Math.max(floorNoise, noiseLevel - NOISE_DECAY_RATE * deltaTime);
+        } else if (noiseLevel < floorNoise) {
+            // Instantly rise to floor level
+            noiseLevel = floorNoise;
+        }
+        
+        // Reset continuous sources for the next frame
+        continuousNoise = 0.0f;
+    }
+
+    public void addNoise(float amount) {
+        // Additive spikes (jumps, landings, block breaks)
+        this.noiseLevel = Math.min(1.0f, this.noiseLevel + amount);
+    }
+
+    public void setContinuousNoise(float level) {
+        this.continuousNoise = Math.max(this.continuousNoise, level);
+    }
+
+    public float getNoiseLevel() {
+        return noiseLevel;
+    }
+
+    public void setSneaking(boolean sneaking) {
+        this.sneaking = sneaking;
+    }
+
+    public boolean isSneaking() {
+        return sneaking;
+    }
+
+    public void setMoving(boolean moving) {
+        this.moving = moving;
+    }
+
+    public boolean isMoving() {
+        return moving;
+    }
+
+    private void updateHunger(float deltaTime) {
+        float depletionMultiplier = 1.0f;
+        if (sprinting) depletionMultiplier = 3.0f;
+        if (!onGround && !flying) depletionMultiplier = 2.0f; // Jumping/falling
+
+        if (saturation > 0) {
+            saturation -= HUNGER_DEPletion_RATE * depletionMultiplier * deltaTime;
+        } else {
+            hunger = Math.max(0, hunger - HUNGER_DEPletion_RATE * depletionMultiplier * deltaTime);
+        }
+    }
+
+    public void eat(com.za.minecraft.world.items.FoodItem food) {
+        if (hunger < MAX_HUNGER) {
+            hunger = Math.min(MAX_HUNGER, hunger + food.getNutrition());
+            saturation = Math.min(MAX_HUNGER, saturation + food.getSaturationBonus());
+            com.za.minecraft.utils.Logger.info("Ate %s. Hunger: %.1f", food.getName(), hunger);
+        }
+    }
+
+    public float getHunger() {
+        return hunger;
+    }
+
+    public void setSprinting(boolean sprinting) {
+        this.sprinting = sprinting;
     }
     
     private void move(World world, float dx, float dy, float dz) {

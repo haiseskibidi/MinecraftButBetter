@@ -25,4 +25,9 @@ public class SlabBlockDefinition extends BlockDefinition {
         }
         return VoxelShape.SLAB_BOTTOM; // Default
     }
+
+    @Override
+    public boolean isFullCube() {
+        return false;
+    }
 }

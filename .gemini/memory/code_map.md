@@ -1,92 +1,122 @@
 # Code Map: MinecraftButBetter
 
+## Asset Map
+### src/main/resources/minecraft/textures
+Назначение: Полный набор оригинальных ассетов Minecraft.
+- **block/**: Текстуры блоков (16x16).
+- **item/**: Иконки предметов.
+- **gui/**: Элементы интерфейса (widgets.png, icons.png).
+- **font/**: Текстуры шрифтов (ascii.png, unicode_page_04.png).
+
 ## Core Engine
 ### com.za.minecraft.Application
-Назначение: Точка входа в приложение, обрабатывает аргументы командной строки для выбора режима (Singleplayer, Host, Client).
-Экспорты/Функции: main(String[] args)
+Назначение: Точка входа в приложение, парсинг аргументов командной строки.
+Функции: main(String[] args)
 Зависимости: com.za.minecraft.engine.core.GameLoop
 
 ### com.za.minecraft.engine.core.GameLoop
-Назначение: Главный игровой цикл, управляет инициализацией, обновлением состояния и рендерингом.
-Экспорты/Функции: getInstance(), getPlayer(), runSingleplayer(), runAsHost(String name), runAsClient(String name, String address), isInventoryOpen()
-Зависимости: Window, Timer, Camera, InputManager, Renderer, World, Player, Hotbar, GameServer, GameClient, PauseMenu
+Назначение: Главный игровой цикл, управление состояниями игры (пауза, инвентарь), связь между системами.
+Функции: getInstance(), runSingleplayer(), runAsHost(String name), runAsClient(String name, String address), init(), loop(), input(), update(float interval), render(), cleanup()
+Зависимости: Window, Timer, Camera, InputManager, Renderer, World, Player, Hotbar, GameServer, GameClient
 
 ### com.za.minecraft.engine.core.Window
 Назначение: Управление окном GLFW и контекстом OpenGL.
-Экспорты/Функции: init(), update(), cleanup(), shouldClose(), getWidth(), getHeight(), getAspectRatio(), isKeyPressed(int keyCode)
+Функции: init(), update(), cleanup(), shouldClose(), isKeyPressed(int keyCode)
 Зависимости: GLFW, GL
 
 ### com.za.minecraft.engine.core.Timer
-Назначение: Учет времени для синхронизации FPS/UPS и вычисления delta time.
-Экспорты/Функции: updateDelta(), getDelta(), getDeltaF()
-Зависимости: System.nanoTime()
+Назначение: Подсчет времени между кадрами (delta time).
+Функции: updateDelta(), getDelta(), getDeltaF()
+
+### com.za.minecraft.engine.core.GameMode
+Назначение: Перечисление режимов игры (SINGLEPLAYER, MULTIPLAYER_HOST, MULTIPLAYER_CLIENT).
 
 ## Graphics
 ### com.za.minecraft.engine.graphics.Renderer
-Назначение: Основной класс отрисовки мира, сущностей и UI.
-Экспорты/Функции: init(int width, int height), render(Window window, Camera camera, World world, RaycastResult highlightedBlock, GameClient client), cleanup(), getAtlas(), getUIRenderer()
-Зависимости: Mesh, Shader, Camera, World, TextureAtlas, Framebuffer, PostProcessor, UIRenderer, DebugRenderer
+Назначение: Координация всех процессов отрисовки (мир, превью блоков, UI).
+Функции: init(int width, int height), render(Window window, Camera camera, World world, RaycastResult highlightedBlock, GameClient client), renderDebug(float fps, int width, int height), setPreviewBlock(BlockPos pos, Block block)
+Зависимости: Shader, Mesh, TextureAtlas, Framebuffer, PostProcessor, UIRenderer, DebugRenderer
 
 ### com.za.minecraft.engine.graphics.Camera
-Назначение: Управление видом игрока, матрицами проекции и вида.
-Экспорты/Функции: updateAspectRatio(float ratio), getViewMatrix(), getProjectionMatrix(), move(Vector3f offset), rotate(float pitch, float yaw)
-Зависимости: JOML (Matrix4f, Vector3f)
-
-### com.za.minecraft.engine.graphics.TextureAtlas
-Назначение: Управление атласом текстур блоков.
-Экспорты/Функции: getUVs(String texturePath), getTexture()
-Зависимости: Texture, BlockRegistry
+Назначение: Управление вектором взгляда игрока и матрицами проекции.
+Функции: getViewMatrix(), getProjectionMatrix(), moveRotation(float rx, float ry, float rz), updateAspectRatio(float ratio)
 
 ### com.za.minecraft.engine.graphics.ui.UIRenderer
-Назначение: Отрисовка элементов интерфейса (инвентарь, хотбар, прицел).
-Экспорты/Функции: renderInventory(int width, int height, TextureAtlas atlas), renderHotbar(int width, int height, Player player), renderCrosshair(int width, int height)
-Зависимости: Mesh, Shader, Texture
+Назначение: Отрисовка 2D элементов (прицел, хотбар, инвентарь, меню паузы).
+Функции: init(), renderCrosshair(int sw, int sh), renderHotbar(int sw, int sh, DynamicTextureAtlas atlas), renderInventory(int sw, int sh, DynamicTextureAtlas atlas), renderItemIcon(Item item, int x, int y, float size, int sw, int sh, DynamicTextureAtlas atlas)
+Зависимости: Shader, Texture, FontRenderer, ItemRegistry, BlockTextureMapper
+
+### com.za.minecraft.engine.graphics.ui.Hotbar
+Назначение: Логика выбора слотов в хотбаре и их позиционирования на экране.
+Функции: setSelectedSlot(int slot), getStackInSlot(int slot), getSelectedItemStack()
+Зависимости: Player, Inventory, ItemStack
+
+### com.za.minecraft.engine.graphics.TextureAtlas / DynamicTextureAtlas
+Назначение: Управление набором текстур блоков в одном объекте.
+Функции: getUVs(String key), bind(), addTexture(String key, BufferedImage image)
 
 ## World & Blocks
 ### com.za.minecraft.world.World
-Назначение: Хранилище чанков и управление состоянием блоков в мире.
-Экспорты/Функции: getBlock(int x, int y, int z), setBlock(int x, int y, int z, Block block), getLoadedChunks(), getChunk(ChunkPos pos)
-Зависимости: Chunk, TerrainGenerator, ChunkPos, BlockPos
+Назначение: Управление чанками и глобальное хранилище блоков.
+Функции: getBlock(int x, int y, int z), setBlock(int x, int y, int z, Block block), getLoadedChunks()
+Зависимости: Chunk, TerrainGenerator, ChunkPos
 
 ### com.za.minecraft.world.chunks.Chunk
-Назначение: Контейнер для блоков размером 16x256x16.
-Экспорты/Функции: getBlock(int x, int y, int z), setBlock(int x, int y, int z, Block block), buildMesh(TextureAtlas atlas)
+Назначение: Контейнер для блоков 16x256x16.
+Функции: getBlock(int x, int y, int z), setBlock(int x, int y, int z, Block block), buildMesh(TextureAtlas atlas)
 Зависимости: Block, Mesh, ChunkMeshGenerator
 
 ### com.za.minecraft.world.blocks.BlockRegistry
-Назначение: Регистрация всех типов блоков и их свойств.
-Экспорты/Функции: registerBlock(BlockDefinition def), getBlock(byte id), getTextures(byte id), allTextureKeys()
-Зависимости: BlockDefinition, BlockType, BlockTextures
+Назначение: Центральный реестр определений блоков.
+Функции: registerBlock(BlockDefinition def), getBlock(byte id), getTextures(byte id)
+Зависимости: BlockDefinition, BlockType
 
 ### com.za.minecraft.world.blocks.Block
-Назначение: Объектное представление блока в мире.
-Экспорты/Функции: getType(), setType(byte type)
-Зависимости: BlockType
+Назначение: Экземпляр блока с типом и метаданными (направление).
+Функции: getType(), getMetadata(), setType(byte type), setMetadata(byte meta)
+
+## Items System (NEW)
+### com.za.minecraft.world.items.Item
+Назначение: Базовый класс для всех предметов.
+Поля: id, name, texturePath
+
+### com.za.minecraft.world.items.BlockItem (NEW)
+Назначение: Предметы, представляющие блоки. Используется для разделения логики рендеринга иконок.
+
+### com.za.minecraft.world.items.ToolItem
+Назначение: Инструменты с параметрами эффективности и прочности.
+Функции: getToolType(), getEfficiency(), getMaxDurability()
+
+### com.za.minecraft.world.items.FoodItem (NEW)
+Назначение: Съедобные предметы.
+Параметры: nutrition, saturationBonus.
+
+### com.za.minecraft.world.items.ItemStack
+Назначение: Контейнер для предмета в инвентаре (хранит количество и текущую прочность).
+Функции: getItem(), getCount(), getDurability()
+
+### com.za.minecraft.world.items.ItemRegistry
+Назначение: Реестр всех предметов и автоматический маппинг блоков в предметы.
+Функции: registerItem(Item item), getItem(byte id), getAllItems()
 
 ## Entities & Physics
 ### com.za.minecraft.entities.Player
-Назначение: Сущность игрока, управляет позицией, инвентарем и коллизиями.
-Экспорты/Функции: update(float delta, World world), getPosition(), getInventory()
-Зависимости: Vector3f, Inventory, World, AABB
+Назначение: Сущность игрока, физика перемещения, инвентарь, управление шумом и голодом.
+Функции: update(float delta, World world), jump(), setFlying(boolean flying), addNoise(float), setContinuousNoise(float), setSneaking(boolean), setMoving(boolean), getNoiseLevel()
+Зависимости: Vector3f, Inventory, AABB
+
+### com.za.minecraft.entities.Inventory
+Назначение: Хранилище предметов игрока (хотбар).
+Функции: getSelectedItemStack(), setStackInSlot(int slot, ItemStack stack), nextSlot(), previousSlot()
+Зависимости: ItemStack, ItemRegistry
 
 ### com.za.minecraft.world.physics.Raycast
-Назначение: Алгоритм пересечения луча с воксельной сеткой (для выбора блоков).
-Экспорты/Функции: cast(Vector3f origin, Vector3f direction, float distance, World world)
-Зависимости: World, RaycastResult
-
-## Generation
-### com.za.minecraft.world.generation.TerrainGenerator
-Назначение: Генерация ландшафта и структур.
-Экспорты/Функции: generateTerrain(Chunk chunk), generateStructures(World world, Chunk chunk)
-Зависимости: PerlinNoise, SimplexNoise, TreeGenerator
+Назначение: Алгоритм прослеживания луча для выбора блоков.
+Функции: raycast(World world, Vector3f origin, Vector3f direction)
+Зависимости: RaycastResult, World
 
 ## Networking
-### com.za.minecraft.network.GameServer
-Назначение: Серверная часть для мультиплеера.
-Экспорты/Функции: start(), stop(), broadcast(NetworkPacket packet)
-Зависимости: NetworkPacket
-
-### com.za.minecraft.network.GameClient
-Назначение: Клиентская часть для подключения к серверу.
-Экспорты/Функции: connect(String address), disconnect(), sendPlayerPosition()
-Зависимости: NetworkPacket, World, Player
+### com.za.minecraft.network.GameServer / GameClient
+Назначение: Реализация мультиплеера на базе Kryonet.
+Функции: start(), connect(String address), sendBlockUpdate(int x, int y, int z, byte type), sendPlayerPosition()
+Зависимости: NetworkPacket, Kryo

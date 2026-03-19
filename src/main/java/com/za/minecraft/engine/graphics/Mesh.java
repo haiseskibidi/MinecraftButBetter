@@ -15,14 +15,19 @@ public class Mesh {
     private final int texVboId;
     private final int normalVboId;
     private final int blockTypeVboId;
+    private final int neighborDataVboId;
     private final int eboId;
     private final int vertexCount;
     
     public Mesh(float[] positions, float[] texCoords, float[] normals, int[] indices) {
-        this(positions, texCoords, normals, new float[positions.length / 3], indices);
+        this(positions, texCoords, normals, new float[positions.length / 3], new float[positions.length / 3], indices);
     }
     
     public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, int[] indices) {
+        this(positions, texCoords, normals, blockTypes, new float[positions.length / 3], indices);
+    }
+
+    public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, int[] indices) {
         this.vertexCount = indices.length;
         
         vaoId = glGenVertexArrays();
@@ -63,6 +68,15 @@ public class Mesh {
         glVertexAttribPointer(3, 1, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(3);
         memFree(blockTypeBuffer);
+
+        neighborDataVboId = glGenBuffers();
+        FloatBuffer neighborDataBuffer = memAllocFloat(neighborData.length);
+        neighborDataBuffer.put(neighborData).flip();
+        glBindBuffer(GL_ARRAY_BUFFER, neighborDataVboId);
+        glBufferData(GL_ARRAY_BUFFER, neighborDataBuffer, GL_STATIC_DRAW);
+        glVertexAttribPointer(4, 1, GL_FLOAT, false, 0, 0);
+        glEnableVertexAttribArray(4);
+        memFree(neighborDataBuffer);
         
         eboId = glGenBuffers();
         IntBuffer indicesBuffer = memAllocInt(indices.length);
@@ -91,6 +105,7 @@ public class Mesh {
         glDeleteBuffers(texVboId);
         glDeleteBuffers(normalVboId);
         glDeleteBuffers(blockTypeVboId);
+        glDeleteBuffers(neighborDataVboId);
         glDeleteBuffers(eboId);
         glDeleteVertexArrays(vaoId);
     }
