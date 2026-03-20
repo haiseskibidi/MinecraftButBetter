@@ -21,4 +21,4 @@ function update_memory(category, new_content) {
     }
 }
 
-module.exports = { update_memory };
+module.exports = { update_memory }; 

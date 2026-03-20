@@ -1,4 +1,4 @@
-# Архитектура проекта "MinecraftButBetter"
+ # Архитектура проекта "MinecraftButBetter"
 
 ## Модульная структура
 - **com.za.minecraft.engine**: Ядро движка (core, graphics, input).

@@ -6,9 +6,12 @@ import com.za.minecraft.network.GameClient;
 import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.blocks.Block;
+import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.chunks.Chunk;
 import com.za.minecraft.world.chunks.ChunkMeshGenerator;
 import com.za.minecraft.world.physics.RaycastResult;
+import com.za.minecraft.world.items.ItemStack;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -30,12 +33,20 @@ public class Renderer {
     private Mesh highlightMesh;
     private Mesh playerMesh;
     private Mesh previewMesh;
+    private final Vector3f lightDirection;
+    
+    // View Model caching
+    private Mesh heldItemMesh;
+    private byte lastHeldTypeId = -1;
+    private boolean lastHeldIsBlock = false;
+    
     private Block currentPreviewBlock;
     private com.za.minecraft.world.BlockPos previewPos;
     
     public Renderer() {
         this.chunkMeshes = new ConcurrentHashMap<>();
         this.modelMatrix = new Matrix4f();
+        this.lightDirection = new Vector3f(0.2f, -1.0f, 0.2f).normalize();
     }
     
     public void setPreviewBlock(com.za.minecraft.world.BlockPos pos, Block block) {
@@ -65,9 +76,18 @@ public class Renderer {
         );
         
         atlas = new DynamicTextureAtlas(16);
+        // Add all block textures
         for (String key : com.za.minecraft.world.blocks.BlockRegistry.allTextureKeys()) {
             String path = "src/main/resources/" + key;
             atlas.add(key, path);
+        }
+        // Add all item textures
+        for (com.za.minecraft.world.items.Item item : com.za.minecraft.world.items.ItemRegistry.getAllItems().values()) {
+            String tex = item.getTexturePath();
+            if (tex != null && !tex.isEmpty()) {
+                String path = "src/main/resources/" + tex;
+                atlas.add(tex, path);
+            }
         }
         atlas.build();
         
@@ -79,15 +99,15 @@ public class Renderer {
         
         // Передаем UV координаты grass_block_top.png для правильного окрашивания
         float[] grassTopUV = atlas.uvFor("minecraft/textures/block/grass_block_top.png");
-        blockShader.setUniform("grassTopUV", grassTopUV[0], grassTopUV[1], grassTopUV[2], grassTopUV[5]); // min_u, min_v, max_u, max_v
+        blockShader.setUniform("grassTopUV", grassTopUV[0], grassTopUV[1], grassTopUV[2], grassTopUV[3]);
         
         // Передаем UV координаты oak_leaves.png для окрашивания листвы
         float[] leavesUV = atlas.uvFor("minecraft/textures/block/oak_leaves.png");
-        blockShader.setUniform("leavesUV", leavesUV[0], leavesUV[1], leavesUV[2], leavesUV[5]); // min_u, min_v, max_u, max_v
+        blockShader.setUniform("leavesUV", leavesUV[0], leavesUV[1], leavesUV[2], leavesUV[3]);
 
         // Connected Glass UVs
         float[] glassUV = atlas.uvFor("minecraft/textures/block/glass.png");
-        blockShader.setUniform("glassUV", glassUV[0], glassUV[1], glassUV[2], glassUV[5]);
+        blockShader.setUniform("glassUV", glassUV[0], glassUV[1], glassUV[2], glassUV[3]);
         
         framebuffer = new Framebuffer(windowWidth, windowHeight);
         postProcessor = new PostProcessor();
@@ -95,12 +115,9 @@ public class Renderer {
         
         uiRenderer = new UIRenderer();
         uiRenderer.init();
-        
-        // debugRenderer = new DebugRenderer();
-        // debugRenderer.init(); // Временно отключено
     }
     
-    public void render(Window window, Camera camera, World world, RaycastResult highlightedBlock, GameClient networkClient) {
+    public void render(Window window, Camera camera, World world, RaycastResult highlightedBlock, com.za.minecraft.network.GameClient networkClient) {
         // Resize framebuffer if window size changed
         framebuffer.resize(window.getWidth(), window.getHeight());
         
@@ -119,6 +136,9 @@ public class Renderer {
         if (previewPos != null && previewMesh != null) {
             renderPreviewBlock(camera);
         }
+
+        // Render View Model (Hand and Item)
+        renderViewModel(camera, world.getPlayer());
         
         // Render to screen with post-processing
         framebuffer.unbind();
@@ -132,13 +152,99 @@ public class Renderer {
                 window.getHeight()
             );
         } else {
-            // Simple passthrough without post-processing
             postProcessor.processPassthrough(framebuffer.getColorTextureId());
         }
         
         uiRenderer.renderCrosshair(window.getWidth(), window.getHeight());
         uiRenderer.renderHotbar(window.getWidth(), window.getHeight(), atlas);
         uiRenderer.renderPauseMenu(window.getWidth(), window.getHeight());
+    }
+
+    private void renderViewModel(Camera camera, com.za.minecraft.entities.Player player) {
+        if (player == null) return;
+
+        // --- View Model State ---
+        glDisable(GL_CULL_FACE); // Disable culling for view model to prevent disappearing polygons
+        glClear(GL_DEPTH_BUFFER_BIT); // Clear depth to draw on top
+        
+        blockShader.use();
+        atlas.bind();
+        
+        // Use a fixed FOV for the view model (Minecraft style)
+        Matrix4f viewModelProjection = new Matrix4f().setPerspective((float)Math.toRadians(70.0f), camera.getAspectRatio(), 0.01f, 1000.0f);
+        blockShader.setMatrix4f("projection", viewModelProjection);
+        blockShader.setMatrix4f("view", new Matrix4f().identity());
+        blockShader.setBoolean("viewModelPass", true);
+        
+        // Use fixed camera-relative light direction for view model
+        blockShader.setVector3f("lightDirection", new Vector3f(0.4f, -0.8f, 0.4f).normalize());
+        
+        Matrix4f viewModelMatrix = new Matrix4f().identity();
+        
+        float intensity = player.getBobIntensity();
+        float bobX = (float) Math.sin(player.getWalkBobTimer() * 0.5f) * 0.05f * intensity;
+        float bobY = (float) Math.sin(player.getWalkBobTimer()) * 0.04f * intensity;
+
+        float swing = player.getSwingProgress();
+        float swingAngle = (float) Math.sin(swing * Math.PI) * 1.2f;
+        float swingMoveX = (float) Math.sin(swing * Math.PI) * 0.4f;
+        float swingMoveY = (float) Math.sin(swing * Math.PI) * 0.2f;
+
+        // --- Render Held Item ---
+        ItemStack stack = player.getInventory().getSelectedItemStack();
+        if (stack != null) {
+            com.za.minecraft.world.items.Item item = stack.getItem();
+            byte currentTypeId = item.getId();
+            boolean isBlock = item.isBlock();
+            com.za.minecraft.world.items.Item.ViewmodelTransform transform = item.getViewmodelTransform();
+
+            // Cache item mesh if type or category changed
+            if (lastHeldTypeId != currentTypeId || lastHeldIsBlock != isBlock) {
+                if (heldItemMesh != null) heldItemMesh.cleanup();
+                
+                if (isBlock) {
+                    heldItemMesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(currentTypeId), atlas);
+                } else {
+                    heldItemMesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, currentTypeId);
+                }
+                lastHeldTypeId = currentTypeId;
+                lastHeldIsBlock = isBlock;
+            }
+
+            if (heldItemMesh != null) {
+                viewModelMatrix.identity();
+                
+                float px = transform.px + bobX - (isBlock ? swingMoveX : swingMoveX * 0.5f);
+                float py = transform.py + bobY - (isBlock ? swingMoveY : swingMoveY * 0.8f);
+                float pz = transform.pz + (swingMoveX * 0.2f);
+                
+                float rx = (float)Math.toRadians(transform.rx) - (isBlock ? swingAngle * 0.4f : swingAngle * 1.5f);
+                float ry = (float)Math.toRadians(transform.ry) + (isBlock ? swingAngle * 0.2f : swingAngle * 0.2f);
+                float rz = (float)Math.toRadians(transform.rz) + (isBlock ? 0.1f : 0.0f);
+
+                viewModelMatrix.translate(px, py, pz)
+                    .rotateX(rx)
+                    .rotateY(ry)
+                    .rotateZ(rz)
+                    .scale(transform.scale);
+                
+                blockShader.setMatrix4f("model", viewModelMatrix);
+                blockShader.setInt("highlightPass", 0);
+                heldItemMesh.render();
+            }
+        } else {
+            lastHeldTypeId = -1;
+            if (heldItemMesh != null) {
+                heldItemMesh.cleanup();
+                heldItemMesh = null;
+            }
+        }
+
+        // --- Cleanup View Model State ---
+        blockShader.setInt("highlightPass", 0);
+        blockShader.setBoolean("viewModelPass", false);
+        blockShader.setVector3f("lightDirection", lightDirection); // Restore world light dir
+        glEnable(GL_CULL_FACE);
     }
     
     private void renderPreviewBlock(Camera camera) {
@@ -159,13 +265,12 @@ public class Renderer {
         glEnable(GL_CULL_FACE);
     }
     
-    private void renderScene(Camera camera, World world, GameClient networkClient) {
+    private void renderScene(Camera camera, World world, com.za.minecraft.network.GameClient networkClient) {
         blockShader.use();
         atlas.bind();
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
         blockShader.setMatrix4f("view", camera.getViewMatrix());
         
-        // First pass: opaque blocks
         for (Chunk chunk : world.getLoadedChunks()) {
             if (chunk.needsMeshUpdate() || !chunkMeshes.containsKey(chunk)) {
                 updateChunkMesh(chunk, world);
@@ -183,9 +288,6 @@ public class Renderer {
             }
         }
         
-        // Second pass: translucent blocks (glass)
-        // Disable depth writing to prevent translucent objects from occluding each other weirdly,
-        // but keep depth testing.
         glDepthMask(false);
         for (Chunk chunk : world.getLoadedChunks()) {
             ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.get(chunk);
@@ -201,55 +303,50 @@ public class Renderer {
         }
         glDepthMask(true);
         
-        // Render entities (mobs, etc.)
         renderEntities(camera, world);
-        
-        // Render other players
         renderPlayers(camera, networkClient);
     }
     
     private void renderEntities(Camera camera, World world) {
         if (world.getEntities().isEmpty()) return;
         
-        if (playerMesh == null) {
-            createPlayerMesh();
-        }
+        if (playerMesh == null) createPlayerMesh();
         
         blockShader.use();
-        
         for (com.za.minecraft.entities.Entity entity : world.getEntities()) {
             modelMatrix.identity()
-                .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z());
-            
-            // Apply rotation if any
-            modelMatrix.rotateY(entity.getRotation().y);
+                .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z())
+                .rotateY(entity.getRotation().y);
             
             blockShader.setMatrix4f("model", modelMatrix);
             
-            // Different colors for different states if it's a Scout
             if (entity instanceof com.za.minecraft.entities.ScoutEntity scout) {
                 blockShader.setInt("highlightPass", 1);
                 switch (scout.getCurrentState()) {
-                    case CHASE: 
-                        blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 0.0f, 0.0f)); // Red
-                        break;
-                    case SEARCH:
-                        blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 0.5f, 0.0f)); // Orange
-                        break;
-                    default:
-                        blockShader.setVector3f("highlightColor", new Vector3f(0.5f, 0.5f, 0.5f)); // Grey
-                        break;
+                    case CHASE: blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 0.0f, 0.0f)); break;
+                    case SEARCH: blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 0.5f, 0.0f)); break;
+                    default: blockShader.setVector3f("highlightColor", new Vector3f(0.5f, 0.5f, 0.5f)); break;
                 }
+                playerMesh.render();
+            } else if (entity instanceof com.za.minecraft.entities.ItemEntity itemEntity) {
+                float bob = (float) Math.sin(itemEntity.getAge() * 2.0f) * 0.1f;
+                modelMatrix.identity()
+                    .translate(entity.getPosition().x(), entity.getPosition().y() + 0.25f + bob, entity.getPosition().z())
+                    .rotateY(entity.getRotation().y)
+                    .scale(0.25f, 0.25f, 0.25f);
+                
+                blockShader.setMatrix4f("model", modelMatrix);
+                blockShader.setInt("highlightPass", 1);
+                blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 1.0f, 1.0f));
+                playerMesh.render();
             } else {
                 blockShader.setInt("highlightPass", 0);
+                playerMesh.render();
             }
-            
-            playerMesh.render();
         }
-        
         blockShader.setInt("highlightPass", 0);
     }
-    
+
     public void renderDebug(float fps, int windowWidth, int windowHeight) {
         if (debugRenderer != null) {
             debugRenderer.renderFPS(fps, windowWidth, windowHeight);
@@ -297,48 +394,33 @@ public class Renderer {
     }
     
     private void renderBlockHighlight(Camera camera, RaycastResult highlightedBlock) {
-        // Disable depth writing but keep depth testing for proper z-ordering
         glDepthMask(false);
         glDisable(GL_CULL_FACE);
-        
-        // Use line mode for wireframe
         glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
         glLineWidth(3.0f);
         
-        // Use the block shader but with override color pass
         blockShader.use();
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
         blockShader.setMatrix4f("view", camera.getViewMatrix());
         
-        // Position matrix for the highlighted block
         modelMatrix.identity().translate(
             highlightedBlock.getBlockPos().x(),
             highlightedBlock.getBlockPos().y(),
             highlightedBlock.getBlockPos().z()
         );
+        modelMatrix.scale(1.002f, 1.002f, 1.002f);
         blockShader.setMatrix4f("model", modelMatrix);
         
-        // Enable highlight pass in shader with grey color
         blockShader.setInt("highlightPass", 1);
         blockShader.setVector3f("highlightColor", new Vector3f(0.2f, 0.2f, 0.2f));
         
-        // Render the highlight mesh
-        if (highlightMesh == null) {
-            createHighlightMesh();
-        }
-        // Slight scale to pull lines outward to avoid z-fighting
-        modelMatrix.scale(1.002f, 1.002f, 1.002f);
-        blockShader.setMatrix4f("model", modelMatrix);
-        // Keep depth test enabled but use polygon offset to avoid z-fighting
+        if (highlightMesh == null) createHighlightMesh();
         glEnable(GL_POLYGON_OFFSET_LINE);
         glPolygonOffset(-1.0f, -1.0f);
         highlightMesh.render(GL_LINES);
         glDisable(GL_POLYGON_OFFSET_LINE);
         
-        // Disable highlight pass
         blockShader.setInt("highlightPass", 0);
-        
-        // Restore render state
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glEnable(GL_CULL_FACE);
         glDepthMask(true);
@@ -346,129 +428,86 @@ public class Renderer {
     }
     
     private void createHighlightMesh() {
-        // Cube vertices for wireframe outline
         float[] positions = {
-            // 8 vertices of a unit cube
-            0, 0, 0,  // 0: bottom-front-left
-            1, 0, 0,  // 1: bottom-front-right
-            1, 1, 0,  // 2: top-front-right
-            0, 1, 0,  // 3: top-front-left
-            0, 0, 1,  // 4: bottom-back-left
-            1, 0, 1,  // 5: bottom-back-right
-            1, 1, 1,  // 6: top-back-right
-            0, 1, 1   // 7: top-back-left
+            0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0,
+            0, 0, 1, 1, 0, 1, 1, 1, 1, 0, 1, 1
         };
-        
-        // Empty texture coordinates and normals (not used for wireframe)
         float[] texCoords = new float[positions.length / 3 * 2];
         float[] normals = new float[positions.length];
         float[] blockTypes = new float[positions.length / 3];
-        
-        // Line indices for wireframe cube (each pair forms a line)
         int[] indices = {
-            // Bottom face edges
-            0, 1,  1, 5,  5, 4,  4, 0,
-            // Top face edges  
-            3, 2,  2, 6,  6, 7,  7, 3,
-            // Vertical edges connecting bottom and top
-            0, 3,  1, 2,  5, 6,  4, 7
+            0, 1, 1, 5, 5, 4, 4, 0,
+            3, 2, 2, 6, 6, 7, 7, 3,
+            0, 3, 1, 2, 5, 6, 4, 7
         };
-        
         highlightMesh = new Mesh(positions, texCoords, normals, blockTypes, indices);
     }
     
-    private void renderPlayers(Camera camera, GameClient networkClient) {
+    private void renderPlayers(Camera camera, com.za.minecraft.network.GameClient networkClient) {
         if (networkClient == null || !networkClient.isConnected()) return;
         
-        // Убираем highlight режим если был включен
         blockShader.setInt("highlightPass", 0);
+        if (playerMesh == null) createPlayerMesh();
         
-        // Create player mesh if needed
-        if (playerMesh == null) {
-            createPlayerMesh();
-        }
-        
-        // Render each remote player as a colored cube
         for (var player : networkClient.getRemotePlayers().values()) {
             modelMatrix.identity()
                 .translate(player.getX(), player.getY(), player.getZ())
-                .scale(0.6f, 1.8f, 0.6f); // Player size (width, height, width)
+                .scale(0.6f, 1.8f, 0.6f);
             
             blockShader.setMatrix4f("model", modelMatrix);
-            
-            // Override color to make players stand out (blue-ish)
             blockShader.setInt("highlightPass", 1);
-            blockShader.setVector3f("highlightColor", new Vector3f(0.3f, 0.6f, 1.0f)); // Blue color
-            
+            blockShader.setVector3f("highlightColor", new Vector3f(0.3f, 0.6f, 1.0f));
             playerMesh.render();
         }
-        
-        // Restore normal rendering
         blockShader.setInt("highlightPass", 0);
     }
     
     private void createPlayerMesh() {
-        // Simple cube for representing players
+        // Standard cube with 24 vertices to have distinct normals per face
         float[] positions = {
-            // Front face
-            -0.5f, -1.0f,  0.5f,
-             0.5f, -1.0f,  0.5f,
-             0.5f,  1.0f,  0.5f,
-            -0.5f,  1.0f,  0.5f,
-            
-            // Back face
-            -0.5f, -1.0f, -0.5f,
-             0.5f, -1.0f, -0.5f,
-             0.5f,  1.0f, -0.5f,
-            -0.5f,  1.0f, -0.5f,
-            
-            // Left face
-            -0.5f, -1.0f, -0.5f,
-            -0.5f, -1.0f,  0.5f,
-            -0.5f,  1.0f,  0.5f,
-            -0.5f,  1.0f, -0.5f,
-            
-            // Right face
-             0.5f, -1.0f, -0.5f,
-             0.5f, -1.0f,  0.5f,
-             0.5f,  1.0f,  0.5f,
-             0.5f,  1.0f, -0.5f,
-            
-            // Top face
-            -0.5f,  1.0f, -0.5f,
-             0.5f,  1.0f, -0.5f,
-             0.5f,  1.0f,  0.5f,
-            -0.5f,  1.0f,  0.5f,
-            
-            // Bottom face
-            -0.5f, -1.0f, -0.5f,
-             0.5f, -1.0f, -0.5f,
-             0.5f, -1.0f,  0.5f,
-            -0.5f, -1.0f,  0.5f
+            // Front face (+Z)
+            -0.5f, -1.0f,  0.5f,  0.5f, -1.0f,  0.5f,  0.5f,  1.0f,  0.5f, -0.5f,  1.0f,  0.5f,
+            // Back face (-Z)
+            -0.5f, -1.0f, -0.5f, -0.5f,  1.0f, -0.5f,  0.5f,  1.0f, -0.5f,  0.5f, -1.0f, -0.5f,
+            // Left face (-X)
+            -0.5f, -1.0f, -0.5f, -0.5f, -1.0f,  0.5f, -0.5f,  1.0f,  0.5f, -0.5f,  1.0f, -0.5f,
+            // Right face (+X)
+             0.5f, -1.0f,  0.5f,  0.5f, -1.0f, -0.5f,  0.5f,  1.0f, -0.5f,  0.5f,  1.0f,  0.5f,
+            // Top face (+Y)
+            -0.5f,  1.0f,  0.5f,  0.5f,  1.0f,  0.5f,  0.5f,  1.0f, -0.5f, -0.5f,  1.0f, -0.5f,
+            // Bottom face (-Y)
+            -0.5f, -1.0f, -0.5f,  0.5f, -1.0f, -0.5f,  0.5f, -1.0f,  0.5f, -0.5f, -1.0f,  0.5f
         };
-        
+
+        float[] normals = {
+            // Front
+            0, 0, 1,  0, 0, 1,  0, 0, 1,  0, 0, 1,
+            // Back
+            0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1,
+            // Left
+            -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0, 0,
+            // Right
+            1, 0, 0,  1, 0, 0,  1, 0, 0,  1, 0, 0,
+            // Top
+            0, 1, 0,  0, 1, 0,  0, 1, 0,  0, 1, 0,
+            // Bottom
+            0, -1, 0, 0, -1, 0, 0, -1, 0, 0, -1, 0
+        };
+
         int[] indices = {
-            // Front face
-            0, 1, 2,   2, 3, 0,
-            // Back face
-            4, 6, 5,   6, 4, 7,
-            // Left face
-            8, 9, 10,  10, 11, 8,
-            // Right face
-            12, 14, 13, 14, 12, 15,
-            // Top face
-            16, 17, 18, 18, 19, 16,
-            // Bottom face
-            20, 22, 21, 22, 20, 23
+            0, 1, 2, 2, 3, 0,       // Front
+            4, 5, 6, 6, 7, 4,       // Back
+            8, 9, 10, 10, 11, 8,    // Left
+            12, 13, 14, 14, 15, 12, // Right
+            16, 17, 18, 18, 19, 16, // Top
+            20, 21, 22, 22, 23, 20  // Bottom
         };
-        
-        // Create dummy texture coords and normals (needed for Mesh constructor)
-        float[] texCoords = new float[positions.length / 3 * 2]; // 2 coords per vertex
-        float[] normals = new float[positions.length]; // 3 coords per vertex  
-        float[] blockTypes = new float[positions.length / 3]; // 1 type per vertex
-        
+
+        float[] texCoords = new float[positions.length / 3 * 2];
+        float[] blockTypes = new float[positions.length / 3];
         playerMesh = new Mesh(positions, texCoords, normals, blockTypes, indices);
     }
+
     
     public void cleanup() {
         for (ChunkMeshGenerator.ChunkMeshResult result : chunkMeshes.values()) {
@@ -476,42 +515,14 @@ public class Renderer {
             if (result.translucentMesh != null) result.translucentMesh.cleanup();
         }
         chunkMeshes.clear();
-        
-        if (debugRenderer != null) {
-            debugRenderer.cleanup();
-        }
-        
-        if (framebuffer != null) {
-            framebuffer.cleanup();
-        }
-        
-        if (postProcessor != null) {
-            postProcessor.cleanup();
-        }
-        
-        if (uiRenderer != null) {
-            uiRenderer.cleanup();
-        }
-        
-        if (highlightMesh != null) {
-            highlightMesh.cleanup();
-        }
-        
-        if (playerMesh != null) {
-            playerMesh.cleanup();
-        }
-        
-        if (previewMesh != null) {
-            previewMesh.cleanup();
-        }
-        
-        if (atlas != null) {
-            atlas.cleanup();
-        }
-        
-        if (blockShader != null) {
-            blockShader.cleanup();
-        }
+        if (framebuffer != null) framebuffer.cleanup();
+        if (postProcessor != null) postProcessor.cleanup();
+        if (uiRenderer != null) uiRenderer.cleanup();
+        if (highlightMesh != null) highlightMesh.cleanup();
+        if (playerMesh != null) playerMesh.cleanup();
+        if (previewMesh != null) previewMesh.cleanup();
+        if (heldItemMesh != null) heldItemMesh.cleanup();
+        if (atlas != null) atlas.cleanup();
+        if (blockShader != null) blockShader.cleanup();
     }
 }
-

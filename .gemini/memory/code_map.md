@@ -33,13 +33,13 @@
 
 ## Graphics
 ### com.za.minecraft.engine.graphics.Renderer
-Назначение: Координация всех процессов отрисовки (мир, превью блоков, UI).
-Функции: init(int width, int height), render(Window window, Camera camera, World world, RaycastResult highlightedBlock, GameClient client), renderDebug(float fps, int width, int height), setPreviewBlock(BlockPos pos, Block block)
+Назначение: Координация всех процессов отрисовки (мир, превью блоков, View Model, UI).
+Функции: init(int width, int height), render(Window window, Camera camera, World world, RaycastResult highlightedBlock, GameClient client), renderViewModel(Window, Camera, Player), renderDebug(float fps, int width, int height), setPreviewBlock(BlockPos pos, Block block)
 Зависимости: Shader, Mesh, TextureAtlas, Framebuffer, PostProcessor, UIRenderer, DebugRenderer
 
 ### com.za.minecraft.engine.graphics.Camera
 Назначение: Управление вектором взгляда игрока и матрицами проекции.
-Функции: getViewMatrix(), getProjectionMatrix(), moveRotation(float rx, float ry, float rz), updateAspectRatio(float ratio)
+Функции: getViewMatrix(), getProjectionMatrix(), moveRotation(float rx, float ry, float rz), updateAspectRatio(float ratio), setOffsets(float x, float y, float z)
 
 ### com.za.minecraft.engine.graphics.ui.UIRenderer
 Назначение: Отрисовка 2D элементов (прицел, хотбар, инвентарь, меню паузы).
@@ -147,8 +147,12 @@
 
 ### com.za.minecraft.entities.Player
 Назначение: Сущность игрока под управлением человека. Наследует LivingEntity. 
-Функции: update(float delta, World world), jump(), addNoise(float), setContinuousNoise(float), eat(FoodItem), getNoiseLevel(), getHunger()
+Функции: update(float delta, World world), jump(), swing(), getWalkBobTimer(), getSwingProgress(), addNoise(float), setContinuousNoise(float), eat(FoodItem), getNoiseLevel(), getHunger()
 Зависимости: Vector3f, Inventory, LivingEntity
+
+### com.za.minecraft.entities.ItemEntity (NEW)
+Назначение: Сущность выброшенного предмета в мире. Поддерживает физику, вращение и подбор игроком.
+Функции: update(float delta, World world), canBePickedUp(), getStack()
 
 ### com.za.minecraft.entities.ScoutEntity (NEW)
 Назначение: Зараженный-скаут. ИИ логика слуха и погони. Наследует LivingEntity.
@@ -160,7 +164,7 @@
 
 ### com.za.minecraft.entities.Inventory
 Назначение: Хранилище предметов игрока (хотбар).
-Функции: getSelectedItemStack(), setStackInSlot(int slot, ItemStack stack), nextSlot(), previousSlot()
+Функции: getSelectedItemStack(), setStackInSlot(int slot, ItemStack stack), addItem(ItemStack stack), nextSlot(), previousSlot()
 Зависимости: ItemStack, ItemRegistry
 
 ### com.za.minecraft.world.physics.Raycast

@@ -16,6 +16,9 @@ public class Camera {
     private float fov;
     private float aspectRatio;
     
+    // Offset for bobbing/animations
+    private float xOffset = 0, yOffset = 0, zOffset = 0;
+    
     // No caching to avoid subtle jitter; compute per frame
     
     public Camera() {
@@ -36,7 +39,13 @@ public class Camera {
             .rotateX(-rotation.x)
             .rotateY(-rotation.y)
             .rotateZ(-rotation.z)
-            .translate(-position.x, -position.y, -position.z);
+            .translate(-position.x - xOffset, -position.y - yOffset, -position.z - zOffset);
+    }
+
+    public void setOffsets(float x, float y, float z) {
+        this.xOffset = x;
+        this.yOffset = y;
+        this.zOffset = z;
     }
     
     public Matrix4f getProjectionMatrix() {
@@ -45,6 +54,10 @@ public class Camera {
     
     public void updateAspectRatio(float aspectRatio) {
         this.aspectRatio = aspectRatio;
+    }
+
+    public float getAspectRatio() {
+        return aspectRatio;
     }
     
     public void movePosition(float offsetX, float offsetY, float offsetZ) {

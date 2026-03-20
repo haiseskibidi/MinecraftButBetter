@@ -52,6 +52,17 @@ public class ToolItem extends Item {
                type == com.za.minecraft.world.blocks.BlockType.GRASS;
     }
 
+    private static final ViewmodelTransform TOOL_TRANSFORM = new ViewmodelTransform(
+        0.60f, -0.70f, -0.80f, // Position
+        0f, -90.0f, 45.0f,  // Rotation (Minecraft handheld style)
+        0.85f                  // Scale
+    );
+
+    @Override
+    public ViewmodelTransform getViewmodelTransform() {
+        return TOOL_TRANSFORM;
+    }
+
     public ToolType getToolType() {
         return toolType;
     }

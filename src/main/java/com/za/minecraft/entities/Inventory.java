@@ -62,6 +62,28 @@ public class Inventory {
             hotbarSlots[slot] = stack;
         }
     }
+
+    public boolean addItem(ItemStack stack) {
+        if (stack == null) return false;
+        
+        // Find existing stack of same type
+        for (int i = 0; i < HOTBAR_SIZE; i++) {
+            if (hotbarSlots[i] != null && hotbarSlots[i].getItem().getId() == stack.getItem().getId()) {
+                // Simplified stacking (count not yet used in ItemStack, but for future)
+                hotbarSlots[i].setCount(hotbarSlots[i].getCount() + stack.getCount());
+                return true;
+            }
+        }
+        
+        // Find empty slot
+        for (int i = 0; i < HOTBAR_SIZE; i++) {
+            if (hotbarSlots[i] == null) {
+                hotbarSlots[i] = stack;
+                return true;
+            }
+        }
+        return false;
+    }
     
     public void nextSlot() {
         selectedSlot = (selectedSlot + 1) % HOTBAR_SIZE;

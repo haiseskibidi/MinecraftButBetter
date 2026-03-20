@@ -36,6 +36,7 @@ public class InputManager {
     private boolean inWindow = false;
     private boolean fKeyPressed = false;
     private boolean gKeyPressed = false;
+    private boolean qKeyPressed = false;
     private boolean firstMouse = true;
     private boolean leftMousePressed = false;
     private boolean rightMousePressed = false;
@@ -175,6 +176,13 @@ public class InputManager {
         previousPos.y = currentPos.y;
 
         camera.moveRotation(rotVec.x * MOUSE_SENSITIVITY, rotVec.y * MOUSE_SENSITIVITY, 0);
+
+        // Apply View Bobbing
+        float intensity = player.getBobIntensity();
+        float bobX = (float) Math.sin(player.getWalkBobTimer() * 0.5f) * 0.04f * intensity;
+        float bobY = (float) Math.sin(player.getWalkBobTimer()) * 0.04f * intensity;
+        
+        camera.setOffsets(bobX, bobY, 0);
         
         Vector2f moveVector = new Vector2f();
         if (window.isKeyPressed(GLFW_KEY_W)) moveVector.y = 1;
@@ -230,55 +238,85 @@ public class InputManager {
         boolean gKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_G);
         if (gKeyCurrentlyPressed && !gKeyPressed) renderer.toggleFXAA();
         gKeyPressed = gKeyCurrentlyPressed;
+
+        boolean qKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_Q);
+        if (qKeyCurrentlyPressed && !qKeyPressed) {
+            ItemStack stack = player.getInventory().getSelectedItemStack();
+            if (stack != null) {
+                // Drop 1 item
+                ItemStack droppedStack = new ItemStack(stack.getItem(), 1);
+                if (stack.getCount() > 1) {
+                    stack.setCount(stack.getCount() - 1);
+                } else {
+                    player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
+                }
+
+                Vector3f lookDirV = new Vector3f(0, 0, -1).rotateX(camera.getRotation().x).rotateY(camera.getRotation().y).normalize();
+                Vector3f spawnPos = new Vector3f(camera.getPosition()).add(new Vector3f(lookDirV).mul(0.5f));
+                com.za.minecraft.entities.ItemEntity itemEntity = new com.za.minecraft.entities.ItemEntity(spawnPos, droppedStack);
+                
+                // Set initial velocity
+                itemEntity.getVelocity().set(lookDirV).mul(5.0f);
+                world.spawnEntity(itemEntity);
+                com.za.minecraft.utils.Logger.info("Dropped item: %s", droppedStack.getItem().getName());
+            }
+        }
+        qKeyPressed = qKeyCurrentlyPressed;
         
         Vector3f lookDir = new Vector3f(0, 0, -1).rotateX(camera.getRotation().x).rotateY(camera.getRotation().y).normalize();
         RaycastResult raycast = Raycast.raycast(world, camera.getPosition(), lookDir);
         
         boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
-        if (lm && raycast.isHit()) {
-            BlockPos currentPos = raycast.getBlockPos();
-            byte blockType = world.getBlock(currentPos).getType();
-            float hardness = BlockRegistry.getBlock(blockType).getHardness();
-            
-            // If block is unbreakable (hardness < 0), do nothing
-            if (hardness >= 0) {
-                if (!currentPos.equals(breakingBlockPos)) {
-                    breakingBlockPos = currentPos;
-                    breakingProgress = 0.0f;
-                }
+        if (lm) {
+            player.swing();
+            if (raycast.isHit()) {
+                BlockPos currentPos = raycast.getBlockPos();
+                byte blockType = world.getBlock(currentPos).getType();
+                float hardness = BlockRegistry.getBlock(blockType).getHardness();
                 
-                ItemStack stack = player.getInventory().getSelectedItemStack();
-                Item item = stack != null ? stack.getItem() : ItemRegistry.getItem(BlockType.AIR);
-                
-                // Only progress if cooldown is over and item is valid
-                if (breakDelayTimer <= 0 && item != null) {
-                    float speed = item.getMiningSpeed(blockType);
-                    float breakSpeed = speed / hardness;
-                    breakingProgress += breakSpeed * deltaTime;
-                    
-                    // Noise from breaking (depends on hardness)
-                    player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
-                    player.addNoise(hardness * 0.05f * deltaTime);
-                }
-
-                if (breakingProgress >= 1.0f) {
-                    world.setBlock(currentPos, new Block(BlockType.AIR));
-                    if (networkClient != null && networkClient.isConnected()) {
-                        networkClient.sendBlockUpdate(currentPos.x(), currentPos.y(), currentPos.z(), BlockType.AIR);
+                // If block is unbreakable (hardness < 0), do nothing
+                if (hardness >= 0) {
+                    if (!currentPos.equals(breakingBlockPos)) {
+                        breakingBlockPos = currentPos;
+                        breakingProgress = 0.0f;
                     }
-                    breakingBlockPos = null;
-                    breakingProgress = 0.0f;
-                    breakDelayTimer = BREAK_COOLDOWN; // Apply cooldown after EVERY break
                     
-                    // Damage tool
-                    if (stack != null && stack.getItem().isTool()) {
-                        stack.setDurability(stack.getDurability() - 1);
-                        if (stack.getDurability() <= 0) {
-                            player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
-                            com.za.minecraft.utils.Logger.info("Tool broken!");
+                    ItemStack stack = player.getInventory().getSelectedItemStack();
+                    Item item = stack != null ? stack.getItem() : ItemRegistry.getItem(BlockType.AIR);
+                    
+                    // Only progress if cooldown is over and item is valid
+                    if (breakDelayTimer <= 0 && item != null) {
+                        float speed = item.getMiningSpeed(blockType);
+                        float breakSpeed = speed / hardness;
+                        breakingProgress += breakSpeed * deltaTime;
+                        
+                        // Noise from breaking (depends on hardness)
+                        player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
+                        player.addNoise(hardness * 0.05f * deltaTime);
+                    }
+
+                    if (breakingProgress >= 1.0f) {
+                        world.setBlock(currentPos, new Block(BlockType.AIR));
+                        if (networkClient != null && networkClient.isConnected()) {
+                            networkClient.sendBlockUpdate(currentPos.x(), currentPos.y(), currentPos.z(), BlockType.AIR);
+                        }
+                        breakingBlockPos = null;
+                        breakingProgress = 0.0f;
+                        breakDelayTimer = BREAK_COOLDOWN; // Apply cooldown after EVERY break
+                        
+                        // Damage tool
+                        if (stack != null && stack.getItem().isTool()) {
+                            stack.setDurability(stack.getDurability() - 1);
+                            if (stack.getDurability() <= 0) {
+                                player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
+                                com.za.minecraft.utils.Logger.info("Tool broken!");
+                            }
                         }
                     }
                 }
+            } else {
+                breakingBlockPos = null;
+                breakingProgress = 0.0f;
             }
         } else {
             breakingBlockPos = null;

@@ -100,6 +100,10 @@ public class Shader {
         glUniform1i(getUniformLocation(name), value);
     }
     
+    public void setBoolean(String name, boolean value) {
+        glUniform1i(getUniformLocation(name), value ? 1 : 0);
+    }
+    
     public void setUniform(String name, float x, float y, float z, float w) {
         glUniform4f(getUniformLocation(name), x, y, z, w);
     }

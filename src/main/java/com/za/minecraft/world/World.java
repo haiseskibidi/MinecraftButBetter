@@ -92,6 +92,20 @@ public class World {
             Entity entity = entities.get(i);
             entity.update(deltaTime, this);
             
+            // Item Pickup logic
+            if (entity instanceof com.za.minecraft.entities.ItemEntity itemEntity) {
+                if (player != null && itemEntity.canBePickedUp()) {
+                    float dist = player.getPosition().distance(itemEntity.getPosition());
+                    if (dist < 1.5f) {
+                        if (player.getInventory().addItem(itemEntity.getStack())) {
+                            entities.remove(i);
+                            com.za.minecraft.utils.Logger.info("Picked up item: %s", itemEntity.getStack().getItem().getName());
+                            continue;
+                        }
+                    }
+                }
+            }
+
             // Remove dead entities (if they are LivingEntity)
             if (entity instanceof com.za.minecraft.entities.LivingEntity living) {
                 if (living.isDead()) {

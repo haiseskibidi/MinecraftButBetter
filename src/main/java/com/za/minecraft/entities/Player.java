@@ -22,6 +22,12 @@ public class Player extends LivingEntity {
     private boolean moving = false;
     private boolean sprinting = false;
     
+    // Animation states
+    private float walkBobTimer = 0.0f;
+    private float bobIntensity = 0.0f;
+    private float swingProgress = 0.0f;
+    private boolean swinging = false;
+    
     private static final float MAX_HUNGER = 20.0f;
     private static final float HUNGER_DEPletion_RATE = 0.1f; // Increased 20x for testing (was 0.005f)
     private static final float NOISE_DECAY_RATE = 0.5f;
@@ -35,10 +41,50 @@ public class Player extends LivingEntity {
     public void update(float deltaTime, World world) {
         updateHunger(deltaTime);
         updateNoise(deltaTime);
+        updateAnimations(deltaTime);
         
         // Base physics and movement from Entity
         super.update(deltaTime, world);
     }
+
+    private void updateAnimations(float deltaTime) {
+        // Walk bobbing
+        boolean isWalking = onGround && moving && velocity.lengthSquared() > 0.01f;
+        
+        if (isWalking) {
+            float speedMult = sprinting ? 1.5f : (sneaking ? 0.5f : 1.0f);
+            walkBobTimer += 10.0f * speedMult * deltaTime;
+            bobIntensity = Math.min(1.0f, bobIntensity + 5.0f * deltaTime);
+        } else {
+            bobIntensity = Math.max(0.0f, bobIntensity - 5.0f * deltaTime);
+            if (bobIntensity > 0) {
+                walkBobTimer += 5.0f * deltaTime; // Keep timer moving while intensity fades
+            } else {
+                walkBobTimer = 0;
+            }
+        }
+
+        // Swing animation
+        if (swinging) {
+            swingProgress += 5.0f * deltaTime; // Quick swing
+            if (swingProgress >= 1.0f) {
+                swingProgress = 0;
+                swinging = false;
+            }
+        }
+    }
+
+    public void swing() {
+        if (!swinging) {
+            swinging = true;
+            swingProgress = 0;
+        }
+    }
+
+    public float getWalkBobTimer() { return walkBobTimer; }
+    public float getBobIntensity() { return bobIntensity; }
+    public float getSwingProgress() { return swingProgress; }
+    public boolean isMoving() { return moving; }
 
     private void updateNoise(float deltaTime) {
         float floorNoise = 0.0f;
