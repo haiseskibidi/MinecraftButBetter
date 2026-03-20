@@ -1,5 +1,6 @@
 package com.za.minecraft.entities;
 
+import com.za.minecraft.engine.core.PlayerMode;
 import com.za.minecraft.world.World;
 import org.joml.Vector3f;
 
@@ -12,6 +13,7 @@ public class Player extends LivingEntity {
     private static final float JUMP_VELOCITY = 8.0f;
     
     private final Inventory inventory;
+    private PlayerMode mode = PlayerMode.SURVIVAL;
     
     // Survival stats
     private float hunger = 20.0f;
@@ -186,5 +188,13 @@ public class Player extends LivingEntity {
     
     public Inventory getInventory() {
         return inventory;
+    }
+
+    public PlayerMode getMode() {
+        return mode;
+    }
+
+    public void setMode(PlayerMode mode) {
+        this.mode = mode;
     }
 }

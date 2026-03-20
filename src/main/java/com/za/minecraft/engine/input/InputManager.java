@@ -1,6 +1,7 @@
 package com.za.minecraft.engine.input;
 
 import com.za.minecraft.engine.core.GameLoop;
+import com.za.minecraft.engine.core.PlayerMode;
 import com.za.minecraft.engine.core.Window;
 import com.za.minecraft.engine.graphics.Camera;
 import com.za.minecraft.entities.Player;
@@ -43,8 +44,10 @@ public class InputManager {
     private boolean rightMousePressed = false;
     private boolean rKeyPressed = false;
     private boolean eKeyPressed = false;
+    private boolean f3KeyPressed = false;
     private boolean verticalMode = false;
     private ItemStack heldStack = null;
+    private int devScroll = 0;
     
     // Breaking block state
     private BlockPos breakingBlockPos = null;
@@ -90,8 +93,16 @@ public class InputManager {
         glfwSetScrollCallback(window.getWindowHandle(), (windowHandle, xoffset, yoffset) -> {
             Player p = GameLoop.getInstance().getPlayer();
             if (p != null) {
-                if (yoffset > 0) p.getInventory().previousSlot();
-                else if (yoffset < 0) p.getInventory().nextSlot();
+                if (GameLoop.getInstance().isInventoryOpen() && p.getMode() == PlayerMode.DEVELOPER) {
+                    int totalItems = ItemRegistry.getAllItems().size();
+                    int columns = 7;
+                    int rows = 12;
+                    int maxScroll = Math.max(0, (int) Math.ceil((double) totalItems / columns) - rows);
+                    devScroll = Math.min(maxScroll, Math.max(0, devScroll - (int) yoffset));
+                } else {
+                    if (yoffset > 0) p.getInventory().previousSlot();
+                    else if (yoffset < 0) p.getInventory().nextSlot();
+                }
             }
         });
         
@@ -114,6 +125,11 @@ public class InputManager {
         int totalHeight = (3 + 1) * (slotSize + spacing) + spacing * 2;
         int startX = (sw - totalWidth) / 2;
         int startY = (sh - totalHeight) / 2;
+
+        // Sync shift with UIRenderer
+        if (player.getMode() == PlayerMode.DEVELOPER) {
+            startX -= 120;
+        }
         
         float mx = currentPos.x;
         float my = currentPos.y;
@@ -140,6 +156,43 @@ public class InputManager {
                 return;
             }
         }
+
+        // Check Developer Panel
+        if (player.getMode() == PlayerMode.DEVELOPER) {
+            int devX = startX + totalWidth + 20;
+            int devCols = 7;
+            int devRows = 12;
+            int devWidth = devCols * (slotSize + spacing);
+            int devHeight = devRows * (slotSize + spacing);
+            
+            if (mx >= devX && mx <= devX + devWidth && my >= startY && my <= startY + devHeight) {
+                handleDevPanelClick(mx, my, devX, startY, slotSize, spacing);
+            }
+        }
+    }
+
+    private void handleDevPanelClick(float mx, float my, int devX, int startY, int slotSize, int spacing) {
+        java.util.List<Item> allItems = new java.util.ArrayList<>(ItemRegistry.getAllItems().values());
+        int cols = 7;
+        int rows = 12; // visible rows
+        
+        for (int i = 0; i < allItems.size(); i++) {
+            int idx = i - devScroll * cols;
+            if (idx < 0) continue;
+            
+            int col = idx % cols;
+            int row = idx / cols;
+            if (row >= rows) break;
+            
+            int x = devX + col * (slotSize + spacing);
+            int y = startY + row * (slotSize + spacing);
+            
+            if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
+                Item item = allItems.get(i);
+                heldStack = new ItemStack(item, item.isBlock() ? 64 : 1);
+                return;
+            }
+        }
     }
 
     private void swapWithHeld(Inventory inv, int slotIndex) {
@@ -160,6 +213,10 @@ public class InputManager {
 
     public Vector2f getCurrentMousePos() {
         return currentPos;
+    }
+
+    public int getDevScroll() {
+        return devScroll;
     }
 
     public void enableMouseCapture(Window window) {
@@ -283,6 +340,15 @@ public class InputManager {
         boolean fKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_F);
         if (fKeyCurrentlyPressed && !fKeyPressed) player.setFlying(!player.isFlying());
         fKeyPressed = fKeyCurrentlyPressed;
+
+        boolean f3KeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_F3);
+        if (f3KeyCurrentlyPressed && !f3KeyPressed) {
+            PlayerMode newMode = (player.getMode() == PlayerMode.SURVIVAL) 
+                ? PlayerMode.DEVELOPER : PlayerMode.SURVIVAL;
+            player.setMode(newMode);
+            com.za.minecraft.utils.Logger.info("Player mode changed to: %s", newMode);
+        }
+        f3KeyPressed = f3KeyCurrentlyPressed;
         
         boolean rKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_R);
         if (rKeyCurrentlyPressed && !rKeyPressed) verticalMode = !verticalMode;
@@ -402,6 +468,10 @@ public class InputManager {
                             generator.addFuel(100.0f);
                             ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
                             player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
+                            com.za.minecraft.utils.Logger.info("Generator refueled. Fuel: %.1f", generator.getFuel());
+                            actionConsumed = true;
+                        } else {
+                            com.za.minecraft.utils.Logger.info("Generator. Fuel: %.1f, Energy: %.1f", generator.getFuel(), generator.getEnergyStored());
                             actionConsumed = true;
                         }
                     }

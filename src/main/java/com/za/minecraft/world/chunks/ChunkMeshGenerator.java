@@ -166,8 +166,8 @@ public class ChunkMeshGenerator {
                                 drawFace = true;
                             } else if (neighbor.isFullCube() && !neighbor.isTransparent()) {
                                 drawFace = false;
-                            } else if (block.getType() == com.za.minecraft.world.blocks.BlockType.GLASS && neighbor.getType() == block.getType()) {
-                                drawFace = false; // CTM for Glass only
+                            } else if (isTranslucent && neighbor.getType() == block.getType()) {
+                                drawFace = false; // Internal faces between same translucent type are not needed
                             } else {
                                 drawFace = true;
                             }

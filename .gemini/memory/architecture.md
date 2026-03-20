@@ -56,7 +56,7 @@
    - **Culling**: Только стекло (`GLASS`) использует CTM-отсечение. Прочие прозрачные блоки рисуют грани друг против друга.
 4. **Добыча (UPDATED)**:
    - **Mining Speed API**: Метод `Item.getMiningSpeed(blockType)` определяет скорость. Уход от хардкода в `InputManager`.
-   - **Breaking Cooldown**: Глобальное ограничение (25 блоков/сек) через `breakDelayTimer` в `InputManager`.
+   - **Breaking Cooldown**: Глобальное ограничение (20 блоков/сек) через `breakDelayTimer` в `InputManager`.
 5. **Интерактивность (NEW)**: Приоритет ПКМ: Блоки-интерактивы -> Использование предмета (еда) -> Установка блоков. Еда теперь работает без Raycast.
 
 - **FontRenderer**: Отвечает за отрисовку текста на базе одной ASCII-текстуры (сейчас `textures/default.png`).
