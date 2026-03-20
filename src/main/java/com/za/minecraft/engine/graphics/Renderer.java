@@ -42,6 +42,7 @@ public class Renderer {
     
     private Block currentPreviewBlock;
     private com.za.minecraft.world.BlockPos previewPos;
+    private final Map<com.za.minecraft.world.items.Item, Mesh> itemMeshCache = new java.util.HashMap<>();
     
     public Renderer() {
         this.chunkMeshes = new ConcurrentHashMap<>();
@@ -310,17 +311,15 @@ public class Renderer {
     private void renderEntities(Camera camera, World world) {
         if (world.getEntities().isEmpty()) return;
         
-        if (playerMesh == null) createPlayerMesh();
-        
         blockShader.use();
         for (com.za.minecraft.entities.Entity entity : world.getEntities()) {
-            modelMatrix.identity()
-                .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z())
-                .rotateY(entity.getRotation().y);
-            
-            blockShader.setMatrix4f("model", modelMatrix);
-            
             if (entity instanceof com.za.minecraft.entities.ScoutEntity scout) {
+                if (playerMesh == null) createPlayerMesh();
+                modelMatrix.identity()
+                    .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z())
+                    .rotateY(entity.getRotation().y);
+                
+                blockShader.setMatrix4f("model", modelMatrix);
                 blockShader.setInt("highlightPass", 1);
                 switch (scout.getCurrentState()) {
                     case CHASE: blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 0.0f, 0.0f)); break;
@@ -329,22 +328,81 @@ public class Renderer {
                 }
                 playerMesh.render();
             } else if (entity instanceof com.za.minecraft.entities.ItemEntity itemEntity) {
-                float bob = (float) Math.sin(itemEntity.getAge() * 2.0f) * 0.1f;
+                com.za.minecraft.world.items.Item item = itemEntity.getStack().getItem();
+                Mesh mesh = itemMeshCache.get(item);
+                
+                if (mesh == null) {
+                    if (item.isBlock()) {
+                        mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas);
+                    } else {
+                        mesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
+                    }
+                    if (mesh != null) itemMeshCache.put(item, mesh);
+                }
+
+                if (mesh != null) {
+                    float age = itemEntity.getAge();
+                    float bob = (float) Math.sin(age * 2.5f) * 0.05f;
+                    float scale = item.isBlock() ? 0.25f : 0.45f;
+                    
+                    modelMatrix.identity()
+                        .translate(entity.getPosition().x(), entity.getPosition().y() + 0.2f + bob, entity.getPosition().z());
+                    
+                    if (item.isBlock()) {
+                        modelMatrix.rotateY(itemEntity.getRotation().y)
+                                   .rotateX(0.2f) // Slight tilt
+                                   .scale(scale)
+                                   .translate(-0.5f, -0.5f, -0.5f); // Center the block mesh
+                    } else {
+                        // Billboard: face the camera but also spin around own Y axis
+                        modelMatrix.rotateY(-camera.getRotation().y)
+                                   .rotateX(camera.getRotation().x)
+                                   .rotateY(itemEntity.getRotation().y) // Spin effect
+                                   .scale(scale)
+                                   .translate(0, -0.5f, 0); // Center sprite mesh vertically
+                    }
+                    
+                    blockShader.setMatrix4f("model", modelMatrix);
+                    blockShader.setInt("highlightPass", 0);
+                    mesh.render();
+                }
+            } else {
+                if (playerMesh == null) createPlayerMesh();
                 modelMatrix.identity()
-                    .translate(entity.getPosition().x(), entity.getPosition().y() + 0.25f + bob, entity.getPosition().z())
-                    .rotateY(entity.getRotation().y)
-                    .scale(0.25f, 0.25f, 0.25f);
+                    .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z())
+                    .rotateY(entity.getRotation().y);
                 
                 blockShader.setMatrix4f("model", modelMatrix);
-                blockShader.setInt("highlightPass", 1);
-                blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 1.0f, 1.0f));
-                playerMesh.render();
-            } else {
                 blockShader.setInt("highlightPass", 0);
                 playerMesh.render();
             }
         }
         blockShader.setInt("highlightPass", 0);
+    }
+
+    private Mesh createItemSpriteMesh(com.za.minecraft.world.items.Item item) {
+        float[] uv = atlas.uvFor(item.getTexturePath());
+        if (uv == null) uv = new float[]{0, 0, 1, 1};
+
+        float[] positions = {
+            -0.5f, -0.5f, 0.0f,
+             0.5f, -0.5f, 0.0f,
+             0.5f,  0.5f, 0.0f,
+            -0.5f,  0.5f, 0.0f
+        };
+        float[] texCoords = {
+            uv[0], uv[3],
+            uv[2], uv[3],
+            uv[2], uv[1],
+            uv[0], uv[1]
+        };
+        float[] normals = {
+            0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1
+        };
+        int[] indices = { 0, 1, 2, 2, 3, 0 };
+        float[] blockTypes = { -1, -1, -1, -1 };
+        
+        return new Mesh(positions, texCoords, normals, blockTypes, indices);
     }
 
     public void renderDebug(float fps, int windowWidth, int windowHeight) {
@@ -522,6 +580,12 @@ public class Renderer {
         if (playerMesh != null) playerMesh.cleanup();
         if (previewMesh != null) previewMesh.cleanup();
         if (heldItemMesh != null) heldItemMesh.cleanup();
+        
+        for (Mesh mesh : itemMeshCache.values()) {
+            if (mesh != null) mesh.cleanup();
+        }
+        itemMeshCache.clear();
+        
         if (atlas != null) atlas.cleanup();
         if (blockShader != null) blockShader.cleanup();
     }

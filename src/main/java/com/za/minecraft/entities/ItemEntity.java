@@ -20,19 +20,32 @@ public class ItemEntity extends Entity {
     
     @Override
     public void update(float deltaTime, World world) {
-        super.update(deltaTime, world);
+        float gravityMultiplier = stack.getItem().getWeight();
         
+        if (!flying) {
+            velocity.y = Math.max(velocity.y + GRAVITY * gravityMultiplier * deltaTime, TERMINAL_VELOCITY);
+        }
+        
+        move(world, velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
+
         age += deltaTime;
         if (pickupDelay > 0) {
             pickupDelay -= deltaTime;
         }
         
-        // Simple air friction
-        velocity.x *= 0.98f;
-        velocity.z *= 0.98f;
+        // Air friction
+        float friction = onGround ? 0.85f : 0.98f;
+        
+        // Heavy items have more momentum but also more ground friction
+        if (onGround) {
+            friction = 0.70f / stack.getItem().getWeight(); // Heavier = stops faster on ground
+        }
+        
+        velocity.x *= friction;
+        velocity.z *= friction;
         
         // Rotation for visual effect
-        rotation.y += 2.0f * deltaTime;
+        rotation.y += (4.0f / stack.getItem().getWeight()) * deltaTime; // Heavier = rotates slower
     }
     
     public ItemStack getStack() {

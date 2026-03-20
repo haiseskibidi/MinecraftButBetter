@@ -251,12 +251,20 @@ public class InputManager {
                     player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
                 }
 
-                Vector3f lookDirV = new Vector3f(0, 0, -1).rotateX(camera.getRotation().x).rotateY(camera.getRotation().y).normalize();
+                Vector3f lookDirV = new Vector3f(0, 0, -1)
+                    .rotateX(camera.getRotation().x)
+                    .rotateY(camera.getRotation().y)
+                    .normalize();
+                
                 Vector3f spawnPos = new Vector3f(camera.getPosition()).add(new Vector3f(lookDirV).mul(0.5f));
                 com.za.minecraft.entities.ItemEntity itemEntity = new com.za.minecraft.entities.ItemEntity(spawnPos, droppedStack);
                 
-                // Set initial velocity
-                itemEntity.getVelocity().set(lookDirV).mul(5.0f);
+                // Set initial velocity - heavier items are harder to throw
+                float throwStrength = 6.0f / droppedStack.getItem().getWeight();
+                itemEntity.getVelocity().set(lookDirV).mul(throwStrength);
+                // Slight upward boost for better arc
+                itemEntity.getVelocity().y += 1.5f / droppedStack.getItem().getWeight();
+                
                 world.spawnEntity(itemEntity);
                 com.za.minecraft.utils.Logger.info("Dropped item: %s", droppedStack.getItem().getName());
             }

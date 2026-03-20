@@ -111,13 +111,17 @@
 Назначение: Экземпляр блока с типом и метаданными (направление).
 Функции: getType(), getMetadata(), setType(byte type), setMetadata(byte meta)
 
-## Items System (NEW)
+## Items System (UPDATED)
 ### com.za.minecraft.world.items.Item
 Назначение: Базовый класс для всех предметов.
-Поля: id, name, texturePath
+Поля: id, name, texturePath, weight (NEW)
+Функции: getWeight(), setWeight(float)
 
-### com.za.minecraft.world.items.BlockItem (NEW)
-Назначение: Предметы, представляющие блоки. Используется для разделения логики рендеринга иконок.
+### com.za.minecraft.world.items.BlockItem (UPDATED)
+Назначение: Предметы, представляющие блоки. Имеют повышенный вес (2.5f).
+
+### com.za.minecraft.world.items.ItemMeshGenerator (NEW)
+Назначение: Процедурная генерация 3D моделей из 2D текстур (с толщиной) для рендеринга предметов в мире и в руке.
 
 ### com.za.minecraft.world.items.ToolItem
 Назначение: Инструменты с параметрами эффективности и прочности.

@@ -4,6 +4,7 @@ public class Item {
     protected final byte id;
     protected final String name;
     protected final String texturePath;
+    protected float weight = 1.0f;
 
     public Item(byte id, String name, String texturePath) {
         this.id = id;
@@ -21,6 +22,14 @@ public class Item {
 
     public String getTexturePath() {
         return texturePath;
+    }
+
+    public float getWeight() {
+        return weight;
+    }
+    
+    public void setWeight(float weight) {
+        this.weight = weight;
     }
     
     public boolean isTool() {

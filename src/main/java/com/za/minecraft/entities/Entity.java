@@ -137,9 +137,9 @@ public abstract class Entity {
         }
     }
 
-    public Vector3f getPosition() { return new Vector3f(position); }
-    public Vector3f getVelocity() { return new Vector3f(velocity); }
-    public Vector3f getRotation() { return new Vector3f(rotation); }
+    public Vector3f getPosition() { return position; }
+    public Vector3f getVelocity() { return velocity; }
+    public Vector3f getRotation() { return rotation; }
     public AABB getBoundingBox() { return boundingBox.offset(position); }
     public boolean isOnGround() { return onGround; }
     public boolean isFlying() { return flying; }
