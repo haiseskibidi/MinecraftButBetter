@@ -4,6 +4,7 @@ import com.za.minecraft.engine.core.GameLoop;
 import com.za.minecraft.engine.core.Window;
 import com.za.minecraft.engine.graphics.Camera;
 import com.za.minecraft.entities.Player;
+import com.za.minecraft.entities.Inventory;
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.blocks.Block;
@@ -41,13 +42,17 @@ public class InputManager {
     private boolean leftMousePressed = false;
     private boolean rightMousePressed = false;
     private boolean rKeyPressed = false;
+    private boolean eKeyPressed = false;
     private boolean verticalMode = false;
+    private ItemStack heldStack = null;
     
     // Breaking block state
     private BlockPos breakingBlockPos = null;
     private float breakingProgress = 0.0f;
     private float breakDelayTimer = 0.0f;
-    private static final float BREAK_COOLDOWN = 1.0f / 20.0f; // 20 blocks per second limit (1 block per tick)
+    private float placeDelayTimer = 0.0f;
+    private static final float BREAK_COOLDOWN = 1.0f / 20.0f; // 20 bps (1 tick)
+    private static final float PLACE_COOLDOWN = 0.25f;        // 4 bps (5 ticks)
     
     public InputManager() {
         previousPos = new Vector2f();
@@ -94,37 +99,67 @@ public class InputManager {
     }
     
     private void handleInventoryClick(Window window) {
-        // Логика клика по сетке инвентаря
-        int padding = 50;
-        int slotSize = 40;
-        int spacing = 10;
-        int columns = (window.getWidth() - padding * 2) / (slotSize + spacing);
+        Player player = GameLoop.getInstance().getPlayer();
+        if (player == null) return;
+        Inventory inv = player.getInventory();
+
+        int sw = window.getWidth();
+        int sh = window.getHeight();
+        
+        // Inventory Layout (Sync with UIRenderer)
+        int cols = 9;
+        int slotSize = (int)(18 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
+        int spacing = (int)(2 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
+        int totalWidth = cols * (slotSize + spacing);
+        int totalHeight = (3 + 1) * (slotSize + spacing) + spacing * 2;
+        int startX = (sw - totalWidth) / 2;
+        int startY = (sh - totalHeight) / 2;
         
         float mx = currentPos.x;
         float my = currentPos.y;
-        
-        var allItems = ItemRegistry.getAllItems();
-        int index = 0;
-        for (var entry : allItems.entrySet()) {
-            Item item = entry.getValue();
-            if (item.getId() == BlockType.AIR) continue;
-            
-            int col = index % columns;
-            int row = index / columns;
-            
-            int x = padding + col * (slotSize + spacing);
-            int y = padding + row * (slotSize + spacing);
+
+        // Check Main Inventory (9-35)
+        for (int i = 0; i < 27; i++) {
+            int col = i % cols;
+            int row = i / cols;
+            int x = startX + col * (slotSize + spacing);
+            int y = startY + row * (slotSize + spacing);
             
             if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
-                Player p = GameLoop.getInstance().getPlayer();
-                if (p != null) {
-                    p.getInventory().setStackInSlot(p.getInventory().getSelectedSlot(), new ItemStack(item));
-                    com.za.minecraft.utils.Logger.info("Picked item from inventory: %s", item.getName());
-                }
+                swapWithHeld(inv, 9 + i);
                 return;
             }
-            index++;
         }
+        
+        // Check Hotbar (0-8)
+        int hotbarY = startY + 3 * (slotSize + spacing) + spacing * 4;
+        for (int i = 0; i < 9; i++) {
+            int x = startX + i * (slotSize + spacing);
+            if (mx >= x && mx <= x + slotSize && my >= hotbarY && my <= hotbarY + slotSize) {
+                swapWithHeld(inv, i);
+                return;
+            }
+        }
+    }
+
+    private void swapWithHeld(Inventory inv, int slotIndex) {
+        ItemStack slotStack = inv.getStackInSlot(slotIndex);
+        
+        if (heldStack == null && slotStack == null) return;
+        
+        // Simple swap logic
+        inv.setStackInSlot(slotIndex, heldStack);
+        heldStack = slotStack;
+        
+        com.za.minecraft.utils.Logger.info("Inventory click: slot %d, held: %s", slotIndex, (heldStack != null ? heldStack.getItem().getName() : "EMPTY"));
+    }
+
+    public ItemStack getHeldStack() {
+        return heldStack;
+    }
+
+    public Vector2f getCurrentMousePos() {
+        return currentPos;
     }
 
     public void enableMouseCapture(Window window) {
@@ -148,12 +183,30 @@ public class InputManager {
             }
         }
 
+        boolean eKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_E);
+        if (eKeyCurrentlyPressed && !eKeyPressed) {
+            boolean open = !GameLoop.getInstance().isInventoryOpen();
+            GameLoop.getInstance().setInventoryOpen(open);
+            if (open) {
+                disableMouseCapture(window);
+            } else {
+                enableMouseCapture(window);
+                // Drop held stack if inventory closed
+                if (heldStack != null) {
+                    player.getInventory().addItem(heldStack);
+                    heldStack = null;
+                }
+            }
+        }
+        eKeyPressed = eKeyCurrentlyPressed;
+
         if (GameLoop.getInstance().isInventoryOpen() || GameLoop.getInstance().isPaused()) {
             previousPos.x = currentPos.x;
             previousPos.y = currentPos.y;
             return new RaycastResult();
         }
 
+        placeDelayTimer = Math.max(0, placeDelayTimer - deltaTime);
         breakDelayTimer = Math.max(0, breakDelayTimer - deltaTime);
 
         Vector2f rotVec = new Vector2f();
@@ -274,48 +327,43 @@ public class InputManager {
         Vector3f lookDir = new Vector3f(0, 0, -1).rotateX(camera.getRotation().x).rotateY(camera.getRotation().y).normalize();
         RaycastResult raycast = Raycast.raycast(world, camera.getPosition(), lookDir);
         
-        boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_LEFT);
+        ItemStack currentStack = player.getInventory().getSelectedItemStack();
+        Item currentItem = currentStack != null ? currentStack.getItem() : null;
+
+        boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1);
         if (lm) {
             player.swing();
             if (raycast.isHit()) {
-                BlockPos currentPos = raycast.getBlockPos();
-                byte blockType = world.getBlock(currentPos).getType();
+                BlockPos hitPos = raycast.getBlockPos();
+                byte blockType = world.getBlock(hitPos).getType();
                 float hardness = BlockRegistry.getBlock(blockType).getHardness();
                 
-                // If block is unbreakable (hardness < 0), do nothing
                 if (hardness >= 0) {
-                    if (!currentPos.equals(breakingBlockPos)) {
-                        breakingBlockPos = currentPos;
+                    if (!hitPos.equals(breakingBlockPos)) {
+                        breakingBlockPos = hitPos;
                         breakingProgress = 0.0f;
                     }
                     
-                    ItemStack stack = player.getInventory().getSelectedItemStack();
-                    Item item = stack != null ? stack.getItem() : ItemRegistry.getItem(BlockType.AIR);
-                    
-                    // Only progress if cooldown is over and item is valid
-                    if (breakDelayTimer <= 0 && item != null) {
-                        float speed = item.getMiningSpeed(blockType);
-                        float breakSpeed = speed / hardness;
+                    Item mineItem = currentItem != null ? currentItem : ItemRegistry.getItem(BlockType.AIR);
+                    if (breakDelayTimer <= 0 && mineItem != null) {
+                        float breakSpeed = mineItem.getMiningSpeed(blockType) / hardness;
                         breakingProgress += breakSpeed * deltaTime;
-                        
-                        // Noise from breaking (depends on hardness)
                         player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
                         player.addNoise(hardness * 0.05f * deltaTime);
                     }
 
                     if (breakingProgress >= 1.0f) {
-                        world.setBlock(currentPos, new Block(BlockType.AIR));
+                        world.setBlock(hitPos, new Block(BlockType.AIR));
                         if (networkClient != null && networkClient.isConnected()) {
-                            networkClient.sendBlockUpdate(currentPos.x(), currentPos.y(), currentPos.z(), BlockType.AIR);
+                            networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), BlockType.AIR);
                         }
                         breakingBlockPos = null;
                         breakingProgress = 0.0f;
-                        breakDelayTimer = BREAK_COOLDOWN; // Apply cooldown after EVERY break
+                        breakDelayTimer = BREAK_COOLDOWN;
                         
-                        // Damage tool
-                        if (stack != null && stack.getItem().isTool()) {
-                            stack.setDurability(stack.getDurability() - 1);
-                            if (stack.getDurability() <= 0) {
+                        if (currentStack != null && currentItem.isTool()) {
+                            currentStack.setDurability(currentStack.getDurability() - 1);
+                            if (currentStack.getDurability() <= 0) {
                                 player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
                                 com.za.minecraft.utils.Logger.info("Tool broken!");
                             }
@@ -332,83 +380,72 @@ public class InputManager {
         }
         leftMousePressed = lm;
         
-        boolean rm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_RIGHT);
-        if (rm && !rightMousePressed) {
-            ItemStack stack = player.getInventory().getSelectedItemStack();
-            Item selectedItem = stack != null ? stack.getItem() : null;
-            
+        boolean rm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_2);
+        boolean isNewRightClick = rm && !rightMousePressed;
+        
+        if (rm) {
             boolean actionConsumed = false;
 
-            // 1. Interaction with blocks (highest priority)
-            if (raycast.isHit()) {
+            // 1. Interaction with blocks
+            if (raycast.isHit() && isNewRightClick) {
                 BlockPos hitPos = raycast.getBlockPos();
                 byte hitBlockType = world.getBlock(hitPos).getType();
                 if (hitBlockType == BlockType.CAMPFIRE) {
-                    if (selectedItem != null && selectedItem.getId() == ItemRegistry.RAW_MEAT) {
+                    if (currentItem != null && currentItem.getId() == ItemRegistry.RAW_MEAT) {
                         player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), new ItemStack(ItemRegistry.getItem(ItemRegistry.COOKED_MEAT)));
-                        com.za.minecraft.utils.Logger.info("Cooked raw meat on campfire");
                         actionConsumed = true;
                     }
                 } else if (hitBlockType == BlockType.GENERATOR) {
                     com.za.minecraft.world.blocks.entity.BlockEntity be = world.getBlockEntity(hitPos);
                     if (be instanceof com.za.minecraft.world.blocks.entity.GeneratorBlockEntity generator) {
-                        if (selectedItem != null && selectedItem.getId() == ItemType.FUEL_CANISTER) {
+                        if (currentItem != null && currentItem.getId() == ItemType.FUEL_CANISTER) {
                             generator.addFuel(100.0f);
-                            // Consume one canister or empty it (for now just consume)
-                            ItemStack newStack = stack.getCount() > 1 ? new ItemStack(selectedItem, stack.getCount() - 1) : null;
+                            ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
                             player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
                             actionConsumed = true;
-                        } else {
-                            com.za.minecraft.utils.Logger.info("Generator status: Fuel: %.1f, Energy: %.1f, Running: %b", 
-                                generator.getFuel(), generator.getEnergy(), generator.isRunning());
                         }
                     }
                 }
             }
 
             // 2. Using items (eating)
-            if (!actionConsumed && selectedItem != null && selectedItem.isFood()) {
+            if (!actionConsumed && isNewRightClick && currentItem != null && currentItem.isFood()) {
                 if (player.getHunger() < 20.0f) {
-                    player.eat((FoodItem) selectedItem);
+                    player.eat((FoodItem) currentItem);
                     player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
                     actionConsumed = true;
                 }
             }
             
-            if (actionConsumed) {
-                rightMousePressed = true;
+            // 3. Block Placement (Continuous or Fast Click)
+            if (!actionConsumed && (isNewRightClick || placeDelayTimer <= 0) && raycast.isHit()) {
+                if (currentItem != null && !currentItem.isTool() && !currentItem.isFood() && currentItem.getId() != BlockType.AIR) {
+                    byte blockType = currentItem.getId();
+                    Vector3f normal = raycast.getNormal();
+                    BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
+                    
+                    if (!isPlayerAt(player, pPos)) {
+                        byte meta = calculateMetadata(blockType, normal, raycast.getHitPoint(), camera);
+                        world.setBlock(pPos, new Block(blockType, meta));
+                        if (networkClient != null && networkClient.isConnected()) {
+                            networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), blockType);
+                        }
+                        placeDelayTimer = PLACE_COOLDOWN;
+                        actionConsumed = true;
+                    }
+                }
             }
         }
 
-        // 3. Block Placement (preview and placement)
-        if (raycast.isHit()) {
-            ItemStack stack = player.getInventory().getSelectedItemStack();
-            Item selectedItem = stack != null ? stack.getItem() : null;
-
-            if (selectedItem != null && !selectedItem.isTool() && !selectedItem.isFood()) {
-                byte blockType = selectedItem.getId();
-                Vector3f normal = raycast.getNormal();
-                BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
-                
+        // Preview logic
+        if (raycast.isHit() && currentItem != null && !currentItem.isTool() && !currentItem.isFood() && currentItem.getId() != BlockType.AIR) {
+            byte blockType = currentItem.getId();
+            Vector3f normal = raycast.getNormal();
+            BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
+            
+            if (!isPlayerAt(player, pPos) && needsPreview(blockType)) {
                 byte meta = calculateMetadata(blockType, normal, raycast.getHitPoint(), camera);
-                Block previewBlock = new Block(blockType, meta);
-                
-                if (!isPlayerAt(player, pPos)) {
-                    if (needsPreview(blockType)) {
-                        renderer.setPreviewBlock(pPos, previewBlock);
-                    } else {
-                        renderer.setPreviewBlock(null, null);
-                    }
-                    
-                    if (rm && !rightMousePressed) {
-                        world.setBlock(pPos, previewBlock);
-                        if (networkClient != null && networkClient.isConnected()) {
-                            networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), previewBlock.getType());
-                        }
-                    }
-                } else {
-                    renderer.setPreviewBlock(null, null);
-                }
+                renderer.setPreviewBlock(pPos, new Block(blockType, meta));
             } else {
                 renderer.setPreviewBlock(null, null);
             }

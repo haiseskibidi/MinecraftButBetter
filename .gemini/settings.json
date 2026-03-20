@@ -12,5 +12,8 @@
       "build"
     ],
     "skills_dir": ".gemini/skills",
-    "context_ttl": "24h"
+    "context_ttl": "24h",
+    "auto_indexing": false,
+    "memory_priority": true,
+    "lazy_file_loading": true
   }

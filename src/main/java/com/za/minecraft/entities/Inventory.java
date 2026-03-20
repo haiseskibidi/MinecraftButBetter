@@ -9,30 +9,30 @@ import com.za.minecraft.world.items.ToolItem;
 
 public class Inventory {
     public static final int HOTBAR_SIZE = 9;
+    public static final int MAIN_INVENTORY_SIZE = 27;
+    public static final int TOTAL_SIZE = MAIN_INVENTORY_SIZE + HOTBAR_SIZE;
     
-    private ItemStack[] hotbarSlots;
-    private int selectedSlot;
+    private ItemStack[] slots; // 0-8 hotbar, 9-35 main inventory
+    private int selectedSlot; // 0-8
     
     public Inventory() {
-        this.hotbarSlots = new ItemStack[HOTBAR_SIZE];
+        this.slots = new ItemStack[TOTAL_SIZE];
         this.selectedSlot = 0;
         
-        // Добавляем инструменты в начало хотбара
-        hotbarSlots[0] = new ItemStack(ItemRegistry.getItem(ItemType.STONE_KNIFE));
-        hotbarSlots[1] = new ItemStack(ItemRegistry.getItem(ItemType.SCRAP_PICKAXE));
-        hotbarSlots[2] = new ItemStack(ItemRegistry.getItem(ItemType.CROWBAR));
-        
-        // Заполняем остальные слоты базовыми блоками
-        hotbarSlots[3] = new ItemStack(ItemRegistry.getItem(BlockType.STONE));
-        hotbarSlots[4] = new ItemStack(ItemRegistry.getItem(BlockType.WOOD));
-        hotbarSlots[5] = new ItemStack(ItemRegistry.getItem(BlockType.OAK_PLANKS));
-        hotbarSlots[6] = new ItemStack(ItemRegistry.getItem(BlockType.COBBLESTONE));
-        hotbarSlots[7] = new ItemStack(ItemRegistry.getItem(BlockType.RUSTY_METAL));
-        hotbarSlots[8] = new ItemStack(ItemRegistry.getItem(BlockType.ASPHALT));
+        // Initial items in hotbar (slots 0-8)
+        slots[0] = new ItemStack(ItemRegistry.getItem(ItemType.STONE_KNIFE));
+        slots[1] = new ItemStack(ItemRegistry.getItem(ItemType.SCRAP_PICKAXE));
+        slots[2] = new ItemStack(ItemRegistry.getItem(ItemType.CROWBAR));
+        slots[3] = new ItemStack(ItemRegistry.getItem(BlockType.STONE));
+        slots[4] = new ItemStack(ItemRegistry.getItem(BlockType.WOOD));
+        slots[5] = new ItemStack(ItemRegistry.getItem(BlockType.OAK_PLANKS));
+        slots[6] = new ItemStack(ItemRegistry.getItem(BlockType.COBBLESTONE));
+        slots[7] = new ItemStack(ItemRegistry.getItem(BlockType.RUSTY_METAL));
+        slots[8] = new ItemStack(ItemRegistry.getItem(BlockType.ASPHALT));
     }
     
     public ItemStack getSelectedItemStack() {
-        return hotbarSlots[selectedSlot];
+        return slots[selectedSlot];
     }
     
     public Item getSelectedItem() {
@@ -51,34 +51,49 @@ public class Inventory {
     }
     
     public ItemStack getStackInSlot(int slot) {
-        if (slot >= 0 && slot < HOTBAR_SIZE) {
-            return hotbarSlots[slot];
+        if (slot >= 0 && slot < TOTAL_SIZE) {
+            return slots[slot];
         }
         return null;
     }
     
     public void setStackInSlot(int slot, ItemStack stack) {
-        if (slot >= 0 && slot < HOTBAR_SIZE) {
-            hotbarSlots[slot] = stack;
+        if (slot >= 0 && slot < TOTAL_SIZE) {
+            slots[slot] = stack;
         }
     }
 
     public boolean addItem(ItemStack stack) {
         if (stack == null) return false;
         
-        // Find existing stack of same type
+        // 1. Try to stack in hotbar (0-8)
         for (int i = 0; i < HOTBAR_SIZE; i++) {
-            if (hotbarSlots[i] != null && hotbarSlots[i].getItem().getId() == stack.getItem().getId()) {
-                // Simplified stacking (count not yet used in ItemStack, but for future)
-                hotbarSlots[i].setCount(hotbarSlots[i].getCount() + stack.getCount());
+            if (slots[i] != null && slots[i].getItem().getId() == stack.getItem().getId()) {
+                slots[i].setCount(slots[i].getCount() + stack.getCount());
                 return true;
             }
         }
         
-        // Find empty slot
+        // 2. Try to stack in main inventory (9-35)
+        for (int i = HOTBAR_SIZE; i < TOTAL_SIZE; i++) {
+            if (slots[i] != null && slots[i].getItem().getId() == stack.getItem().getId()) {
+                slots[i].setCount(slots[i].getCount() + stack.getCount());
+                return true;
+            }
+        }
+        
+        // 3. Find empty in hotbar
         for (int i = 0; i < HOTBAR_SIZE; i++) {
-            if (hotbarSlots[i] == null) {
-                hotbarSlots[i] = stack;
+            if (slots[i] == null) {
+                slots[i] = stack;
+                return true;
+            }
+        }
+
+        // 4. Find empty in main
+        for (int i = HOTBAR_SIZE; i < TOTAL_SIZE; i++) {
+            if (slots[i] == null) {
+                slots[i] = stack;
                 return true;
             }
         }
@@ -93,6 +108,14 @@ public class Inventory {
     public void previousSlot() {
         selectedSlot = (selectedSlot - 1 + HOTBAR_SIZE) % HOTBAR_SIZE;
         logSelection();
+    }
+    
+    public void swapSlots(int slotA, int slotB) {
+        if (slotA >= 0 && slotA < TOTAL_SIZE && slotB >= 0 && slotB < TOTAL_SIZE) {
+            ItemStack temp = slots[slotA];
+            slots[slotA] = slots[slotB];
+            slots[slotB] = temp;
+        }
     }
     
     private void logSelection() {

@@ -58,6 +58,14 @@ public class GameLoop {
         return player;
     }
 
+    public InputManager getInputManager() {
+        return inputManager;
+    }
+
+    public void setInventoryOpen(boolean open) {
+        this.inventoryOpen = open;
+    }
+
     public void runSingleplayer() {
         runWithMode(GameMode.SINGLEPLAYER, "Player", null);
     }

@@ -1,0 +1,16 @@
+build/
+.gradle/
+.idea/
+**/*.png
+**/*.gif
+**/*.dll
+**/*.so
+**/*.dylib
+**/*.jnilib
+bin/
+out/
+target/
+gradle/
+gradlew
+gradlew.bat
+Minecraft-Classic-Forever-master/

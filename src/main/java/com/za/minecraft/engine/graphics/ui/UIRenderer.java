@@ -312,36 +312,159 @@ public class UIRenderer {
     }
     
     public void renderInventory(int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
+        if (hotbar == null) return;
+        Player player = hotbar.getPlayer();
+        if (player == null) return;
+
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
         renderDarkenedBackground();
         
-        int padding = 50;
-        int slotSize = 40;
-        int spacing = 10;
-        int columns = (screenWidth - padding * 2) / (slotSize + spacing);
+        // Inventory Layout (Classic Minecraft Style)
+        int cols = 9;
+        int rows = 3;
+        int slotSize = (int)(18 * Hotbar.HOTBAR_SCALE);
+        int spacing = (int)(2 * Hotbar.HOTBAR_SCALE);
+        int totalWidth = cols * (slotSize + spacing);
+        int totalHeight = (rows + 1) * (slotSize + spacing) + spacing * 2;
         
-        var allItems = ItemRegistry.getAllItems();
-        int index = 0;
+        int startX = (screenWidth - totalWidth) / 2;
+        int startY = (screenHeight - totalHeight) / 2;
         
-        for (var entry : allItems.entrySet()) {
-            Item item = entry.getValue();
-            if (item.getId() == 0 && !item.isTool()) continue;
+        // 1. Draw Main Inventory (9x3 slots, indices 9-35)
+        for (int i = 0; i < 27; i++) {
+            int col = i % cols;
+            int row = i / cols;
+            int x = startX + col * (slotSize + spacing);
+            int y = startY + row * (slotSize + spacing);
             
-            int col = index % columns;
-            int row = index / columns;
-            
-            int x = padding + col * (slotSize + spacing);
-            int y = padding + row * (slotSize + spacing);
-            
-            renderItemIcon(item, x, y, slotSize, screenWidth, screenHeight, atlas);
-            index++;
+            renderSlot(x, y, slotSize, player.getInventory().getStackInSlot(9 + i), screenWidth, screenHeight, atlas);
         }
+        
+        // 2. Draw Hotbar (9x1 slots, indices 0-8)
+        int hotbarY = startY + rows * (slotSize + spacing) + spacing * 4;
+        for (int i = 0; i < 9; i++) {
+            int x = startX + i * (slotSize + spacing);
+            renderSlot(x, hotbarY, slotSize, player.getInventory().getStackInSlot(i), screenWidth, screenHeight, atlas);
+        }
+
+        // 3. Draw Held Stack (at mouse position)
+        ItemStack held = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getHeldStack();
+        if (held != null) {
+            float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
+            float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
+            renderItemIcon(held.getItem(), (int)mx - slotSize/2, (int)my - slotSize/2, slotSize, screenWidth, screenHeight, atlas);
+        }
+        
+        // 4. Draw Tooltip (at mouse position)
+        renderInventoryTooltip(startX, startY, slotSize, spacing, player, screenWidth, screenHeight);
         
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
+    }
+
+    private void renderInventoryTooltip(int startX, int startY, int slotSize, int spacing, Player player, int sw, int sh) {
+        float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
+        float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
+        
+        ItemStack hovered = null;
+        
+        // Check Main (9-35)
+        for (int i = 0; i < 27; i++) {
+            int col = i % 9;
+            int row = i / 9;
+            int x = startX + col * (slotSize + spacing);
+            int y = startY + row * (slotSize + spacing);
+            if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
+                hovered = player.getInventory().getStackInSlot(9 + i);
+            }
+        }
+        
+        // Check Hotbar (0-8)
+        int hotbarY = startY + 3 * (slotSize + spacing) + spacing * 4;
+        for (int i = 0; i < 9; i++) {
+            int x = startX + i * (slotSize + spacing);
+            if (mx >= x && mx <= x + slotSize && my >= hotbarY && my <= hotbarY + slotSize) {
+                hovered = player.getInventory().getStackInSlot(i);
+            }
+        }
+        
+        if (hovered != null) {
+            String name = hovered.getItem().getName();
+            int nameSize = 16;
+            int textWidth = fontRenderer.getStringWidth(name, nameSize);
+            int tx = (int)mx + 12;
+            int ty = (int)my - 12;
+            
+            // Tooltip background
+            renderButton(tx + textWidth/2, ty + nameSize/2, textWidth + 8, nameSize + 8, sw, sh, null, 0.1f, 0.1f, 0.1f);
+            fontRenderer.drawString(name, tx + 4, ty + 4, nameSize, sw, sh);
+        }
+    }
+
+    private void renderSlot(int x, int y, int size, ItemStack stack, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
+        // Slot background
+        uiShader.use();
+        uiShader.setInt("useTexture", 0);
+        float scaleX = (float)size / screenWidth;
+        float scaleY = (float)size / screenHeight;
+        float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
+        float posY = 1.0f - (2.0f * y / screenHeight) - scaleY;
+        
+        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("tintColor", 0.55f, 0.55f, 0.55f, 1.0f); // Minecraft grey
+        
+        glBindVertexArray(quadVAO);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        
+        // Slot border (inner shadow effect)
+        uiShader.setUniform("scale", scaleX * 0.95f, scaleY * 0.95f, 0.0f, 0.0f);
+        uiShader.setUniform("tintColor", 0.44f, 0.44f, 0.44f, 1.0f);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        
+        if (stack != null) {
+            renderItemIcon(stack.getItem(), x + 2, y + 2, size - 4, screenWidth, screenHeight, atlas);
+            
+            if (stack.getCount() > 1) {
+                String count = String.valueOf(stack.getCount());
+                fontRenderer.drawString(count, x + size - fontRenderer.getStringWidth(count, 14), y + size - 14, 14, screenWidth, screenHeight);
+            }
+            
+            // Draw durability bar for tools
+            if (stack.getItem().isTool()) {
+                ToolItem tool = (ToolItem) stack.getItem();
+                float dur = (float)stack.getDurability() / tool.getMaxDurability();
+                if (dur < 1.0f) {
+                    renderDurabilityBar(x + 2, y + size - 4, size - 4, dur, screenWidth, screenHeight);
+                }
+            }
+        }
+        glBindVertexArray(0);
+    }
+
+    private void renderDurabilityBar(int x, int y, int width, float progress, int screenWidth, int screenHeight) {
+        uiShader.use();
+        uiShader.setInt("useTexture", 0);
+        float scaleX = (float)width / screenWidth;
+        float scaleY = 2.0f / screenHeight;
+        float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
+        float posY = 1.0f - (2.0f * y / screenHeight) - scaleY;
+        
+        // Background (black)
+        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("tintColor", 0f, 0f, 0f, 1.0f);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        
+        // Progress (green to red)
+        float barWidth = scaleX * progress;
+        uiShader.setUniform("scale", barWidth, scaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX - (scaleX - barWidth), posY, 0.0f, 0.0f);
+        uiShader.setUniform("tintColor", 1.0f - progress, progress, 0.0f, 1.0f);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
     }
 
     private void renderHotbarBackground(int screenWidth, int screenHeight) {

@@ -63,6 +63,7 @@ public class DynamicTextureAtlas {
                 }
                 // Resize if needed (simple nearest neighbor if not 16x16)
                 int iw = w.get(0), ih = h.get(0);
+                boolean isStbAllocated = true;
                 if (iw != tileSize || ih != tileSize) {
                     ByteBuffer resized = ByteBuffer.allocateDirect(tileSize * tileSize * 4);
                     for (int y = 0; y < tileSize; y++) {
@@ -77,8 +78,10 @@ public class DynamicTextureAtlas {
                             resized.put(dst + 3, img.get(src + 3));
                         }
                     }
+                    stbi_image_free(img);
                     img = resized;
                     iw = ih = tileSize;
+                    isStbAllocated = false;
                 }
 
                 int tileX = index % tilesPerRow;
@@ -97,7 +100,7 @@ public class DynamicTextureAtlas {
                         atlas.put(di + 3, img.get(si + 3));
                     }
                 }
-                stbi_image_free(img);
+                if (isStbAllocated) stbi_image_free(img);
             }
             index++;
         }

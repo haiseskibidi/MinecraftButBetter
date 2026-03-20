@@ -23,6 +23,10 @@ public class Hotbar {
         this.player = player;
     }
     
+    public Player getPlayer() {
+        return player;
+    }
+    
     public void setSelectedSlot(int slot) {
         if (slot >= 0 && slot < HOTBAR_SLOTS) {
             player.getInventory().setSelectedSlot(slot);
