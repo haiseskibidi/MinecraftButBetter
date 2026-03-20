@@ -37,7 +37,7 @@ public class BlockDefinition {
     }
 
     public String getName() {
-        return name;
+        return com.za.minecraft.utils.I18n.get(name);
     }
 
     public boolean isSolid() {

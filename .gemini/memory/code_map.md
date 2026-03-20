@@ -186,3 +186,8 @@
 ### com.za.minecraft.utils.Direction (NEW)
 Назначение: Стандарт смещений для поиска соседних блоков (UP, DOWN, NORTH, SOUTH, EAST, WEST).
 Функции: offset(BlockPos), getDx(), getDy(), getDz()
+
+### com.za.minecraft.utils.I18n (NEW)
+Назначение: Система локализации на базе JSON-файлов.
+Функции: loadLanguage(String langCode), get(String key), format(String key, Object... args)
+Зависимости: Gson

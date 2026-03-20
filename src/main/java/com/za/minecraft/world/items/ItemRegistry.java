@@ -17,14 +17,14 @@ public class ItemRegistry {
 
     static {
         // Register default "Hand" for empty slot
-        ITEMS.put(BlockType.AIR, new Item(BlockType.AIR, "Hand", ""));
+        ITEMS.put(BlockType.AIR, new Item(BlockType.AIR, "item.minecraft.hand", ""));
 
         // Register Tools
-        registerItem(new ToolItem(ItemType.STONE_KNIFE, "Stone Knife", "minecraft/textures/item/flint.png", ToolItem.ToolType.KNIFE, 1.5f, 50));
-        registerItem(new ToolItem(ItemType.SCRAP_PICKAXE, "Scrap Pickaxe", "minecraft/textures/item/wooden_pickaxe.png", ToolItem.ToolType.PICKAXE, 2.0f, 100));
-        registerItem(new ToolItem(ItemType.CROWBAR, "Crowbar", "minecraft/textures/block/lever.png", ToolItem.ToolType.CROWBAR, 3.0f, 200));
-        registerItem(new Item(ItemType.FUEL_CANISTER, "Fuel Canister", "minecraft/textures/item/honey_bottle.png"));
-        registerItem(new ToolItem(ItemType.ADMIN_HAMMER, "Admin Hammer", "minecraft/textures/item/nether_star.png", ToolItem.ToolType.PICKAXE, 1000.0f, 9999) {
+        registerItem(new ToolItem(ItemType.STONE_KNIFE, "item.minecraft.stone_knife", "minecraft/textures/item/flint.png", ToolItem.ToolType.KNIFE, 1.5f, 50));
+        registerItem(new ToolItem(ItemType.SCRAP_PICKAXE, "item.minecraft.scrap_pickaxe", "minecraft/textures/item/wooden_pickaxe.png", ToolItem.ToolType.PICKAXE, 2.0f, 100));
+        registerItem(new ToolItem(ItemType.CROWBAR, "item.minecraft.crowbar", "minecraft/textures/block/lever.png", ToolItem.ToolType.CROWBAR, 3.0f, 200));
+        registerItem(new Item(ItemType.FUEL_CANISTER, "item.minecraft.fuel_canister", "minecraft/textures/item/honey_bottle.png"));
+        registerItem(new ToolItem(ItemType.ADMIN_HAMMER, "item.minecraft.admin_hammer", "minecraft/textures/item/nether_star.png", ToolItem.ToolType.PICKAXE, 1000.0f, 9999) {
             @Override
             public boolean isEffectiveAgainst(byte blockType) {
                 return true; // Effective against everything
@@ -36,9 +36,9 @@ public class ItemRegistry {
         });
 
         // Register Food
-        registerItem(new FoodItem(RAW_MEAT, "Raw Meat", "minecraft/textures/item/beef.png", 2.0f, 1.0f));
-        registerItem(new FoodItem(COOKED_MEAT, "Cooked Meat", "minecraft/textures/item/cooked_beef.png", 6.0f, 4.0f));
-        registerItem(new FoodItem(CANNED_FOOD, "Canned Food", "minecraft/textures/item/mushroom_stew.png", 4.0f, 8.0f));
+        registerItem(new FoodItem(RAW_MEAT, "item.minecraft.raw_meat", "minecraft/textures/item/beef.png", 2.0f, 1.0f));
+        registerItem(new FoodItem(COOKED_MEAT, "item.minecraft.cooked_meat", "minecraft/textures/item/cooked_beef.png", 6.0f, 4.0f));
+        registerItem(new FoodItem(CANNED_FOOD, "item.minecraft.canned_food", "minecraft/textures/item/mushroom_stew.png", 4.0f, 8.0f));
 
         // Map blocks to items automatically
         BlockRegistry.getRegisteredBlocks().forEach((id, def) -> {

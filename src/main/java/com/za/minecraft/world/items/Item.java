@@ -17,7 +17,7 @@ public class Item {
     }
 
     public String getName() {
-        return name;
+        return com.za.minecraft.utils.I18n.get(name);
     }
 
     public String getTexturePath() {

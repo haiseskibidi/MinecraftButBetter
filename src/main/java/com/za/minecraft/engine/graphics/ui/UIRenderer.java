@@ -171,7 +171,7 @@ public class UIRenderer {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        String text = String.format("Breaking: %d%%", (int)(progress * 100));
+        String text = com.za.minecraft.utils.I18n.format("gui.mining_progress", (int)(progress * 100));
         int textSize = 18;
         int textWidth = fontRenderer.getStringWidth(text, textSize);
         int x = (screenWidth - textWidth) / 2;
@@ -188,7 +188,7 @@ public class UIRenderer {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        String text = String.format("Hunger: %.1f/20", hunger);
+        String text = com.za.minecraft.utils.I18n.format("gui.hunger", hunger);
         int textSize = 18;
         int textWidth = fontRenderer.getStringWidth(text, textSize);
         
@@ -206,7 +206,7 @@ public class UIRenderer {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        String text = String.format("Noise: %d%%", (int)(noise * 100));
+        String text = com.za.minecraft.utils.I18n.format("gui.noise", (int)(noise * 100));
         int textSize = 18;
         int textWidth = fontRenderer.getStringWidth(text, textSize);
         
@@ -539,8 +539,11 @@ public class UIRenderer {
         int buttonWidth = pauseMenu.getButtonWidth();
         int buttonHeight = pauseMenu.getButtonHeight();
         int spacing = pauseMenu.getButtonSpacing();
-        renderButton(centerX, centerY - spacing, buttonWidth, buttonHeight, screenWidth, screenHeight, null, 0.4f, 0.7f, 1.0f);
-        renderButton(centerX, centerY + spacing, buttonWidth, buttonHeight, screenWidth, screenHeight, null, 1.0f, 0.4f, 0.4f);
+        
+        renderButton(centerX, centerY - spacing, buttonWidth, buttonHeight, screenWidth, screenHeight, 
+            com.za.minecraft.utils.I18n.get("menu.resume"), 0.4f, 0.7f, 1.0f);
+        renderButton(centerX, centerY + spacing, buttonWidth, buttonHeight, screenWidth, screenHeight, 
+            com.za.minecraft.utils.I18n.get("menu.exit"), 1.0f, 0.4f, 0.4f);
     }
     
     private void renderButton(int x, int y, int width, int height, int screenWidth, int screenHeight, String text, float r, float g, float b) {
