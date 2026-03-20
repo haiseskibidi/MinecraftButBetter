@@ -1,19 +1,13 @@
 {
-    "system_prompt_files": [
-      ".gemini/GEMINI.md",
-      ".gemini/memory/lore.md",
-      ".gemini/memory/architecture.md",
-      ".gemini/memory/current_state.md"
-    ],
-    "ignore_patterns": [
-      "node_modules",
-      "target",
-      ".git",
-      "build"
-    ],
-    "skills_dir": ".gemini/skills",
-    "context_ttl": "24h",
-    "auto_indexing": false,
-    "memory_priority": true,
-    "lazy_file_loading": true
+  "mcpServers": {
+    "java-lsp": {
+      "command": "java",
+      "args": [
+        "-jar",
+        "C:/Users/akopa/Documents/LSP4J-MCP-1.0.0/target/lsp4j-mcp-1.0.0-SNAPSHOT.jar",
+        "C:/Users/akopa/IdeaProjects/MinecraftButBetter",
+        "jdtls"
+      ]
+    }
   }
+}
