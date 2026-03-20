@@ -71,6 +71,42 @@
 Функции: registerBlock(BlockDefinition def), getBlock(byte id), getTextures(byte id)
 Зависимости: BlockDefinition, BlockType
 
+### com.za.minecraft.world.blocks.GeneratorBlockDefinition (NEW)
+Назначение: Специальное определение для генератора, позволяющее создавать BlockEntity.
+Функции: createBlockEntity(BlockPos pos)
+
+### com.za.minecraft.world.blocks.CableBlockDefinition (NEW)
+Назначение: Определение блока кабеля.
+
+### com.za.minecraft.world.blocks.LampBlockDefinition (NEW)
+Назначение: Определение блока электрической лампы.
+
+### com.za.minecraft.world.blocks.BatteryBlockDefinition (NEW)
+Назначение: Определение блока аккумулятора.
+
+### com.za.minecraft.world.blocks.entity.BlockEntity (NEW)
+Назначение: Базовый класс для блоков с состоянием (энергия, инвентарь).
+Функции: setRemoved(), isRemoved(), getPos()
+
+### com.za.minecraft.world.blocks.entity.IEnergyStorage (NEW)
+Назначение: Стандарт для всех энергозависимых блоков.
+Методы: receiveEnergy, extractEnergy, getEnergyStored
+
+### com.za.minecraft.world.blocks.entity.GeneratorBlockEntity (UPDATED)
+Назначение: Логика бензогенератора. Реализует IEnergyStorage.
+
+### com.za.minecraft.world.blocks.entity.CableBlockEntity (NEW)
+Назначение: Передача энергии между соседними хранилищами.
+
+### com.za.minecraft.world.blocks.entity.LampBlockEntity (NEW)
+Назначение: Потребитель энергии (свет).
+
+### com.za.minecraft.world.blocks.entity.BatteryBlockEntity (NEW)
+Назначение: Хранилище большого объема энергии. Реализует IEnergyStorage.
+
+### com.za.minecraft.world.blocks.entity.ITickable (NEW)
+Назначение: Интерфейс для обновления сущностей блоков каждый тик.
+
 ### com.za.minecraft.world.blocks.Block
 Назначение: Экземпляр блока с типом и метаданными (направление).
 Функции: getType(), getMetadata(), setType(byte type), setMetadata(byte meta)
@@ -137,3 +173,8 @@
 Назначение: Реализация мультиплеера на базе Kryonet.
 Функции: start(), connect(String address), sendBlockUpdate(int x, int y, int z, byte type), sendPlayerPosition()
 Зависимости: NetworkPacket, Kryo
+
+## Utilities
+### com.za.minecraft.utils.Direction (NEW)
+Назначение: Стандарт смещений для поиска соседних блоков (UP, DOWN, NORTH, SOUTH, EAST, WEST).
+Функции: offset(BlockPos), getDx(), getDy(), getDz()

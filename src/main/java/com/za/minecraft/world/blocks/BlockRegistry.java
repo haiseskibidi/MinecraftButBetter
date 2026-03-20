@@ -42,6 +42,10 @@ public class BlockRegistry {
         registerBlock(new SlabBlockDefinition(BlockType.BRICK_SLAB, "Brick Slab", true, true).setHardness(2.0f).setTextures(new BlockTextures(base + "bricks.png")));
         registerBlock(new StairsBlockDefinition(BlockType.BRICK_STAIRS, "Brick Stairs", true, true).setHardness(2.0f).setTextures(new BlockTextures(base + "bricks.png")));
         registerBlock(new BlockDefinition(BlockType.CAMPFIRE, "Campfire", true, true).setHardness(1.0f).setTextures(new BlockTextures(base + "cobblestone.png", base + "cobblestone.png", base + "oak_log.png")));
+        registerBlock(new GeneratorBlockDefinition(BlockType.GENERATOR, "Gas Generator", true, false).setHardness(3.5f).setTextures(new BlockTextures(base + "blast_furnace_top.png", base + "blast_furnace_top.png", base + "blast_furnace_front.png", base + "blast_furnace_front.png", base + "blast_furnace_side.png", base + "blast_furnace_side.png")));
+        registerBlock(new CableBlockDefinition(BlockType.CABLE, "Electrical Cable", true, false).setHardness(1.0f).setTextures(new BlockTextures(base + "black_concrete.png")));
+        registerBlock(new LampBlockDefinition(BlockType.ELECTRIC_LAMP, "Electric Lamp", true, false).setHardness(0.5f).setTextures(new BlockTextures(base + "sea_lantern.png")));
+        registerBlock(new BatteryBlockDefinition(BlockType.BATTERY, "Battery", true, false).setHardness(3.0f).setTextures(new BlockTextures(base + "blast_furnace_top.png", base + "blast_furnace_top.png", base + "iron_block.png", base + "iron_block.png", base + "iron_block.png", base + "iron_block.png")));
     }
 
     public static void registerBlock(BlockDefinition def) {

@@ -1,5 +1,7 @@
 package com.za.minecraft.world.blocks;
 
+import com.za.minecraft.world.BlockPos;
+import com.za.minecraft.world.blocks.entity.BlockEntity;
 import com.za.minecraft.world.physics.VoxelShape;
 
 public class BlockDefinition {
@@ -65,5 +67,13 @@ public class BlockDefinition {
     
     public VoxelShape getShape(byte metadata) {
         return shape;
+    }
+
+    /**
+     * Создает новую сущность блока для данного определения.
+     * Переопределяется в подклассах для блоков с логикой.
+     */
+    public BlockEntity createBlockEntity(BlockPos pos) {
+        return null;
     }
 }

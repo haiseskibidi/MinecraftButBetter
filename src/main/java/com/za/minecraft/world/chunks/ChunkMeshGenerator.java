@@ -9,6 +9,7 @@ import com.za.minecraft.world.physics.AABB;
 import com.za.minecraft.world.physics.VoxelShape;
 import com.za.minecraft.engine.graphics.DynamicTextureAtlas;
 import com.za.minecraft.world.blocks.BlockTextureMapper;
+import com.za.minecraft.utils.Direction;
 import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
@@ -115,7 +116,7 @@ public class ChunkMeshGenerator {
     public static ChunkMeshResult generateMesh(Chunk chunk, World world, DynamicTextureAtlas atlas) {
         MeshData opaque = new MeshData();
         MeshData translucent = new MeshData();
-        int[][] neighborOffsets = new int[][]{{0,0,1},{0,0,-1},{1,0,0},{-1,0,0},{0,1,0},{0,-1,0}};
+        Direction[] directions = Direction.values();
         
         // Neighbor directions for each face (relative coordinates)
         // Correctly mapped to local UVs: [Negative_H, Positive_H, Negative_V, Positive_V]
@@ -154,8 +155,11 @@ public class ChunkMeshGenerator {
                             {min.x, max.y, max.z,  max.x, max.y, max.z,  max.x, max.y, min.z,  min.x, max.y, min.z},
                             {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
                         };
+                        
+                        // Use directions enum for neighbor checks
                         for (int face = 0; face < 6; face++) {
-                            Block neighbor = world.getBlock(worldX + neighborOffsets[face][0], worldY + neighborOffsets[face][1], worldZ + neighborOffsets[face][2]);
+                            Direction dir = directions[face];
+                            Block neighbor = world.getBlock(worldX + dir.getDx(), worldY + dir.getDy(), worldZ + dir.getDz());
                             
                             boolean drawFace = true;
                             if (neighbor.isAir()) {

@@ -31,4 +31,8 @@ public class BlockType {
     public static final byte BRICK_SLAB = 27;
     public static final byte BRICK_STAIRS = 28;
     public static final byte CAMPFIRE = 29;
+    public static final byte GENERATOR = 30;
+    public static final byte CABLE = 31;
+    public static final byte ELECTRIC_LAMP = 32;
+    public static final byte BATTERY = 33;
 }

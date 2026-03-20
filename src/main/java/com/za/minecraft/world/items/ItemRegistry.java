@@ -23,6 +23,7 @@ public class ItemRegistry {
         registerItem(new ToolItem(ItemType.STONE_KNIFE, "Stone Knife", "minecraft/textures/item/flint.png", ToolItem.ToolType.KNIFE, 1.5f, 50));
         registerItem(new ToolItem(ItemType.SCRAP_PICKAXE, "Scrap Pickaxe", "minecraft/textures/item/wooden_pickaxe.png", ToolItem.ToolType.PICKAXE, 2.0f, 100));
         registerItem(new ToolItem(ItemType.CROWBAR, "Crowbar", "minecraft/textures/block/lever.png", ToolItem.ToolType.CROWBAR, 3.0f, 200));
+        registerItem(new Item(ItemType.FUEL_CANISTER, "Fuel Canister", "minecraft/textures/item/honey_bottle.png"));
         registerItem(new ToolItem(ItemType.ADMIN_HAMMER, "Admin Hammer", "minecraft/textures/item/nether_star.png", ToolItem.ToolType.PICKAXE, 1000.0f, 9999) {
             @Override
             public boolean isEffectiveAgainst(byte blockType) {

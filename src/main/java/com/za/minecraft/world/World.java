@@ -2,6 +2,8 @@ package com.za.minecraft.world;
 
 import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.blocks.entity.BlockEntity;
+import com.za.minecraft.world.blocks.entity.ITickable;
 import com.za.minecraft.world.chunks.Chunk;
 import com.za.minecraft.world.chunks.ChunkPos;
 import com.za.minecraft.world.generation.TerrainGenerator;
@@ -14,18 +16,23 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.Map;
 
 public class World {
     private final Map<ChunkPos, Chunk> chunks;
     private final List<Entity> entities;
+    private final Map<BlockPos, BlockEntity> blockEntities;
+    private final List<ITickable> tickableBlockEntities;
     private Player player;
     private final TerrainGenerator terrainGenerator;
     private final long seed;
     
     public World() {
         this.chunks = new ConcurrentHashMap<>();
-        this.entities = new ArrayList<>();
+        this.entities = new CopyOnWriteArrayList<>();
+        this.blockEntities = new ConcurrentHashMap<>();
+        this.tickableBlockEntities = new CopyOnWriteArrayList<>();
         this.seed = System.currentTimeMillis(); // Random seed each time
         com.za.minecraft.utils.Logger.info("Generating new world with seed: %d", seed);
         this.terrainGenerator = new TerrainGenerator(seed);
@@ -34,7 +41,9 @@ public class World {
     
     public World(long seed) {
         this.chunks = new ConcurrentHashMap<>();
-        this.entities = new ArrayList<>();
+        this.entities = new CopyOnWriteArrayList<>();
+        this.blockEntities = new ConcurrentHashMap<>();
+        this.tickableBlockEntities = new CopyOnWriteArrayList<>();
         this.seed = seed;
         com.za.minecraft.utils.Logger.info("Generating new world with seed: %d", seed);
         this.terrainGenerator = new TerrainGenerator(seed);
@@ -91,6 +100,16 @@ public class World {
             }
         }
         
+        // Update tickable block entities
+        for (int i = tickableBlockEntities.size() - 1; i >= 0; i--) {
+            ITickable tickable = tickableBlockEntities.get(i);
+            if (tickable instanceof BlockEntity be && be.isRemoved()) {
+                tickableBlockEntities.remove(i);
+                continue;
+            }
+            tickable.update(deltaTime);
+        }
+        
         if (player != null) {
             player.update(deltaTime, this);
         }
@@ -135,6 +154,11 @@ public class World {
     }
     
     public void setBlock(int x, int y, int z, Block block) {
+        BlockPos pos = new BlockPos(x, y, z);
+        
+        // Remove old block entity if it exists
+        removeBlockEntity(pos);
+        
         ChunkPos chunkPos = ChunkPos.fromBlockPos(x, z);
         Chunk chunk = chunks.get(chunkPos);
         
@@ -144,6 +168,12 @@ public class World {
             chunk.setBlock(localX, y, localZ, block);
             chunk.setNeedsMeshUpdate(true);
             
+            // Automatically create block entity if defined
+            BlockEntity be = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).createBlockEntity(pos);
+            if (be != null) {
+                setBlockEntity(be);
+            }
+
             // Notify neighbors if block is on the edge
             if (localX == 0) notifyChunkUpdate(chunkPos.x() - 1, chunkPos.z());
             if (localX == Chunk.CHUNK_SIZE - 1) notifyChunkUpdate(chunkPos.x() + 1, chunkPos.z());
@@ -151,6 +181,29 @@ public class World {
             if (localZ == Chunk.CHUNK_SIZE - 1) notifyChunkUpdate(chunkPos.x(), chunkPos.z() + 1);
         }
     }
+
+    public void setBlockEntity(BlockEntity entity) {
+        BlockPos pos = entity.getPos();
+        removeBlockEntity(pos); // Clean up any existing at this position
+        
+        entity.setWorld(this);
+        blockEntities.put(pos, entity);
+        if (entity instanceof ITickable) {
+            tickableBlockEntities.add((ITickable) entity);
+        }
+    }
+
+    public BlockEntity getBlockEntity(BlockPos pos) {
+        return blockEntities.get(pos);
+    }
+
+    public void removeBlockEntity(BlockPos pos) {
+        BlockEntity entity = blockEntities.remove(pos);
+        if (entity != null) {
+            entity.setRemoved();
+        }
+    }
+
     
     private void notifyChunkUpdate(int cx, int cz) {
         Chunk neighbor = chunks.get(new ChunkPos(cx, cz));
@@ -173,5 +226,37 @@ public class World {
     
     public void setBlock(int x, int y, int z, byte blockType) {
         setBlock(x, y, z, new Block(blockType));
+    }
+
+    /**
+     * Рассчитывает уровень шума в конкретной точке мира.
+     * Учитывает шум игрока и работающих машин (BlockEntities).
+     */
+    public float getNoiseLevelAt(Vector3f pos) {
+        float totalNoise = 0.0f;
+        
+        // Шум от игрока
+        if (player != null) {
+            float dist = pos.distance(player.getPosition());
+            float playerNoise = player.getNoiseLevel();
+            // Затухание шума игрока (радиус 32 блока)
+            if (dist < 32.0f) {
+                totalNoise = Math.max(totalNoise, playerNoise * (1.0f - dist / 32.0f));
+            }
+        }
+        
+        // Шум от активных сущностей блоков
+        for (BlockEntity be : blockEntities.values()) {
+            if (be instanceof com.za.minecraft.world.blocks.entity.GeneratorBlockEntity generator && generator.isRunning()) {
+                float dist = pos.distance(new Vector3f(be.getPos().x() + 0.5f, be.getPos().y() + 0.5f, be.getPos().z() + 0.5f));
+                // Шум генератора (радиус 20 блоков, базовый шум 0.5)
+                if (dist < 20.0f) {
+                    float genNoise = 0.5f * (1.0f - dist / 20.0f);
+                    totalNoise = Math.max(totalNoise, genNoise);
+                }
+            }
+        }
+        
+        return totalNoise;
     }
 }

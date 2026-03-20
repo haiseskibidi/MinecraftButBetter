@@ -9,5 +9,6 @@ public class ItemType {
     public static final byte STONE_KNIFE = 101;
     public static final byte SCRAP_PICKAXE = 102;
     public static final byte CROWBAR = 103;
-    public static final byte ADMIN_HAMMER = 104;
+    public static final byte FUEL_CANISTER = 104;
+    public static final byte ADMIN_HAMMER = 105;
 }

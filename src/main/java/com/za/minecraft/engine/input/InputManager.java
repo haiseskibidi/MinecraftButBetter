@@ -46,7 +46,7 @@ public class InputManager {
     private BlockPos breakingBlockPos = null;
     private float breakingProgress = 0.0f;
     private float breakDelayTimer = 0.0f;
-    private static final float BREAK_COOLDOWN = 1.0f / 25.0f; // 25 blocks per second limit
+    private static final float BREAK_COOLDOWN = 1.0f / 20.0f; // 20 blocks per second limit (1 block per tick)
     
     public InputManager() {
         previousPos = new Vector2f();
@@ -147,7 +147,9 @@ public class InputManager {
             }
         }
 
-        if (GameLoop.getInstance().isInventoryOpen()) {
+        if (GameLoop.getInstance().isInventoryOpen() || GameLoop.getInstance().isPaused()) {
+            previousPos.x = currentPos.x;
+            previousPos.y = currentPos.y;
             return new RaycastResult();
         }
 
@@ -293,12 +295,27 @@ public class InputManager {
 
             // 1. Interaction with blocks (highest priority)
             if (raycast.isHit()) {
-                byte hitBlockType = world.getBlock(raycast.getBlockPos()).getType();
+                BlockPos hitPos = raycast.getBlockPos();
+                byte hitBlockType = world.getBlock(hitPos).getType();
                 if (hitBlockType == BlockType.CAMPFIRE) {
                     if (selectedItem != null && selectedItem.getId() == ItemRegistry.RAW_MEAT) {
                         player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), new ItemStack(ItemRegistry.getItem(ItemRegistry.COOKED_MEAT)));
                         com.za.minecraft.utils.Logger.info("Cooked raw meat on campfire");
                         actionConsumed = true;
+                    }
+                } else if (hitBlockType == BlockType.GENERATOR) {
+                    com.za.minecraft.world.blocks.entity.BlockEntity be = world.getBlockEntity(hitPos);
+                    if (be instanceof com.za.minecraft.world.blocks.entity.GeneratorBlockEntity generator) {
+                        if (selectedItem != null && selectedItem.getId() == ItemType.FUEL_CANISTER) {
+                            generator.addFuel(100.0f);
+                            // Consume one canister or empty it (for now just consume)
+                            ItemStack newStack = stack.getCount() > 1 ? new ItemStack(selectedItem, stack.getCount() - 1) : null;
+                            player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
+                            actionConsumed = true;
+                        } else {
+                            com.za.minecraft.utils.Logger.info("Generator status: Fuel: %.1f, Energy: %.1f, Running: %b", 
+                                generator.getFuel(), generator.getEnergy(), generator.isRunning());
+                        }
                     }
                 }
             }

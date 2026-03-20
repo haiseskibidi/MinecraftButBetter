@@ -28,6 +28,17 @@ public class Mesh {
     }
 
     public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, int[] indices) {
+        if (indices.length == 0 || positions.length == 0) {
+            this.vertexCount = 0;
+            this.vaoId = -1;
+            this.posVboId = -1;
+            this.texVboId = -1;
+            this.normalVboId = -1;
+            this.blockTypeVboId = -1;
+            this.neighborDataVboId = -1;
+            this.eboId = -1;
+            return;
+        }
         this.vertexCount = indices.length;
         
         vaoId = glGenVertexArrays();

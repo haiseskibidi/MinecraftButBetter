@@ -141,10 +141,6 @@ public class GameLoop {
             
             render();
             
-            if (window.isKeyPressed(GLFW_KEY_ESCAPE)) {
-                // simple toggle for pause
-            }
-            
             sync(elapsedTime);
         }
     }
@@ -175,8 +171,6 @@ public class GameLoop {
             }
         }
         
-        // Вызываем inputManager даже если инвентарь открыт или игра на паузе,
-        // чтобы работали горячие клавиши (1-9) и обновление камеры (внутри inputManager теперь есть проверка на inventoryOpen)
         highlightedBlock = inputManager.input(window, camera, player, timer.getDeltaF(), renderer, world, networkClient);
     }
     
@@ -227,8 +221,7 @@ public class GameLoop {
     private void sync(float elapsedTime) {
         float loopSlot = 1f / TARGET_FPS;
         if (elapsedTime < loopSlot) {
-            double endTime = timer.getDelta() + loopSlot; // This is a bit simplified
-            // For real sync we would need more precise timer methods, but this project uses simple update/render
+            double endTime = timer.getDelta() + loopSlot;
         }
     }
     
@@ -249,5 +242,9 @@ public class GameLoop {
 
     public boolean isInventoryOpen() {
         return inventoryOpen;
+    }
+
+    public boolean isPaused() {
+        return paused;
     }
 }

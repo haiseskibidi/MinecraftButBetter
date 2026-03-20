@@ -3,6 +3,8 @@ package com.za.minecraft.engine.graphics.ui;
 import com.za.minecraft.engine.graphics.Shader;
 import com.za.minecraft.engine.graphics.Texture;
 import com.za.minecraft.utils.Logger;
+import com.za.minecraft.engine.core.GameLoop;
+import com.za.minecraft.entities.Player;
 import com.za.minecraft.world.items.Item;
 import com.za.minecraft.world.items.ItemStack;
 import com.za.minecraft.world.items.ToolItem;
@@ -10,6 +12,7 @@ import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.blocks.BlockTextureMapper;
 import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.items.ItemRegistry;
+import com.za.minecraft.world.blocks.BlockType;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.FloatBuffer;
@@ -147,14 +150,13 @@ public class UIRenderer {
         renderHotbarSelection(screenWidth, screenHeight);
         renderHotbarItems(screenWidth, screenHeight, atlas);
         
-        // Отрисовка названия выбранного предмета
         ItemStack selected = hotbar.getSelectedItemStack();
         if (selected != null) {
             String name = selected.getItem().getName();
             int nameSize = 20;
             int textWidth = fontRenderer.getStringWidth(name, nameSize);
             int x = (screenWidth - textWidth) / 2;
-            int y = hotbar.getScreenY(screenHeight) - 30; // Над хотбаром
+            int y = hotbar.getScreenY(screenHeight) - 30;
             fontRenderer.drawString(name, x, y, nameSize, screenWidth, screenHeight);
         }
 
@@ -173,7 +175,7 @@ public class UIRenderer {
         int textSize = 18;
         int textWidth = fontRenderer.getStringWidth(text, textSize);
         int x = (screenWidth - textWidth) / 2;
-        int y = (screenHeight / 2) + 30; // Чуть ниже прицела
+        int y = (screenHeight / 2) + 30;
 
         fontRenderer.drawString(text, x, y, textSize, screenWidth, screenHeight);
 
@@ -190,7 +192,6 @@ public class UIRenderer {
         int textSize = 18;
         int textWidth = fontRenderer.getStringWidth(text, textSize);
         
-        // Позиция справа от хотбара
         int x = (screenWidth + (int)(Hotbar.HOTBAR_WIDTH * Hotbar.HOTBAR_SCALE)) / 2 + 20;
         int y = hotbar.getScreenY(screenHeight) + 10;
 
@@ -209,11 +210,9 @@ public class UIRenderer {
         int textSize = 18;
         int textWidth = fontRenderer.getStringWidth(text, textSize);
         
-        // Позиция слева от хотбара
         int x = (screenWidth - (int)(Hotbar.HOTBAR_WIDTH * Hotbar.HOTBAR_SCALE)) / 2 - textWidth - 20;
         int y = hotbar.getScreenY(screenHeight) + 10;
 
-        // Цвет текста меняется от белого к красному в зависимости от шума
         float r = 1.0f;
         float g = 1.0f - noise;
         float b = 1.0f - noise;
@@ -253,7 +252,6 @@ public class UIRenderer {
         uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
 
         if (item.isBlock()) {
-            // Это блок, берем из атласа
             atlas.bind();
             uiShader.setInt("useTexture", 1);
             float[] uv = BlockTextureMapper.uvFor(new Block(item.getId()), 0, atlas);
@@ -264,7 +262,6 @@ public class UIRenderer {
             uiShader.setUniform("uvOffset", uMin, vMin, 0.0f, 0.0f);
             uiShader.setUniform("uvScale", uMax - uMin, vMax - vMin, 0.0f, 0.0f);
         } else {
-            // Это предмет (инструмент или еда)
             String path = item.getTexturePath();
             if (path != null && !path.isEmpty()) {
                 Texture tex = itemTextures.get(item.getId());
@@ -306,7 +303,7 @@ public class UIRenderer {
                 default: uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
             }
         } else if (item.isFood()) {
-            uiShader.setUniform("tintColor", 1.0f, 0.5f, 0.5f, 1.0f); // Розоватый для еды
+            uiShader.setUniform("tintColor", 1.0f, 0.5f, 0.5f, 1.0f);
         } else {
             uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
         }
@@ -331,7 +328,7 @@ public class UIRenderer {
         
         for (var entry : allItems.entrySet()) {
             Item item = entry.getValue();
-            if (item.getId() == 0 && !item.isTool()) continue; // Skip air
+            if (item.getId() == 0 && !item.isTool()) continue;
             
             int col = index % columns;
             int row = index / columns;
@@ -339,11 +336,9 @@ public class UIRenderer {
             int x = padding + col * (slotSize + spacing);
             int y = padding + row * (slotSize + spacing);
             
-            renderItemIcon(item, x + slotSize/2, y + slotSize/2, slotSize/2.0f, screenWidth, screenHeight, atlas);
+            renderItemIcon(item, x, y, slotSize, screenWidth, screenHeight, atlas);
             index++;
         }
-        
-        renderHotbar(screenWidth, screenHeight, atlas);
         
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);

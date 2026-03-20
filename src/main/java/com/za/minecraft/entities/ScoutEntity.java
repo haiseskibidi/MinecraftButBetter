@@ -43,14 +43,23 @@ public class ScoutEntity extends LivingEntity {
         stateTimer -= deltaTime;
 
         // 1. Perception: Hearing
-        if (distToPlayer < HEARING_RADIUS) {
-            float perceivedNoise = player.getNoiseLevel() * (1.0f - (distToPlayer / HEARING_RADIUS));
-            if (perceivedNoise > DETECTION_THRESHOLD) {
-                if (currentState != AIState.CHASE) {
-                    currentState = AIState.SEARCH;
+        float perceivedNoise = world.getNoiseLevelAt(position);
+        if (perceivedNoise > DETECTION_THRESHOLD) {
+            if (currentState != AIState.CHASE) {
+                currentState = AIState.SEARCH;
+                // If player is making noise, head towards them. 
+                // Otherwise, the entity will naturally be drawn to the area of noise.
+                if (player.getNoiseLevel() > 0.1f) {
                     targetLocation.set(player.getPosition());
-                    stateTimer = 5.0f; // Search for 5 seconds
+                } else {
+                    // Head towards the general direction of noise if player is quiet but something else is noisy
+                    // For now, let's just use the player as a target if they are within range,
+                    // or we could iterate to find the actual noise source.
+                    // To keep it simple: if player isn't noisy, scout heads towards a random point near its current position 
+                    // that might be the source, or we can just stick to player if they are the most likely cause.
+                    targetLocation.set(player.getPosition()); 
                 }
+                stateTimer = 5.0f; // Search for 5 seconds
             }
         }
 
