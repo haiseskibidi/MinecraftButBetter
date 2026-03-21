@@ -31,6 +31,11 @@
 ### com.za.minecraft.engine.core.GameMode
 Назначение: Перечисление режимов игры (SINGLEPLAYER, MULTIPLAYER_HOST, MULTIPLAYER_CLIENT).
 
+### com.za.minecraft.engine.input.InputManager
+Назначение: Обработка ввода и управление взаимодействием.
+Функции: input(), handleInventoryClick(window, button), getSlotAt(), dropStack()
+Зависимости: Window, Camera, Player, World
+
 ## Graphics
 ### com.za.minecraft.engine.graphics.Renderer
 Назначение: Координация всех процессов отрисовки (мир, превью блоков, View Model, UI).
@@ -133,7 +138,7 @@
 
 ### com.za.minecraft.world.items.ItemStack
 Назначение: Контейнер для предмета в инвентаре (хранит количество и текущую прочность).
-Функции: getItem(), getCount(), getDurability()
+Функции: getItem(), getCount(), getDurability(), copy(), split(int amount), isStackableWith(ItemStack)
 
 ### com.za.minecraft.world.items.ItemRegistry
 Назначение: Реестр всех предметов и автоматический маппинг блоков в предметы.

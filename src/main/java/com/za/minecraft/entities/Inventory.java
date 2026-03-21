@@ -117,6 +117,67 @@ public class Inventory {
             slots[slotB] = temp;
         }
     }
+
+    public void quickMove(int slotIndex) {
+        ItemStack stack = getStackInSlot(slotIndex);
+        if (stack == null) return;
+
+        int start, end;
+        if (slotIndex < HOTBAR_SIZE) {
+            // From hotbar to main inventory
+            start = HOTBAR_SIZE;
+            end = TOTAL_SIZE;
+        } else {
+            // From main inventory to hotbar
+            start = 0;
+            end = HOTBAR_SIZE;
+        }
+
+        // 1. Try to stack
+        for (int i = start; i < end; i++) {
+            if (slots[i] != null && slots[i].isStackableWith(stack)) {
+                slots[i].setCount(slots[i].getCount() + stack.getCount());
+                setStackInSlot(slotIndex, null);
+                return;
+            }
+        }
+
+        // 2. Try to find empty slot
+        for (int i = start; i < end; i++) {
+            if (slots[i] == null) {
+                setStackInSlot(i, stack);
+                setStackInSlot(slotIndex, null);
+                return;
+            }
+        }
+    }
+    
+    public void sortMainInventory() {
+        for (int i = HOTBAR_SIZE; i < TOTAL_SIZE; i++) {
+            if (slots[i] != null) {
+                for (int j = i + 1; j < TOTAL_SIZE; j++) {
+                    if (slots[j] != null && slots[i].isStackableWith(slots[j])) {
+                        slots[i].setCount(slots[i].getCount() + slots[j].getCount());
+                        slots[j] = null;
+                    }
+                }
+            }
+        }
+        for (int i = HOTBAR_SIZE; i < TOTAL_SIZE; i++) {
+            for (int j = i + 1; j < TOTAL_SIZE; j++) {
+                boolean swap = false;
+                if (slots[i] == null && slots[j] != null) swap = true;
+                else if (slots[i] != null && slots[j] != null) {
+                    if (slots[i].getItem().getId() > slots[j].getItem().getId()) swap = true;
+                }
+                if (swap) {
+                    ItemStack temp = slots[i];
+                    slots[i] = slots[j];
+                    slots[j] = temp;
+                }
+            }
+        }
+    }
     
     private void logSelection() {
         Item current = getSelectedItem();

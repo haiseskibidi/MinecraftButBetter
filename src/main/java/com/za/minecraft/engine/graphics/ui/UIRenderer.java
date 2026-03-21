@@ -381,9 +381,56 @@ public class UIRenderer {
         
         // 5. Draw Tooltip (at mouse position)
         renderInventoryTooltip(startX, startY, slotSize, spacing, player, screenWidth, screenHeight);
+
+        // 6. Draw Hover Highlight and Drag Highlight
+        int hovered = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getHoveredSlotIndex();
+        java.util.Set<Integer> dragged = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getDraggedSlots();
+        
+        for (int i = 0; i < com.za.minecraft.entities.Inventory.TOTAL_SIZE; i++) {
+            if (dragged.contains(i)) {
+                int hX, hY;
+                if (i < 9) {
+                    hX = startX + i * (slotSize + spacing);
+                    hY = startY + 3 * (slotSize + spacing) + spacing * 4;
+                } else {
+                    int idx = i - 9;
+                    hX = startX + (idx % 9) * (slotSize + spacing);
+                    hY = startY + (idx / 9) * (slotSize + spacing);
+                }
+                renderHighlight(hX, hY, slotSize, screenWidth, screenHeight, 0.2f, 0.6f, 1.0f, 0.4f); // Blue tint
+            } else if (i == hovered && hovered != -1) {
+                int hX, hY;
+                if (hovered < 9) {
+                    hX = startX + hovered * (slotSize + spacing);
+                    hY = startY + 3 * (slotSize + spacing) + spacing * 4;
+                } else {
+                    int idx = hovered - 9;
+                    hX = startX + (idx % 9) * (slotSize + spacing);
+                    hY = startY + (idx / 9) * (slotSize + spacing);
+                }
+                renderHighlight(hX, hY, slotSize, screenWidth, screenHeight, 1.0f, 1.0f, 1.0f, 0.3f); // White tint
+            }
+        }
         
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
+    }
+
+    private void renderHighlight(int x, int y, int size, int sw, int sh, float r, float g, float b, float a) {
+        uiShader.use();
+        uiShader.setInt("useTexture", 0);
+        float scaleX = (float)size / sw;
+        float scaleY = (float)size / sh;
+        float posX = (2.0f * x / sw) - 1.0f + scaleX;
+        float posY = 1.0f - (2.0f * y / sh) - scaleY;
+        
+        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("tintColor", r, g, b, a);
+        
+        glBindVertexArray(quadVAO);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
     }
 
     private void renderDeveloperPanel(int devX, int startY, int slotSize, int spacing, int sw, int sh, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {

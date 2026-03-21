@@ -43,11 +43,17 @@ public class InputManager {
     private boolean leftMousePressed = false;
     private boolean rightMousePressed = false;
     private boolean rKeyPressed = false;
-    private boolean eKeyPressed = false;
+    private boolean zKeyPressed = false;
     private boolean f3KeyPressed = false;
     private boolean verticalMode = false;
     private ItemStack heldStack = null;
     private int devScroll = 0;
+    private int hoveredSlotIndex = -1;
+    
+    // Drag-to-Distribute state
+    private java.util.Set<Integer> draggedSlots = new java.util.LinkedHashSet<>();
+    private int dragButton = -1;
+    private boolean isDragging = false;
     
     // Breaking block state
     private BlockPos breakingBlockPos = null;
@@ -81,8 +87,36 @@ public class InputManager {
         
         glfwSetMouseButtonCallback(window.getWindowHandle(), (windowHandle, button, action, mode) -> {
             if (GameLoop.getInstance().isInventoryOpen()) {
-                if (button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS) {
-                    handleInventoryClick(window);
+                if (action == GLFW_PRESS) {
+                    dragButton = button;
+                    draggedSlots.clear();
+                    isDragging = false;
+                    
+                    if (heldStack == null) {
+                        handleInventoryClick(window, button);
+                    } else {
+                        Player p = GameLoop.getInstance().getPlayer();
+                        int slotIdx = getSlotAt(currentPos.x, currentPos.y, window.getWidth(), window.getHeight(), p);
+                        if (slotIdx != -1) {
+                            draggedSlots.add(slotIdx);
+                            isDragging = true;
+                        } else {
+                            handleInventoryClick(window, button);
+                        }
+                    }
+                } else if (action == GLFW_RELEASE) {
+                    if (dragButton == button) {
+                        if (isDragging && !draggedSlots.isEmpty()) {
+                            if (draggedSlots.size() == 1) {
+                                handleInventoryClickOnSlot(window, button, draggedSlots.iterator().next());
+                            } else {
+                                finishDrag();
+                            }
+                        }
+                        dragButton = -1;
+                        draggedSlots.clear();
+                        isDragging = false;
+                    }
                 }
             } else {
                 leftButtonPressed = button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS;
@@ -109,15 +143,7 @@ public class InputManager {
         enableMouseCapture(window);
     }
     
-    private void handleInventoryClick(Window window) {
-        Player player = GameLoop.getInstance().getPlayer();
-        if (player == null) return;
-        Inventory inv = player.getInventory();
-
-        int sw = window.getWidth();
-        int sh = window.getHeight();
-        
-        // Inventory Layout (Sync with UIRenderer)
+    private int getSlotAt(float mx, float my, int sw, int sh, Player player) {
         int cols = 9;
         int slotSize = (int)(18 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
         int spacing = (int)(2 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
@@ -126,47 +152,175 @@ public class InputManager {
         int startX = (sw - totalWidth) / 2;
         int startY = (sh - totalHeight) / 2;
 
-        // Sync shift with UIRenderer
         if (player.getMode() == PlayerMode.DEVELOPER) {
             startX -= 120;
         }
-        
-        float mx = currentPos.x;
-        float my = currentPos.y;
 
-        // Check Main Inventory (9-35)
         for (int i = 0; i < 27; i++) {
             int col = i % cols;
             int row = i / cols;
             int x = startX + col * (slotSize + spacing);
             int y = startY + row * (slotSize + spacing);
-            
-            if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
-                swapWithHeld(inv, 9 + i);
-                return;
-            }
+            if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) return 9 + i;
         }
-        
-        // Check Hotbar (0-8)
+
         int hotbarY = startY + 3 * (slotSize + spacing) + spacing * 4;
         for (int i = 0; i < 9; i++) {
             int x = startX + i * (slotSize + spacing);
-            if (mx >= x && mx <= x + slotSize && my >= hotbarY && my <= hotbarY + slotSize) {
-                swapWithHeld(inv, i);
-                return;
-            }
+            if (mx >= x && mx <= x + slotSize && my >= hotbarY && my <= hotbarY + slotSize) return i;
         }
 
-        // Check Developer Panel
-        if (player.getMode() == PlayerMode.DEVELOPER) {
-            int devX = startX + totalWidth + 20;
-            int devCols = 7;
-            int devRows = 12;
-            int devWidth = devCols * (slotSize + spacing);
-            int devHeight = devRows * (slotSize + spacing);
-            
-            if (mx >= devX && mx <= devX + devWidth && my >= startY && my <= startY + devHeight) {
-                handleDevPanelClick(mx, my, devX, startY, slotSize, spacing);
+        return -1;
+    }
+
+    private void dropStack(ItemStack stack, Player player, World world, Camera camera, boolean dropAll) {
+        if (stack == null) return;
+
+        ItemStack toDrop;
+        if (dropAll) {
+            toDrop = stack.copy();
+            stack.setCount(0); 
+        } else {
+            toDrop = stack.split(1);
+        }
+
+        if (toDrop == null) return;
+
+        Vector3f lookDirV = new Vector3f(0, 0, -1)
+            .rotateX(camera.getRotation().x)
+            .rotateY(camera.getRotation().y)
+            .normalize();
+        
+        Vector3f spawnPos = new Vector3f(camera.getPosition()).add(new Vector3f(lookDirV).mul(0.5f));
+        com.za.minecraft.entities.ItemEntity itemEntity = new com.za.minecraft.entities.ItemEntity(spawnPos, toDrop);
+        
+        float throwStrength = 6.0f / toDrop.getItem().getWeight();
+        itemEntity.getVelocity().set(lookDirV).mul(throwStrength);
+        itemEntity.getVelocity().y += 1.5f / toDrop.getItem().getWeight();
+        
+        world.spawnEntity(itemEntity);
+        com.za.minecraft.utils.Logger.info("Dropped stack: %s (x%d)", toDrop.getItem().getName(), toDrop.getCount());
+    }
+    
+    private void finishDrag() {
+        if (heldStack == null || draggedSlots.isEmpty()) return;
+        Player player = GameLoop.getInstance().getPlayer();
+        if (player == null) return;
+        Inventory inv = player.getInventory();
+
+        if (dragButton == GLFW_MOUSE_BUTTON_1) {
+            int amountPerSlot = heldStack.getCount() / draggedSlots.size();
+            if (amountPerSlot > 0) {
+                for (int slotIdx : draggedSlots) {
+                    ItemStack slotStack = inv.getStackInSlot(slotIdx);
+                    if (slotStack == null) {
+                        inv.setStackInSlot(slotIdx, heldStack.split(amountPerSlot));
+                    } else if (heldStack.isStackableWith(slotStack)) {
+                        ItemStack split = heldStack.split(amountPerSlot);
+                        if (split != null) {
+                            slotStack.setCount(slotStack.getCount() + split.getCount());
+                        }
+                    }
+                }
+            }
+        } else if (dragButton == GLFW_MOUSE_BUTTON_2) {
+            for (int slotIdx : draggedSlots) {
+                if (heldStack.getCount() <= 0) break;
+                ItemStack slotStack = inv.getStackInSlot(slotIdx);
+                if (slotStack == null) {
+                    inv.setStackInSlot(slotIdx, heldStack.split(1));
+                } else if (heldStack.isStackableWith(slotStack)) {
+                    ItemStack split = heldStack.split(1);
+                    if (split != null) {
+                        slotStack.setCount(slotStack.getCount() + 1);
+                    }
+                }
+            }
+        }
+        
+        if (heldStack.getCount() <= 0) {
+            heldStack = null;
+        }
+    }
+
+    private void handleInventoryClickOnSlot(Window window, int button, int slotIdx) {
+        Player player = GameLoop.getInstance().getPlayer();
+        if (player == null) return;
+        Inventory inv = player.getInventory();
+
+        boolean shift = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT) || window.isKeyPressed(GLFW_KEY_RIGHT_SHIFT);
+        if (shift && button == GLFW_MOUSE_BUTTON_1) {
+            inv.quickMove(slotIdx);
+            return;
+        }
+
+        ItemStack slotStack = inv.getStackInSlot(slotIdx);
+        
+        if (button == GLFW_MOUSE_BUTTON_1) {
+            if (heldStack != null && slotStack != null && heldStack.isStackableWith(slotStack)) {
+                slotStack.setCount(slotStack.getCount() + heldStack.getCount());
+                heldStack = null;
+            } else {
+                inv.setStackInSlot(slotIdx, heldStack);
+                heldStack = slotStack;
+            }
+        } else if (button == GLFW_MOUSE_BUTTON_2) {
+            if (heldStack == null) {
+                if (slotStack != null) {
+                    int toTake = (int) Math.ceil(slotStack.getCount() / 2.0);
+                    heldStack = slotStack.split(toTake);
+                    if (slotStack.getCount() <= 0) inv.setStackInSlot(slotIdx, null);
+                }
+            } else {
+                if (slotStack == null) {
+                    inv.setStackInSlot(slotIdx, heldStack.split(1));
+                    if (heldStack.getCount() <= 0) heldStack = null;
+                } else if (heldStack.isStackableWith(slotStack)) {
+                    slotStack.setCount(slotStack.getCount() + 1);
+                    heldStack.setCount(heldStack.getCount() - 1);
+                    if (heldStack.getCount() <= 0) heldStack = null;
+                } else {
+                    inv.setStackInSlot(slotIdx, heldStack);
+                    heldStack = slotStack;
+                }
+            }
+        }
+    }
+
+    private void handleInventoryClick(Window window, int button) {
+        Player player = GameLoop.getInstance().getPlayer();
+        if (player == null) return;
+        
+        int sw = window.getWidth();
+        int sh = window.getHeight();
+        float mx = currentPos.x;
+        float my = currentPos.y;
+
+        int slotIdx = getSlotAt(mx, my, sw, sh, player);
+
+        if (slotIdx != -1) {
+            handleInventoryClickOnSlot(window, button, slotIdx);
+        } else {
+            if (heldStack != null) {
+                dropStack(heldStack, player, GameLoop.getInstance().getWorld(), GameLoop.getInstance().getCamera(), true);
+                heldStack = null;
+            } else if (player.getMode() == PlayerMode.DEVELOPER) {
+                int cols = 9;
+                int slotSize = (int)(18 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
+                int spacing = (int)(2 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
+                int totalWidth = cols * (slotSize + spacing);
+                int startX = (sw - totalWidth) / 2 - 120;
+                int devX = startX + totalWidth + 20;
+                
+                int devCols = 7;
+                int devWidth = devCols * (slotSize + spacing);
+                int devRows = 12;
+                int devHeight = devRows * (slotSize + spacing);
+                int startY = (sh - ((3 + 1) * (slotSize + spacing) + spacing * 2)) / 2;
+
+                if (mx >= devX && mx <= devX + devWidth && my >= startY && my <= startY + devHeight) {
+                    handleDevPanelClick(mx, my, devX, startY, slotSize, spacing);
+                }
             }
         }
     }
@@ -174,7 +328,7 @@ public class InputManager {
     private void handleDevPanelClick(float mx, float my, int devX, int startY, int slotSize, int spacing) {
         java.util.List<Item> allItems = new java.util.ArrayList<>(ItemRegistry.getAllItems().values());
         int cols = 7;
-        int rows = 12; // visible rows
+        int rows = 12; 
         
         for (int i = 0; i < allItems.size(); i++) {
             int idx = i - devScroll * cols;
@@ -195,20 +349,12 @@ public class InputManager {
         }
     }
 
-    private void swapWithHeld(Inventory inv, int slotIndex) {
-        ItemStack slotStack = inv.getStackInSlot(slotIndex);
-        
-        if (heldStack == null && slotStack == null) return;
-        
-        // Simple swap logic
-        inv.setStackInSlot(slotIndex, heldStack);
-        heldStack = slotStack;
-        
-        com.za.minecraft.utils.Logger.info("Inventory click: slot %d, held: %s", slotIndex, (heldStack != null ? heldStack.getItem().getName() : "EMPTY"));
-    }
-
     public ItemStack getHeldStack() {
         return heldStack;
+    }
+
+    public void clearHeldStack() {
+        heldStack = null;
     }
 
     public Vector2f getCurrentMousePos() {
@@ -217,6 +363,14 @@ public class InputManager {
 
     public int getDevScroll() {
         return devScroll;
+    }
+
+    public int getHoveredSlotIndex() {
+        return hoveredSlotIndex;
+    }
+    
+    public java.util.Set<Integer> getDraggedSlots() {
+        return draggedSlots;
     }
 
     public void enableMouseCapture(Window window) {
@@ -233,6 +387,9 @@ public class InputManager {
     }
 
     public RaycastResult input(Window window, Camera camera, Player player, float deltaTime, com.za.minecraft.engine.graphics.Renderer renderer, World world, com.za.minecraft.network.GameClient networkClient) {
+        boolean inventoryOpen = GameLoop.getInstance().isInventoryOpen();
+        boolean paused = GameLoop.getInstance().isPaused();
+
         for (int i = 0; i < 9; i++) {
             if (window.isKeyPressed(GLFW_KEY_1 + i)) {
                 player.getInventory().setSelectedSlot(i);
@@ -240,27 +397,30 @@ public class InputManager {
             }
         }
 
-        boolean eKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_E);
-        if (eKeyCurrentlyPressed && !eKeyPressed) {
-            boolean open = !GameLoop.getInstance().isInventoryOpen();
-            GameLoop.getInstance().setInventoryOpen(open);
-            if (open) {
-                disableMouseCapture(window);
-            } else {
-                enableMouseCapture(window);
-                // Drop held stack if inventory closed
-                if (heldStack != null) {
-                    player.getInventory().addItem(heldStack);
-                    heldStack = null;
+        if (inventoryOpen) {
+            int newHovered = getSlotAt(currentPos.x, currentPos.y, window.getWidth(), window.getHeight(), player);
+            if (newHovered != hoveredSlotIndex) {
+                hoveredSlotIndex = newHovered;
+                if (isDragging && dragButton != -1 && heldStack != null && hoveredSlotIndex != -1) {
+                    // Check if slot can receive this item and we have enough items to cover all selected slots
+                    ItemStack slotStack = player.getInventory().getStackInSlot(hoveredSlotIndex);
+                    boolean canReceive = (slotStack == null || heldStack.isStackableWith(slotStack));
+                    
+                    if (canReceive && (draggedSlots.contains(hoveredSlotIndex) || draggedSlots.size() < heldStack.getCount())) {
+                        draggedSlots.add(hoveredSlotIndex);
+                    }
                 }
             }
-        }
-        eKeyPressed = eKeyCurrentlyPressed;
-
-        if (GameLoop.getInstance().isInventoryOpen() || GameLoop.getInstance().isPaused()) {
-            previousPos.x = currentPos.x;
-            previousPos.y = currentPos.y;
-            return new RaycastResult();
+            
+            boolean zKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_Z);
+            if (zKeyCurrentlyPressed && !zKeyPressed) {
+                player.getInventory().sortMainInventory();
+            }
+            zKeyPressed = zKeyCurrentlyPressed;
+        } else {
+            hoveredSlotIndex = -1;
+            isDragging = false;
+            draggedSlots.clear();
         }
 
         placeDelayTimer = Math.max(0, placeDelayTimer - deltaTime);
@@ -272,10 +432,7 @@ public class InputManager {
             previousPos.x = currentPos.x;
             previousPos.y = currentPos.y;
             firstMouse = false;
-            return new RaycastResult();
-        }
-        
-        if (inWindow) {
+        } else if (inWindow && !inventoryOpen && !paused) {
             double deltaX = currentPos.x - previousPos.x;
             double deltaY = currentPos.y - previousPos.y;
             rotVec.y = (float) -deltaX;
@@ -285,9 +442,10 @@ public class InputManager {
         previousPos.x = currentPos.x;
         previousPos.y = currentPos.y;
 
-        camera.moveRotation(rotVec.x * MOUSE_SENSITIVITY, rotVec.y * MOUSE_SENSITIVITY, 0);
+        if (!inventoryOpen && !paused) {
+            camera.moveRotation(rotVec.x * MOUSE_SENSITIVITY, rotVec.y * MOUSE_SENSITIVITY, 0);
+        }
 
-        // Apply View Bobbing
         float intensity = player.getBobIntensity();
         float bobX = (float) Math.sin(player.getWalkBobTimer() * 0.5f) * 0.04f * intensity;
         float bobY = (float) Math.sin(player.getWalkBobTimer()) * 0.04f * intensity;
@@ -295,20 +453,24 @@ public class InputManager {
         camera.setOffsets(bobX, bobY, 0);
         
         Vector2f moveVector = new Vector2f();
-        if (window.isKeyPressed(GLFW_KEY_W)) moveVector.y = 1;
-        if (window.isKeyPressed(GLFW_KEY_S)) moveVector.y = -1;
-        if (window.isKeyPressed(GLFW_KEY_A)) moveVector.x = -1;
-        if (window.isKeyPressed(GLFW_KEY_D)) moveVector.x = 1;
+        if (!inventoryOpen && !paused) {
+            if (window.isKeyPressed(GLFW_KEY_W)) moveVector.y = 1;
+            if (window.isKeyPressed(GLFW_KEY_S)) moveVector.y = -1;
+            if (window.isKeyPressed(GLFW_KEY_A)) moveVector.x = -1;
+            if (window.isKeyPressed(GLFW_KEY_D)) moveVector.x = 1;
+        }
         
         float moveY = 0;
-        if (window.isKeyPressed(GLFW_KEY_SPACE)) moveY = 1;
+        if (!inventoryOpen && !paused) {
+            if (window.isKeyPressed(GLFW_KEY_SPACE)) moveY = 1;
+        }
         boolean shiftPressed = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT);
-        if (shiftPressed) moveY = -1;
+        if (shiftPressed && !inventoryOpen && !paused) moveY = -1;
         
-        boolean sneaking = shiftPressed && !player.isFlying();
+        boolean sneaking = shiftPressed && !player.isFlying() && !inventoryOpen && !paused;
         player.setSneaking(sneaking);
         
-        boolean sprinting = window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL);
+        boolean sprinting = (window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL)) && !inventoryOpen && !paused;
         player.setSprinting(sprinting);
         float baseSpeed = player.isFlying() ? FLY_SPEED : (sneaking ? MOVE_SPEED * 0.3f : MOVE_SPEED);
         if (sprinting && !sneaking) baseSpeed *= (player.isFlying() ? FLY_FAST_MULTIPLIER : GROUND_SPRINT_MULTIPLIER);
@@ -330,19 +492,19 @@ public class InputManager {
         
         if (player.isFlying()) {
             player.addVelocity(0, (moveY * baseSpeed - player.getVelocity().y) * 25.0f * deltaTime, 0);
-        } else if (moveY > 0) {
+        } else if (moveY > 0 && !inventoryOpen && !paused) {
             if (player.isOnGround()) {
-                player.addNoise(0.20f); // Spike above the floor
+                player.addNoise(0.20f); 
             }
             player.jump();
         }
         
         boolean fKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_F);
-        if (fKeyCurrentlyPressed && !fKeyPressed) player.setFlying(!player.isFlying());
+        if (fKeyCurrentlyPressed && !fKeyPressed && !inventoryOpen && !paused) player.setFlying(!player.isFlying());
         fKeyPressed = fKeyCurrentlyPressed;
 
         boolean f3KeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_F3);
-        if (f3KeyCurrentlyPressed && !f3KeyPressed) {
+        if (f3KeyCurrentlyPressed && !f3KeyPressed && !inventoryOpen && !paused) {
             PlayerMode newMode = (player.getMode() == PlayerMode.SURVIVAL) 
                 ? PlayerMode.DEVELOPER : PlayerMode.SURVIVAL;
             player.setMode(newMode);
@@ -351,41 +513,35 @@ public class InputManager {
         f3KeyPressed = f3KeyCurrentlyPressed;
         
         boolean rKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_R);
-        if (rKeyCurrentlyPressed && !rKeyPressed) verticalMode = !verticalMode;
+        if (rKeyCurrentlyPressed && !rKeyPressed && !inventoryOpen && !paused) verticalMode = !verticalMode;
         rKeyPressed = rKeyCurrentlyPressed;
         
         boolean gKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_G);
-        if (gKeyCurrentlyPressed && !gKeyPressed) renderer.toggleFXAA();
+        if (gKeyCurrentlyPressed && !gKeyPressed && !inventoryOpen && !paused) renderer.toggleFXAA();
         gKeyPressed = gKeyCurrentlyPressed;
 
         boolean qKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_Q);
-        if (qKeyCurrentlyPressed && !qKeyPressed) {
-            ItemStack stack = player.getInventory().getSelectedItemStack();
-            if (stack != null) {
-                // Drop 1 item
-                ItemStack droppedStack = new ItemStack(stack.getItem(), 1);
-                if (stack.getCount() > 1) {
-                    stack.setCount(stack.getCount() - 1);
-                } else {
-                    player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
+        if (qKeyCurrentlyPressed && !qKeyPressed && !paused) {
+            if (inventoryOpen) {
+                if (hoveredSlotIndex != -1) {
+                    ItemStack stack = player.getInventory().getStackInSlot(hoveredSlotIndex);
+                    if (stack != null) {
+                        boolean ctrlPressed = window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL);
+                        dropStack(stack, player, world, camera, ctrlPressed);
+                        if (stack.getCount() <= 0) {
+                            player.getInventory().setStackInSlot(hoveredSlotIndex, null);
+                        }
+                    }
                 }
-
-                Vector3f lookDirV = new Vector3f(0, 0, -1)
-                    .rotateX(camera.getRotation().x)
-                    .rotateY(camera.getRotation().y)
-                    .normalize();
-                
-                Vector3f spawnPos = new Vector3f(camera.getPosition()).add(new Vector3f(lookDirV).mul(0.5f));
-                com.za.minecraft.entities.ItemEntity itemEntity = new com.za.minecraft.entities.ItemEntity(spawnPos, droppedStack);
-                
-                // Set initial velocity - heavier items are harder to throw
-                float throwStrength = 6.0f / droppedStack.getItem().getWeight();
-                itemEntity.getVelocity().set(lookDirV).mul(throwStrength);
-                // Slight upward boost for better arc
-                itemEntity.getVelocity().y += 1.5f / droppedStack.getItem().getWeight();
-                
-                world.spawnEntity(itemEntity);
-                com.za.minecraft.utils.Logger.info("Dropped item: %s", droppedStack.getItem().getName());
+            } else {
+                ItemStack stack = player.getInventory().getSelectedItemStack();
+                if (stack != null) {
+                    boolean ctrlPressed = window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL);
+                    dropStack(stack, player, world, camera, ctrlPressed);
+                    if (stack.getCount() <= 0) {
+                        player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
+                    }
+                }
             }
         }
         qKeyPressed = qKeyCurrentlyPressed;
@@ -396,119 +552,115 @@ public class InputManager {
         ItemStack currentStack = player.getInventory().getSelectedItemStack();
         Item currentItem = currentStack != null ? currentStack.getItem() : null;
 
-        boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1);
-        if (lm) {
-            player.swing();
-            if (raycast.isHit()) {
-                BlockPos hitPos = raycast.getBlockPos();
-                byte blockType = world.getBlock(hitPos).getType();
-                float hardness = BlockRegistry.getBlock(blockType).getHardness();
-                
-                if (hardness >= 0) {
-                    if (!hitPos.equals(breakingBlockPos)) {
-                        breakingBlockPos = hitPos;
-                        breakingProgress = 0.0f;
-                    }
+        if (!inventoryOpen && !paused) {
+            boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1);
+            if (lm) {
+                player.swing();
+                if (raycast.isHit()) {
+                    BlockPos hitPos = raycast.getBlockPos();
+                    byte blockType = world.getBlock(hitPos).getType();
+                    float hardness = BlockRegistry.getBlock(blockType).getHardness();
                     
-                    Item mineItem = currentItem != null ? currentItem : ItemRegistry.getItem(BlockType.AIR);
-                    if (breakDelayTimer <= 0 && mineItem != null) {
-                        float breakSpeed = mineItem.getMiningSpeed(blockType) / hardness;
-                        breakingProgress += breakSpeed * deltaTime;
-                        player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
-                        player.addNoise(hardness * 0.05f * deltaTime);
-                    }
-
-                    if (breakingProgress >= 1.0f) {
-                        world.setBlock(hitPos, new Block(BlockType.AIR));
-                        if (networkClient != null && networkClient.isConnected()) {
-                            networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), BlockType.AIR);
+                    if (hardness >= 0) {
+                        if (!hitPos.equals(breakingBlockPos)) {
+                            breakingBlockPos = hitPos;
+                            breakingProgress = 0.0f;
                         }
-                        breakingBlockPos = null;
-                        breakingProgress = 0.0f;
-                        breakDelayTimer = BREAK_COOLDOWN;
                         
-                        if (currentStack != null && currentItem.isTool()) {
-                            currentStack.setDurability(currentStack.getDurability() - 1);
-                            if (currentStack.getDurability() <= 0) {
-                                player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
-                                com.za.minecraft.utils.Logger.info("Tool broken!");
+                        Item mineItem = currentItem != null ? currentItem : ItemRegistry.getItem(BlockType.AIR);
+                        if (breakDelayTimer <= 0 && mineItem != null) {
+                            float breakSpeed = mineItem.getMiningSpeed(blockType) / hardness;
+                            breakingProgress += breakSpeed * deltaTime;
+                            player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
+                            player.addNoise(hardness * 0.05f * deltaTime);
+                        }
+
+                        if (breakingProgress >= 1.0f) {
+                            world.setBlock(hitPos, new Block(BlockType.AIR));
+                            if (networkClient != null && networkClient.isConnected()) {
+                                networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), BlockType.AIR);
+                            }
+                            breakingBlockPos = null;
+                            breakingProgress = 0.0f;
+                            breakDelayTimer = BREAK_COOLDOWN;
+                            
+                            if (currentStack != null && currentItem.isTool()) {
+                                currentStack.setDurability(currentStack.getDurability() - 1);
+                                if (currentStack.getDurability() <= 0) {
+                                    player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
+                                }
                             }
                         }
                     }
+                } else {
+                    breakingBlockPos = null;
+                    breakingProgress = 0.0f;
                 }
             } else {
                 breakingBlockPos = null;
                 breakingProgress = 0.0f;
             }
-        } else {
-            breakingBlockPos = null;
-            breakingProgress = 0.0f;
-        }
-        leftMousePressed = lm;
-        
-        boolean rm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_2);
-        boolean isNewRightClick = rm && !rightMousePressed;
-        
-        if (rm) {
-            boolean actionConsumed = false;
-
-            // 1. Interaction with blocks
-            if (raycast.isHit() && isNewRightClick) {
-                BlockPos hitPos = raycast.getBlockPos();
-                byte hitBlockType = world.getBlock(hitPos).getType();
-                if (hitBlockType == BlockType.CAMPFIRE) {
-                    if (currentItem != null && currentItem.getId() == ItemRegistry.RAW_MEAT) {
-                        player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), new ItemStack(ItemRegistry.getItem(ItemRegistry.COOKED_MEAT)));
-                        actionConsumed = true;
-                    }
-                } else if (hitBlockType == BlockType.GENERATOR) {
-                    com.za.minecraft.world.blocks.entity.BlockEntity be = world.getBlockEntity(hitPos);
-                    if (be instanceof com.za.minecraft.world.blocks.entity.GeneratorBlockEntity generator) {
-                        if (currentItem != null && currentItem.getId() == ItemType.FUEL_CANISTER) {
-                            generator.addFuel(100.0f);
-                            ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
-                            player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
-                            com.za.minecraft.utils.Logger.info("Generator refueled. Fuel: %.1f", generator.getFuel());
-                            actionConsumed = true;
-                        } else {
-                            com.za.minecraft.utils.Logger.info("Generator. Fuel: %.1f, Energy: %.1f", generator.getFuel(), generator.getEnergyStored());
-                            actionConsumed = true;
-                        }
-                    }
-                }
-            }
-
-            // 2. Using items (eating)
-            if (!actionConsumed && isNewRightClick && currentItem != null && currentItem.isFood()) {
-                if (player.getHunger() < 20.0f) {
-                    player.eat((FoodItem) currentItem);
-                    player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
-                    actionConsumed = true;
-                }
-            }
+            leftMousePressed = lm;
             
-            // 3. Block Placement (Continuous or Fast Click)
-            if (!actionConsumed && (isNewRightClick || placeDelayTimer <= 0) && raycast.isHit()) {
-                if (currentItem != null && !currentItem.isTool() && !currentItem.isFood() && currentItem.getId() != BlockType.AIR) {
-                    byte blockType = currentItem.getId();
-                    Vector3f normal = raycast.getNormal();
-                    BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
-                    
-                    if (!isPlayerAt(player, pPos)) {
-                        byte meta = calculateMetadata(blockType, normal, raycast.getHitPoint(), camera);
-                        world.setBlock(pPos, new Block(blockType, meta));
-                        if (networkClient != null && networkClient.isConnected()) {
-                            networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), blockType);
+            boolean rm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_2);
+            boolean isNewRightClick = rm && !rightMousePressed;
+            
+            if (rm) {
+                boolean actionConsumed = false;
+
+                if (raycast.isHit() && isNewRightClick) {
+                    BlockPos hitPos = raycast.getBlockPos();
+                    byte hitBlockType = world.getBlock(hitPos).getType();
+                    if (hitBlockType == BlockType.CAMPFIRE) {
+                        if (currentItem != null && currentItem.getId() == ItemRegistry.RAW_MEAT) {
+                            player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), new ItemStack(ItemRegistry.getItem(ItemRegistry.COOKED_MEAT)));
+                            actionConsumed = true;
                         }
-                        placeDelayTimer = PLACE_COOLDOWN;
+                    } else if (hitBlockType == BlockType.GENERATOR) {
+                        com.za.minecraft.world.blocks.entity.BlockEntity be = world.getBlockEntity(hitPos);
+                        if (be instanceof com.za.minecraft.world.blocks.entity.GeneratorBlockEntity generator) {
+                            if (currentItem != null && currentItem.getId() == ItemType.FUEL_CANISTER) {
+                                generator.addFuel(100.0f);
+                                ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
+                                player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
+                                actionConsumed = true;
+                            } else {
+                                actionConsumed = true;
+                            }
+                        }
+                    }
+                }
+
+                if (!actionConsumed && isNewRightClick && currentItem != null && currentItem.isFood()) {
+                    if (player.getHunger() < 20.0f) {
+                        player.eat((FoodItem) currentItem);
+                        player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
                         actionConsumed = true;
                     }
                 }
+                
+                if (!actionConsumed && (isNewRightClick || placeDelayTimer <= 0) && raycast.isHit()) {
+                    if (currentItem != null && !currentItem.isTool() && !currentItem.isFood() && currentItem.getId() != BlockType.AIR) {
+                        byte blockType = currentItem.getId();
+                        Vector3f normal = raycast.getNormal();
+                        BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
+                        
+                        if (!isPlayerAt(player, pPos)) {
+                            byte meta = calculateMetadata(blockType, normal, raycast.getHitPoint(), camera);
+                            world.setBlock(pPos, new Block(blockType, meta));
+                            if (networkClient != null && networkClient.isConnected()) {
+                                networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), blockType);
+                            }
+                            placeDelayTimer = PLACE_COOLDOWN;
+                            actionConsumed = true;
+                        }
+                    }
+                }
             }
+            rightMousePressed = rm;
         }
 
-        // Preview logic
-        if (raycast.isHit() && currentItem != null && !currentItem.isTool() && !currentItem.isFood() && currentItem.getId() != BlockType.AIR) {
+        if (!inventoryOpen && !paused && raycast.isHit() && currentItem != null && !currentItem.isTool() && !currentItem.isFood() && currentItem.getId() != BlockType.AIR) {
             byte blockType = currentItem.getId();
             Vector3f normal = raycast.getNormal();
             BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
@@ -523,10 +675,6 @@ public class InputManager {
             renderer.setPreviewBlock(null, null);
         }
 
-        rightMousePressed = rm;
-        leftMousePressed = lm;
-
-        camera.setPosition(player.getPosition().x, player.getPosition().y + 1.62f, player.getPosition().z);
         return raycast;
     }
     

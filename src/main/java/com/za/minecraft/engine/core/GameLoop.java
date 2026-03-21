@@ -34,6 +34,8 @@ public class GameLoop {
     private boolean running;
     private boolean paused = false;
     private boolean inventoryOpen = false;
+    private boolean ePressed = false;
+    private boolean escPressed = false;
     
     private GameMode gameMode;
     private GameServer localServer;
@@ -56,6 +58,14 @@ public class GameLoop {
     
     public Player getPlayer() {
         return player;
+    }
+
+    public World getWorld() {
+        return world;
+    }
+
+    public Camera getCamera() {
+        return camera;
     }
 
     public InputManager getInputManager() {
@@ -154,43 +164,57 @@ public class GameLoop {
     }
     
     private void input() {
-        if (window.isKeyPressed(GLFW_KEY_ESCAPE)) {
-            if (inventoryOpen) {
-                closeInventory();
-            } else {
-                paused = !paused;
-                if (paused) inputManager.disableMouseCapture(window);
-                else inputManager.enableMouseCapture(window);
-            }
-            while(window.isKeyPressed(GLFW_KEY_ESCAPE)) {
-                glfwPollEvents();
-            }
+        boolean eKey = window.isKeyPressed(GLFW_KEY_E);
+        if (eKey && !ePressed && !paused) {
+            toggleInventory();
         }
+        ePressed = eKey;
 
-        if (window.isKeyPressed(GLFW_KEY_E) && !paused) {
-            inventoryOpen = !inventoryOpen;
+        boolean escKey = window.isKeyPressed(GLFW_KEY_ESCAPE);
+        if (escKey && !escPressed) {
             if (inventoryOpen) {
-                inputManager.disableMouseCapture(window);
+                toggleInventory();
             } else {
-                inputManager.enableMouseCapture(window);
-            }
-            while(window.isKeyPressed(GLFW_KEY_E)) {
-                glfwPollEvents();
+                togglePause();
             }
         }
-        
+        escPressed = escKey;
+
         highlightedBlock = inputManager.input(window, camera, player, timer.getDeltaF(), renderer, world, networkClient);
     }
     
+    public void toggleInventory() {
+        inventoryOpen = !inventoryOpen;
+        if (inventoryOpen) {
+            inputManager.disableMouseCapture(window);
+        } else {
+            inputManager.enableMouseCapture(window);
+            com.za.minecraft.world.items.ItemStack held = inputManager.getHeldStack();
+            if (held != null) {
+                player.getInventory().addItem(held);
+                inputManager.clearHeldStack();
+            }
+        }
+    }
+
+    public void togglePause() {
+        paused = !paused;
+        if (paused) inputManager.disableMouseCapture(window);
+        else inputManager.enableMouseCapture(window);
+    }
+
     private void closeInventory() {
         inventoryOpen = false;
         inputManager.enableMouseCapture(window);
     }
 
     private void update(float interval) {
-        if (paused || inventoryOpen) return;
+        if (paused) return;
         
         world.update(interval);
+        
+        // Синхронизация камеры после движения игрока
+        camera.setPosition(player.getPosition().x, player.getPosition().y + 1.62f, player.getPosition().z);
         
         if (networkClient != null && networkClient.isConnected()) {
             networkClient.sendPlayerPosition();
