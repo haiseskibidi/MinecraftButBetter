@@ -8,5 +8,6 @@
     "textures":  {
                      "all":  "dirt.png"
                  },
-    "requiredTool":  "shovel"
+    "requiredTool":  "shovel",
+    "supportScavenge":  true
 }

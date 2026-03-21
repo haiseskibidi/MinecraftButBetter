@@ -41,6 +41,11 @@ public class Blocks {
     public static BlockDefinition CABLE;
     public static BlockDefinition ELECTRIC_LAMP;
     public static BlockDefinition BATTERY;
+    
+    // Scavenging resources
+    public static BlockDefinition LOOSE_STICK;
+    public static BlockDefinition LOOSE_ROCK;
+    public static BlockDefinition LOOSE_FLINT;
 
     public static void init() {
         for (java.lang.reflect.Field field : Blocks.class.getFields()) {

@@ -1,0 +1,5 @@
+[
+  { "block": "minecraft:stick", "chance": 0.015 },
+  { "block": "minecraft:rock", "chance": 0.01 },
+  { "block": "minecraft:flint", "chance": 0.003 }
+]

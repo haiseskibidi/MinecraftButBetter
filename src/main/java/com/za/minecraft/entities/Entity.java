@@ -17,6 +17,7 @@ public abstract class Entity {
     
     protected boolean onGround = false;
     protected boolean flying = false;
+    protected boolean removed = false;
     
     protected static final float GRAVITY = -9.81f * 2.0f;
     protected static final float TERMINAL_VELOCITY = -50.0f;
@@ -29,6 +30,14 @@ public abstract class Entity {
             -width / 2, 0, -width / 2,
             width / 2, height, width / 2
         );
+    }
+
+    public void setRemoved() {
+        this.removed = true;
+    }
+
+    public boolean isRemoved() {
+        return removed;
     }
 
     public void update(float deltaTime, World world) {

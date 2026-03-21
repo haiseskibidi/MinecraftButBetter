@@ -14,6 +14,8 @@ public class BlockDefinition {
     private final boolean transparent;
     private float hardness = 1.0f; // Default hardness
     private String requiredTool = "none"; // pickaxe, shovel, axe, crowbar, knife
+    private String dropItem = null; // Identifier of the item to drop (null = drop self)
+    private boolean canSupportScavenge = false; // Whether items like sticks can spawn on top
     private PlacementType placementType = PlacementType.DEFAULT;
     private BlockTextures textures;
 
@@ -79,6 +81,24 @@ public class BlockDefinition {
 
     public String getRequiredTool() {
         return requiredTool;
+    }
+
+    public String getDropItem() {
+        return dropItem;
+    }
+
+    public BlockDefinition setDropItem(String dropItem) {
+        this.dropItem = dropItem;
+        return this;
+    }
+
+    public boolean canSupportScavenge() {
+        return canSupportScavenge;
+    }
+
+    public BlockDefinition setSupportScavenge(boolean support) {
+        this.canSupportScavenge = support;
+        return this;
     }
 
     public PlacementType getPlacementType() {

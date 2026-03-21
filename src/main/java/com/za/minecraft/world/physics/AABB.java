@@ -38,6 +38,25 @@ public class AABB {
                point.y >= min.y && point.y <= max.y &&
                point.z >= min.z && point.z <= max.z;
     }
+
+    /**
+     * Возвращает дистанцию до пересечения луча с этим AABB.
+     * Использует алгоритм "Ray-Box Intersection".
+     */
+    public float intersectDist(Vector3f origin, Vector3f direction) {
+        float t1 = (min.x - origin.x) / direction.x;
+        float t2 = (max.x - origin.x) / direction.x;
+        float t3 = (min.y - origin.y) / direction.y;
+        float t4 = (max.y - origin.y) / direction.y;
+        float t5 = (min.z - origin.z) / direction.z;
+        float t6 = (max.z - origin.z) / direction.z;
+
+        float tmin = Math.max(Math.max(Math.min(t1, t2), Math.min(t3, t4)), Math.min(t5, t6));
+        float tmax = Math.min(Math.min(Math.max(t1, t2), Math.max(t3, t4)), Math.max(t5, t6));
+
+        if (tmax < 0 || tmin > tmax) return -1.0f;
+        return tmin;
+    }
     
     public Vector3f getCenter() {
         return new Vector3f(

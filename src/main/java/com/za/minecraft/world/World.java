@@ -90,6 +90,12 @@ public class World {
         // Update all entities
         for (int i = entities.size() - 1; i >= 0; i--) {
             Entity entity = entities.get(i);
+            
+            if (entity.isRemoved()) {
+                entities.remove(i);
+                continue;
+            }
+
             entity.update(deltaTime, this);
             
             // Item Pickup logic

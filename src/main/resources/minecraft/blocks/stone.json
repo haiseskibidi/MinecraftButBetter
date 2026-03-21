@@ -8,5 +8,6 @@
     "textures":  {
                      "all":  "stone.png"
                  },
-    "requiredTool":  "pickaxe"
+    "requiredTool":  "pickaxe",
+    "supportScavenge":  true
 }

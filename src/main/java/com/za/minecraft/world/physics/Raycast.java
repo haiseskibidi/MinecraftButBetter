@@ -77,6 +77,24 @@ public class Raycast {
         return new RaycastResult();
     }
     
+    public static com.za.minecraft.entities.Entity raycastEntity(World world, Vector3f origin, Vector3f direction) {
+        com.za.minecraft.entities.Entity closest = null;
+        float minDistance = MAX_REACH_DISTANCE;
+
+        for (com.za.minecraft.entities.Entity entity : world.getEntities()) {
+            // Рассчитываем AABB для сущности
+            AABB bounds = entity.getBoundingBox();
+            if (bounds == null) continue;
+
+            float dist = bounds.intersectDist(origin, direction);
+            if (dist > 0 && dist < minDistance) {
+                minDistance = dist;
+                closest = entity;
+            }
+        }
+        return closest;
+    }
+    
     private static Vector3f calculateNormal(Vector3f hitPoint, BlockPos blockPos) {
         // Определяем какая грань блока была поражена
         float x = hitPoint.x - blockPos.x();

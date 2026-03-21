@@ -15,6 +15,7 @@ public class Item {
     protected final String name;
     protected final String texturePath;
     protected float weight = 1.0f;
+    protected float visualScale = 1.0f;
     
     private final Map<Class<? extends ItemComponent>, ItemComponent> components = new HashMap<>();
 
@@ -67,6 +68,14 @@ public class Item {
     
     public void setWeight(float weight) {
         this.weight = weight;
+    }
+
+    public float getVisualScale() {
+        return visualScale;
+    }
+
+    public void setVisualScale(float visualScale) {
+        this.visualScale = visualScale;
     }
     
     public boolean isTool() {

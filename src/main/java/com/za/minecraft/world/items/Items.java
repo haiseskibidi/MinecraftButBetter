@@ -14,6 +14,9 @@ public class Items {
     public static Item RAW_MEAT;
     public static Item COOKED_MEAT;
     public static Item CANNED_FOOD;
+    public static Item FLINT;
+    public static Item STICK;
+    public static Item ROCK;
 
     public static void init() {
         for (java.lang.reflect.Field field : Items.class.getFields()) {

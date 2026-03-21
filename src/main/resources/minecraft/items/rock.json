@@ -1,0 +1,7 @@
+﻿{
+    "id":  303,
+    "identifier":  "minecraft:rock",
+    "translationKey":  "item.minecraft.rock",
+    "texture":  "minecraft/textures/block/cobblestone.png",
+    "visualScale":  0.55
+}

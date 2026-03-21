@@ -343,11 +343,10 @@ public class Renderer {
                 if (mesh != null) {
                     float age = itemEntity.getAge();
                     float bob = (float) Math.sin(age * 2.5f) * 0.05f;
-                    float scale = item.isBlock() ? 0.25f : 0.45f;
-                    
+                    float scale = item.isBlock() ? 0.25f : item.getVisualScale() * 0.45f;
+
                     modelMatrix.identity()
                         .translate(entity.getPosition().x(), entity.getPosition().y() + 0.2f + bob, entity.getPosition().z());
-                    
                     if (item.isBlock()) {
                         modelMatrix.rotateY(itemEntity.getRotation().y)
                                    .rotateX(0.2f) // Slight tilt
@@ -365,8 +364,30 @@ public class Renderer {
                     blockShader.setMatrix4f("model", modelMatrix);
                     blockShader.setInt("highlightPass", 0);
                     mesh.render();
-                }
-            } else {
+                    }
+                    } else if (entity instanceof com.za.minecraft.entities.ResourceEntity resource) {
+                    com.za.minecraft.world.items.Item item = resource.getStack().getItem();
+                    Mesh mesh = itemMeshCache.get(item);
+
+                    if (mesh == null) {
+                    mesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
+                    if (mesh != null) itemMeshCache.put(item, mesh);
+                    }
+
+                    if (mesh != null) {
+                        float scale = item.getVisualScale();
+                        modelMatrix.identity()
+                            .translate(entity.getPosition().x(), entity.getPosition().y() + 0.05f, entity.getPosition().z())
+                            .rotateY(resource.getRotation().y)
+                            .rotateX(1.57f) // Лежит плашмя
+                            .scale(scale)
+                            .translate(0, -0.5f, 0); // Центрируем по вертикали
+                    blockShader.setMatrix4f("model", modelMatrix);
+                    blockShader.setInt("highlightPass", 0);
+                    mesh.render();
+                    }
+                    } else {
+
                 if (playerMesh == null) createPlayerMesh();
                 modelMatrix.identity()
                     .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z())

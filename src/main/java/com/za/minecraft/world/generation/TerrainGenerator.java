@@ -5,6 +5,8 @@ import com.za.minecraft.world.chunks.Chunk;
 import com.za.minecraft.world.generation.pipeline.GenerationPipeline;
 import com.za.minecraft.world.generation.pipeline.steps.CityLayoutStep;
 import com.za.minecraft.world.generation.pipeline.steps.BuildingGeneratorStep;
+import com.za.minecraft.world.generation.pipeline.steps.OvergrowthStep;
+import com.za.minecraft.world.generation.pipeline.steps.ScavengeDecorationStep;
 
 public class TerrainGenerator {
     private final GenerationPipeline pipeline;
@@ -15,7 +17,8 @@ public class TerrainGenerator {
         // Регистрируем шаги пайплайна
         this.pipeline.addStep(new CityLayoutStep(seed));
         this.pipeline.addStep(new BuildingGeneratorStep(seed));
-        this.pipeline.addStep(new com.za.minecraft.world.generation.pipeline.steps.OvergrowthStep(seed));
+        this.pipeline.addStep(new OvergrowthStep(seed));
+        this.pipeline.addStep(new ScavengeDecorationStep(seed));
     }
     
     public void generateTerrain(Chunk chunk) {

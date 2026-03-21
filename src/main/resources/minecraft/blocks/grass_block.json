@@ -10,5 +10,6 @@
                      "bottom":  "dirt.png",
                      "side":  "grass_block_side.png"
                  },
-    "requiredTool":  "knife"
+    "requiredTool":  "knife",
+    "supportScavenge":  true
 }

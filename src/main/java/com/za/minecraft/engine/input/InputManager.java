@@ -1,5 +1,6 @@
 package com.za.minecraft.engine.input;
 
+import com.za.minecraft.utils.Identifier;
 import com.za.minecraft.engine.core.GameLoop;
 import com.za.minecraft.engine.core.PlayerMode;
 import com.za.minecraft.engine.core.Window;
@@ -10,6 +11,7 @@ import com.za.minecraft.world.World;
 import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.blocks.Blocks;
+import com.za.minecraft.world.blocks.BlockDefinition;
 import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.blocks.PlacementType;
 import com.za.minecraft.world.items.Item;
@@ -549,6 +551,9 @@ public class InputManager {
         qKeyPressed = qKeyCurrentlyPressed;
         
         Vector3f lookDir = new Vector3f(0, 0, -1).rotateX(camera.getRotation().x).rotateY(camera.getRotation().y).normalize();
+        
+        // Сначала проверяем попадание по сущностям (сбор ресурсов)
+        com.za.minecraft.entities.Entity hitEntity = Raycast.raycastEntity(world, camera.getPosition(), lookDir);
         RaycastResult raycast = Raycast.raycast(world, camera.getPosition(), lookDir);
         
         ItemStack currentStack = player.getInventory().getSelectedItemStack();
@@ -556,28 +561,50 @@ public class InputManager {
 
         if (!inventoryOpen && !paused) {
             boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1);
+            boolean isNewLeftClick = lm && !leftMousePressed;
+
             if (lm) {
                 player.swing();
-                if (raycast.isHit()) {
+                
+                // Если попали по ресурсу - подбираем его (только по новому клику)
+                if (isNewLeftClick && hitEntity instanceof com.za.minecraft.entities.ResourceEntity resource) {
+                    player.getInventory().addItem(resource.getStack());
+                    resource.setRemoved();
+                    com.za.minecraft.utils.Logger.info("Picked up %s", resource.getStack().getItem().getName());
+                } 
+                // Иначе ломаем блоки
+                else if (raycast.isHit()) {
                     BlockPos hitPos = raycast.getBlockPos();
                     int blockType = world.getBlock(hitPos).getType();
-                    float hardness = BlockRegistry.getBlock(blockType).getHardness();
+                    BlockDefinition blockDef = BlockRegistry.getBlock(blockType);
+                    float hardness = blockDef.getHardness();
 
                     if (hardness >= 0) {
-                        if (!hitPos.equals(breakingBlockPos)) {
-                            breakingBlockPos = hitPos;
-                            breakingProgress = 0.0f;
-                        }
+                        if (hardness == 0.0f) {
+                            breakingProgress = 1.0f; // Instant break
+                        } else {
+                            if (!hitPos.equals(breakingBlockPos)) {
+                                breakingBlockPos = hitPos;
+                                breakingProgress = 0.0f;
+                            }
 
-                        Item mineItem = currentItem != null ? currentItem : ItemRegistry.getItem(Blocks.AIR.getId());
-                        if (breakDelayTimer <= 0 && mineItem != null) {
-                            float breakSpeed = mineItem.getMiningSpeed(blockType) / hardness;
-                            breakingProgress += breakSpeed * deltaTime;
-                            player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
-                            player.addNoise(hardness * 0.05f * deltaTime);
+                            Item mineItem = currentItem != null ? currentItem : ItemRegistry.getItem(Blocks.AIR.getId());
+                            if (breakDelayTimer <= 0 && mineItem != null) {
+                                float breakSpeed = mineItem.getMiningSpeed(blockType) / hardness;
+                                breakingProgress += breakSpeed * deltaTime;
+                                player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
+                                player.addNoise(hardness * 0.05f * deltaTime);
+                            }
                         }
 
                         if (breakingProgress >= 1.0f) {
+                            // Логика дропа
+                            String dropId = blockDef.getDropItem();
+                            Item itemToGive = (dropId != null) ? ItemRegistry.getItem(Identifier.of(dropId)) : ItemRegistry.getItem(blockDef.getIdentifier());
+                            if (itemToGive != null) {
+                                player.getInventory().addItem(new ItemStack(itemToGive));
+                            }
+
                             world.setBlock(hitPos, new Block(Blocks.AIR.getId()));
                             if (networkClient != null && networkClient.isConnected()) {
                                 networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), Blocks.AIR.getId());
@@ -644,7 +671,7 @@ public class InputManager {
                 }
                 
                 if (!actionConsumed && (isNewRightClick || placeDelayTimer <= 0) && raycast.isHit()) {
-                    if (currentItem != null && !currentItem.isTool() && !currentItem.isFood() && currentItem.getId() != Blocks.AIR.getId()) {
+                    if (currentItem != null && currentItem.isBlock()) {
                         int blockType = currentItem.getId();
                         Vector3f normal = raycast.getNormal();
                         BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
@@ -655,6 +682,11 @@ public class InputManager {
                             if (networkClient != null && networkClient.isConnected()) {
                                 networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), blockType);
                             }
+                            
+                            // Уменьшаем количество предметов в стаке после установки
+                            ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
+                            player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
+                            
                             placeDelayTimer = PLACE_COOLDOWN;
                             actionConsumed = true;
                         }

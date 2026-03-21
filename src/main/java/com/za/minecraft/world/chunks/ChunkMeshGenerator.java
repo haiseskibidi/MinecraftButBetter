@@ -135,6 +135,18 @@ public class ChunkMeshGenerator {
                 for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
                     Block block = chunk.getBlock(x, y, z);
                     if (block.isAir()) continue;
+                    com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType());
+                    if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE) {
+                        float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
+                        float u0 = uvs[0], v0 = uvs[1], u1 = uvs[4], v1 = uvs[5];
+                        
+                        // Plane 1: (0,0,0) to (1,1,1)
+                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 0, 0, 1, 1, 1, u0, v0, u1, v1, (float)block.getType());
+                        // Plane 2: (1,0,0) to (0,1,1)
+                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 1, 0, 0, 0, 1, 1, u0, v0, u1, v1, (float)block.getType());
+                        continue;
+                    }
+
                     VoxelShape shape = block.getShape();
                     if (shape == null) continue;
 
@@ -190,5 +202,36 @@ public class ChunkMeshGenerator {
             }
         }
         return new ChunkMeshResult(opaque.build(), translucent.build());
+    }
+
+    private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float y0, float z0, float x1, float y1, float z1, float u0, float v0, float u1, float v1, float blockTypeId) {
+        // Делаем модель чуть меньше и центрируем
+        float scale = 0.8f;
+        float offset = (1.0f - scale) / 2.0f;
+        
+        float px0 = ox + offset + x0 * scale;
+        float py0 = oy + y0 * scale;
+        float pz0 = oz + offset + z0 * scale;
+        
+        float px1 = ox + offset + x1 * scale;
+        float py1 = oy + y1 * scale;
+        float pz1 = oz + offset + z1 * scale;
+
+        // Вершины для плоскости (двусторонняя)
+        float[] pos = {
+            px0, py0, pz0,  px1, py0, pz1,  px1, oy + scale, pz1,  px0, oy + scale, pz0
+        };
+        
+        // Нормаль (усредненная вверх для травы/палок)
+        float[] norm = {0, 1, 0,  0, 1, 0,  0, 1, 0,  0, 1, 0};
+        
+        // Добавляем две стороны плоскости
+        data.addFace(pos, norm, blockTypeId, new float[]{u0, v0, u1, v0, u1, v1, u0, v1}, 4, 0, 0, 0, 0);
+        
+        // Обратная сторона (инвертируем порядок вершин для корректного cull face, если он включен)
+        float[] posRev = {
+            px0, oy + scale, pz0,  px1, oy + scale, pz1,  px1, py0, pz1,  px0, py0, pz0
+        };
+        data.addFace(posRev, norm, blockTypeId, new float[]{u0, v1, u1, v1, u1, v0, u0, v0}, 4, 0, 0, 0, 0);
     }
 }

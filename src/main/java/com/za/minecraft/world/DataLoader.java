@@ -54,6 +54,24 @@ public class DataLoader {
         for (String ns : namespaces) {
             loadRecipes(ns);
         }
+
+        loadScavengeSettings();
+    }
+
+    private static void loadScavengeSettings() {
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("minecraft/registry/scavenge.json")) {
+            if (is == null) return;
+            JsonArray root = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonArray.class);
+            for (JsonElement el : root) {
+                JsonObject obj = el.getAsJsonObject();
+                Identifier blockId = Identifier.of(obj.get("block").getAsString());
+                float chance = obj.get("chance").getAsFloat();
+                com.za.minecraft.world.generation.ScavengeSettings.register(blockId, chance);
+            }
+            Logger.info("Loaded scavenge settings");
+        } catch (Exception e) {
+            Logger.error("Failed to load scavenge settings: " + e.getMessage());
+        }
     }
 
     private static void loadRecipes(String namespace) {
@@ -211,6 +229,8 @@ public class DataLoader {
             BlockDefinition def = BlockTypeRegistry.create(type, id, identifier, translationKey, solid, transparent);
             if (obj.has("hardness")) def.setHardness(obj.get("hardness").getAsFloat());
             if (obj.has("requiredTool")) def.setRequiredTool(obj.get("requiredTool").getAsString());
+            if (obj.has("dropItem")) def.setDropItem(obj.get("dropItem").getAsString());
+            if (obj.has("supportScavenge")) def.setSupportScavenge(obj.get("supportScavenge").getAsBoolean());
             if (obj.has("placement")) {
                 def.setPlacementType(com.za.minecraft.world.blocks.PlacementType.valueOf(obj.get("placement").getAsString().toUpperCase()));
             }
@@ -248,6 +268,7 @@ public class DataLoader {
             Item item = ItemTypeRegistry.create(type, (byte)id, identifier, translationKey, texture);
             
             if (obj.has("weight")) item.setWeight(obj.get("weight").getAsFloat());
+            if (obj.has("visualScale")) item.setVisualScale(obj.get("visualScale").getAsFloat());
             
             // Парсинг компонентов (перезаписывают дефолтные из конструктора)
             if (obj.has("components")) {

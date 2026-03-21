@@ -1,6 +1,7 @@
-{
-  "id": 301,
-  "identifier": "minecraft:flint",
-  "translationKey": "item.minecraft.flint",
-  "texture": "minecraft/textures/item/flint.png"
+﻿{
+    "id":  301,
+    "identifier":  "minecraft:flint",
+    "translationKey":  "item.minecraft.flint",
+    "texture":  "minecraft/textures/item/flint.png",
+    "visualScale":  0.55
 }

@@ -1,0 +1,7 @@
+﻿{
+    "id":  302,
+    "identifier":  "minecraft:stick",
+    "translationKey":  "item.minecraft.stick",
+    "texture":  "minecraft/textures/item/stick.png",
+    "visualScale":  0.6
+}
