@@ -1,7 +1,5 @@
 package com.za.minecraft.world.generation;
 
-import com.za.minecraft.world.blocks.BlockType;
-
 public class BiomeGenerator {
     private final SimplexNoise temperatureNoise;
     private final SimplexNoise humidityNoise;
@@ -37,22 +35,22 @@ public class BiomeGenerator {
     }
     
     public enum Biome {
-        PLAINS(64, 10, BlockType.GRASS, 0.05, 1.2),
-        FOREST(68, 20, BlockType.GRASS, 0.40, 0.8),
-        DESERT(62, 8, BlockType.SAND, 0.00, 1.5),
-        TAIGA(72, 40, BlockType.GRASS, 0.30, 0.6),
-        JUNGLE(65, 30, BlockType.GRASS, 0.70, 0.5),
-        TUNDRA(63, 15, BlockType.GRASS, 0.02, 1.0),
-        SWAMP(60, 5, BlockType.GRASS, 0.25, 1.8),
-        SAVANNA(66, 12, BlockType.GRASS, 0.10, 1.3);
+        PLAINS(64, 10, com.za.minecraft.world.blocks.Blocks.GRASS_BLOCK.getId(), 0.05, 1.2),
+        FOREST(68, 20, com.za.minecraft.world.blocks.Blocks.GRASS_BLOCK.getId(), 0.40, 0.8),
+        DESERT(62, 8, com.za.minecraft.world.blocks.Blocks.SAND.getId(), 0.00, 1.5),
+        TAIGA(72, 40, com.za.minecraft.world.blocks.Blocks.GRASS_BLOCK.getId(), 0.30, 0.6),
+        JUNGLE(65, 30, com.za.minecraft.world.blocks.Blocks.GRASS_BLOCK.getId(), 0.70, 0.5),
+        TUNDRA(63, 15, com.za.minecraft.world.blocks.Blocks.GRASS_BLOCK.getId(), 0.02, 1.0),
+        SWAMP(60, 5, com.za.minecraft.world.blocks.Blocks.GRASS_BLOCK.getId(), 0.25, 1.8),
+        SAVANNA(66, 12, com.za.minecraft.world.blocks.Blocks.GRASS_BLOCK.getId(), 0.10, 1.3);
         
         private final int baseHeight;
         private final int heightVariation;
-        private final byte surfaceBlock;
+        private final int surfaceBlock;
         private final double treeDensity;
         private final double erosionFactor;
 
-        Biome(int baseHeight, int heightVariation, byte surfaceBlock, double treeDensity, double erosionFactor) {
+        Biome(int baseHeight, int heightVariation, int surfaceBlock, double treeDensity, double erosionFactor) {
             this.baseHeight = baseHeight;
             this.heightVariation = heightVariation;
             this.surfaceBlock = surfaceBlock;
@@ -62,7 +60,7 @@ public class BiomeGenerator {
 
         public int getBaseHeight() { return baseHeight; }
         public int getHeightVariation() { return heightVariation; }
-        public byte getSurfaceBlock() { return surfaceBlock; }
+        public int getSurfaceBlock() { return surfaceBlock; }
         public double getTreeDensity() { return treeDensity; }
         public double getErosionFactor() { return erosionFactor; }
     }

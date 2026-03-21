@@ -1,25 +1,27 @@
 package com.za.minecraft.world.items;
 
-public class FoodItem extends Item {
-    private final float nutrition;
-    private final float saturationBonus;
+import com.za.minecraft.utils.Identifier;
+import com.za.minecraft.world.items.component.FoodComponent;
 
-    public FoodItem(byte id, String name, String texturePath, float nutrition, float saturationBonus) {
+public class FoodItem extends Item {
+
+    public FoodItem(int id, String name, String texturePath, float nutrition, float saturationBonus) {
         super(id, name, texturePath);
-        this.nutrition = nutrition;
-        this.saturationBonus = saturationBonus;
+        addComponent(FoodComponent.class, new FoodComponent(nutrition, saturationBonus));
+    }
+
+    public FoodItem(int id, Identifier identifier, String translationKey, String texturePath, float nutrition, float saturationBonus) {
+        super(id, identifier, translationKey, texturePath);
+        addComponent(FoodComponent.class, new FoodComponent(nutrition, saturationBonus));
     }
 
     public float getNutrition() {
-        return nutrition;
+        FoodComponent c = getComponent(FoodComponent.class);
+        return c != null ? c.nutrition() : 0;
     }
 
     public float getSaturationBonus() {
-        return saturationBonus;
-    }
-
-    @Override
-    public boolean isFood() {
-        return true;
+        FoodComponent c = getComponent(FoodComponent.class);
+        return c != null ? c.saturationBonus() : 0;
     }
 }

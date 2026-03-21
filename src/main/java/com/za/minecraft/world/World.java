@@ -1,7 +1,7 @@
 package com.za.minecraft.world;
 
 import com.za.minecraft.world.blocks.Block;
-import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.blocks.Blocks;
 import com.za.minecraft.world.blocks.entity.BlockEntity;
 import com.za.minecraft.world.blocks.entity.ITickable;
 import com.za.minecraft.world.chunks.Chunk;
@@ -154,7 +154,7 @@ public class World {
         Chunk chunk = chunks.get(chunkPos);
         
         if (chunk == null) {
-            return new Block(BlockType.AIR);
+            return new Block(com.za.minecraft.world.blocks.Blocks.AIR.getId());
         }
         
         int localX = x - chunkPos.x() * Chunk.CHUNK_SIZE;
@@ -238,7 +238,7 @@ public class World {
         return seed;
     }
     
-    public void setBlock(int x, int y, int z, byte blockType) {
+    public void setBlock(int x, int y, int z, int blockType) {
         setBlock(x, y, z, new Block(blockType));
     }
 

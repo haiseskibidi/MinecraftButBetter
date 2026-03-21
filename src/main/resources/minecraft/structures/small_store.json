@@ -1,0 +1,43 @@
+{
+  "identifier": "minecraft:small_store",
+  "palette": {
+    "C": "minecraft:cyan_concrete",
+    "W": "minecraft:white_concrete",
+    "G": "minecraft:glass",
+    "S": "minecraft:stone_bricks",
+    "O": "minecraft:oak_planks",
+    "L": "minecraft:oak_leaves",
+    " ": "-1",
+    ".": "minecraft:air"
+  },
+  "layers": [
+    [
+      "CCCCCCC",
+      "CSSSSSC",
+      "CSOOOSC",
+      "CSL..SC",
+      "CCGGGCC"
+    ],
+    [
+      "CCCCCCC",
+      "W.....W",
+      "W.....W",
+      "WL....W",
+      "CWGGGCW"
+    ],
+    [
+      "CCCCCCC",
+      "CW...WC",
+      "CW...WC",
+      "CW...WC",
+      "CCCCCCC"
+    ],
+    [
+      "CCCCCCC",
+      "CCCCCCC",
+      "C   CCC",
+      "CCCCCCC",
+      "CCCCCCC"
+    ]
+  ]
+}

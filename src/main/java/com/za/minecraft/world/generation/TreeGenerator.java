@@ -3,7 +3,7 @@ package com.za.minecraft.world.generation;
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.blocks.Block;
-import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.blocks.Blocks;
 import java.util.Random;
 
 public class TreeGenerator {
@@ -16,7 +16,7 @@ public class TreeGenerator {
     public boolean canGenerateTree(World world, int x, int y, int z) {
         // Check if there's grass block at surface
         Block groundBlock = world.getBlock(x, y - 1, z);
-        if (groundBlock.getType() != BlockType.GRASS) {
+        if (groundBlock.getType() != Blocks.GRASS_BLOCK.getId()) {
             return false;
         }
         
@@ -41,19 +41,19 @@ public class TreeGenerator {
         
         // Generate trunk
         for (int dy = 0; dy < height; dy++) {
-            world.setBlock(new BlockPos(x, y + dy, z), new Block(BlockType.WOOD, Block.DIR_UP));
+            world.setBlock(new BlockPos(x, y + dy, z), new Block(Blocks.OAK_LOG.getId(), Block.DIR_UP));
         }
         
         // Generate leaves crown
         int crownY = y + height - 1;
         
         // Top layer (single block)
-        world.setBlock(new BlockPos(x, crownY + 1, z), new Block(BlockType.LEAVES));
+        world.setBlock(new BlockPos(x, crownY + 1, z), new Block(Blocks.OAK_LEAVES.getId()));
         
         // Main crown layers
         for (int layer = 0; layer < 2; layer++) {
             int currentY = crownY - layer;
-            int radius = layer == 0 ? 2 : 2;
+            int radius = 2;
             
             for (int dx = -radius; dx <= radius; dx++) {
                 for (int dz = -radius; dz <= radius; dz++) {
@@ -70,7 +70,7 @@ public class TreeGenerator {
                     BlockPos leafPos = new BlockPos(x + dx, currentY, z + dz);
                     Block existingBlock = world.getBlock(leafPos);
                     if (existingBlock.isAir()) {
-                        world.setBlock(leafPos, new Block(BlockType.LEAVES));
+                        world.setBlock(leafPos, new Block(Blocks.OAK_LEAVES.getId()));
                     }
                 }
             }
@@ -88,7 +88,7 @@ public class TreeGenerator {
                 BlockPos leafPos = new BlockPos(x + dx, bottomY, z + dz);
                 Block existingBlock = world.getBlock(leafPos);
                 if (existingBlock.isAir()) {
-                    world.setBlock(leafPos, new Block(BlockType.LEAVES));
+                    world.setBlock(leafPos, new Block(Blocks.OAK_LEAVES.getId()));
                 }
             }
         }
@@ -104,14 +104,14 @@ public class TreeGenerator {
         
         // Generate trunk (using wood blocks for now - could add birch wood later)
         for (int dy = 0; dy < height; dy++) {
-            world.setBlock(new BlockPos(x, y + dy, z), new Block(BlockType.WOOD, Block.DIR_UP));
+            world.setBlock(new BlockPos(x, y + dy, z), new Block(Blocks.OAK_LOG.getId(), Block.DIR_UP));
         }
         
         // Smaller, more compact crown
         int crownY = y + height - 1;
         
         // Top
-        world.setBlock(new BlockPos(x, crownY + 1, z), new Block(BlockType.LEAVES));
+        world.setBlock(new BlockPos(x, crownY + 1, z), new Block(Blocks.OAK_LEAVES.getId()));
         
         // Main crown (smaller than oak)
         for (int layer = 0; layer < 2; layer++) {
@@ -127,7 +127,7 @@ public class TreeGenerator {
                     BlockPos leafPos = new BlockPos(x + dx, currentY, z + dz);
                     Block existingBlock = world.getBlock(leafPos);
                     if (existingBlock.isAir()) {
-                        world.setBlock(leafPos, new Block(BlockType.LEAVES));
+                        world.setBlock(leafPos, new Block(Blocks.OAK_LEAVES.getId()));
                     }
                 }
             }

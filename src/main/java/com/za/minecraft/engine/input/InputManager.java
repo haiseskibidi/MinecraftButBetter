@@ -9,14 +9,16 @@ import com.za.minecraft.entities.Inventory;
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.blocks.Block;
-import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.blocks.Blocks;
 import com.za.minecraft.world.blocks.BlockRegistry;
+import com.za.minecraft.world.blocks.PlacementType;
 import com.za.minecraft.world.items.Item;
 import com.za.minecraft.world.items.ItemRegistry;
 import com.za.minecraft.world.items.ItemStack;
+import com.za.minecraft.world.items.Items;
 import com.za.minecraft.world.items.ToolItem;
 import com.za.minecraft.world.items.FoodItem;
-import com.za.minecraft.world.items.ItemType;
+import com.za.minecraft.world.items.component.FuelComponent;
 import com.za.minecraft.world.physics.Raycast;
 import com.za.minecraft.world.physics.RaycastResult;
 import org.joml.Vector2f;
@@ -483,7 +485,7 @@ public class InputManager {
             float moveZ = -(float)Math.cos(yaw) * moveVector.y + (float)Math.sin(yaw) * moveVector.x;
             float targetVx = moveX * baseSpeed;
             float targetVz = moveZ * baseSpeed;
-            float accelGain = player.isFlying() ? 24.0f : 18.0f;
+            float accelGain = player.getMode() == PlayerMode.DEVELOPER ? 30.0f : (player.isFlying() ? 24.0f : 18.0f);
             player.applyHorizontalAcceleration((targetVx - player.getVelocity().x) * accelGain * deltaTime, (targetVz - player.getVelocity().z) * accelGain * deltaTime, baseSpeed);
         } else {
             float decelGain = player.isFlying() ? 20.0f : 15.0f;
@@ -558,16 +560,16 @@ public class InputManager {
                 player.swing();
                 if (raycast.isHit()) {
                     BlockPos hitPos = raycast.getBlockPos();
-                    byte blockType = world.getBlock(hitPos).getType();
+                    int blockType = world.getBlock(hitPos).getType();
                     float hardness = BlockRegistry.getBlock(blockType).getHardness();
-                    
+
                     if (hardness >= 0) {
                         if (!hitPos.equals(breakingBlockPos)) {
                             breakingBlockPos = hitPos;
                             breakingProgress = 0.0f;
                         }
-                        
-                        Item mineItem = currentItem != null ? currentItem : ItemRegistry.getItem(BlockType.AIR);
+
+                        Item mineItem = currentItem != null ? currentItem : ItemRegistry.getItem(Blocks.AIR.getId());
                         if (breakDelayTimer <= 0 && mineItem != null) {
                             float breakSpeed = mineItem.getMiningSpeed(blockType) / hardness;
                             breakingProgress += breakSpeed * deltaTime;
@@ -576,14 +578,14 @@ public class InputManager {
                         }
 
                         if (breakingProgress >= 1.0f) {
-                            world.setBlock(hitPos, new Block(BlockType.AIR));
+                            world.setBlock(hitPos, new Block(Blocks.AIR.getId()));
                             if (networkClient != null && networkClient.isConnected()) {
-                                networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), BlockType.AIR);
+                                networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), Blocks.AIR.getId());
                             }
                             breakingBlockPos = null;
                             breakingProgress = 0.0f;
                             breakDelayTimer = BREAK_COOLDOWN;
-                            
+
                             if (currentStack != null && currentItem.isTool()) {
                                 currentStack.setDurability(currentStack.getDurability() - 1);
                                 if (currentStack.getDurability() <= 0) {
@@ -610,17 +612,18 @@ public class InputManager {
 
                 if (raycast.isHit() && isNewRightClick) {
                     BlockPos hitPos = raycast.getBlockPos();
-                    byte hitBlockType = world.getBlock(hitPos).getType();
-                    if (hitBlockType == BlockType.CAMPFIRE) {
-                        if (currentItem != null && currentItem.getId() == ItemRegistry.RAW_MEAT) {
-                            player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), new ItemStack(ItemRegistry.getItem(ItemRegistry.COOKED_MEAT)));
+                    int hitBlockType = world.getBlock(hitPos).getType();
+                    if (hitBlockType == Blocks.CAMPFIRE.getId()) {
+                        if (currentItem != null && currentItem.getId() == Items.RAW_MEAT.getId()) {
+                            player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), new ItemStack(Items.COOKED_MEAT));
                             actionConsumed = true;
                         }
-                    } else if (hitBlockType == BlockType.GENERATOR) {
+                    } else if (hitBlockType == Blocks.GENERATOR.getId()) {
                         com.za.minecraft.world.blocks.entity.BlockEntity be = world.getBlockEntity(hitPos);
                         if (be instanceof com.za.minecraft.world.blocks.entity.GeneratorBlockEntity generator) {
-                            if (currentItem != null && currentItem.getId() == ItemType.FUEL_CANISTER) {
-                                generator.addFuel(100.0f);
+                            if (currentItem != null && currentItem.hasComponent(FuelComponent.class)) {
+                                FuelComponent fuel = currentItem.getComponent(FuelComponent.class);
+                                generator.addFuel(fuel.fuelAmount());
                                 ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
                                 player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
                                 actionConsumed = true;
@@ -633,15 +636,16 @@ public class InputManager {
 
                 if (!actionConsumed && isNewRightClick && currentItem != null && currentItem.isFood()) {
                     if (player.getHunger() < 20.0f) {
-                        player.eat((FoodItem) currentItem);
-                        player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
+                        player.eat(currentItem);
+                        ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
+                        player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
                         actionConsumed = true;
                     }
                 }
                 
                 if (!actionConsumed && (isNewRightClick || placeDelayTimer <= 0) && raycast.isHit()) {
-                    if (currentItem != null && !currentItem.isTool() && !currentItem.isFood() && currentItem.getId() != BlockType.AIR) {
-                        byte blockType = currentItem.getId();
+                    if (currentItem != null && !currentItem.isTool() && !currentItem.isFood() && currentItem.getId() != Blocks.AIR.getId()) {
+                        int blockType = currentItem.getId();
                         Vector3f normal = raycast.getNormal();
                         BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
                         
@@ -660,8 +664,8 @@ public class InputManager {
             rightMousePressed = rm;
         }
 
-        if (!inventoryOpen && !paused && raycast.isHit() && currentItem != null && !currentItem.isTool() && !currentItem.isFood() && currentItem.getId() != BlockType.AIR) {
-            byte blockType = currentItem.getId();
+        if (!inventoryOpen && !paused && raycast.isHit() && currentItem != null && !currentItem.isTool() && !currentItem.isFood() && currentItem.getId() != Blocks.AIR.getId()) {
+            int blockType = currentItem.getId();
             Vector3f normal = raycast.getNormal();
             BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
             
@@ -678,15 +682,13 @@ public class InputManager {
         return raycast;
     }
     
-    private boolean needsPreview(byte type) {
-        return type == BlockType.STONE_SLAB || 
-               type == BlockType.BRICK_SLAB || 
-               type == BlockType.STONE_STAIRS || 
-               type == BlockType.BRICK_STAIRS ||
-               type == BlockType.WOOD;
+    private boolean needsPreview(int type) {
+        return com.za.minecraft.world.blocks.BlockRegistry.getBlock(type).getPlacementType() != com.za.minecraft.world.blocks.PlacementType.DEFAULT;
     }
 
-    private byte calculateMetadata(byte type, Vector3f normal, Vector3f hitPoint, Camera camera) {
+    private byte calculateMetadata(int type, Vector3f normal, Vector3f hitPoint, Camera camera) {
+        com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(type);
+        
         float yaw = camera.getRotation().y;
         float deg = (float) Math.toDegrees(yaw) % 360;
         if (deg < 0) deg += 360;
@@ -697,18 +699,25 @@ public class InputManager {
         else if (deg >= 225 && deg < 315) viewDir = Block.DIR_EAST;
         else viewDir = Block.DIR_NORTH;
 
-        if (type == BlockType.STONE_SLAB || type == BlockType.BRICK_SLAB) {
-            if (verticalMode) return viewDir;
-            if (Math.abs(normal.y) > 0.5f) return normal.y > 0 ? Block.DIR_DOWN : Block.DIR_UP;
-            float relativeY = hitPoint.y - (float)Math.floor(hitPoint.y);
-            return relativeY > 0.5f ? Block.DIR_UP : Block.DIR_DOWN;
-        }
-        
-        if (type == BlockType.STONE_STAIRS || type == BlockType.BRICK_STAIRS) return viewDir;
+        switch (def.getPlacementType()) {
+            case SLAB:
+                if (verticalMode) return viewDir;
+                if (Math.abs(normal.y) > 0.5f) return normal.y > 0 ? Block.DIR_DOWN : Block.DIR_UP;
+                float relativeY = hitPoint.y - (float)Math.floor(hitPoint.y);
+                return relativeY > 0.5f ? Block.DIR_UP : Block.DIR_DOWN;
+            
+            case STAIRS:
+                return viewDir;
+                
+            case LOG:
+                if (Math.abs(normal.y) > 0.5f) return Block.DIR_UP;
+                if (Math.abs(normal.x) > 0.5f) return Block.DIR_EAST;
+                if (Math.abs(normal.z) > 0.5f) return Block.DIR_SOUTH;
+                return 0;
 
-        if (Math.abs(normal.x) > 0.5f) return normal.x > 0 ? Block.DIR_EAST : Block.DIR_WEST;
-        if (Math.abs(normal.y) > 0.5f) return normal.y > 0 ? Block.DIR_UP : Block.DIR_DOWN;
-        return normal.z > 0 ? Block.DIR_SOUTH : Block.DIR_NORTH;
+            default:
+                return 0;
+        }
     }
     
     private boolean isPlayerAt(Player player, BlockPos blockPos) {

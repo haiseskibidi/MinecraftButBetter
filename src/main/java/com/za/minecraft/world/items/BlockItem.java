@@ -1,8 +1,15 @@
 package com.za.minecraft.world.items;
 
+import com.za.minecraft.utils.Identifier;
+
 public class BlockItem extends Item {
-    public BlockItem(byte id, String name, String texturePath) {
+    public BlockItem(int id, String name, String texturePath) {
         super(id, name, texturePath);
+        this.weight = 2.5f;
+    }
+
+    public BlockItem(int id, Identifier identifier, String translationKey, String texturePath) {
+        super(id, identifier, translationKey, texturePath);
         this.weight = 2.5f;
     }
 

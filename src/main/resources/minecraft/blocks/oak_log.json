@@ -1,0 +1,15 @@
+﻿{
+    "id":  4,
+    "identifier":  "minecraft:oak_log",
+    "translationKey":  "block.minecraft.oak_log",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  2.0,
+    "textures":  {
+                     "top":  "oak_log_top.png",
+                     "bottom":  "oak_log_top.png",
+                     "side":  "oak_log.png"
+                 },
+    "requiredTool":  "axe",
+    "placement":  "log"
+}

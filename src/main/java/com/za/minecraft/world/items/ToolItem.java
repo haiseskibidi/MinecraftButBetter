@@ -1,5 +1,8 @@
 package com.za.minecraft.world.items;
 
+import com.za.minecraft.utils.Identifier;
+import com.za.minecraft.world.items.component.ToolComponent;
+
 public class ToolItem extends Item {
     public enum ToolType {
         KNIFE,
@@ -8,48 +11,26 @@ public class ToolItem extends Item {
         NONE
     }
 
-    private final ToolType toolType;
-    private final float efficiency;
-    private final int maxDurability;
-
-    public ToolItem(byte id, String name, String texturePath, ToolType toolType, float efficiency, int maxDurability) {
+    public ToolItem(int id, String name, String texturePath, ToolType toolType, float efficiency, int maxDurability) {
         super(id, name, texturePath);
-        this.toolType = toolType;
-        this.efficiency = efficiency;
-        this.maxDurability = maxDurability;
+        addComponent(ToolComponent.class, new ToolComponent(toolType, efficiency, maxDurability));
     }
 
-    public boolean isEffectiveAgainst(byte blockType) {
-        // Простая логика: кирка для камня/руды, лом для металла, нож для листвы
-        switch (toolType) {
-            case PICKAXE:
-                return isStoneBased(blockType);
-            case CROWBAR:
-                return isMetalBased(blockType);
-            case KNIFE:
-                return isSoftBased(blockType);
-            default:
-                return false;
-        }
+    public ToolItem(int id, Identifier identifier, String translationKey, String texturePath, ToolType toolType, float efficiency, int maxDurability) {
+        super(id, identifier, translationKey, texturePath);
+        addComponent(ToolComponent.class, new ToolComponent(toolType, efficiency, maxDurability));
     }
 
-    private boolean isStoneBased(byte type) {
-        return type == com.za.minecraft.world.blocks.BlockType.STONE || 
-               type == com.za.minecraft.world.blocks.BlockType.COBBLESTONE ||
-               type == com.za.minecraft.world.blocks.BlockType.IRON_ORE ||
-               type == com.za.minecraft.world.blocks.BlockType.COAL_ORE ||
-               type == com.za.minecraft.world.blocks.BlockType.GOLD_ORE ||
-               type == com.za.minecraft.world.blocks.BlockType.STONE_BRICKS;
-    }
-
-    private boolean isMetalBased(byte type) {
-        return type == com.za.minecraft.world.blocks.BlockType.RUSTY_METAL ||
-               type == com.za.minecraft.world.blocks.BlockType.ASPHALT; // Асфальт тоже ломом
-    }
-
-    private boolean isSoftBased(byte type) {
-        return type == com.za.minecraft.world.blocks.BlockType.LEAVES ||
-               type == com.za.minecraft.world.blocks.BlockType.GRASS;
+    public boolean isEffectiveAgainst(int blockType) {
+        ToolComponent c = getComponent(ToolComponent.class);
+        if (c == null) return false;
+        
+        if (c.isEffectiveAgainstAll()) return true;
+        
+        com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(blockType);
+        String required = def.getRequiredTool();
+        
+        return required.equalsIgnoreCase(c.type().name());
     }
 
     private static final ViewmodelTransform TOOL_TRANSFORM = new ViewmodelTransform(
@@ -64,28 +45,30 @@ public class ToolItem extends Item {
     }
 
     public ToolType getToolType() {
-        return toolType;
+        ToolComponent c = getComponent(ToolComponent.class);
+        return c != null ? c.type() : ToolType.NONE;
     }
 
     public float getEfficiency() {
-        return efficiency;
+        ToolComponent c = getComponent(ToolComponent.class);
+        return c != null ? c.efficiency() : 1.0f;
     }
 
     public int getMaxDurability() {
-        return maxDurability;
+        ToolComponent c = getComponent(ToolComponent.class);
+        return c != null ? c.maxDurability() : 0;
     }
 
     @Override
-    public boolean isTool() {
-        return true;
-    }
+    public float getMiningSpeed(int blockType) {
+        ToolComponent c = getComponent(ToolComponent.class);
+        if (c == null) return super.getMiningSpeed(blockType);
 
-    @Override
-    public float getMiningSpeed(byte blockType) {
-        float speed = efficiency;
+        float speed = c.efficiency();
         if (!isEffectiveAgainst(blockType)) {
             speed *= 0.3f; // 3x slower for non-effective tools
         }
         return speed;
     }
-}
+    }
+

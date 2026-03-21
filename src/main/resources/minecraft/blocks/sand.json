@@ -1,0 +1,12 @@
+﻿{
+    "id":  9,
+    "identifier":  "minecraft:sand",
+    "translationKey":  "block.minecraft.sand",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  0.5,
+    "textures":  {
+                     "all":  "sand.png"
+                 },
+    "requiredTool":  "shovel"
+}

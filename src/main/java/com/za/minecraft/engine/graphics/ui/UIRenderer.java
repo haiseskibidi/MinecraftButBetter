@@ -13,8 +13,8 @@ import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.blocks.BlockTextureMapper;
 import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.items.ItemRegistry;
-import com.za.minecraft.world.blocks.BlockType;
 import org.lwjgl.system.MemoryUtil;
+
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -33,7 +33,7 @@ public class UIRenderer {
     private Texture crosshairTexture;
     private Texture hotbarTexture;
     private Texture hotbarSelectionTexture;
-    private Map<Byte, Texture> itemTextures = new HashMap<>();
+    private Map<Integer, Texture> itemTextures = new HashMap<>();
     
     private int quadVAO;
     private int quadVBO;

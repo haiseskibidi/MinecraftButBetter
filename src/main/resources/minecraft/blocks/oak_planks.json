@@ -1,0 +1,12 @@
+﻿{
+    "id":  6,
+    "identifier":  "minecraft:oak_planks",
+    "translationKey":  "block.minecraft.oak_planks",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  2.0,
+    "textures":  {
+                     "all":  "oak_planks.png"
+                 },
+    "requiredTool":  "axe"
+}

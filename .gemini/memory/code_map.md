@@ -28,189 +28,136 @@
 Назначение: Подсчет времени между кадрами (delta time).
 Функции: updateDelta(), getDelta(), getDeltaF()
 
-### com.za.minecraft.engine.core.GameMode
-Назначение: Перечисление режимов игры (SINGLEPLAYER, MULTIPLAYER_HOST, MULTIPLAYER_CLIENT).
-
-### com.za.minecraft.engine.input.InputManager
+### com.za.minecraft.engine.input.InputManager (UPDATED)
 Назначение: Обработка ввода и управление взаимодействием.
-Функции: input(), handleInventoryClick(window, button), getSlotAt(), dropStack(), getHoveredSlotIndex(), getDraggedSlots(), clearHeldStack()
-Зависимости: Window, Camera, Player, World
+Логика: Полностью де-хардкожена. Использует `PlacementType` для логики установки и предпросмотра блоков.
+Функции: input(), handleInventoryClick(window, button), calculateMetadata(type, normal, hitPoint, camera), needsPreview(type)
+Зависимости: Window, Camera, Player, World, BlockRegistry
 
 ## Graphics
-### com.za.minecraft.engine.graphics.Renderer
+### com.za.minecraft.engine.graphics.Renderer (UPDATED)
 Назначение: Координация всех процессов отрисовки (мир, превью блоков, View Model, UI).
-Функции: init(int width, int height), render(Window window, Camera camera, World world, RaycastResult highlightedBlock, GameClient client), renderViewModel(Window, Camera, Player), renderDebug(float fps, int width, int height), setPreviewBlock(BlockPos pos, Block block)
-Зависимости: Shader, Mesh, TextureAtlas, Framebuffer, PostProcessor, UIRenderer, DebugRenderer
+Оптимизация: Кэширование мешей предметов и блоков для 32-битных ID.
+Функции: init(int width, int height), render(...), renderViewModel(Window, Camera, Player), setPreviewBlock(BlockPos pos, Block block)
+Зависимости: Shader, Mesh, TextureAtlas, Framebuffer, PostProcessor, UIRenderer
 
 ### com.za.minecraft.engine.graphics.Camera
 Назначение: Управление вектором взгляда игрока и матрицами проекции.
-Функции: getViewMatrix(), getProjectionMatrix(), moveRotation(float rx, float ry, float rz), updateAspectRatio(float ratio), setOffsets(float x, float y, float z)
+Функции: getViewMatrix(), getProjectionMatrix(), moveRotation(float rx, float ry, float rz), setOffsets(float x, float y, float z)
 
-### com.za.minecraft.engine.graphics.ui.UIRenderer
+### com.za.minecraft.engine.graphics.ui.UIRenderer (UPDATED)
 Назначение: Отрисовка 2D элементов (прицел, хотбар, инвентарь, меню паузы).
-Функции: init(), renderCrosshair(int sw, int sh), renderHotbar(int sw, int sh, DynamicTextureAtlas atlas), renderInventory(int sw, int sh, DynamicTextureAtlas atlas), renderItemIcon(Item item, int x, int y, float size, int sw, int sh, DynamicTextureAtlas atlas)
+Логика: Поддержка 32-битных ID предметов в кэше текстур.
+Функции: init(), renderCrosshair(int sw, int sh), renderHotbar(int sw, int sh, DynamicTextureAtlas atlas), renderInventory(...), renderItemIcon(...)
 Зависимости: Shader, Texture, FontRenderer, ItemRegistry, BlockTextureMapper
-
-### com.za.minecraft.engine.graphics.ui.NappingGUI (NEW)
-Назначение: Интерфейс 5x5 для механики скалывания камней (Napping).
-Функции: render(), handleClick(mouseX, mouseY, sw, sh, Player)
-Зависимости: RecipeRegistry, Player, Shader
-
-### com.za.minecraft.engine.graphics.ui.Hotbar
-Назначение: Логика выбора слотов в хотбаре и их позиционирования на экране.
-Функции: setSelectedSlot(int slot), getStackInSlot(int slot), getSelectedItemStack()
-Зависимости: Player, Inventory, ItemStack
 
 ### com.za.minecraft.engine.graphics.TextureAtlas / DynamicTextureAtlas
 Назначение: Управление набором текстур блоков в одном объекте.
 Функции: getUVs(String key), bind(), addTexture(String key, BufferedImage image)
 
 ## World & Blocks
-### com.za.minecraft.world.World
+### com.za.minecraft.world.World (UPDATED)
 Назначение: Управление чанками и глобальное хранилище блоков.
-Функции: getBlock(int x, int y, int z), setBlock(int x, int y, int z, Block block), getLoadedChunks()
+Функции: getBlock(int x, int y, int z), setBlock(int x, int y, int z, int blockType), getLoadedChunks()
 Зависимости: Chunk, TerrainGenerator, ChunkPos
 
-### com.za.minecraft.world.chunks.Chunk
-Назначение: Контейнер для блоков 16x256x16.
-Функции: getBlock(int x, int y, int z), setBlock(int x, int y, int z, Block block), buildMesh(TextureAtlas atlas), setNeedsMeshUpdate(boolean)
-Зависимости: Block, Mesh, ChunkMeshGenerator
+### com.za.minecraft.world.chunks.Chunk (UPDATED)
+Назначение: Хранилище данных о блоках 16x384x16.
+Оптимизация: Использует одномерный массив `int[] blockData` с упаковкой (Type << 8 | Metadata) для снижения GC.
+Функции: getBlock(x, y, z), setBlock(x, y, z, block), getRawBlockData(x, y, z)
 
-### com.za.minecraft.world.blocks.BlockRegistry
-Назначение: Центральный реестр определений блоков.
-Функции: registerBlock(BlockDefinition def), getBlock(byte id), getTextures(byte id)
-Зависимости: BlockDefinition, BlockType
+### com.za.minecraft.world.blocks.BlockRegistry (UPDATED)
+Назначение: Центральный реестр определений блоков на базе `NumericalRegistry`.
+Функции: registerBlock(BlockDefinition def), getBlock(int id), getBlock(Identifier id), getTextures(int id)
 
-### com.za.minecraft.world.blocks.GeneratorBlockDefinition (NEW)
-Назначение: Специальное определение для генератора, позволяющее создавать BlockEntity.
-Функции: createBlockEntity(BlockPos pos)
+### com.za.minecraft.world.blocks.Blocks (NEW)
+Назначение: Класс-холдер статических ссылок на базовые блоки.
+Инициализация: **Reflection**. Поля (GRASS_BLOCK, STONE и т.д.) заполняются автоматически при запуске.
 
-### com.za.minecraft.world.blocks.CableBlockDefinition (NEW)
-Назначение: Определение блока кабеля.
+### com.za.minecraft.world.blocks.BlockDefinition (UPDATED)
+Назначение: Описание свойств типа блока.
+Поля: id (int), identifier, requiredTool, placementType, hardness, solid, transparent, textures.
+Функции: getId(), getIdentifier(), getRequiredTool(), getPlacementType()
 
-### com.za.minecraft.world.blocks.LampBlockDefinition (NEW)
-Назначение: Определение блока электрической лампы.
+### com.za.minecraft.world.blocks.Block (UPDATED)
+Назначение: Легковесный экземпляр блока в мире.
+Поля: type (int), metadata (byte).
+Функции: getType(), getMetadata(), isSolid(), isTransparent(), isAir()
 
-### com.za.minecraft.world.blocks.BatteryBlockDefinition (NEW)
-Назначение: Определение блока аккумулятора.
+## Generation & Structures (UPDATED)
+### com.za.minecraft.world.generation.TerrainGenerator
+Назначение: Генерация ландшафта и структур через Generation Pipeline.
 
-### com.za.minecraft.world.blocks.entity.BlockEntity (NEW)
-Назначение: Базовый класс для блоков с состоянием (энергия, инвентарь).
-Функции: setRemoved(), isRemoved(), getPos()
+### com.za.minecraft.world.generation.structures.StructureRegistry (NEW)
+Назначение: Реестр динамически загруженных шаблонов структур из JSON.
 
-### com.za.minecraft.world.blocks.entity.IEnergyStorage (NEW)
-Назначение: Стандарт для всех энергозависимых блоков.
-Методы: receiveEnergy, extractEnergy, getEnergyStored
+### com.za.minecraft.world.generation.structures.PrefabManager (UPDATED)
+Назначение: Статические ссылки на шаблоны зданий (RUINED_HOUSE_1, SMALL_STORE и т.д.).
+Инициализация: **Reflection**. Наполняется из `StructureRegistry`.
 
-### com.za.minecraft.world.blocks.entity.GeneratorBlockEntity (UPDATED)
-Назначение: Логика бензогенератора. Реализует IEnergyStorage.
-
-### com.za.minecraft.world.blocks.entity.CableBlockEntity (NEW)
-Назначение: Передача энергии между соседними хранилищами.
-
-### com.za.minecraft.world.blocks.entity.LampBlockEntity (NEW)
-Назначение: Потребитель энергии (свет).
-
-### com.za.minecraft.world.blocks.entity.BatteryBlockEntity (NEW)
-Назначение: Хранилище большого объема энергии. Реализует IEnergyStorage.
-
-### com.za.minecraft.world.blocks.entity.ITickable (NEW)
-Назначение: Интерфейс для обновления сущностей блоков каждый тик.
-
-### com.za.minecraft.world.blocks.Block
-Назначение: Экземпляр блока с типом и метаданными (направление).
-Функции: getType(), getMetadata(), setType(byte type), setMetadata(byte meta)
+### com.za.minecraft.world.generation.structures.StructureTemplate (UPDATED)
+Назначение: Шаблон структуры. Хранит данные в упакованном `int[][][]`.
+Функции: build(World, x, y, z), parse(layers, palette)
 
 ## Items System (UPDATED)
-### com.za.minecraft.world.items.Item
-Назначение: Базовый класс для всех предметов.
-Поля: id, name, texturePath, weight (NEW)
-Функции: getWeight(), setWeight(float)
+### com.za.minecraft.world.items.Item (UPDATED)
+Назначение: Базовый класс для всех предметов. Поддерживает `DataComponents`.
+Поля: id (int), identifier, components.
+Функции: addComponent(Class, Component), getComponent(Class), hasComponent(Class)
 
-### com.za.minecraft.world.items.BlockItem (UPDATED)
-Назначение: Предметы, представляющие блоки. Имеют повышенный вес (2.5f).
+### com.za.minecraft.world.items.ItemRegistry (UPDATED)
+Назначение: Центральный реестр всех предметов на базе `NumericalRegistry`.
+Функции: registerItem(Item item), getItem(int id), getItem(Identifier id)
 
-### com.za.minecraft.world.items.ItemMeshGenerator (NEW)
-Назначение: Процедурная генерация 3D моделей из 2D текстур (с толщиной) для рендеринга предметов в мире и в руке.
+### com.za.minecraft.world.items.Items (NEW)
+Назначение: Класс-холдер статических ссылок на базовые предметы.
+Инициализация: **Reflection**.
 
-### com.za.minecraft.world.items.ToolItem
-Назначение: Инструменты с параметрами эффективности и прочности.
-Функции: getToolType(), getEfficiency(), getMaxDurability()
-
-### com.za.minecraft.world.items.FoodItem (NEW)
-Назначение: Съедобные предметы.
-Параметры: nutrition, saturationBonus.
+### com.za.minecraft.world.items.component.ItemComponent (NEW)
+Назначение: Базовый интерфейс для свойств предметов.
+Реализации: `FoodComponent`, `ToolComponent`, `FuelComponent`.
 
 ### com.za.minecraft.world.items.ItemStack
 Назначение: Контейнер для предмета в инвентаре (хранит количество и текущую прочность).
-Функции: getItem(), getCount(), getDurability(), copy(), split(int amount), isStackableWith(ItemStack)
-
-### com.za.minecraft.world.items.ItemRegistry
-Назначение: Реестр всех предметов и автоматический маппинг блоков в предметы.
-Функции: registerItem(Item item), getItem(byte id), getAllItems()
+Функции: getItem(), getCount(), getDurability(), isStackableWith(ItemStack)
 
 ## Recipes System (NEW)
 ### com.za.minecraft.world.recipes.IRecipe
 Назначение: Базовый интерфейс для всех рецептов.
-Функции: matches(Inventory), getResult(), getType()
+Функции: getResult(), getType(), getId()
 
 ### com.za.minecraft.world.recipes.RecipeRegistry
-Назначение: Центральное хранилище всех рецептов.
-Функции: registerRecipe(IRecipe), getRecipes(String)
+Назначение: Центральное хранилище всех рецептов, загруженных из JSON.
+Функции: register(IRecipe), getRecipesByType(String type)
 
 ### com.za.minecraft.world.recipes.NappingRecipe
-Назначение: Рецепт для скалывания камней (Napping).
-Поля: inputType, result, pattern
+Назначение: Рецепт для механики скалывания камней (Tier 1).
+Поля: inputId, result, pattern (5x5 boolean array)
 
 ## Entities & Physics
-### com.za.minecraft.entities.Entity (NEW)
-Назначение: Базовый физический объект в мире. 
-Функции: update(float delta, World world), move(World world, float dx, float dy, float dz), getPosition(), getVelocity(), getRotation(), getBoundingBox(), isOnGround(), setFlying(boolean)
-Зависимости: Vector3f, AABB, World
-
-### com.za.minecraft.entities.LivingEntity (NEW)
-Назначение: Сущность со здоровьем (Игрок, Мобы). Наследует Entity.
-Функции: takeDamage(float amount), heal(float amount), isDead()
-
-### com.za.minecraft.entities.Player
-Назначение: Сущность игрока под управлением человека. Наследует LivingEntity. 
-Функции: update(float delta, World world), jump(), swing(), getWalkBobTimer(), getSwingProgress(), addNoise(float), setContinuousNoise(float), eat(FoodItem), getNoiseLevel(), getHunger()
-Зависимости: Vector3f, Inventory, LivingEntity
-
-### com.za.minecraft.entities.ItemEntity (NEW)
-Назначение: Сущность выброшенного предмета в мире. Поддерживает физику, вращение и подбор игроком.
-Функции: update(float delta, World world), canBePickedUp(), getStack()
-
-### com.za.minecraft.entities.ScoutEntity (NEW)
-Назначение: Зараженный-скаут. ИИ логика слуха и погони. Наследует LivingEntity.
-Функции: update(float delta, World world), getCurrentState()
-Зависимости: AIState, Player, World
-
-### com.za.minecraft.entities.ai.AIState (NEW)
-Назначение: Перечисление состояний ИИ (IDLE, WANDER, SEARCH, CHASE, ATTACK).
+### com.za.minecraft.entities.Entity / LivingEntity / Player
+Назначение: Физические объекты и существа.
+Функции: update(float delta, World world), move(World world, dx, dy, dz), getPosition(), getVelocity()
 
 ### com.za.minecraft.entities.Inventory
-Назначение: Хранилище предметов игрока (хотбар + основной инвентарь).
-Функции: getSelectedItemStack(), setStackInSlot(int slot, ItemStack stack), quickMove(int slot), sortMainInventory(), addItem(ItemStack stack), nextSlot(), previousSlot()
-Зависимости: ItemStack, ItemRegistry
+Назначение: Хранилище предметов игрока.
+Функции: getSelectedItemStack(), setStackInSlot(int slot, ItemStack stack), addItem(ItemStack stack)
 
-### com.za.minecraft.world.physics.Raycast
-Назначение: Алгоритм прослеживания луча для выбора блоков.
-Функции: raycast(World world, Vector3f origin, Vector3f direction)
-Зависимости: RaycastResult, World
-
-## Networking
+## Networking (UPDATED)
 ### com.za.minecraft.network.GameServer / GameClient
-Назначение: Реализация мультиплеера на базе Kryonet.
-Функции: start(), connect(String address), sendBlockUpdate(int x, int y, int z, byte type), sendPlayerPosition()
-Зависимости: NetworkPacket, Kryo
+Назначение: Мультиплеер на базе Kryonet.
+Логика: Поддержка 32-битных ID блоков в пакетах.
+Функции: start(), connect(String address), sendBlockUpdate(x, y, z, int type)
 
-## Utilities
-### com.za.minecraft.utils.Direction (NEW)
-Назначение: Стандарт смещений для поиска соседних блоков (UP, DOWN, NORTH, SOUTH, EAST, WEST).
-Функции: offset(BlockPos), getDx(), getDy(), getDz()
+## Utilities (UPDATED)
+### com.za.minecraft.utils.Identifier
+Назначение: Стандарт `namespace:path` для всех ресурсов.
 
-### com.za.minecraft.utils.I18n (NEW)
-Назначение: Система локализации на базе JSON-файлов.
-Функции: loadLanguage(String langCode), get(String key), format(String key, Object... args)
-Зависимости: Gson
+### com.za.minecraft.utils.NumericalRegistry (NEW)
+Назначение: Реестр с автоматическим управлением целочисленными ID.
+
+### com.za.minecraft.utils.Direction
+Назначение: Стандарт смещений (UP, DOWN, NORTH, SOUTH, EAST, WEST).
+
+### com.za.minecraft.utils.I18n
+Назначение: Система локализации (JSON-файлы).

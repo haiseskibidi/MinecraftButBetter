@@ -1,0 +1,7 @@
+﻿{
+    "id":  0,
+    "identifier":  "minecraft:air",
+    "translationKey":  "block.minecraft.air",
+    "solid":  false,
+    "transparent":  false
+}

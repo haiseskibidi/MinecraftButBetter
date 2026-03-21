@@ -1,0 +1,11 @@
+﻿{
+    "id":  8,
+    "identifier":  "minecraft:bedrock",
+    "translationKey":  "block.minecraft.bedrock",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  -1.0,
+    "textures":  {
+                     "all":  "bedrock.png"
+                 }
+}

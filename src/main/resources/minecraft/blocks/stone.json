@@ -1,0 +1,12 @@
+﻿{
+    "id":  3,
+    "identifier":  "minecraft:stone",
+    "translationKey":  "block.minecraft.stone",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  1.5,
+    "textures":  {
+                     "all":  "stone.png"
+                 },
+    "requiredTool":  "pickaxe"
+}

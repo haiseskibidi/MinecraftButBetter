@@ -2,9 +2,9 @@ package com.za.minecraft.world.generation.pipeline.steps;
 
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.blocks.Block;
-
-import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.blocks.Blocks;
 import com.za.minecraft.world.chunks.Chunk;
+
 import com.za.minecraft.world.generation.pipeline.GenerationStep;
 import com.za.minecraft.world.generation.structures.PrefabManager;
 

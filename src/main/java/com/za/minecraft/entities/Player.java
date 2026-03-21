@@ -147,11 +147,14 @@ public class Player extends LivingEntity {
         }
     }
 
-    public void eat(com.za.minecraft.world.items.FoodItem food) {
+    public void eat(com.za.minecraft.world.items.Item item) {
         if (hunger < MAX_HUNGER) {
-            hunger = Math.min(MAX_HUNGER, hunger + food.getNutrition());
-            saturation = Math.min(MAX_HUNGER, saturation + food.getSaturationBonus());
-            com.za.minecraft.utils.Logger.info("Ate %s. Hunger: %.1f", food.getName(), hunger);
+            com.za.minecraft.world.items.component.FoodComponent food = item.getComponent(com.za.minecraft.world.items.component.FoodComponent.class);
+            if (food != null) {
+                hunger = Math.min(MAX_HUNGER, hunger + food.nutrition());
+                saturation = Math.min(MAX_HUNGER, saturation + food.saturationBonus());
+                com.za.minecraft.utils.Logger.info("Ate %s. Hunger: %.1f", item.getName(), hunger);
+            }
         }
     }
 

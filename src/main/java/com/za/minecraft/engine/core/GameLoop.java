@@ -99,6 +99,13 @@ public class GameLoop {
     }
     
     private void init() {
+        // Load game data from JSON
+        com.za.minecraft.world.DataLoader.loadAll();
+        com.za.minecraft.world.blocks.Blocks.init();
+        com.za.minecraft.world.items.ItemRegistry.init();
+        com.za.minecraft.world.items.Items.init();
+        com.za.minecraft.world.generation.structures.PrefabManager.init();
+
         window = new Window("Protocol: Grounding", 1280, 720, true);
         window.init();
         
@@ -124,7 +131,7 @@ public class GameLoop {
         world.setPlayer(player);
         
         // Give Admin Hammer to dev
-        player.getInventory().setStackInSlot(0, new com.za.minecraft.world.items.ItemStack(com.za.minecraft.world.items.ItemRegistry.getItem(com.za.minecraft.world.items.ItemType.ADMIN_HAMMER)));
+        player.getInventory().setStackInSlot(0, new com.za.minecraft.world.items.ItemStack(com.za.minecraft.world.items.Items.ADMIN_HAMMER));
         
         hotbar = new Hotbar(player);
         renderer.setHotbar(hotbar);

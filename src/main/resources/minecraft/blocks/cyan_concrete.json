@@ -1,0 +1,11 @@
+﻿{
+    "id":  22,
+    "identifier":  "minecraft:cyan_concrete",
+    "translationKey":  "block.minecraft.cyan_concrete",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  1.8,
+    "textures":  {
+                     "all":  "cyan_concrete.png"
+                 }
+}

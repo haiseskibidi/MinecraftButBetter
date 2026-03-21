@@ -2,7 +2,7 @@ package com.za.minecraft.world.generation.pipeline.steps;
 
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.blocks.Block;
-import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.blocks.Blocks;
 import com.za.minecraft.world.chunks.Chunk;
 import com.za.minecraft.world.generation.SimplexNoise;
 import com.za.minecraft.world.generation.pipeline.GenerationStep;
@@ -21,8 +21,6 @@ public class OvergrowthStep implements GenerationStep {
 
     @Override
     public void generateTerrain(Chunk chunk) {
-        // Мы добавляем растительность поверх существующего мира,
-        // поэтому делаем это в Structure pass, чтобы видеть соседние блоки.
     }
 
     @Override
@@ -35,34 +33,26 @@ public class OvergrowthStep implements GenerationStep {
                 int worldX = chunkX * Chunk.CHUNK_SIZE + x;
                 int worldZ = chunkZ * Chunk.CHUNK_SIZE + z;
 
-                // Находим верхний твердый блок
                 int surfaceY = findSurfaceY(world, worldX, worldZ);
                 
                 if (surfaceY >= CITY_LEVEL) {
                     Block groundBlock = world.getBlock(worldX, surfaceY, worldZ);
-                    
-                    // Шум для определения густоты зарослей
                     double vNoise = (vegetationNoise.noise(worldX * 0.05, worldZ * 0.05) + 1.0) / 2.0;
 
                     if (vNoise > 0.6) {
-                        // Если это асфальт или булыжник (разбитая дорога/фундамент)
-                        if (groundBlock.getType() == BlockType.ASPHALT || groundBlock.getType() == BlockType.COBBLESTONE) {
+                        if (groundBlock.getType() == Blocks.ASPHALT.getId() || groundBlock.getType() == Blocks.COBBLESTONE.getId()) {
                             if (random.nextFloat() < 0.3f) {
-                                // Заменяем сам асфальт на траву, чтобы она не "висела" сверху
-                                world.setBlock(worldX, surfaceY, worldZ, BlockType.GRASS);
-                                world.setBlock(worldX, surfaceY - 1, worldZ, BlockType.DIRT);
+                                world.setBlock(worldX, surfaceY, worldZ, new Block(Blocks.GRASS_BLOCK.getId()));
+                                world.setBlock(worldX, surfaceY - 1, worldZ, new Block(Blocks.DIRT.getId()));
                             }
                         }
-                        // Если это крыша здания (ржавый металл или стекло)
-                        else if (groundBlock.getType() == BlockType.RUSTY_METAL) {
+                        else if (groundBlock.getType() == Blocks.RUSTY_METAL.getId()) {
                             if (random.nextFloat() < 0.15f) {
-                                // Мох на крышах
-                                world.setBlock(worldX, surfaceY + 1, worldZ, BlockType.LEAVES);
+                                world.setBlock(worldX, surfaceY + 1, worldZ, new Block(Blocks.OAK_LEAVES.getId()));
                             }
                         }
 
-                        // Спавн "деревьев" (мутировавших зарослей) на заросших участках
-                        if (groundBlock.getType() == BlockType.DIRT || groundBlock.getType() == BlockType.GRASS) {
+                        if (groundBlock.getType() == Blocks.DIRT.getId() || groundBlock.getType() == Blocks.GRASS_BLOCK.getId()) {
                             if (random.nextFloat() < 0.05f) {
                                 generateMutatedTree(world, worldX, surfaceY + 1, worldZ);
                             }
@@ -76,7 +66,7 @@ public class OvergrowthStep implements GenerationStep {
     private int findSurfaceY(World world, int x, int z) {
         for (int y = Chunk.CHUNK_HEIGHT - 1; y >= CITY_LEVEL; y--) {
             Block b = world.getBlock(x, y, z);
-            if (!b.isAir() && !b.isTransparent()) { // Игнорируем стекло и листья при поиске поверхности
+            if (!b.isAir() && !b.isTransparent()) {
                 return y;
             }
         }
@@ -86,12 +76,10 @@ public class OvergrowthStep implements GenerationStep {
     private void generateMutatedTree(World world, int x, int y, int z) {
         int height = 3 + random.nextInt(4);
         
-        // Ствол
         for (int dy = 0; dy < height; dy++) {
-            world.setBlock(x, y + dy, z, BlockType.WOOD);
+            world.setBlock(x, y + dy, z, new Block(Blocks.OAK_LOG.getId()));
         }
         
-        // Крона (более хаотичная)
         int crownY = y + height - 1;
         for (int dx = -2; dx <= 2; dx++) {
             for (int dy = -1; dy <= 2; dy++) {
@@ -100,7 +88,7 @@ public class OvergrowthStep implements GenerationStep {
                         if (random.nextFloat() > 0.3f) {
                             Block existing = world.getBlock(x + dx, crownY + dy, z + dz);
                             if (existing.isAir()) {
-                                world.setBlock(x + dx, crownY + dy, z + dz, BlockType.LEAVES);
+                                world.setBlock(x + dx, crownY + dy, z + dz, new Block(Blocks.OAK_LEAVES.getId()));
                             }
                         }
                     }

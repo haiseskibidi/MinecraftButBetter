@@ -1,0 +1,12 @@
+﻿{
+    "id":  32,
+    "identifier":  "minecraft:electric_lamp",
+    "translationKey":  "block.minecraft.electric_lamp",
+    "solid":  true,
+    "transparent":  false,
+    "type":  "lamp",
+    "hardness":  0.5,
+    "textures":  {
+                     "all":  "sea_lantern.png"
+                 }
+}

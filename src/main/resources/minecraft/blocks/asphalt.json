@@ -1,0 +1,12 @@
+﻿{
+    "id":  17,
+    "identifier":  "minecraft:asphalt",
+    "translationKey":  "block.minecraft.asphalt",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  2.0,
+    "textures":  {
+                     "all":  "gray_concrete.png"
+                 },
+    "requiredTool":  "crowbar"
+}

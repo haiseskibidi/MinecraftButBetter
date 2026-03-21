@@ -1,0 +1,12 @@
+﻿{
+    "id":  13,
+    "identifier":  "minecraft:coal_ore",
+    "translationKey":  "block.minecraft.coal_ore",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  3.0,
+    "textures":  {
+                     "all":  "coal_ore.png"
+                 },
+    "requiredTool":  "pickaxe"
+}

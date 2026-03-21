@@ -1,0 +1,9 @@
+﻿{
+    "id":  202,
+    "identifier":  "minecraft:cooked_meat",
+    "translationKey":  "item.minecraft.cooked_meat",
+    "texture":  "minecraft/textures/item/cooked_beef.png",
+    "type":  "food",
+    "nutrition":  6.0,
+    "saturation":  4.0
+}

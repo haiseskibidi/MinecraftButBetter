@@ -1,0 +1,12 @@
+﻿{
+    "id":  7,
+    "identifier":  "minecraft:cobblestone",
+    "translationKey":  "block.minecraft.cobblestone",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  2.0,
+    "textures":  {
+                     "all":  "cobblestone.png"
+                 },
+    "requiredTool":  "pickaxe"
+}

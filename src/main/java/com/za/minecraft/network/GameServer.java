@@ -61,7 +61,6 @@ public class GameServer {
         kryo.register(PlayerLeavePacket.class);
         kryo.register(ChatMessagePacket.class);
         // kryo.register(UUID.class); // Not needed
-        kryo.register(com.za.minecraft.world.blocks.BlockType.class);
     }
     
     private void setupListeners() {

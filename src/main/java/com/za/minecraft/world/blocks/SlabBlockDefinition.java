@@ -1,11 +1,16 @@
 package com.za.minecraft.world.blocks;
 
+import com.za.minecraft.utils.Identifier;
 import com.za.minecraft.world.physics.VoxelShape;
 
 public class SlabBlockDefinition extends BlockDefinition {
     
     public SlabBlockDefinition(int id, String name, boolean solid, boolean transparent) {
         super(id, name, solid, transparent);
+    }
+    
+    public SlabBlockDefinition(int id, Identifier identifier, String translationKey, boolean solid, boolean transparent) {
+        super(id, identifier, translationKey, solid, transparent);
     }
     
     @Override

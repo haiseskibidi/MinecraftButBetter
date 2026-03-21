@@ -1,0 +1,12 @@
+﻿{
+    "id":  16,
+    "identifier":  "minecraft:obsidian",
+    "translationKey":  "block.minecraft.obsidian",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  50.0,
+    "textures":  {
+                     "all":  "obsidian.png"
+                 },
+    "requiredTool":  "pickaxe"
+}

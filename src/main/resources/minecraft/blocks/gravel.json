@@ -1,0 +1,12 @@
+﻿{
+    "id":  10,
+    "identifier":  "minecraft:gravel",
+    "translationKey":  "block.minecraft.gravel",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  0.6,
+    "textures":  {
+                     "all":  "gravel.png"
+                 },
+    "requiredTool":  "shovel"
+}

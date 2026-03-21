@@ -1,0 +1,11 @@
+{
+  "id": 104,
+  "identifier": "minecraft:fuel_canister",
+  "translationKey": "item.minecraft.fuel_canister",
+  "texture": "minecraft/textures/item/honey_bottle.png",
+  "components": {
+    "minecraft:fuel": {
+      "fuelAmount": 100.0
+    }
+  }
+}

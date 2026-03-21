@@ -1,10 +1,10 @@
 package com.za.minecraft.entities;
 
-import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.blocks.Blocks;
 import com.za.minecraft.world.items.Item;
 import com.za.minecraft.world.items.ItemRegistry;
 import com.za.minecraft.world.items.ItemStack;
-import com.za.minecraft.world.items.ItemType;
+import com.za.minecraft.world.items.Items;
 import com.za.minecraft.world.items.ToolItem;
 
 public class Inventory {
@@ -20,15 +20,15 @@ public class Inventory {
         this.selectedSlot = 0;
         
         // Initial items in hotbar (slots 0-8)
-        slots[0] = new ItemStack(ItemRegistry.getItem(ItemType.STONE_KNIFE));
-        slots[1] = new ItemStack(ItemRegistry.getItem(ItemType.SCRAP_PICKAXE));
-        slots[2] = new ItemStack(ItemRegistry.getItem(ItemType.CROWBAR));
-        slots[3] = new ItemStack(ItemRegistry.getItem(BlockType.STONE));
-        slots[4] = new ItemStack(ItemRegistry.getItem(BlockType.WOOD));
-        slots[5] = new ItemStack(ItemRegistry.getItem(BlockType.OAK_PLANKS));
-        slots[6] = new ItemStack(ItemRegistry.getItem(BlockType.COBBLESTONE));
-        slots[7] = new ItemStack(ItemRegistry.getItem(BlockType.RUSTY_METAL));
-        slots[8] = new ItemStack(ItemRegistry.getItem(BlockType.ASPHALT));
+        slots[0] = new ItemStack(Items.STONE_KNIFE);
+        slots[1] = new ItemStack(Items.SCRAP_PICKAXE);
+        slots[2] = new ItemStack(Items.CROWBAR);
+        slots[3] = new ItemStack(ItemRegistry.getItem(Blocks.STONE.getId()));
+        slots[4] = new ItemStack(ItemRegistry.getItem(Blocks.OAK_LOG.getId()));
+        slots[5] = new ItemStack(ItemRegistry.getItem(Blocks.OAK_PLANKS.getId()));
+        slots[6] = new ItemStack(ItemRegistry.getItem(Blocks.COBBLESTONE.getId()));
+        slots[7] = new ItemStack(ItemRegistry.getItem(Blocks.RUSTY_METAL.getId()));
+        slots[8] = new ItemStack(ItemRegistry.getItem(Blocks.ASPHALT.getId()));
     }
     
     public ItemStack getSelectedItemStack() {

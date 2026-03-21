@@ -1,0 +1,9 @@
+﻿{
+    "id":  201,
+    "identifier":  "minecraft:raw_meat",
+    "translationKey":  "item.minecraft.raw_meat",
+    "texture":  "minecraft/textures/item/beef.png",
+    "type":  "food",
+    "nutrition":  2.0,
+    "saturation":  1.0
+}

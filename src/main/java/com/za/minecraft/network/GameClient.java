@@ -82,7 +82,7 @@ public class GameClient {
         client.sendUDP(packet);
     }
     
-    public void sendBlockUpdate(int x, int y, int z, byte blockType) {
+    public void sendBlockUpdate(int x, int y, int z, int blockType) {
         if (!connected) return;
         
         BlockUpdatePacket packet = new BlockUpdatePacket(x, y, z, blockType);
@@ -105,7 +105,6 @@ public class GameClient {
         kryo.register(PlayerLeavePacket.class);
         kryo.register(ChatMessagePacket.class);
         // kryo.register(UUID.class); // Not needed anymore
-        kryo.register(com.za.minecraft.world.blocks.BlockType.class);
     }
     
     private void setupListeners() {

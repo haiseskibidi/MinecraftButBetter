@@ -4,7 +4,7 @@ import com.za.minecraft.engine.graphics.Mesh;
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.blocks.Block;
-import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.blocks.Blocks;
 import com.za.minecraft.world.physics.AABB;
 import com.za.minecraft.world.physics.VoxelShape;
 import com.za.minecraft.engine.graphics.DynamicTextureAtlas;
@@ -138,7 +138,7 @@ public class ChunkMeshGenerator {
                     VoxelShape shape = block.getShape();
                     if (shape == null) continue;
 
-                    boolean isTranslucent = (block.getType() == com.za.minecraft.world.blocks.BlockType.GLASS);
+                    boolean isTranslucent = (block.getType() == com.za.minecraft.world.blocks.Blocks.GLASS.getId());
                     MeshData current = isTranslucent ? translucent : opaque;
 
                     int worldX = chunk.getPosition().x() * Chunk.CHUNK_SIZE + x;

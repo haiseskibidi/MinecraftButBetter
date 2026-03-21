@@ -1,0 +1,33 @@
+package com.za.minecraft.world.items;
+
+import com.za.minecraft.utils.Identifier;
+
+/**
+ * Статические ссылки на базовые предметы для удобного доступа из кода.
+ */
+public class Items {
+    public static Item STONE_KNIFE;
+    public static Item SCRAP_PICKAXE;
+    public static Item CROWBAR;
+    public static Item FUEL_CANISTER;
+    public static Item ADMIN_HAMMER;
+    public static Item RAW_MEAT;
+    public static Item COOKED_MEAT;
+    public static Item CANNED_FOOD;
+
+    public static void init() {
+        for (java.lang.reflect.Field field : Items.class.getFields()) {
+            if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+                try {
+                    Identifier id = Identifier.of("minecraft", field.getName().toLowerCase());
+                    Item item = ItemRegistry.getRegistry().get(id);
+                    if (item != null) {
+                        field.set(null, item);
+                    }
+                } catch (Exception e) {
+                    com.za.minecraft.utils.Logger.error("Failed to auto-init item field: " + field.getName());
+                }
+            }
+        }
+    }
+}

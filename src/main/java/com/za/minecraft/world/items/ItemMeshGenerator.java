@@ -13,7 +13,7 @@ import static org.lwjgl.stb.STBImage.*;
 
 public class ItemMeshGenerator {
 
-    public static Mesh generateItemMesh(String texturePath, DynamicTextureAtlas atlas, byte itemId) {
+    public static Mesh generateItemMesh(String texturePath, DynamicTextureAtlas atlas, int itemId) {
         if (texturePath == null || texturePath.isEmpty() || atlas == null) return null;
         
         String resourcePath = texturePath.replace("src/main/resources/", "");

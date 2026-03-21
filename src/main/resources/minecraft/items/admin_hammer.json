@@ -1,0 +1,12 @@
+﻿{
+    "id": 105,
+    "identifier": "minecraft:admin_hammer",
+    "translationKey": "item.minecraft.admin_hammer",
+    "texture": "minecraft/textures/item/nether_star.png",
+    "type": "tool",
+    "toolType": "pickaxe",
+    "efficiency": 1000.0,
+    "durability": 9999,
+    "isEffectiveAgainstAll": true
+    }
+

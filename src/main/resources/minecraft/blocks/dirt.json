@@ -1,0 +1,12 @@
+﻿{
+    "id":  2,
+    "identifier":  "minecraft:dirt",
+    "translationKey":  "block.minecraft.dirt",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  0.5,
+    "textures":  {
+                     "all":  "dirt.png"
+                 },
+    "requiredTool":  "shovel"
+}

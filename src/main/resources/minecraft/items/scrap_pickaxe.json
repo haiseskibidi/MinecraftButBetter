@@ -1,0 +1,10 @@
+﻿{
+    "id":  102,
+    "identifier":  "minecraft:scrap_pickaxe",
+    "translationKey":  "item.minecraft.scrap_pickaxe",
+    "texture":  "minecraft/textures/item/wooden_pickaxe.png",
+    "type":  "tool",
+    "toolType":  "pickaxe",
+    "efficiency":  2.0,
+    "durability":  100
+}

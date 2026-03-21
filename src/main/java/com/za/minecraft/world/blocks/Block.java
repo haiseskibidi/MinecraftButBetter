@@ -3,7 +3,7 @@ package com.za.minecraft.world.blocks;
 import com.za.minecraft.world.physics.VoxelShape;
 
 public class Block {
-    private final byte type;
+    private final int type;
     private final byte metadata;
     
     // Metadata constants for directions
@@ -19,17 +19,17 @@ public class Block {
     public static final byte AXIS_X = DIR_EAST;
     public static final byte AXIS_Z = DIR_SOUTH;
     
-    public Block(byte type) {
+    public Block(int type) {
         this.type = type;
         this.metadata = 0;
     }
     
-    public Block(byte type, byte metadata) {
+    public Block(int type, byte metadata) {
         this.type = type;
         this.metadata = metadata;
     }
     
-    public byte getType() {
+    public int getType() {
         return type;
     }
     
@@ -50,7 +50,7 @@ public class Block {
     }
     
     public boolean isAir() {
-        return type == BlockType.AIR;
+        return type == Blocks.AIR.getId();
     }
     
     public VoxelShape getShape() {
@@ -67,6 +67,6 @@ public class Block {
     
     @Override
     public int hashCode() {
-        return Byte.hashCode(type) * 31 + Byte.hashCode(metadata);
+        return Integer.hashCode(type) * 31 + Byte.hashCode(metadata);
     }
 }

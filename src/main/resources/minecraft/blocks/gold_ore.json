@@ -1,0 +1,12 @@
+﻿{
+    "id":  11,
+    "identifier":  "minecraft:gold_ore",
+    "translationKey":  "block.minecraft.gold_ore",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  3.0,
+    "textures":  {
+                     "all":  "gold_ore.png"
+                 },
+    "requiredTool":  "pickaxe"
+}

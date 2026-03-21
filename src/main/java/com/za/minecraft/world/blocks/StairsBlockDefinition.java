@@ -1,5 +1,6 @@
 package com.za.minecraft.world.blocks;
 
+import com.za.minecraft.utils.Identifier;
 import com.za.minecraft.world.physics.VoxelShape;
 import com.za.minecraft.world.physics.AABB;
 
@@ -25,6 +26,10 @@ public class StairsBlockDefinition extends BlockDefinition {
     
     public StairsBlockDefinition(int id, String name, boolean solid, boolean transparent) {
         super(id, name, solid, transparent);
+    }
+
+    public StairsBlockDefinition(int id, Identifier identifier, String translationKey, boolean solid, boolean transparent) {
+        super(id, identifier, translationKey, solid, transparent);
     }
     
     @Override

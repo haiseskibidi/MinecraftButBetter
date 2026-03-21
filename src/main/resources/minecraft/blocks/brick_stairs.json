@@ -1,0 +1,14 @@
+﻿{
+    "id":  28,
+    "identifier":  "minecraft:brick_stairs",
+    "translationKey":  "block.minecraft.brick_stairs",
+    "solid":  true,
+    "transparent":  true,
+    "hardness":  2.0,
+    "type":  "stairs",
+    "textures":  {
+                     "all":  "bricks.png"
+                 },
+    "requiredTool":  "axe",
+    "placement":  "stairs"
+}

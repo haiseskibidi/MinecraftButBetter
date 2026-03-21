@@ -6,9 +6,9 @@ import com.za.minecraft.network.GameClient;
 import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.blocks.Block;
-import com.za.minecraft.world.blocks.BlockType;
-import com.za.minecraft.world.blocks.BlockRegistry;
+import com.za.minecraft.world.blocks.Blocks;
 import com.za.minecraft.world.chunks.Chunk;
+
 import com.za.minecraft.world.chunks.ChunkMeshGenerator;
 import com.za.minecraft.world.physics.RaycastResult;
 import com.za.minecraft.world.items.ItemStack;
@@ -37,7 +37,7 @@ public class Renderer {
     
     // View Model caching
     private Mesh heldItemMesh;
-    private byte lastHeldTypeId = -1;
+    private int lastHeldTypeId = -1;
     private boolean lastHeldIsBlock = false;
     
     private Block currentPreviewBlock;
@@ -195,7 +195,7 @@ public class Renderer {
         ItemStack stack = player.getInventory().getSelectedItemStack();
         if (stack != null) {
             com.za.minecraft.world.items.Item item = stack.getItem();
-            byte currentTypeId = item.getId();
+            int currentTypeId = item.getId();
             boolean isBlock = item.isBlock();
             com.za.minecraft.world.items.Item.ViewmodelTransform transform = item.getViewmodelTransform();
 

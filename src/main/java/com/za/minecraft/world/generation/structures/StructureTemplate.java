@@ -1,7 +1,7 @@
 package com.za.minecraft.world.generation.structures;
 
 import com.za.minecraft.world.World;
-import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.blocks.Blocks;
 
 import java.util.Map;
 
@@ -9,16 +9,16 @@ public class StructureTemplate {
     private final int width;
     private final int height;
     private final int depth;
-    private final byte[][][] blocks; // [y][z][x]
+    private final int[][][] blocks; // [y][z][x]
 
     public StructureTemplate(int width, int height, int depth) {
         this.width = width;
         this.height = height;
         this.depth = depth;
-        this.blocks = new byte[height][depth][width];
+        this.blocks = new int[height][depth][width];
     }
 
-    public void setBlock(int x, int y, int z, byte type) {
+    public void setBlock(int x, int y, int z, int type) {
         if (x >= 0 && x < width && y >= 0 && y < height && z >= 0 && z < depth) {
             blocks[y][z][x] = type;
         }
@@ -28,7 +28,7 @@ public class StructureTemplate {
         for (int y = 0; y < height; y++) {
             for (int z = 0; z < depth; z++) {
                 for (int x = 0; x < width; x++) {
-                    byte blockId = blocks[y][z][x];
+                    int blockId = blocks[y][z][x];
                     // -1 означает "не заменять блок" (игнорировать)
                     if (blockId != -1) {
                         world.setBlock(startX + x, startY + y, startZ + z, blockId);
@@ -43,7 +43,7 @@ public class StructureTemplate {
      * @param layers Массив 2D слоев снизу вверх. Каждый слой - массив строк (одна строка = ось X, массив = ось Z).
      * @param palette Маппинг символов в ID блоков.
      */
-    public static StructureTemplate parse(String[][] layers, Map<Character, Byte> palette) {
+    public static StructureTemplate parse(String[][] layers, Map<Character, Integer> palette) {
         int h = layers.length;
         int d = layers[0].length;
         int w = layers[0][0].length();
@@ -55,7 +55,7 @@ public class StructureTemplate {
                 String row = layers[y][z];
                 for (int x = 0; x < w; x++) {
                     char c = row.charAt(x);
-                    byte blockId = palette.getOrDefault(c, (byte)-1); // -1 по умолчанию
+                    int blockId = palette.getOrDefault(c, -1); // -1 по умолчанию
                     template.setBlock(x, y, z, blockId);
                 }
             }

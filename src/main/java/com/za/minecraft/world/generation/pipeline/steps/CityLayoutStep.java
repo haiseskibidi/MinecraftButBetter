@@ -3,7 +3,7 @@ package com.za.minecraft.world.generation.pipeline.steps;
 import com.za.minecraft.world.generation.pipeline.GenerationStep;
 import com.za.minecraft.world.chunks.Chunk;
 import com.za.minecraft.world.blocks.Block;
-import com.za.minecraft.world.blocks.BlockType;
+import com.za.minecraft.world.blocks.Blocks;
 import com.za.minecraft.world.generation.SimplexNoise;
 
 public class CityLayoutStep implements GenerationStep {
@@ -38,21 +38,21 @@ public class CityLayoutStep implements GenerationStep {
                 
                 for (int y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
                     if (y == 0) {
-                        chunk.setBlock(x, y, z, new Block(BlockType.BEDROCK));
+                        chunk.setBlock(x, y, z, new Block(com.za.minecraft.world.blocks.Blocks.BEDROCK.getId()));
                     } else if (y < BASEMENT_LEVEL) {
-                        chunk.setBlock(x, y, z, new Block(BlockType.STONE));
+                        chunk.setBlock(x, y, z, new Block(com.za.minecraft.world.blocks.Blocks.STONE.getId()));
                     } else if (y < CITY_LEVEL) {
                         // Фундамент зданий
-                        chunk.setBlock(x, y, z, new Block(BlockType.DIRT)); 
+                        chunk.setBlock(x, y, z, new Block(com.za.minecraft.world.blocks.Blocks.DIRT.getId())); 
                     } else if (y == CITY_LEVEL) {
                         if (isRoad) {
                             if (destruction > 0.4) {
-                                chunk.setBlock(x, y, z, new Block(BlockType.DIRT)); // Разбитый асфальт
+                                chunk.setBlock(x, y, z, new Block(com.za.minecraft.world.blocks.Blocks.DIRT.getId())); // Разбитый асфальт
                             } else {
-                                chunk.setBlock(x, y, z, new Block(BlockType.ASPHALT));
+                                chunk.setBlock(x, y, z, new Block(com.za.minecraft.world.blocks.Blocks.ASPHALT.getId()));
                             }
                         } else {
-                            chunk.setBlock(x, y, z, new Block(BlockType.COBBLESTONE)); // Основа зданий
+                            chunk.setBlock(x, y, z, new Block(com.za.minecraft.world.blocks.Blocks.COBBLESTONE.getId())); // Основа зданий
                         }
                     }
                     // Воздух выше CITY_LEVEL ставится по умолчанию в Chunk

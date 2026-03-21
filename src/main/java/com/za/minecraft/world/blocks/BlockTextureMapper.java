@@ -8,7 +8,7 @@ public class BlockTextureMapper {
         String key = keyFor(block, face);
         float[] uv = atlas.uvFor(key);
         // For logs on horizontal axes, rotate side texture 90° so fibers align with axis
-        if (block.getType() == BlockType.WOOD) {
+        if (block.getType() == Blocks.OAK_LOG.getId()) {
             byte meta = block.getMetadata();
             if (meta == Block.DIR_EAST || meta == Block.DIR_WEST) {
                 if (face == 0 || face == 1 || face == 4 || face == 5) {
@@ -44,14 +44,14 @@ public class BlockTextureMapper {
     }
     
     private static String keyFor(Block block, int face) {
-        byte type = block.getType();
+        int type = block.getType();
         BlockTextures textures = BlockRegistry.getTextures(type);
         if (textures == null) {
             return "minecraft/textures/block/dirt.png";
         }
 
         // Orientation-sensitive mapping for logs (WOOD)
-        if (type == BlockType.WOOD) {
+        if (type == Blocks.OAK_LOG.getId()) {
             byte meta = block.getMetadata();
             String cap = textures.getTop();
             String side = textures.getNorth(); // any side is fine; all equal

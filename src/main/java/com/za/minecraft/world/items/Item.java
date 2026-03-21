@@ -1,23 +1,60 @@
 package com.za.minecraft.world.items;
 
+import com.za.minecraft.utils.I18n;
+import com.za.minecraft.utils.Identifier;
+import com.za.minecraft.world.items.component.FoodComponent;
+import com.za.minecraft.world.items.component.ItemComponent;
+import com.za.minecraft.world.items.component.ToolComponent;
+
+import java.util.HashMap;
+import java.util.Map;
+
 public class Item {
-    protected final byte id;
+    protected final int id;
+    protected final Identifier identifier;
     protected final String name;
     protected final String texturePath;
     protected float weight = 1.0f;
+    
+    private final Map<Class<? extends ItemComponent>, ItemComponent> components = new HashMap<>();
 
-    public Item(byte id, String name, String texturePath) {
+    public Item(int id, String name, String texturePath) {
         this.id = id;
+        this.identifier = Identifier.of(name.replace("item.", "").replace(".", ":"));
         this.name = name;
         this.texturePath = texturePath;
     }
+    
+    public Item(int id, Identifier identifier, String translationKey, String texturePath) {
+        this.id = id;
+        this.identifier = identifier;
+        this.name = translationKey;
+        this.texturePath = texturePath;
+    }
 
-    public byte getId() {
+    public <T extends ItemComponent> void addComponent(Class<T> clazz, T component) {
+        components.put(clazz, component);
+    }
+
+    @SuppressWarnings("unchecked")
+    public <T extends ItemComponent> T getComponent(Class<T> clazz) {
+        return (T) components.get(clazz);
+    }
+
+    public <T extends ItemComponent> boolean hasComponent(Class<T> clazz) {
+        return components.containsKey(clazz);
+    }
+
+    public int getId() {
         return id;
+    }
+    
+    public Identifier getIdentifier() {
+        return identifier;
     }
 
     public String getName() {
-        return com.za.minecraft.utils.I18n.get(name);
+        return I18n.get(name);
     }
 
     public String getTexturePath() {
@@ -33,11 +70,11 @@ public class Item {
     }
     
     public boolean isTool() {
-        return false;
+        return hasComponent(ToolComponent.class);
     }
 
     public boolean isFood() {
-        return false;
+        return hasComponent(FoodComponent.class);
     }
 
     public boolean isBlock() {
@@ -63,7 +100,7 @@ public class Item {
         return DEFAULT_TRANSFORM;
     }
 
-    public float getMiningSpeed(byte blockType) {
+    public float getMiningSpeed(int blockType) {
         return 0.5f; // Base hand speed
     }
 }
