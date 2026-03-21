@@ -47,6 +47,7 @@ public class GameLoop {
     private float currentFps = 0;
     private float fpsTimer = 0;
     private RaycastResult highlightedBlock;
+    private com.za.minecraft.world.recipes.NappingSession currentNappingSession = null;
     
     public GameLoop() {
         instance = this;
@@ -181,6 +182,8 @@ public class GameLoop {
         if (escKey && !escPressed) {
             if (inventoryOpen) {
                 toggleInventory();
+            } else if (currentNappingSession != null) {
+                closeNappingWithWaste();
             } else {
                 togglePause();
             }
@@ -191,6 +194,8 @@ public class GameLoop {
     }
     
     public void toggleInventory() {
+        if (currentNappingSession != null) return; // Запрещено во время скалывания
+        
         inventoryOpen = !inventoryOpen;
         if (inventoryOpen) {
             inputManager.disableMouseCapture(window);
@@ -207,8 +212,40 @@ public class GameLoop {
     public void togglePause() {
         paused = !paused;
         if (paused) inputManager.disableMouseCapture(window);
-        else inputManager.enableMouseCapture(window);
+        else if (!inventoryOpen && currentNappingSession == null) inputManager.enableMouseCapture(window);
     }
+
+    public void startNapping(com.za.minecraft.world.items.Item item) {
+        currentNappingSession = new com.za.minecraft.world.recipes.NappingSession(item);
+        inputManager.disableMouseCapture(window);
+    }
+
+    public void closeNapping() {
+        currentNappingSession = null;
+        if (!inventoryOpen && !paused) inputManager.enableMouseCapture(window);
+    }
+
+    public void closeNappingWithWaste() {
+        if (currentNappingSession != null) {
+            com.za.minecraft.world.items.ItemStack current = player.getInventory().getSelectedItemStack();
+            if (current != null) {
+                com.za.minecraft.world.items.ItemStack newStack = current.getCount() > 1 
+                    ? new com.za.minecraft.world.items.ItemStack(current.getItem(), current.getCount() - 1) : null;
+                player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
+                com.za.minecraft.utils.Logger.info("Napping cancelled. Material wasted.");
+            }
+        }
+        closeNapping();
+    }
+
+    public boolean isNappingOpen() {
+        return currentNappingSession != null;
+    }
+
+    public com.za.minecraft.world.recipes.NappingSession getNappingSession() {
+        return currentNappingSession;
+    }
+
 
     private void closeInventory() {
         inventoryOpen = false;
@@ -239,11 +276,12 @@ public class GameLoop {
     
     private void render() {
         renderer.render(window, camera, world, highlightedBlock, networkClient);
-        
         if (inventoryOpen) {
             renderer.getUIRenderer().renderInventory(window.getWidth(), window.getHeight(), renderer.getAtlas());
+        } else if (currentNappingSession != null) {
+            com.za.minecraft.engine.graphics.ui.NappingGUI.render(renderer.getUIRenderer(), window.getWidth(), window.getHeight(), currentNappingSession);
         }
-        
+
         // Отрисовка прогресса разрушения блока
         renderer.getUIRenderer().renderMiningProgress(window.getWidth(), window.getHeight(), inputManager.getBreakingProgress());
         
@@ -254,7 +292,8 @@ public class GameLoop {
         renderer.getUIRenderer().renderNoise(window.getWidth(), window.getHeight(), player.getNoiseLevel());
         
         renderer.renderDebug(currentFps, window.getWidth(), window.getHeight());
-        window.update();
+        
+        window.update(); // Only ONE update per frame at the very end
     }
     
     private void sync(float elapsedTime) {

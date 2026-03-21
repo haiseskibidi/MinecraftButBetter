@@ -75,11 +75,16 @@ public class DataLoader {
     }
 
     private static void loadRecipes(String namespace) {
-        List<String> files = listResources(namespace + "/recipes");
+        String path = namespace + "/recipes";
+        List<String> files = listResources(path);
         if (!files.isEmpty()) {
             for (String file : files) {
-                loadResource(namespace + "/recipes/" + file, DataLoader::parseRecipe);
+                Logger.info("Loading recipe file: " + file);
+                loadResource(path + "/" + file, DataLoader::parseRecipe);
             }
+            Logger.info("Loaded recipes for namespace: " + namespace);
+        } else {
+            Logger.warn("No recipes found in namespace: " + namespace + " (listResources returned empty)");
         }
     }
 
@@ -92,7 +97,14 @@ public class DataLoader {
             if (type.equalsIgnoreCase("napping")) {
                 Identifier input = Identifier.of(obj.get("input").getAsString());
                 JsonObject resObj = obj.getAsJsonObject("result");
-                com.za.minecraft.world.items.Item resItem = com.za.minecraft.world.items.ItemRegistry.getItem(Identifier.of(resObj.get("item").getAsString()));
+                Identifier resId = Identifier.of(resObj.get("item").getAsString());
+                com.za.minecraft.world.items.Item resItem = com.za.minecraft.world.items.ItemRegistry.getItem(resId);
+                
+                if (resItem == null) {
+                    Logger.error("Failed to parse recipe " + id + ": Result item " + resId + " not found!");
+                    return;
+                }
+
                 int count = resObj.has("count") ? resObj.get("count").getAsInt() : 1;
                 ItemStack result = new ItemStack(resItem, count);
 
@@ -331,16 +343,25 @@ public class DataLoader {
         List<String> files = new ArrayList<>();
         // Для простоты реализации "сканирования" без сложных библиотек,
         // мы ищем файл '.index' в каждой папке ресурсов.
-        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path + "/.index")) {
+        String indexPath = path + "/.index";
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(indexPath)) {
             if (is != null) {
                 BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    if (!line.trim().isEmpty()) files.add(line.trim());
+                    if (!line.trim().isEmpty()) {
+                        String cleanName = line.trim();
+                        if (cleanName.startsWith("\uFEFF")) {
+                            cleanName = cleanName.substring(1); // Удаляем BOM если есть
+                        }
+                        files.add(cleanName);
+                    }
                 }
+            } else {
+                Logger.warn("Index file not found in resources: " + indexPath);
             }
         } catch (Exception e) {
-            Logger.warn("Could not read index for " + path);
+            Logger.warn("Could not read index for " + path + ": " + e.getMessage());
         }
         return files;
     }

@@ -1,4 +1,4 @@
-﻿stone_knife.json
+stone_knife.json
 flint.json
 stick.json
 rock.json
@@ -9,4 +9,6 @@ admin_hammer.json
 raw_meat.json
 cooked_meat.json
 canned_food.json
-
+stone_arrowhead.json
+axe_head.json
+pickaxe_head.json

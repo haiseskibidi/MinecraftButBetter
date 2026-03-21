@@ -1,0 +1,16 @@
+{
+  "identifier": "minecraft:stone_arrowhead",
+  "type": "napping",
+  "input": "minecraft:rock",
+  "result": {
+    "item": "minecraft:stone_arrowhead",
+    "count": 1
+  },
+  "pattern": [
+    "  #  ",
+    " ### ",
+    "     ",
+    "     ",
+    "     "
+  ]
+}

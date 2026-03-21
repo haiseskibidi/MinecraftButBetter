@@ -114,6 +114,18 @@ public class UIRenderer {
         MemoryUtil.memFree(indexBuffer);
     }
     
+    public void setupUIProjection(int sw, int sh) {
+        uiShader.use();
+        uiShader.setUniform("scale", 1.0f, 1.0f, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", 0.0f, 0.0f, 0.0f, 0.0f);
+        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
+        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    }
+
     public void renderCrosshair(int screenWidth, int screenHeight) {
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
@@ -416,9 +428,12 @@ public class UIRenderer {
         glDisable(GL_BLEND);
     }
 
-    private void renderHighlight(int x, int y, int size, int sw, int sh, float r, float g, float b, float a) {
+    public void renderHighlight(int x, int y, int size, int sw, int sh, float r, float g, float b, float a) {
         uiShader.use();
         uiShader.setInt("useTexture", 0);
+        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
+        
         float scaleX = (float)size / sw;
         float scaleY = (float)size / sh;
         float posX = (2.0f * x / sw) - 1.0f + scaleX;
@@ -428,6 +443,7 @@ public class UIRenderer {
         uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
         uiShader.setUniform("tintColor", r, g, b, a);
         
+        glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture
         glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);

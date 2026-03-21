@@ -17,6 +17,9 @@ public class Items {
     public static Item FLINT;
     public static Item STICK;
     public static Item ROCK;
+    public static Item STONE_ARROWHEAD;
+    public static Item AXE_HEAD;
+    public static Item PICKAXE_HEAD;
 
     public static void init() {
         for (java.lang.reflect.Field field : Items.class.getFields()) {

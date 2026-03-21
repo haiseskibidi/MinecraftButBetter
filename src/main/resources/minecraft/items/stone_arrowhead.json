@@ -1,0 +1,6 @@
+{
+  "id": 106,
+  "identifier": "minecraft:stone_arrowhead",
+  "translationKey": "item.minecraft.stone_arrowhead",
+  "texture": "minecraft/textures/item/tipped_arrow_head.png"
+}

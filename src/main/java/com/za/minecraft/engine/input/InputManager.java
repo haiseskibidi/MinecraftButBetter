@@ -37,18 +37,16 @@ public class InputManager {
     
     private final Vector2f previousPos;
     private final Vector2f currentPos;
-    private boolean leftButtonPressed = false;
-    private boolean rightButtonPressed = false;
     private boolean inWindow = false;
     private boolean fKeyPressed = false;
     private boolean gKeyPressed = false;
-    private boolean qKeyPressed = false;
     private boolean firstMouse = true;
     private boolean leftMousePressed = false;
     private boolean rightMousePressed = false;
     private boolean rKeyPressed = false;
     private boolean zKeyPressed = false;
     private boolean f3KeyPressed = false;
+    private boolean qKeyPressed = false;
     private boolean verticalMode = false;
     private ItemStack heldStack = null;
     private int devScroll = 0;
@@ -122,9 +120,6 @@ public class InputManager {
                         isDragging = false;
                     }
                 }
-            } else {
-                leftButtonPressed = button == GLFW_MOUSE_BUTTON_1 && action == GLFW_PRESS;
-                rightButtonPressed = button == GLFW_MOUSE_BUTTON_2 && action == GLFW_PRESS;
             }
         });
         
@@ -137,7 +132,7 @@ public class InputManager {
                     int rows = 12;
                     int maxScroll = Math.max(0, (int) Math.ceil((double) totalItems / columns) - rows);
                     devScroll = Math.min(maxScroll, Math.max(0, devScroll - (int) yoffset));
-                } else {
+                } else if (!GameLoop.getInstance().isNappingOpen()) {
                     if (yoffset > 0) p.getInventory().previousSlot();
                     else if (yoffset < 0) p.getInventory().nextSlot();
                 }
@@ -392,24 +387,57 @@ public class InputManager {
 
     public RaycastResult input(Window window, Camera camera, Player player, float deltaTime, com.za.minecraft.engine.graphics.Renderer renderer, World world, com.za.minecraft.network.GameClient networkClient) {
         boolean inventoryOpen = GameLoop.getInstance().isInventoryOpen();
+        boolean nappingOpen = GameLoop.getInstance().isNappingOpen();
         boolean paused = GameLoop.getInstance().isPaused();
 
-        for (int i = 0; i < 9; i++) {
-            if (window.isKeyPressed(GLFW_KEY_1 + i)) {
-                player.getInventory().setSelectedSlot(i);
-                break;
+        // Блокируем хотбар во время скалывания или инвентаря
+        if (!nappingOpen && !inventoryOpen) {
+            for (int i = 0; i < 9; i++) {
+                if (window.isKeyPressed(GLFW_KEY_1 + i)) {
+                    player.getInventory().setSelectedSlot(i);
+                    break;
+                }
             }
         }
 
-        if (inventoryOpen) {
+        if (inventoryOpen || nappingOpen) {
+            if (nappingOpen) {
+                if (window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1) && !leftMousePressed) {
+                    int slotIdx = com.za.minecraft.engine.graphics.ui.NappingGUI.getSlotIndexAt(currentPos.x, currentPos.y, window.getWidth(), window.getHeight());
+                    if (slotIdx != -1) {
+                        com.za.minecraft.world.recipes.NappingSession session = GameLoop.getInstance().getNappingSession();
+                        session.removePiece(slotIdx);
+                        
+                        com.za.minecraft.world.recipes.NappingRecipe result = session.checkMatch();
+                        if (result != null) {
+                            com.za.minecraft.utils.Logger.info("Napping complete!");
+                            
+                            ItemStack current = player.getInventory().getSelectedItemStack();
+                            if (current != null) {
+                                ItemStack newStack = current.getCount() > 1 ? new ItemStack(current.getItem(), current.getCount() - 1) : null;
+                                player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
+                            }
+                            
+                            player.getInventory().addItem(result.getResult());
+                            GameLoop.getInstance().closeNapping();
+                            leftMousePressed = true;
+                            rightMousePressed = false;
+                            return null;
+                        }
+                    }
+                }
+                
+                leftMousePressed = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1);
+                rightMousePressed = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_2);
+                return null;
+            }
+
             int newHovered = getSlotAt(currentPos.x, currentPos.y, window.getWidth(), window.getHeight(), player);
             if (newHovered != hoveredSlotIndex) {
                 hoveredSlotIndex = newHovered;
                 if (isDragging && dragButton != -1 && heldStack != null && hoveredSlotIndex != -1) {
-                    // Check if slot can receive this item and we have enough items to cover all selected slots
                     ItemStack slotStack = player.getInventory().getStackInSlot(hoveredSlotIndex);
                     boolean canReceive = (slotStack == null || heldStack.isStackableWith(slotStack));
-                    
                     if (canReceive && (draggedSlots.contains(hoveredSlotIndex) || draggedSlots.size() < heldStack.getCount())) {
                         draggedSlots.add(hoveredSlotIndex);
                     }
@@ -431,33 +459,30 @@ public class InputManager {
         breakDelayTimer = Math.max(0, breakDelayTimer - deltaTime);
 
         Vector2f rotVec = new Vector2f();
-        
         if (firstMouse) {
             previousPos.x = currentPos.x;
             previousPos.y = currentPos.y;
             firstMouse = false;
-        } else if (inWindow && !inventoryOpen && !paused) {
+        } else if (inWindow && !inventoryOpen && !paused && !nappingOpen) {
             double deltaX = currentPos.x - previousPos.x;
             double deltaY = currentPos.y - previousPos.y;
             rotVec.y = (float) -deltaX;
             rotVec.x = (float) -deltaY;
         }
-
         previousPos.x = currentPos.x;
         previousPos.y = currentPos.y;
 
-        if (!inventoryOpen && !paused) {
+        if (!inventoryOpen && !paused && !nappingOpen) {
             camera.moveRotation(rotVec.x * MOUSE_SENSITIVITY, rotVec.y * MOUSE_SENSITIVITY, 0);
         }
 
         float intensity = player.getBobIntensity();
         float bobX = (float) Math.sin(player.getWalkBobTimer() * 0.5f) * 0.04f * intensity;
         float bobY = (float) Math.sin(player.getWalkBobTimer()) * 0.04f * intensity;
-        
         camera.setOffsets(bobX, bobY, 0);
         
         Vector2f moveVector = new Vector2f();
-        if (!inventoryOpen && !paused) {
+        if (!inventoryOpen && !paused && !nappingOpen) {
             if (window.isKeyPressed(GLFW_KEY_W)) moveVector.y = 1;
             if (window.isKeyPressed(GLFW_KEY_S)) moveVector.y = -1;
             if (window.isKeyPressed(GLFW_KEY_A)) moveVector.x = -1;
@@ -465,16 +490,16 @@ public class InputManager {
         }
         
         float moveY = 0;
-        if (!inventoryOpen && !paused) {
+        if (!inventoryOpen && !paused && !nappingOpen) {
             if (window.isKeyPressed(GLFW_KEY_SPACE)) moveY = 1;
         }
         boolean shiftPressed = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT);
-        if (shiftPressed && !inventoryOpen && !paused) moveY = -1;
+        if (shiftPressed && !inventoryOpen && !paused && !nappingOpen) moveY = -1;
         
-        boolean sneaking = shiftPressed && !player.isFlying() && !inventoryOpen && !paused;
+        boolean sneaking = shiftPressed && !player.isFlying() && !inventoryOpen && !paused && !nappingOpen;
         player.setSneaking(sneaking);
         
-        boolean sprinting = (window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL)) && !inventoryOpen && !paused;
+        boolean sprinting = (window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL)) && !inventoryOpen && !paused && !nappingOpen;
         player.setSprinting(sprinting);
         float baseSpeed = player.isFlying() ? FLY_SPEED : (sneaking ? MOVE_SPEED * 0.3f : MOVE_SPEED);
         if (sprinting && !sneaking) baseSpeed *= (player.isFlying() ? FLY_FAST_MULTIPLIER : GROUND_SPRINT_MULTIPLIER);
@@ -496,7 +521,7 @@ public class InputManager {
         
         if (player.isFlying()) {
             player.addVelocity(0, (moveY * baseSpeed - player.getVelocity().y) * 25.0f * deltaTime, 0);
-        } else if (moveY > 0 && !inventoryOpen && !paused) {
+        } else if (moveY > 0 && !inventoryOpen && !paused && !nappingOpen) {
             if (player.isOnGround()) {
                 player.addNoise(0.20f); 
             }
@@ -504,11 +529,11 @@ public class InputManager {
         }
         
         boolean fKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_F);
-        if (fKeyCurrentlyPressed && !fKeyPressed && !inventoryOpen && !paused) player.setFlying(!player.isFlying());
+        if (fKeyCurrentlyPressed && !fKeyPressed && !inventoryOpen && !paused && !nappingOpen) player.setFlying(!player.isFlying());
         fKeyPressed = fKeyCurrentlyPressed;
 
         boolean f3KeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_F3);
-        if (f3KeyCurrentlyPressed && !f3KeyPressed && !inventoryOpen && !paused) {
+        if (f3KeyCurrentlyPressed && !f3KeyPressed && !inventoryOpen && !paused && !nappingOpen) {
             PlayerMode newMode = (player.getMode() == PlayerMode.SURVIVAL) 
                 ? PlayerMode.DEVELOPER : PlayerMode.SURVIVAL;
             player.setMode(newMode);
@@ -517,24 +542,22 @@ public class InputManager {
         f3KeyPressed = f3KeyCurrentlyPressed;
         
         boolean rKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_R);
-        if (rKeyCurrentlyPressed && !rKeyPressed && !inventoryOpen && !paused) verticalMode = !verticalMode;
+        if (rKeyCurrentlyPressed && !rKeyPressed && !inventoryOpen && !paused && !nappingOpen) verticalMode = !verticalMode;
         rKeyPressed = rKeyCurrentlyPressed;
         
         boolean gKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_G);
-        if (gKeyCurrentlyPressed && !gKeyPressed && !inventoryOpen && !paused) renderer.toggleFXAA();
+        if (gKeyCurrentlyPressed && !gKeyPressed && !inventoryOpen && !paused && !nappingOpen) renderer.toggleFXAA();
         gKeyPressed = gKeyCurrentlyPressed;
 
         boolean qKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_Q);
-        if (qKeyCurrentlyPressed && !qKeyPressed && !paused) {
+        if (qKeyCurrentlyPressed && !qKeyPressed && !paused && !nappingOpen) {
             if (inventoryOpen) {
                 if (hoveredSlotIndex != -1) {
                     ItemStack stack = player.getInventory().getStackInSlot(hoveredSlotIndex);
                     if (stack != null) {
                         boolean ctrlPressed = window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL);
                         dropStack(stack, player, world, camera, ctrlPressed);
-                        if (stack.getCount() <= 0) {
-                            player.getInventory().setStackInSlot(hoveredSlotIndex, null);
-                        }
+                        if (stack.getCount() <= 0) player.getInventory().setStackInSlot(hoveredSlotIndex, null);
                     }
                 }
             } else {
@@ -542,38 +565,30 @@ public class InputManager {
                 if (stack != null) {
                     boolean ctrlPressed = window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL);
                     dropStack(stack, player, world, camera, ctrlPressed);
-                    if (stack.getCount() <= 0) {
-                        player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
-                    }
+                    if (stack.getCount() <= 0) player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
                 }
             }
         }
         qKeyPressed = qKeyCurrentlyPressed;
         
         Vector3f lookDir = new Vector3f(0, 0, -1).rotateX(camera.getRotation().x).rotateY(camera.getRotation().y).normalize();
-        
-        // Сначала проверяем попадание по сущностям (сбор ресурсов)
         com.za.minecraft.entities.Entity hitEntity = Raycast.raycastEntity(world, camera.getPosition(), lookDir);
         RaycastResult raycast = Raycast.raycast(world, camera.getPosition(), lookDir);
         
         ItemStack currentStack = player.getInventory().getSelectedItemStack();
         Item currentItem = currentStack != null ? currentStack.getItem() : null;
 
-        if (!inventoryOpen && !paused) {
+        if (!inventoryOpen && !paused && !nappingOpen) {
             boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1);
             boolean isNewLeftClick = lm && !leftMousePressed;
 
             if (lm) {
                 player.swing();
-                
-                // Если попали по ресурсу - подбираем его (только по новому клику)
                 if (isNewLeftClick && hitEntity instanceof com.za.minecraft.entities.ResourceEntity resource) {
                     player.getInventory().addItem(resource.getStack());
                     resource.setRemoved();
                     com.za.minecraft.utils.Logger.info("Picked up %s", resource.getStack().getItem().getName());
-                } 
-                // Иначе ломаем блоки
-                else if (raycast.isHit()) {
+                } else if (raycast.isHit()) {
                     BlockPos hitPos = raycast.getBlockPos();
                     int blockType = world.getBlock(hitPos).getType();
                     BlockDefinition blockDef = BlockRegistry.getBlock(blockType);
@@ -581,13 +596,12 @@ public class InputManager {
 
                     if (hardness >= 0) {
                         if (hardness == 0.0f) {
-                            breakingProgress = 1.0f; // Instant break
+                            breakingProgress = 1.0f;
                         } else {
                             if (!hitPos.equals(breakingBlockPos)) {
                                 breakingBlockPos = hitPos;
                                 breakingProgress = 0.0f;
                             }
-
                             Item mineItem = currentItem != null ? currentItem : ItemRegistry.getItem(Blocks.AIR.getId());
                             if (breakDelayTimer <= 0 && mineItem != null) {
                                 float breakSpeed = mineItem.getMiningSpeed(blockType) / hardness;
@@ -598,13 +612,9 @@ public class InputManager {
                         }
 
                         if (breakingProgress >= 1.0f) {
-                            // Логика дропа
                             String dropId = blockDef.getDropItem();
                             Item itemToGive = (dropId != null) ? ItemRegistry.getItem(Identifier.of(dropId)) : ItemRegistry.getItem(blockDef.getIdentifier());
-                            if (itemToGive != null) {
-                                player.getInventory().addItem(new ItemStack(itemToGive));
-                            }
-
+                            if (itemToGive != null) player.getInventory().addItem(new ItemStack(itemToGive));
                             world.setBlock(hitPos, new Block(Blocks.AIR.getId()));
                             if (networkClient != null && networkClient.isConnected()) {
                                 networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), Blocks.AIR.getId());
@@ -612,18 +622,12 @@ public class InputManager {
                             breakingBlockPos = null;
                             breakingProgress = 0.0f;
                             breakDelayTimer = BREAK_COOLDOWN;
-
                             if (currentStack != null && currentItem.isTool()) {
                                 currentStack.setDurability(currentStack.getDurability() - 1);
-                                if (currentStack.getDurability() <= 0) {
-                                    player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
-                                }
+                                if (currentStack.getDurability() <= 0) player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
                             }
                         }
                     }
-                } else {
-                    breakingBlockPos = null;
-                    breakingProgress = 0.0f;
                 }
             } else {
                 breakingBlockPos = null;
@@ -636,7 +640,6 @@ public class InputManager {
             
             if (rm) {
                 boolean actionConsumed = false;
-
                 if (raycast.isHit() && isNewRightClick) {
                     BlockPos hitPos = raycast.getBlockPos();
                     int hitBlockType = world.getBlock(hitPos).getType();
@@ -661,6 +664,27 @@ public class InputManager {
                     }
                 }
 
+                if (!actionConsumed && isNewRightClick && currentStack != null) {
+                    if (currentStack.getCount() >= 2) {
+                        java.util.List<com.za.minecraft.world.recipes.IRecipe> nappingRecipes = com.za.minecraft.world.recipes.RecipeRegistry.getRecipesByType("napping");
+                        
+                        boolean hasNapping = false;
+                        for (com.za.minecraft.world.recipes.IRecipe r : nappingRecipes) {
+                            com.za.minecraft.world.recipes.NappingRecipe nr = (com.za.minecraft.world.recipes.NappingRecipe) r;
+                            if (nr.getInputId().equals(currentItem.getIdentifier())) {
+                                hasNapping = true;
+                                break;
+                            }
+                        }
+                        
+                        if (hasNapping) {
+                            com.za.minecraft.utils.Logger.info("Starting napping for: " + currentItem.getName());
+                            GameLoop.getInstance().startNapping(currentItem);
+                            actionConsumed = true;
+                        }
+                    }
+                }
+
                 if (!actionConsumed && isNewRightClick && currentItem != null && currentItem.isFood()) {
                     if (player.getHunger() < 20.0f) {
                         player.eat(currentItem);
@@ -675,18 +699,12 @@ public class InputManager {
                         int blockType = currentItem.getId();
                         Vector3f normal = raycast.getNormal();
                         BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
-                        
                         if (!isPlayerAt(player, pPos)) {
                             byte meta = calculateMetadata(blockType, normal, raycast.getHitPoint(), camera);
                             world.setBlock(pPos, new Block(blockType, meta));
-                            if (networkClient != null && networkClient.isConnected()) {
-                                networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), blockType);
-                            }
-                            
-                            // Уменьшаем количество предметов в стаке после установки
+                            if (networkClient != null && networkClient.isConnected()) networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), blockType);
                             ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
                             player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
-                            
                             placeDelayTimer = PLACE_COOLDOWN;
                             actionConsumed = true;
                         }
@@ -696,20 +714,15 @@ public class InputManager {
             rightMousePressed = rm;
         }
 
-        if (!inventoryOpen && !paused && raycast.isHit() && currentItem != null && !currentItem.isTool() && !currentItem.isFood() && currentItem.getId() != Blocks.AIR.getId()) {
+        if (!inventoryOpen && !paused && !nappingOpen && raycast.isHit() && currentItem != null && currentItem.isBlock()) {
             int blockType = currentItem.getId();
             Vector3f normal = raycast.getNormal();
             BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
-            
             if (!isPlayerAt(player, pPos) && needsPreview(blockType)) {
                 byte meta = calculateMetadata(blockType, normal, raycast.getHitPoint(), camera);
                 renderer.setPreviewBlock(pPos, new Block(blockType, meta));
-            } else {
-                renderer.setPreviewBlock(null, null);
-            }
-        } else {
-            renderer.setPreviewBlock(null, null);
-        }
+            } else renderer.setPreviewBlock(null, null);
+        } else renderer.setPreviewBlock(null, null);
 
         return raycast;
     }
@@ -720,11 +733,9 @@ public class InputManager {
 
     private byte calculateMetadata(int type, Vector3f normal, Vector3f hitPoint, Camera camera) {
         com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(type);
-        
         float yaw = camera.getRotation().y;
         float deg = (float) Math.toDegrees(yaw) % 360;
         if (deg < 0) deg += 360;
-        
         byte viewDir;
         if (deg >= 45 && deg < 135) viewDir = Block.DIR_WEST;
         else if (deg >= 135 && deg < 225) viewDir = Block.DIR_SOUTH;
@@ -737,18 +748,13 @@ public class InputManager {
                 if (Math.abs(normal.y) > 0.5f) return normal.y > 0 ? Block.DIR_DOWN : Block.DIR_UP;
                 float relativeY = hitPoint.y - (float)Math.floor(hitPoint.y);
                 return relativeY > 0.5f ? Block.DIR_UP : Block.DIR_DOWN;
-            
-            case STAIRS:
-                return viewDir;
-                
+            case STAIRS: return viewDir;
             case LOG:
                 if (Math.abs(normal.y) > 0.5f) return Block.DIR_UP;
                 if (Math.abs(normal.x) > 0.5f) return Block.DIR_EAST;
                 if (Math.abs(normal.z) > 0.5f) return Block.DIR_SOUTH;
                 return 0;
-
-            default:
-                return 0;
+            default: return 0;
         }
     }
     
