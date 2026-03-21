@@ -16,7 +16,7 @@
 
 ### com.za.minecraft.engine.core.GameLoop
 Назначение: Главный игровой цикл, управление состояниями игры (пауза, инвентарь), связь между системами.
-Функции: getInstance(), runSingleplayer(), runAsHost(String name), runAsClient(String name, String address), init(), loop(), input(), update(float interval), render(), cleanup()
+Функции: getInstance(), toggleInventory(), togglePause(), getPlayer(), getWorld(), getCamera(), runSingleplayer(), runAsHost(String name), runAsClient(String name, String address), init(), loop(), input(), update(float interval), render(), cleanup()
 Зависимости: Window, Timer, Camera, InputManager, Renderer, World, Player, Hotbar, GameServer, GameClient
 
 ### com.za.minecraft.engine.core.Window
@@ -33,7 +33,7 @@
 
 ### com.za.minecraft.engine.input.InputManager
 Назначение: Обработка ввода и управление взаимодействием.
-Функции: input(), handleInventoryClick(window, button), getSlotAt(), dropStack()
+Функции: input(), handleInventoryClick(window, button), getSlotAt(), dropStack(), getHoveredSlotIndex(), getDraggedSlots(), clearHeldStack()
 Зависимости: Window, Camera, Player, World
 
 ## Graphics
@@ -50,6 +50,11 @@
 Назначение: Отрисовка 2D элементов (прицел, хотбар, инвентарь, меню паузы).
 Функции: init(), renderCrosshair(int sw, int sh), renderHotbar(int sw, int sh, DynamicTextureAtlas atlas), renderInventory(int sw, int sh, DynamicTextureAtlas atlas), renderItemIcon(Item item, int x, int y, float size, int sw, int sh, DynamicTextureAtlas atlas)
 Зависимости: Shader, Texture, FontRenderer, ItemRegistry, BlockTextureMapper
+
+### com.za.minecraft.engine.graphics.ui.NappingGUI (NEW)
+Назначение: Интерфейс 5x5 для механики скалывания камней (Napping).
+Функции: render(), handleClick(mouseX, mouseY, sw, sh, Player)
+Зависимости: RecipeRegistry, Player, Shader
 
 ### com.za.minecraft.engine.graphics.ui.Hotbar
 Назначение: Логика выбора слотов в хотбаре и их позиционирования на экране.
@@ -144,6 +149,19 @@
 Назначение: Реестр всех предметов и автоматический маппинг блоков в предметы.
 Функции: registerItem(Item item), getItem(byte id), getAllItems()
 
+## Recipes System (NEW)
+### com.za.minecraft.world.recipes.IRecipe
+Назначение: Базовый интерфейс для всех рецептов.
+Функции: matches(Inventory), getResult(), getType()
+
+### com.za.minecraft.world.recipes.RecipeRegistry
+Назначение: Центральное хранилище всех рецептов.
+Функции: registerRecipe(IRecipe), getRecipes(String)
+
+### com.za.minecraft.world.recipes.NappingRecipe
+Назначение: Рецепт для скалывания камней (Napping).
+Поля: inputType, result, pattern
+
 ## Entities & Physics
 ### com.za.minecraft.entities.Entity (NEW)
 Назначение: Базовый физический объект в мире. 
@@ -172,8 +190,8 @@
 Назначение: Перечисление состояний ИИ (IDLE, WANDER, SEARCH, CHASE, ATTACK).
 
 ### com.za.minecraft.entities.Inventory
-Назначение: Хранилище предметов игрока (хотбар).
-Функции: getSelectedItemStack(), setStackInSlot(int slot, ItemStack stack), addItem(ItemStack stack), nextSlot(), previousSlot()
+Назначение: Хранилище предметов игрока (хотбар + основной инвентарь).
+Функции: getSelectedItemStack(), setStackInSlot(int slot, ItemStack stack), quickMove(int slot), sortMainInventory(), addItem(ItemStack stack), nextSlot(), previousSlot()
 Зависимости: ItemStack, ItemRegistry
 
 ### com.za.minecraft.world.physics.Raycast
