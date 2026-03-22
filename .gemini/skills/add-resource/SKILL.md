@@ -24,7 +24,8 @@ description: Навык для добавления новых игровых р
 - **ЗАПРЕЩЕНО** использовать `write_file` или `replace` для прямой модификации `.index` файлов.
 - Для обновления индекса **ОБЯЗАТЕЛЬНО** используй скрипт `.gemini/skills/add_resource.js`.
 - Выполняй команду: `node .gemini/skills/add_resource.js <path_to_index> <resource_filename>`.
-- Пример: `node .gemini/skills/add_resource.js src/main/resources/minecraft/blocks/.index my_block.json`.
+- Если нужно добавить несколько ресурсов сразу в PowerShell, используй `;` вместо `&&`:
+  - Пример: `node .gemini/skills/add_resource.js path/to/.index res1.json ; node .gemini/skills/add_resource.js path/to/.index res2.json`.
 
 ### 3. Регистрация в коде (Java)
 - Найди класс-холдер: `com.za.minecraft.world.blocks.Blocks` или `com.za.minecraft.world.items.Items`.
