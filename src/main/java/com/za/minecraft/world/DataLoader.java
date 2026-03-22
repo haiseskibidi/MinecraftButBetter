@@ -246,6 +246,27 @@ public class DataLoader {
             if (obj.has("placement")) {
                 def.setPlacementType(com.za.minecraft.world.blocks.PlacementType.valueOf(obj.get("placement").getAsString().toUpperCase()));
             }
+            if (obj.has("shape")) {
+                JsonArray shapeArr = obj.getAsJsonArray("shape");
+                com.za.minecraft.world.physics.VoxelShape voxelShape = new com.za.minecraft.world.physics.VoxelShape();
+                if (shapeArr.size() > 0) {
+                    for (JsonElement boxEl : shapeArr) {
+                        JsonArray boxCoords = boxEl.getAsJsonArray();
+                        float minX = boxCoords.get(0).getAsFloat();
+                        float minY = boxCoords.get(1).getAsFloat();
+                        float minZ = boxCoords.get(2).getAsFloat();
+                        float maxX = boxCoords.get(3).getAsFloat();
+                        float maxY = boxCoords.get(4).getAsFloat();
+                        float maxZ = boxCoords.get(5).getAsFloat();
+                        voxelShape.addBox(new com.za.minecraft.world.physics.AABB(minX, minY, minZ, maxX, maxY, maxZ));
+                    }
+                    def.setShape(voxelShape);
+                } else {
+                    // Пустой массив - полное отсутствие хитбоксов (даже для выделения)
+                    def.setShape(voxelShape);
+                    def.setFullCube(false);
+                }
+            }
             if (obj.has("textures")) {
                 JsonObject tex = obj.getAsJsonObject("textures");
                 String base = "minecraft/textures/block/";
@@ -262,6 +283,12 @@ public class DataLoader {
                     ));
                 }
             }
+            
+            // Если форма не задана явно, и блок прозрачный - пробуем автогенерацию
+            if (!obj.has("shape") && transparent) {
+                def.autoGenerateShape();
+            }
+
             BlockRegistry.registerBlock(def);
         } catch (Exception e) {
             Logger.error("Failed to parse block: " + e.getMessage());

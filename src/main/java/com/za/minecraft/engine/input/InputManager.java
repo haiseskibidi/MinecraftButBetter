@@ -429,26 +429,27 @@ public class InputManager {
                 
                 leftMousePressed = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1);
                 rightMousePressed = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_2);
-                return null;
             }
 
-            int newHovered = getSlotAt(currentPos.x, currentPos.y, window.getWidth(), window.getHeight(), player);
-            if (newHovered != hoveredSlotIndex) {
-                hoveredSlotIndex = newHovered;
-                if (isDragging && dragButton != -1 && heldStack != null && hoveredSlotIndex != -1) {
-                    ItemStack slotStack = player.getInventory().getStackInSlot(hoveredSlotIndex);
-                    boolean canReceive = (slotStack == null || heldStack.isStackableWith(slotStack));
-                    if (canReceive && (draggedSlots.contains(hoveredSlotIndex) || draggedSlots.size() < heldStack.getCount())) {
-                        draggedSlots.add(hoveredSlotIndex);
+            if (inventoryOpen) {
+                int newHovered = getSlotAt(currentPos.x, currentPos.y, window.getWidth(), window.getHeight(), player);
+                if (newHovered != hoveredSlotIndex) {
+                    hoveredSlotIndex = newHovered;
+                    if (isDragging && dragButton != -1 && heldStack != null && hoveredSlotIndex != -1) {
+                        ItemStack slotStack = player.getInventory().getStackInSlot(hoveredSlotIndex);
+                        boolean canReceive = (slotStack == null || heldStack.isStackableWith(slotStack));
+                        if (canReceive && (draggedSlots.contains(hoveredSlotIndex) || draggedSlots.size() < heldStack.getCount())) {
+                            draggedSlots.add(hoveredSlotIndex);
+                        }
                     }
                 }
+                
+                boolean zKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_Z);
+                if (zKeyCurrentlyPressed && !zKeyPressed) {
+                    player.getInventory().sortMainInventory();
+                }
+                zKeyPressed = zKeyCurrentlyPressed;
             }
-            
-            boolean zKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_Z);
-            if (zKeyCurrentlyPressed && !zKeyPressed) {
-                player.getInventory().sortMainInventory();
-            }
-            zKeyPressed = zKeyCurrentlyPressed;
         } else {
             hoveredSlotIndex = -1;
             isDragging = false;

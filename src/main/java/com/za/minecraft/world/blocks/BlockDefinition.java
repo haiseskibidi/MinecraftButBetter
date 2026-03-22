@@ -18,6 +18,7 @@ public class BlockDefinition {
     private boolean canSupportScavenge = false; // Whether items like sticks can spawn on top
     private PlacementType placementType = PlacementType.DEFAULT;
     private BlockTextures textures;
+    private boolean fullCube = true;
 
     // Default shape is a full cube. Subclasses can override.
     protected VoxelShape shape = VoxelShape.FULL_CUBE;
@@ -45,7 +46,25 @@ public class BlockDefinition {
 
     public BlockDefinition setShape(VoxelShape shape) {
         this.shape = shape;
+        this.fullCube = (shape == VoxelShape.FULL_CUBE);
         return this;
+    }
+
+    /**
+     * Автоматически генерирует форму блока на основе его текстуры.
+     * Используется для неполных блоков без явно заданной формы в JSON.
+     */
+    public void autoGenerateShape() {
+        if (textures == null) return;
+        
+        // Для прозрачных блоков (как кресты) или неполных берем основную текстуру
+        String texPath = textures.getTop(); 
+        com.za.minecraft.world.physics.AABB texAABB = com.za.minecraft.utils.TextureAABBGenerator.generateAABB(texPath);
+        
+        if (texAABB != null) {
+            this.shape = new VoxelShape(texAABB);
+            this.fullCube = false;
+        }
     }
 
     public BlockDefinition setHardness(float hardness) {
@@ -115,7 +134,13 @@ public class BlockDefinition {
     }
 
     public boolean isFullCube() {
-        return true;
+        return fullCube;
+    }
+
+
+    public BlockDefinition setFullCube(boolean fullCube) {
+        this.fullCube = fullCube;
+        return this;
     }
 
     public BlockTextures getTextures() {

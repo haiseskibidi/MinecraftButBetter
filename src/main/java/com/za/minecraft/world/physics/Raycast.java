@@ -42,8 +42,25 @@ public class Raycast {
             // Check current cell
             Block block = world.getBlock(x, y, z);
             if (!block.isAir()) {
-                Vector3f hitPoint = new Vector3f(origin).fma(Math.min(Math.min(tMaxX, tMaxY), tMaxZ), dir);
-                return new RaycastResult(new BlockPos(x, y, z), block, hitPoint, lastNormal, hitPoint.distance(origin));
+                VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
+                if (shape != null) {
+                    float closestDist = Float.POSITIVE_INFINITY;
+                    Vector3f closestNormal = null;
+
+                    for (AABB box : shape.getBoxes()) {
+                        AABB offsetBox = box.offset(x, y, z);
+                        AABB.RayHit hit = offsetBox.raycast(origin, dir);
+                        if (hit != null && hit.distance() < closestDist) {
+                            closestDist = hit.distance();
+                            closestNormal = hit.normal();
+                        }
+                    }
+
+                    if (closestNormal != null && closestDist <= maxT) {
+                        Vector3f hitPoint = new Vector3f(origin).fma(closestDist, dir);
+                        return new RaycastResult(new BlockPos(x, y, z), block, hitPoint, closestNormal, closestDist);
+                    }
+                }
             }
 
             // Step to next cell

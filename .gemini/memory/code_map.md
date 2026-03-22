@@ -214,6 +214,10 @@
 ### com.za.minecraft.utils.Identifier (NEW)
 Назначение: Единый стандарт именования `namespace:path`.
 
+### com.za.minecraft.utils.TextureAABBGenerator (NEW)
+Назначение: Автоматическая генерация AABB на основе прозрачности текстуры.
+Функции: Попиксельное сканирование, вычисление границ, кеширование.
+
 ### com.za.minecraft.utils.NumericalRegistry (NEW)
 Назначение: Реестр с автоматическим управлением целочисленными ID.
 

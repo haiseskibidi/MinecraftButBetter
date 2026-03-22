@@ -87,4 +87,51 @@ public class AABB {
         return String.format("AABB[%.2f,%.2f,%.2f -> %.2f,%.2f,%.2f]", 
             min.x, min.y, min.z, max.x, max.y, max.z);
     }
+
+    /**
+     * Результат пересечения луча с AABB.
+     */
+    public record RayHit(float distance, Vector3f normal) {}
+
+    /**
+     * Возвращает результат пересечения луча с этим AABB (дистанция и нормаль).
+     * Возвращает null, если пересечения нет.
+     */
+    public RayHit raycast(Vector3f origin, Vector3f direction) {
+        float invDirX = 1.0f / (Math.abs(direction.x) < 1e-6f ? (direction.x < 0 ? -1e-6f : 1e-6f) : direction.x);
+        float invDirY = 1.0f / (Math.abs(direction.y) < 1e-6f ? (direction.y < 0 ? -1e-6f : 1e-6f) : direction.y);
+        float invDirZ = 1.0f / (Math.abs(direction.z) < 1e-6f ? (direction.z < 0 ? -1e-6f : 1e-6f) : direction.z);
+
+        float t1 = (min.x - origin.x) * invDirX;
+        float t2 = (max.x - origin.x) * invDirX;
+        float t3 = (min.y - origin.y) * invDirY;
+        float t4 = (max.y - origin.y) * invDirY;
+        float t5 = (min.z - origin.z) * invDirZ;
+        float t6 = (max.z - origin.z) * invDirZ;
+
+        float tmin = Math.max(Math.max(Math.min(t1, t2), Math.min(t3, t4)), Math.min(t5, t6));
+        float tmax = Math.min(Math.min(Math.max(t1, t2), Math.max(t3, t4)), Math.max(t5, t6));
+
+        if (tmax < 0 || tmin > tmax) return null;
+
+        // Определяем нормаль на основе того, какая плоскость дала tmin
+        Vector3f normal = new Vector3f();
+        if (tmin == t1) normal.set(-1, 0, 0);
+        else if (tmin == t2) normal.set(1, 0, 0);
+        else if (tmin == t3) normal.set(0, -1, 0);
+        else if (tmin == t4) normal.set(0, 1, 0);
+        else if (tmin == t5) normal.set(0, 0, -1);
+        else if (tmin == t6) normal.set(0, 0, 1);
+        else {
+            // Запасной вариант на случай неточности float
+            if (Math.abs(tmin - t1) < 1e-5f) normal.set(-1, 0, 0);
+            else if (Math.abs(tmin - t2) < 1e-5f) normal.set(1, 0, 0);
+            else if (Math.abs(tmin - t3) < 1e-5f) normal.set(0, -1, 0);
+            else if (Math.abs(tmin - t4) < 1e-5f) normal.set(0, 1, 0);
+            else if (Math.abs(tmin - t5) < 1e-5f) normal.set(0, 0, -1);
+            else if (Math.abs(tmin - t6) < 1e-5f) normal.set(0, 0, 1);
+        }
+
+        return new RayHit(tmin, normal);
+    }
 }

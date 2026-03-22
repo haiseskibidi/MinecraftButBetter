@@ -10,10 +10,10 @@ import org.joml.Vector3f;
  * Handles physics, movement, and collisions.
  */
 public abstract class Entity {
-    protected final Vector3f position;
+    protected Vector3f position;
     protected final Vector3f velocity;
     protected final Vector3f rotation;
-    protected final AABB boundingBox;
+    protected com.za.minecraft.world.physics.AABB boundingBox;
     
     protected boolean onGround = false;
     protected boolean flying = false;
@@ -64,18 +64,23 @@ public abstract class Entity {
                     for (int y = (int) Math.floor(currentBox.getMin().y + dy); y <= Math.floor(currentBox.getMax().y + dy); y++) {
                         Block block = world.getBlock(x, y, z);
                         if (!block.isAir() && block.isSolid()) {
-                            AABB blockBox = new AABB(x, y, z, x + 1, y + 1, z + 1);
-                            AABB testBox = currentBox.offset(0, dy, 0);
-                            
-                            if (testBox.intersects(blockBox)) {
-                                if (dy > 0) {
-                                    dy = blockBox.getMin().y - currentBox.getMax().y - 0.001f;
-                                } else {
-                                    dy = blockBox.getMax().y - currentBox.getMin().y + 0.001f;
-                                    onGround = true;
+                            com.za.minecraft.world.physics.VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
+                            if (shape != null) {
+                                for (AABB box : shape.getBoxes()) {
+                                    AABB blockBox = box.offset(x, y, z);
+                                    AABB testBox = currentBox.offset(0, dy, 0);
+                                    
+                                    if (testBox.intersects(blockBox)) {
+                                        if (dy > 0) {
+                                            dy = blockBox.getMin().y - currentBox.getMax().y - 0.001f;
+                                        } else {
+                                            dy = blockBox.getMax().y - currentBox.getMin().y + 0.001f;
+                                            onGround = true;
+                                        }
+                                        velocity.y = 0;
+                                        break;
+                                    }
                                 }
-                                velocity.y = 0;
-                                break;
                             }
                         }
                     }
@@ -92,18 +97,22 @@ public abstract class Entity {
                     for (int y = (int) Math.floor(currentBox.getMin().y); y <= Math.floor(currentBox.getMax().y); y++) {
                         Block block = world.getBlock(x, y, z);
                         if (!block.isAir() && block.isSolid()) {
-                            AABB blockBox = new AABB(x, y, z, x + 1, y + 1, z + 1);
-                            AABB testBox = currentBox.offset(dx, 0, 0);
-                            
-                            if (testBox.intersects(blockBox)) {
-                                if (dx > 0) {
-                                    dx = blockBox.getMin().x - currentBox.getMax().x - 0.001f;
-                                } else {
-                                    dx = blockBox.getMax().y - currentBox.getMin().x + 0.001f; // Fix: was blockBox.getMax().y
-                                    dx = blockBox.getMax().x - currentBox.getMin().x + 0.001f;
+                            com.za.minecraft.world.physics.VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
+                            if (shape != null) {
+                                for (AABB box : shape.getBoxes()) {
+                                    AABB blockBox = box.offset(x, y, z);
+                                    AABB testBox = currentBox.offset(dx, 0, 0);
+                                    
+                                    if (testBox.intersects(blockBox)) {
+                                        if (dx > 0) {
+                                            dx = blockBox.getMin().x - currentBox.getMax().x - 0.001f;
+                                        } else {
+                                            dx = blockBox.getMax().x - currentBox.getMin().x + 0.001f;
+                                        }
+                                        velocity.x = 0;
+                                        break;
+                                    }
                                 }
-                                velocity.x = 0;
-                                break;
                             }
                         }
                     }
@@ -120,17 +129,22 @@ public abstract class Entity {
                     for (int y = (int) Math.floor(currentBox.getMin().y); y <= Math.floor(currentBox.getMax().y); y++) {
                         Block block = world.getBlock(x, y, z);
                         if (!block.isAir() && block.isSolid()) {
-                            AABB blockBox = new AABB(x, y, z, x + 1, y + 1, z + 1);
-                            AABB testBox = currentBox.offset(0, 0, dz);
-                            
-                            if (testBox.intersects(blockBox)) {
-                                if (dz > 0) {
-                                    dz = blockBox.getMin().z - currentBox.getMax().z - 0.001f;
-                                } else {
-                                    dz = blockBox.getMax().z - currentBox.getMin().z + 0.001f;
+                            com.za.minecraft.world.physics.VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
+                            if (shape != null) {
+                                for (AABB box : shape.getBoxes()) {
+                                    AABB blockBox = box.offset(x, y, z);
+                                    AABB testBox = currentBox.offset(0, 0, dz);
+                                    
+                                    if (testBox.intersects(blockBox)) {
+                                        if (dz > 0) {
+                                            dz = blockBox.getMin().z - currentBox.getMax().z - 0.001f;
+                                        } else {
+                                            dz = blockBox.getMax().z - currentBox.getMin().z + 0.001f;
+                                        }
+                                        velocity.z = 0;
+                                        break;
+                                    }
                                 }
-                                velocity.z = 0;
-                                break;
                             }
                         }
                     }
