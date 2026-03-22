@@ -1,49 +1,49 @@
 {
   "identifier": "minecraft:ruined_house_1",
   "palette": {
-    "#": "minecraft:bricks",
+    "B": "minecraft:bricks",
     "C": "minecraft:gray_concrete",
     "G": "minecraft:glass",
     "M": "minecraft:rusty_metal",
     "F": "minecraft:cobblestone",
     "W": "minecraft:oak_log",
-    "B": "minecraft:bookshelf",
+    "K": "minecraft:bookshelf",
     "L": "minecraft:oak_leaves",
     " ": "-1",
     ".": "minecraft:air"
   },
   "layers": [
     [
-      "#######",
-      "#FFFFF#",
-      "#F.B.F#",
-      "#F.W.F#",
-      "#FFFFF#",
-      "### ###"
+      "BBBBBBB",
+      "BFFFFFB",
+      "BF.K.FB",
+      "BF.W.FB",
+      "BFFFFFB",
+      "BBB BBB"
     ],
     [
-      "##G#G##",
-      "#L....#",
-      "G..B..#",
-      "#..W..#",
-      "#L....#",
-      "### ###" 
+      "BBGBGBB",
+      "BL....B",
+      "G..K..B",
+      "B..W..B",
+      "BL....B",
+      "BBB BBB" 
     ],
     [
-      "#######",
-      "#.....#",
-      "#.....#",
-      "##M####",
-      "#.....#",
-      "#######"
+      "BBBBBBB",
+      "B.....B",
+      "B.....B",
+      "BBMBBBB",
+      "B.....B",
+      "BBBBBBB"
     ],
     [
-      "##   ##",
-      "#     #",
+      "BB   BB",
+      "B     B",
       "       ",
-      "#     #",
-      "#     #",
-      " ###   "
+      "B     B",
+      "B     B",
+      " BBB   "
     ]
   ]
 }

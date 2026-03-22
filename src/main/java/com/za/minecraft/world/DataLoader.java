@@ -242,6 +242,7 @@ public class DataLoader {
             if (obj.has("hardness")) def.setHardness(obj.get("hardness").getAsFloat());
             if (obj.has("requiredTool")) def.setRequiredTool(obj.get("requiredTool").getAsString());
             if (obj.has("dropItem")) def.setDropItem(obj.get("dropItem").getAsString());
+            if (obj.has("dropChance")) def.setDropChance(obj.get("dropChance").getAsFloat());
             if (obj.has("supportScavenge")) def.setSupportScavenge(obj.get("supportScavenge").getAsBoolean());
             if (obj.has("placement")) {
                 def.setPlacementType(com.za.minecraft.world.blocks.PlacementType.valueOf(obj.get("placement").getAsString().toUpperCase()));

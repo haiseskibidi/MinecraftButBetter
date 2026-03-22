@@ -1,0 +1,6 @@
+{
+  "id": 404,
+  "identifier": "minecraft:fired_vessel",
+  "translationKey": "item.minecraft.fired_vessel",
+  "texture": "minecraft/textures/item/flower_pot.png"
+}

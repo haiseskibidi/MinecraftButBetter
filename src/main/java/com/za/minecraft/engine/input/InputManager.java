@@ -614,8 +614,21 @@ public class InputManager {
 
                         if (breakingProgress >= 1.0f) {
                             String dropId = blockDef.getDropItem();
-                            Item itemToGive = (dropId != null) ? ItemRegistry.getItem(Identifier.of(dropId)) : ItemRegistry.getItem(blockDef.getIdentifier());
-                            if (itemToGive != null) player.getInventory().addItem(new ItemStack(itemToGive));
+                            float chance = blockDef.getDropChance();
+                            
+                            if (Math.random() <= chance) {
+                                Item itemToGive = (dropId != null) ? ItemRegistry.getItem(Identifier.of(dropId)) : ItemRegistry.getItem(blockDef.getIdentifier());
+                                
+                                if (itemToGive != null) {
+                                    // Спавним предмет в центре блока
+                                    Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
+                                    com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
+                                    // Добавляем небольшую случайную скорость
+                                    drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
+                                    world.spawnEntity(drop);
+                                }
+                            }
+                            
                             world.setBlock(hitPos, new Block(Blocks.AIR.getId()));
                             if (networkClient != null && networkClient.isConnected()) {
                                 networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), Blocks.AIR.getId());

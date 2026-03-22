@@ -1,0 +1,14 @@
+{
+  "id": 122,
+  "identifier": "minecraft:fired_vessel",
+  "translationKey": "block.minecraft.fired_vessel",
+  "solid": true,
+  "transparent": true,
+  "hardness": 1.5,
+  "shape": [
+    [0.34375, 0.0, 0.34375, 0.65625, 0.34375, 0.65625]
+  ],
+  "textures": {
+    "all": "terracotta.png"
+  }
+}

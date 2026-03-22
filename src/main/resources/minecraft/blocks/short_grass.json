@@ -1,0 +1,14 @@
+{
+  "id": 124,
+  "identifier": "minecraft:short_grass",
+  "translationKey": "block.minecraft.short_grass",
+  "solid": false,
+  "transparent": true,
+  "placement": "CROSS_PLANE",
+  "hardness": 0.0,
+  "dropItem": "minecraft:straw",
+  "dropChance": 0.2,
+  "textures": {
+    "all": "grass.png"
+  }
+}

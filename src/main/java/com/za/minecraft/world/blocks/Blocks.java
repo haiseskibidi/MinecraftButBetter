@@ -41,12 +41,16 @@ public class Blocks {
     public static BlockDefinition CABLE;
     public static BlockDefinition ELECTRIC_LAMP;
     public static BlockDefinition BATTERY;
+    public static BlockDefinition UNFIRED_VESSEL;
+    public static BlockDefinition FIRED_VESSEL;
+    public static BlockDefinition CLAY;
+    public static BlockDefinition SHORT_GRASS;
+    public static BlockDefinition DIAMOND_ORE;
+    public static BlockDefinition EMERALD_ORE;
+    public static BlockDefinition LAPIS_ORE;
+    public static BlockDefinition REDSTONE_ORE;
+    public static BlockDefinition COPPER_ORE;
     
-    // Scavenging resources
-    public static BlockDefinition LOOSE_STICK;
-    public static BlockDefinition LOOSE_ROCK;
-    public static BlockDefinition LOOSE_FLINT;
-
     public static void init() {
         for (java.lang.reflect.Field field : Blocks.class.getFields()) {
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {

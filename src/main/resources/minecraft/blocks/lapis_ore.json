@@ -1,0 +1,11 @@
+{
+    "id":  42,
+    "identifier":  "minecraft:lapis_ore",
+    "translationKey":  "block.minecraft.lapis_ore",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  3.0,
+    "textures":  {
+                     "all":  "lapis_ore.png"
+                 }
+}

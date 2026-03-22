@@ -55,5 +55,10 @@
   "block.minecraft.generator": "Бензогенератор",
   "block.minecraft.cable": "Электрический кабель",
   "block.minecraft.electric_lamp": "Электрическая лампа",
-  "block.minecraft.battery": "Аккумулятор"
+  "block.minecraft.battery": "Аккумулятор",
+  "block.minecraft.diamond_ore": "Алмазная руда",
+  "block.minecraft.emerald_ore": "Изумрудная руда",
+  "block.minecraft.lapis_ore": "Лазуритовая руда",
+  "block.minecraft.redstone_ore": "Редстоуновая руда",
+  "block.minecraft.copper_ore": "Медная руда"
 }

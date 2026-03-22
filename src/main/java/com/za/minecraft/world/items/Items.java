@@ -20,6 +20,10 @@ public class Items {
     public static Item STONE_ARROWHEAD;
     public static Item AXE_HEAD;
     public static Item PICKAXE_HEAD;
+    public static Item UNFIRED_VESSEL;
+    public static Item FIRED_VESSEL;
+    public static Item CLAY_BALL;
+    public static Item STRAW;
 
     public static void init() {
         for (java.lang.reflect.Field field : Items.class.getFields()) {

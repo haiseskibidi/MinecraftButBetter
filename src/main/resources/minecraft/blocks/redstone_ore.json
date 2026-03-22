@@ -1,0 +1,11 @@
+{
+    "id":  43,
+    "identifier":  "minecraft:redstone_ore",
+    "translationKey":  "block.minecraft.redstone_ore",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  3.0,
+    "textures":  {
+                     "all":  "redstone_ore.png"
+                 }
+}

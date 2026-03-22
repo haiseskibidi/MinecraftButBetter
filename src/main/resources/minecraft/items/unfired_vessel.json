@@ -1,0 +1,6 @@
+{
+  "id": 403,
+  "identifier": "minecraft:unfired_vessel",
+  "translationKey": "item.minecraft.unfired_vessel",
+  "texture": "minecraft/textures/item/clay_ball.png"
+}

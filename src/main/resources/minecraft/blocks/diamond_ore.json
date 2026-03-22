@@ -1,0 +1,11 @@
+{
+    "id":  40,
+    "identifier":  "minecraft:diamond_ore",
+    "translationKey":  "block.minecraft.diamond_ore",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  3.0,
+    "textures":  {
+                     "all":  "diamond_ore.png"
+                 }
+}

@@ -84,11 +84,12 @@ void main() {
         }
     }
 
-    // Grass tinting
-    if (highlightPass == 0 && abs(blockType - 1.0) < 0.1) { 
+    // Grass tinting (grass_block top and short_grass)
+    if (highlightPass == 0 && (abs(blockType - 1.0) < 0.1 || abs(blockType - 124.0) < 0.1)) { 
         bool isGrassTop = fragTexCoord.x >= grassTopUV.x && fragTexCoord.x <= grassTopUV.z &&
                          fragTexCoord.y >= grassTopUV.y && fragTexCoord.y <= grassTopUV.w;
-        if (isGrassTop) {
+        // Для short_grass (124) мы всегда применяем тинт, так как это CROSS_PLANE и он весь - трава
+        if (isGrassTop || abs(blockType - 124.0) < 0.1) {
             vec3 grassTint = vec3(0.486, 0.784, 0.314); 
             baseColor *= grassTint;
         }

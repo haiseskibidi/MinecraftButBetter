@@ -1,0 +1,11 @@
+{
+    "id":  44,
+    "identifier":  "minecraft:copper_ore",
+    "translationKey":  "block.minecraft.copper_ore",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  3.0,
+    "textures":  {
+                     "all":  "copper_ore.png"
+                 }
+}

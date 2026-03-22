@@ -1,0 +1,6 @@
+{
+  "id": 402,
+  "identifier": "minecraft:clay_ball",
+  "translationKey": "item.minecraft.clay_ball",
+  "texture": "minecraft/textures/item/clay_ball.png"
+}

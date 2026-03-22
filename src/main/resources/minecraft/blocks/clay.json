@@ -1,0 +1,13 @@
+{
+  "id": 123,
+  "identifier": "minecraft:clay",
+  "translationKey": "block.minecraft.clay",
+  "solid": true,
+  "transparent": false,
+  "hardness": 0.6,
+  "requiredTool": "shovel",
+  "dropItem": "minecraft:clay_ball",
+  "textures": {
+    "all": "clay.png"
+  }
+}

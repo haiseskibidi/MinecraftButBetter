@@ -6,8 +6,8 @@
     "transparent":  false,
     "hardness":  0.6,
     "textures":  {
-                     "top":  "grass_block_top.png",
-                     "bottom":  "dirt.png",
+                     "top":  "grass_block_top.png",                                                                                                                        
+                     "bottom":  "dirt.png", 
                      "side":  "grass_block_side.png"
                  },
     "requiredTool":  "knife",
