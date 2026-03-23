@@ -8,6 +8,51 @@
 - **gui/**: Элементы интерфейса (widgets.png, icons.png).
 - **font/**: Текстуры шрифтов (ascii.png, unicode_page_04.png).
 
+## Inventory System (v3) (NEW)
+### com.za.minecraft.world.inventory.IInventory
+Назначение: Универсальный интерфейс для любого объекта, способного хранить ItemStack.
+Функции: getStack(int), setStack(int, ItemStack), size(), isItemValid(int, ItemStack), isSlotActive(int)
+
+### com.za.minecraft.world.inventory.RegistryInventory
+Назначение: Виртуальный инвентарь, предоставляющий доступ ко всем зарегистрированным предметам (для Creative/Developer Panel).
+
+### com.za.minecraft.entities.inventory.Slot
+Назначение: Логическая обертка над конкретным индексом в IInventory. Поддерживает кастомную валидацию.
+Функции: getStack(), setStack(ItemStack), isItemValid(ItemStack), withValidator(Predicate)
+
+### com.za.minecraft.entities.inventory.SlotGroup
+Назначение: Группа слотов с общим поведением и условием активации (activeSupplier).
+Функции: isActive(), addSlot(Slot), withActiveSupplier(Supplier)
+
+## GUI System (NEW)
+### com.za.minecraft.engine.graphics.ui.ScreenManager
+Назначение: Синглтон для управления активным экраном инвентаря.
+Функции: openPlayerInventory(player, sw, sh), openChest(container, playerInv, sw, sh), closeScreen(), getActiveScreen(), render(...)
+
+### com.za.minecraft.engine.graphics.ui.InventoryScreen
+Назначение: Базовый класс для всех окон с поддержкой слотов.
+Функции: init(sw, sh), render(renderer, sw, sh, atlas), getSlotAt(mx, my)
+
+### com.za.minecraft.engine.graphics.ui.PlayerInventoryScreen
+Назначение: Основной экран инвентаря игрока. Строится динамически на основе JSON-конфига.
+
+### com.za.minecraft.engine.graphics.ui.ChestScreen
+Назначение: Универсальный экран для контейнеров (сундуков) с сеткой 9xN.
+
+### com.za.minecraft.engine.graphics.ui.SlotUI
+Назначение: Визуальное представление слота на экране.
+Функции: getX(), getY(), getSlot(), isMouseOver(mx, my, size)
+
+### com.za.minecraft.engine.graphics.ui.InventoryLayout
+Назначение: Двигатель верстки GUI. Рассчитывает позиции слотов на основе правил Anchor и Alignment из JSON.
+Функции: generateLayout(sw, sh, slotSize, spacing, player, GUIConfig)
+
+### com.za.minecraft.engine.graphics.ui.GUIConfig
+Назначение: POJO для десериализации JSON-конфигураций интерфейса.
+
+### com.za.minecraft.engine.graphics.ui.GUIRegistry
+Назначение: Реестр загруженных конфигураций GUI.
+
 ## Core Engine
 ### com.za.minecraft.Application
 Назначение: Точка входа в приложение, парсинг аргументов командной строки.
