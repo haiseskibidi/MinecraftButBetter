@@ -18,6 +18,8 @@ import com.za.minecraft.world.items.ItemStack;
 import com.za.minecraft.world.items.component.FoodComponent;
 import com.za.minecraft.world.items.component.FuelComponent;
 import com.za.minecraft.world.items.component.ToolComponent;
+import com.za.minecraft.engine.graphics.ui.GUIConfig;
+import com.za.minecraft.engine.graphics.ui.GUIRegistry;
 import com.za.minecraft.world.recipes.NappingRecipe;
 import com.za.minecraft.world.recipes.RecipeRegistry;
 
@@ -60,7 +62,32 @@ public class DataLoader {
             loadRecipes(ns);
         }
 
+        for (String ns : namespaces) {
+            loadGUIs(ns);
+        }
+
         loadScavengeSettings();
+    }
+
+    private static void loadGUIs(String namespace) {
+        String path = namespace + "/gui";
+        List<String> files = listResources(path);
+        if (!files.isEmpty()) {
+            for (String file : files) {
+                loadResource(path + "/" + file, DataLoader::parseGUI);
+            }
+            Logger.info("Loaded GUIs for namespace: " + namespace);
+        }
+    }
+
+    private static void parseGUI(JsonElement el) {
+        try {
+            JsonObject obj = el.getAsJsonObject();
+            GUIConfig config = GSON.fromJson(obj, GUIConfig.class);
+            com.za.minecraft.engine.graphics.ui.GUIRegistry.register(Identifier.of(config.id), config);
+        } catch (Exception e) {
+            Logger.error("Failed to parse GUI: " + e.getMessage());
+        }
     }
 
     private static void loadScavengeSettings() {
@@ -416,8 +443,22 @@ public class DataLoader {
 
                 if (comps.has("minecraft:fuel") || comps.has("fuel")) {
                     JsonObject f = comps.has("minecraft:fuel") ? comps.getAsJsonObject("minecraft:fuel") : comps.getAsJsonObject("fuel");
-                    item.addComponent(FuelComponent.class, new FuelComponent(
+                    item.addComponent(com.za.minecraft.world.items.component.FuelComponent.class, new com.za.minecraft.world.items.component.FuelComponent(
                         f.get("fuelAmount").getAsFloat()
+                    ));
+                }
+                
+                if (comps.has("minecraft:bag") || comps.has("bag")) {
+                    JsonObject b = comps.has("minecraft:bag") ? comps.getAsJsonObject("minecraft:bag") : comps.getAsJsonObject("bag");
+                    item.addComponent(com.za.minecraft.world.items.component.BagComponent.class, new com.za.minecraft.world.items.component.BagComponent(
+                        b.get("slots").getAsInt()
+                    ));
+                }
+                
+                if (comps.has("minecraft:equipment") || comps.has("equipment")) {
+                    JsonObject e = comps.has("minecraft:equipment") ? comps.getAsJsonObject("minecraft:equipment") : comps.getAsJsonObject("equipment");
+                    item.addComponent(com.za.minecraft.world.items.component.EquipmentComponent.class, new com.za.minecraft.world.items.component.EquipmentComponent(
+                        e.get("slot").getAsString()
                     ));
                 }
             }

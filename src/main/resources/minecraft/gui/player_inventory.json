@@ -1,0 +1,71 @@
+{
+  "id": "minecraft:player_inventory",
+  "title": "container.inventory",
+  "groups": [
+    {
+      "id": "equipment",
+      "type": "vertical",
+      "anchor": "center",
+      "alignY": "bottom",
+      "x": "-8%",
+      "y": "-5%",
+      "rows": 4,
+      "spacing": 4
+    },
+    {
+      "id": "offhand",
+      "type": "grid",
+      "anchor": "center",
+      "alignY": "top",
+      "x": "-8%",
+      "y": "-4%",
+      "cols": 1,
+      "rows": 1
+    },
+    {
+      "id": "pockets",
+      "type": "grid",
+      "anchor": "center",
+      "alignY": "bottom",
+      "x": "0%",
+      "y": "-5%",
+      "cols": 4,
+      "rows": 2,
+      "spacing": 4
+    },
+    {
+      "id": "pouch",
+      "type": "grid",
+      "anchor": "center",
+      "alignY": "bottom",
+      "x": "8%",
+      "y": "-5%",
+      "cols": 2,
+      "rows": 4,
+      "spacing": 4,
+      "condition": "has_pouch"
+    },
+    {
+      "id": "hotbar",
+      "type": "horizontal",
+      "anchor": "center",
+      "x": "0%",
+      "y": "15%",
+      "cols": 9,
+      "spacing": 4
+    },
+    {
+      "id": "developer_panel",
+      "type": "grid",
+      "anchor": "top-right",
+      "alignX": "right",
+      "alignY": "top",
+      "x": "-10px",
+      "y": "10px",
+      "cols": 7,
+      "rows": 12,
+      "spacing": 4,
+      "condition": "developer_mode"
+    }
+  ]
+}

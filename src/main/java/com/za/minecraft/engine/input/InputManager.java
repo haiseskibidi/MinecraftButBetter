@@ -48,10 +48,10 @@ public class InputManager {
     private boolean verticalMode = false;
     private ItemStack heldStack = null;
     private int devScroll = 0;
-    private int hoveredSlotIndex = -1;
+    private com.za.minecraft.entities.inventory.Slot hoveredSlot = null;
     
     // Drag-to-Distribute state
-    private java.util.Set<Integer> draggedSlots = new java.util.LinkedHashSet<>();
+    private java.util.Set<com.za.minecraft.entities.inventory.Slot> draggedSlots = new java.util.LinkedHashSet<>();
     private int dragButton = -1;
     private boolean isDragging = false;
     
@@ -95,10 +95,9 @@ public class InputManager {
                     if (heldStack == null) {
                         handleInventoryClick(window, button);
                     } else {
-                        Player p = GameLoop.getInstance().getPlayer();
-                        int slotIdx = getSlotAt(currentPos.x, currentPos.y, window.getWidth(), window.getHeight(), p);
-                        if (slotIdx != -1) {
-                            draggedSlots.add(slotIdx);
+                        com.za.minecraft.entities.inventory.Slot slot = getSlotAt(currentPos.x, currentPos.y);
+                        if (slot != null) {
+                            draggedSlots.add(slot);
                             isDragging = true;
                         } else {
                             handleInventoryClick(window, button);
@@ -140,34 +139,13 @@ public class InputManager {
         enableMouseCapture(window);
     }
     
-    private int getSlotAt(float mx, float my, int sw, int sh, Player player) {
-        int cols = 9;
-        int slotSize = (int)(18 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
-        int spacing = (int)(2 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
-        int totalWidth = cols * (slotSize + spacing);
-        int totalHeight = (3 + 1) * (slotSize + spacing) + spacing * 2;
-        int startX = (sw - totalWidth) / 2;
-        int startY = (sh - totalHeight) / 2;
-
-        if (player.getMode() == PlayerMode.DEVELOPER) {
-            startX -= 120;
+    private com.za.minecraft.entities.inventory.Slot getSlotAt(float mx, float my) {
+        com.za.minecraft.engine.graphics.ui.InventoryScreen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+        if (screen != null) {
+            com.za.minecraft.engine.graphics.ui.SlotUI ui = screen.getSlotAt(mx, my);
+            return ui != null ? ui.getSlot() : null;
         }
-
-        for (int i = 0; i < 27; i++) {
-            int col = i % cols;
-            int row = i / cols;
-            int x = startX + col * (slotSize + spacing);
-            int y = startY + row * (slotSize + spacing);
-            if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) return 9 + i;
-        }
-
-        int hotbarY = startY + 3 * (slotSize + spacing) + spacing * 4;
-        for (int i = 0; i < 9; i++) {
-            int x = startX + i * (slotSize + spacing);
-            if (mx >= x && mx <= x + slotSize && my >= hotbarY && my <= hotbarY + slotSize) return i;
-        }
-
-        return -1;
+        return null;
     }
 
     private void dropStack(ItemStack stack, Player player, World world, Camera camera, boolean dropAll) {
@@ -201,17 +179,15 @@ public class InputManager {
     
     private void finishDrag() {
         if (heldStack == null || draggedSlots.isEmpty()) return;
-        Player player = GameLoop.getInstance().getPlayer();
-        if (player == null) return;
-        Inventory inv = player.getInventory();
 
         if (dragButton == GLFW_MOUSE_BUTTON_1) {
             int amountPerSlot = heldStack.getCount() / draggedSlots.size();
             if (amountPerSlot > 0) {
-                for (int slotIdx : draggedSlots) {
-                    ItemStack slotStack = inv.getStackInSlot(slotIdx);
+                for (com.za.minecraft.entities.inventory.Slot slot : draggedSlots) {
+                    if (!slot.isItemValid(heldStack)) continue;
+                    ItemStack slotStack = slot.getStack();
                     if (slotStack == null) {
-                        inv.setStackInSlot(slotIdx, heldStack.split(amountPerSlot));
+                        slot.setStack(heldStack.split(amountPerSlot));
                     } else if (heldStack.isStackableWith(slotStack)) {
                         ItemStack split = heldStack.split(amountPerSlot);
                         if (split != null) {
@@ -221,11 +197,12 @@ public class InputManager {
                 }
             }
         } else if (dragButton == GLFW_MOUSE_BUTTON_2) {
-            for (int slotIdx : draggedSlots) {
+            for (com.za.minecraft.entities.inventory.Slot slot : draggedSlots) {
                 if (heldStack.getCount() <= 0) break;
-                ItemStack slotStack = inv.getStackInSlot(slotIdx);
+                if (!slot.isItemValid(heldStack)) continue;
+                ItemStack slotStack = slot.getStack();
                 if (slotStack == null) {
-                    inv.setStackInSlot(slotIdx, heldStack.split(1));
+                    slot.setStack(heldStack.split(1));
                 } else if (heldStack.isStackableWith(slotStack)) {
                     ItemStack split = heldStack.split(1);
                     if (split != null) {
@@ -240,25 +217,26 @@ public class InputManager {
         }
     }
 
-    private void handleInventoryClickOnSlot(Window window, int button, int slotIdx) {
+    private void handleInventoryClickOnSlot(Window window, int button, com.za.minecraft.entities.inventory.Slot slot) {
         Player player = GameLoop.getInstance().getPlayer();
         if (player == null) return;
-        Inventory inv = player.getInventory();
 
         boolean shift = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT) || window.isKeyPressed(GLFW_KEY_RIGHT_SHIFT);
         if (shift && button == GLFW_MOUSE_BUTTON_1) {
-            inv.quickMove(slotIdx);
+            if (player.getInventory() instanceof Inventory inv) {
+                inv.quickMove(slot.getIndex());
+            }
             return;
         }
 
-        ItemStack slotStack = inv.getStackInSlot(slotIdx);
+        ItemStack slotStack = slot.getStack();
         
         if (button == GLFW_MOUSE_BUTTON_1) {
             if (heldStack != null && slotStack != null && heldStack.isStackableWith(slotStack)) {
                 slotStack.setCount(slotStack.getCount() + heldStack.getCount());
                 heldStack = null;
-            } else {
-                inv.setStackInSlot(slotIdx, heldStack);
+            } else if (slot.isItemValid(heldStack)) {
+                slot.setStack(heldStack);
                 heldStack = slotStack;
             }
         } else if (button == GLFW_MOUSE_BUTTON_2) {
@@ -266,18 +244,18 @@ public class InputManager {
                 if (slotStack != null) {
                     int toTake = (int) Math.ceil(slotStack.getCount() / 2.0);
                     heldStack = slotStack.split(toTake);
-                    if (slotStack.getCount() <= 0) inv.setStackInSlot(slotIdx, null);
+                    if (slotStack.getCount() <= 0) slot.setStack(null);
                 }
-            } else {
+            } else if (slot.isItemValid(heldStack)) {
                 if (slotStack == null) {
-                    inv.setStackInSlot(slotIdx, heldStack.split(1));
+                    slot.setStack(heldStack.split(1));
                     if (heldStack.getCount() <= 0) heldStack = null;
                 } else if (heldStack.isStackableWith(slotStack)) {
                     slotStack.setCount(slotStack.getCount() + 1);
                     heldStack.setCount(heldStack.getCount() - 1);
                     if (heldStack.getCount() <= 0) heldStack = null;
                 } else {
-                    inv.setStackInSlot(slotIdx, heldStack);
+                    slot.setStack(heldStack);
                     heldStack = slotStack;
                 }
             }
@@ -288,36 +266,20 @@ public class InputManager {
         Player player = GameLoop.getInstance().getPlayer();
         if (player == null) return;
         
-        int sw = window.getWidth();
-        int sh = window.getHeight();
         float mx = currentPos.x;
         float my = currentPos.y;
 
-        int slotIdx = getSlotAt(mx, my, sw, sh, player);
+        com.za.minecraft.engine.graphics.ui.InventoryScreen activeScreen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+        if (activeScreen == null) return;
 
-        if (slotIdx != -1) {
-            handleInventoryClickOnSlot(window, button, slotIdx);
+        com.za.minecraft.engine.graphics.ui.SlotUI slotUI = activeScreen.getSlotAt(mx, my);
+
+        if (slotUI != null) {
+            handleInventoryClickOnSlot(window, button, slotUI.getSlot());
         } else {
             if (heldStack != null) {
                 dropStack(heldStack, player, GameLoop.getInstance().getWorld(), GameLoop.getInstance().getCamera(), true);
                 heldStack = null;
-            } else if (player.getMode() == PlayerMode.DEVELOPER) {
-                int cols = 9;
-                int slotSize = (int)(18 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
-                int spacing = (int)(2 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
-                int totalWidth = cols * (slotSize + spacing);
-                int startX = (sw - totalWidth) / 2 - 120;
-                int devX = startX + totalWidth + 20;
-                
-                int devCols = 7;
-                int devWidth = devCols * (slotSize + spacing);
-                int devRows = 12;
-                int devHeight = devRows * (slotSize + spacing);
-                int startY = (sh - ((3 + 1) * (slotSize + spacing) + spacing * 2)) / 2;
-
-                if (mx >= devX && mx <= devX + devWidth && my >= startY && my <= startY + devHeight) {
-                    handleDevPanelClick(mx, my, devX, startY, slotSize, spacing);
-                }
             }
         }
     }
@@ -362,11 +324,11 @@ public class InputManager {
         return devScroll;
     }
 
-    public int getHoveredSlotIndex() {
-        return hoveredSlotIndex;
+    public com.za.minecraft.entities.inventory.Slot getHoveredSlot() {
+        return hoveredSlot;
     }
     
-    public java.util.Set<Integer> getDraggedSlots() {
+    public java.util.Set<com.za.minecraft.entities.inventory.Slot> getDraggedSlots() {
         return draggedSlots;
     }
 
@@ -430,14 +392,16 @@ public class InputManager {
             }
 
             if (inventoryOpen) {
-                int newHovered = getSlotAt(currentPos.x, currentPos.y, window.getWidth(), window.getHeight(), player);
-                if (newHovered != hoveredSlotIndex) {
-                    hoveredSlotIndex = newHovered;
-                    if (isDragging && dragButton != -1 && heldStack != null && hoveredSlotIndex != -1) {
-                        ItemStack slotStack = player.getInventory().getStackInSlot(hoveredSlotIndex);
+                com.za.minecraft.entities.inventory.Slot newHovered = getSlotAt(currentPos.x, currentPos.y);
+                if (newHovered != hoveredSlot) {
+                    hoveredSlot = newHovered;
+                    if (isDragging && dragButton != -1 && heldStack != null && hoveredSlot != null) {
+                        ItemStack slotStack = hoveredSlot.getStack();
                         boolean canReceive = (slotStack == null || heldStack.isStackableWith(slotStack));
-                        if (canReceive && (draggedSlots.contains(hoveredSlotIndex) || draggedSlots.size() < heldStack.getCount())) {
-                            draggedSlots.add(hoveredSlotIndex);
+                        if (canReceive && (draggedSlots.contains(hoveredSlot) || draggedSlots.size() < heldStack.getCount())) {
+                            if (hoveredSlot.isItemValid(heldStack)) {
+                                draggedSlots.add(hoveredSlot);
+                            }
                         }
                     }
                 }
@@ -449,7 +413,7 @@ public class InputManager {
                 zKeyPressed = zKeyCurrentlyPressed;
             }
         } else {
-            hoveredSlotIndex = -1;
+            hoveredSlot = null;
             isDragging = false;
             draggedSlots.clear();
         }
@@ -551,12 +515,12 @@ public class InputManager {
         boolean qKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_Q);
         if (qKeyCurrentlyPressed && !qKeyPressed && !paused && !nappingOpen) {
             if (inventoryOpen) {
-                if (hoveredSlotIndex != -1) {
-                    ItemStack stack = player.getInventory().getStackInSlot(hoveredSlotIndex);
+                if (hoveredSlot != null) {
+                    ItemStack stack = hoveredSlot.getStack();
                     if (stack != null) {
                         boolean ctrlPressed = window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL);
                         dropStack(stack, player, world, camera, ctrlPressed);
-                        if (stack.getCount() <= 0) player.getInventory().setStackInSlot(hoveredSlotIndex, null);
+                        if (stack.getCount() <= 0) hoveredSlot.setStack(null);
                     }
                 }
             } else {

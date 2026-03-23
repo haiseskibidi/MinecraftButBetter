@@ -14,7 +14,6 @@ import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.items.ItemRegistry;
 import org.lwjgl.system.MemoryUtil;
 
-
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.HashMap;
@@ -40,6 +39,8 @@ public class UIRenderer {
     private Hotbar hotbar;
     private PauseMenu pauseMenu;
     private FontRenderer fontRenderer;
+    private int lastSw = 0, lastSh = 0;
+    private com.za.minecraft.engine.core.PlayerMode lastMode = null;
     
     private static final float[] QUAD_VERTICES = {
         -1.0f, -1.0f, 0.0f, 1.0f,
@@ -352,82 +353,52 @@ public class UIRenderer {
         
         renderDarkenedBackground();
         
-        // Inventory Layout (Classic Minecraft Style)
-        int cols = 9;
-        int rows = 3;
+        ScreenManager screenManager = ScreenManager.getInstance();
+        if (!screenManager.isAnyScreenOpen()) {
+            screenManager.openPlayerInventory(player, screenWidth, screenHeight);
+        }
+        
+        InventoryScreen activeScreen = screenManager.getActiveScreen();
+        
+        // Dynamic re-init if resolution or player mode changed
+        com.za.minecraft.engine.core.PlayerMode currentMode = player.getMode();
+        if (screenWidth != lastSw || screenHeight != lastSh || currentMode != lastMode) {
+            activeScreen.init(screenWidth, screenHeight);
+            lastSw = screenWidth;
+            lastSh = screenHeight;
+            lastMode = currentMode;
+        }
+        
+        activeScreen.render(this, screenWidth, screenHeight, atlas);
+
         int slotSize = (int)(18 * Hotbar.HOTBAR_SCALE);
-        int spacing = (int)(2 * Hotbar.HOTBAR_SCALE);
-        int totalWidth = cols * (slotSize + spacing);
-        int totalHeight = (rows + 1) * (slotSize + spacing) + spacing * 2;
-        
-        int startX = (screenWidth - totalWidth) / 2;
-        int startY = (screenHeight - totalHeight) / 2;
 
-        // Shift inventory to the left if dev mode is active
-        if (player.getMode() == PlayerMode.DEVELOPER) {
-            startX -= 120;
-        }
-        
-        // 1. Draw Main Inventory (9x3 slots, indices 9-35)
-        for (int i = 0; i < 27; i++) {
-            int col = i % cols;
-            int row = i / cols;
-            int x = startX + col * (slotSize + spacing);
-            int y = startY + row * (slotSize + spacing);
-            
-            renderSlot(x, y, slotSize, player.getInventory().getStackInSlot(9 + i), screenWidth, screenHeight, atlas);
-        }
-        
-        // 2. Draw Hotbar (9x1 slots, indices 0-8)
-        int hotbarY = startY + rows * (slotSize + spacing) + spacing * 4;
-        for (int i = 0; i < 9; i++) {
-            int x = startX + i * (slotSize + spacing);
-            renderSlot(x, hotbarY, slotSize, player.getInventory().getStackInSlot(i), screenWidth, screenHeight, atlas);
-        }
-
-        // 3. Draw Developer Panel
-        if (player.getMode() == PlayerMode.DEVELOPER) {
-            renderDeveloperPanel(startX + totalWidth + 20, startY, slotSize, spacing, screenWidth, screenHeight, atlas);
-        }
-
-        // 4. Draw Held Stack (at mouse position)
+        // Draw Held Stack
         ItemStack held = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getHeldStack();
         if (held != null) {
             float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
             float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
             renderItemIcon(held.getItem(), (int)mx - slotSize/2, (int)my - slotSize/2, slotSize, screenWidth, screenHeight, atlas);
+            if (held.getCount() > 1) {
+                String count = String.valueOf(held.getCount());
+                fontRenderer.drawString(count, (int)mx + 8, (int)my + 8, 14, screenWidth, screenHeight);
+            }
         }
         
-        // 5. Draw Tooltip (at mouse position)
-        renderInventoryTooltip(startX, startY, slotSize, spacing, player, screenWidth, screenHeight);
+        // Draw Tooltip for hovered slot
+        renderInventoryTooltip(activeScreen, slotSize, player, screenWidth, screenHeight);
 
-        // 6. Draw Hover Highlight and Drag Highlight
-        int hovered = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getHoveredSlotIndex();
-        java.util.Set<Integer> dragged = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getDraggedSlots();
+        // Draw Highlights (Hover and Drag)
+        float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
+        float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
+        SlotUI hoveredUI = activeScreen.getSlotAt(mx, my);
+        java.util.Set<com.za.minecraft.entities.inventory.Slot> dragged = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getDraggedSlots();
         
-        for (int i = 0; i < com.za.minecraft.entities.Inventory.TOTAL_SIZE; i++) {
-            if (dragged.contains(i)) {
-                int hX, hY;
-                if (i < 9) {
-                    hX = startX + i * (slotSize + spacing);
-                    hY = startY + 3 * (slotSize + spacing) + spacing * 4;
-                } else {
-                    int idx = i - 9;
-                    hX = startX + (idx % 9) * (slotSize + spacing);
-                    hY = startY + (idx / 9) * (slotSize + spacing);
-                }
-                renderHighlight(hX, hY, slotSize, screenWidth, screenHeight, 0.2f, 0.6f, 1.0f, 0.4f); // Blue tint
-            } else if (i == hovered && hovered != -1) {
-                int hX, hY;
-                if (hovered < 9) {
-                    hX = startX + hovered * (slotSize + spacing);
-                    hY = startY + 3 * (slotSize + spacing) + spacing * 4;
-                } else {
-                    int idx = hovered - 9;
-                    hX = startX + (idx % 9) * (slotSize + spacing);
-                    hY = startY + (idx / 9) * (slotSize + spacing);
-                }
-                renderHighlight(hX, hY, slotSize, screenWidth, screenHeight, 1.0f, 1.0f, 1.0f, 0.3f); // White tint
+        for (SlotUI ui : activeScreen.getSlots()) {
+            if (dragged.contains(ui.getSlot())) {
+                renderHighlight(ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, 0.2f, 0.6f, 1.0f, 0.4f);
+            } else if (ui == hoveredUI) {
+                renderHighlight(ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, 1.0f, 1.0f, 1.0f, 0.3f);
             }
         }
         
@@ -450,7 +421,7 @@ public class UIRenderer {
         uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
         uiShader.setUniform("tintColor", r, g, b, a);
         
-        glBindTexture(GL_TEXTURE_2D, 0); // Unbind texture
+        glBindTexture(GL_TEXTURE_2D, 0); 
         glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
@@ -462,7 +433,6 @@ public class UIRenderer {
         int devWidth = cols * (slotSize + spacing);
         int devHeight = rows * (slotSize + spacing);
         
-        // Panel background
         renderButton(devX + devWidth / 2, startY + devHeight / 2, devWidth + 10, devHeight + 10, sw, sh, null, 0.2f, 0.2f, 0.2f);
         
         List<Item> allItems = new ArrayList<>(ItemRegistry.getAllItems().values());
@@ -482,7 +452,6 @@ public class UIRenderer {
             renderSlot(x, y, slotSize, new ItemStack(allItems.get(i)), sw, sh, atlas);
         }
 
-        // Tooltip for Dev Panel
         float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
         float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
         if (mx >= devX && mx <= devX + devWidth && my >= startY && my <= startY + devHeight) {
@@ -507,46 +476,27 @@ public class UIRenderer {
         }
     }
 
-    private void renderInventoryTooltip(int startX, int startY, int slotSize, int spacing, Player player, int sw, int sh) {
+    private void renderInventoryTooltip(InventoryScreen screen, int slotSize, Player player, int sw, int sh) {
         float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
         float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
         
-        ItemStack hovered = null;
-        
-        // Check Main (9-35)
-        for (int i = 0; i < 27; i++) {
-            int col = i % 9;
-            int row = i / 9;
-            int x = startX + col * (slotSize + spacing);
-            int y = startY + row * (slotSize + spacing);
-            if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
-                hovered = player.getInventory().getStackInSlot(9 + i);
+        SlotUI hoveredUI = screen != null ? screen.getSlotAt(mx, my) : null;
+        if (hoveredUI != null) {
+            ItemStack hovered = hoveredUI.getSlot().getStack();
+            if (hovered != null) {
+                String name = com.za.minecraft.utils.I18n.get(hovered.getItem().getName());
+                int nameSize = 16;
+                int textWidth = fontRenderer.getStringWidth(name, nameSize);
+                int tx = (int)mx + 12;
+                int ty = (int)my - 12;
+                
+                renderButton(tx + textWidth/2, ty + nameSize/2, textWidth + 8, nameSize + 8, sw, sh, null, 0.1f, 0.1f, 0.1f);
+                fontRenderer.drawString(name, tx + 4, ty + 4, nameSize, sw, sh);
             }
-        }
-        
-        // Check Hotbar (0-8)
-        int hotbarY = startY + 3 * (slotSize + spacing) + spacing * 4;
-        for (int i = 0; i < 9; i++) {
-            int x = startX + i * (slotSize + spacing);
-            if (mx >= x && mx <= x + slotSize && my >= hotbarY && my <= hotbarY + slotSize) {
-                hovered = player.getInventory().getStackInSlot(i);
-            }
-        }
-        
-        if (hovered != null) {
-            String name = com.za.minecraft.utils.I18n.get(hovered.getItem().getName());
-            int nameSize = 16;
-            int textWidth = fontRenderer.getStringWidth(name, nameSize);
-            int tx = (int)mx + 12;
-            int ty = (int)my - 12;
-            
-            // Tooltip background
-            renderButton(tx + textWidth/2, ty + nameSize/2, textWidth + 8, nameSize + 8, sw, sh, null, 0.1f, 0.1f, 0.1f);
-            fontRenderer.drawString(name, tx + 4, ty + 4, nameSize, sw, sh);
         }
     }
 
-    private void renderSlot(int x, int y, int size, ItemStack stack, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
+    public void renderSlot(int x, int y, int size, ItemStack stack, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
         // Slot background
         uiShader.use();
         uiShader.setInt("useTexture", 0);

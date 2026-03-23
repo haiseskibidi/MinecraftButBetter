@@ -41,6 +41,7 @@ public class Player extends LivingEntity {
     
     @Override
     public void update(float deltaTime, World world) {
+        inventory.update(world, this, com.za.minecraft.engine.core.GameLoop.getInstance().getCamera());
         updateHunger(deltaTime);
         updateNoise(deltaTime);
         updateAnimations(deltaTime);

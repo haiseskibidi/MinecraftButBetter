@@ -11,7 +11,7 @@ public class Hotbar {
     public static final int SLOT_SPACING = 20;
     
     // Масштаб для увеличения хотбара
-    public static final float HOTBAR_SCALE = 2.2f;
+    public static final float HOTBAR_SCALE = 2.0f;
     
     // Размеры элементов хотбара (теперь используем отдельные файлы)
     public static final int HOTBAR_SELECTION_WIDTH = 24;

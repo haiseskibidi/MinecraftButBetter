@@ -1,0 +1,16 @@
+{
+  "id": 409,
+  "identifier": "minecraft:pouch",
+  "translationKey": "item.minecraft.pouch",
+  "texture": "minecraft/textures/item/pouch.png",
+  "weight": 0.5,
+  "visualScale": 0.8,
+  "components": {
+    "equipment": {
+      "slot": "accessory"
+    },
+    "bag": {
+      "slots": 6
+    }
+  }
+}
