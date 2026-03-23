@@ -1,0 +1,7 @@
+{
+    "identifier": "minecraft:log_pile",
+    "modelType": "block",
+    "texture": "minecraft:oak_log",
+    "visualScale": [0.55, 0.55, 0.95],
+    "hitbox": [0.55, 0.55, 0.95]
+}

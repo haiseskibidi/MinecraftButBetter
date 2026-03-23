@@ -34,7 +34,9 @@ public class DataLoader {
 
     public static void loadAll() {
         // Гарантируем наличие AIR даже если загрузка из JSON не сработает
-        BlockRegistry.registerBlock(new BlockDefinition(0, "block.minecraft.air", false, false));
+        BlockDefinition airDef = new BlockDefinition(0, "block.minecraft.air", false, false);
+        airDef.setReplaceable(true);
+        BlockRegistry.registerBlock(airDef);
         
         List<String> namespaces = loadNamespaces();
         for (String ns : namespaces) {
@@ -46,6 +48,10 @@ public class DataLoader {
             loadItems(ns);
         }
         com.za.minecraft.utils.events.RegistryEvents.fireItemRegistration();
+
+        for (String ns : namespaces) {
+            loadEntityDefinitions(ns);
+        }
 
         for (String ns : namespaces) {
             loadStructures(ns);
@@ -120,6 +126,48 @@ public class DataLoader {
             }
         } catch (Exception e) {
             Logger.error("Failed to parse recipe: " + e.getMessage());
+        }
+    }
+
+    private static void loadEntityDefinitions(String namespace) {
+        List<String> files = listResources(namespace + "/entities");
+        if (!files.isEmpty()) {
+            for (String file : files) {
+                loadResource(namespace + "/entities/" + file, DataLoader::parseEntityDefinition);
+            }
+            Logger.info("Loaded entity definitions for namespace: " + namespace);
+        }
+    }
+
+    private static void parseEntityDefinition(JsonElement el) {
+        try {
+            JsonObject obj = el.getAsJsonObject();
+            Identifier id = Identifier.of(obj.get("identifier").getAsString());
+            String modelType = obj.get("modelType").getAsString();
+            String texture = obj.get("texture").getAsString();
+            
+            org.joml.Vector3f visualScale = new org.joml.Vector3f(1.0f, 1.0f, 1.0f);
+            if (obj.has("visualScale")) {
+                if (obj.get("visualScale").isJsonArray()) {
+                    JsonArray vs = obj.getAsJsonArray("visualScale");
+                    visualScale.set(vs.get(0).getAsFloat(), vs.get(1).getAsFloat(), vs.get(2).getAsFloat());
+                } else {
+                    float s = obj.get("visualScale").getAsFloat();
+                    visualScale.set(s, s, s);
+                }
+            }
+            
+            org.joml.Vector3f hitbox = new org.joml.Vector3f(0.5f, 0.5f, 0.5f);
+            if (obj.has("hitbox")) {
+                JsonArray h = obj.getAsJsonArray("hitbox");
+                hitbox.set(h.get(0).getAsFloat(), h.get(1).getAsFloat(), h.get(2).getAsFloat());
+            }
+
+            com.za.minecraft.entities.EntityRegistry.register(
+                new com.za.minecraft.entities.EntityDefinition(id, modelType, texture, visualScale, hitbox)
+            );
+        } catch (Exception e) {
+            Logger.error("Failed to parse entity definition: " + e.getMessage());
         }
     }
 
@@ -244,6 +292,8 @@ public class DataLoader {
             if (obj.has("dropItem")) def.setDropItem(obj.get("dropItem").getAsString());
             if (obj.has("dropChance")) def.setDropChance(obj.get("dropChance").getAsFloat());
             if (obj.has("supportScavenge")) def.setSupportScavenge(obj.get("supportScavenge").getAsBoolean());
+            if (obj.has("alwaysRender")) def.setAlwaysRender(obj.get("alwaysRender").getAsBoolean());
+            if (obj.has("replaceable")) def.setReplaceable(obj.get("replaceable").getAsBoolean());
             if (obj.has("placement")) {
                 def.setPlacementType(com.za.minecraft.world.blocks.PlacementType.valueOf(obj.get("placement").getAsString().toUpperCase()));
             }

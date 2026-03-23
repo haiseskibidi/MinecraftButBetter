@@ -49,6 +49,16 @@ public class Inventory {
             this.selectedSlot = slot;
         }
     }
+
+    public void consumeSelected(int amount) {
+        ItemStack stack = getSelectedItemStack();
+        if (stack != null) {
+            stack.setCount(stack.getCount() - amount);
+            if (stack.getCount() <= 0) {
+                setStackInSlot(selectedSlot, null);
+            }
+        }
+    }
     
     public ItemStack getStackInSlot(int slot) {
         if (slot >= 0 && slot < TOTAL_SIZE) {

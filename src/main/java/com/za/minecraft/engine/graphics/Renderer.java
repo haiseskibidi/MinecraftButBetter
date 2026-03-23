@@ -43,6 +43,7 @@ public class Renderer {
     private Block currentPreviewBlock;
     private com.za.minecraft.world.BlockPos previewPos;
     private final Map<com.za.minecraft.world.items.Item, Mesh> itemMeshCache = new java.util.HashMap<>();
+    private final Map<com.za.minecraft.entities.EntityDefinition, Mesh> entityDefMeshCache = new java.util.HashMap<>();
     
     public Renderer() {
         this.chunkMeshes = new ConcurrentHashMap<>();
@@ -88,6 +89,16 @@ public class Renderer {
             if (tex != null && !tex.isEmpty()) {
                 String path = "src/main/resources/" + tex;
                 atlas.add(tex, path);
+            }
+        }
+        // Add all entity textures
+        for (com.za.minecraft.entities.EntityDefinition def : com.za.minecraft.entities.EntityRegistry.getAll().values()) {
+            if ("item".equals(def.modelType())) {
+                String tex = def.texture();
+                if (tex != null && !tex.isEmpty()) {
+                    String path = "src/main/resources/" + tex;
+                    atlas.add(tex, path);
+                }
             }
         }
         atlas.build();
@@ -364,29 +375,67 @@ public class Renderer {
                     blockShader.setMatrix4f("model", modelMatrix);
                     blockShader.setInt("highlightPass", 0);
                     mesh.render();
-                    }
-                    } else if (entity instanceof com.za.minecraft.entities.ResourceEntity resource) {
-                    com.za.minecraft.world.items.Item item = resource.getStack().getItem();
-                    Mesh mesh = itemMeshCache.get(item);
+                }
+            } else if (entity instanceof com.za.minecraft.entities.ResourceEntity resource) {
+                com.za.minecraft.world.items.Item item = resource.getStack().getItem();
+                Mesh mesh = itemMeshCache.get(item);
 
-                    if (mesh == null) {
+                if (mesh == null) {
                     mesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
                     if (mesh != null) itemMeshCache.put(item, mesh);
-                    }
+                }
 
-                    if (mesh != null) {
-                        float scale = item.getVisualScale();
-                        modelMatrix.identity()
-                            .translate(entity.getPosition().x(), entity.getPosition().y() + 0.05f, entity.getPosition().z())
-                            .rotateY(resource.getRotation().y)
-                            .rotateX(1.57f) // Лежит плашмя
-                            .scale(scale)
-                            .translate(0, -0.5f, 0); // Центрируем по вертикали
+                if (mesh != null) {
+                    float scale = item.getVisualScale();
+                    modelMatrix.identity()
+                        .translate(entity.getPosition().x(), entity.getPosition().y() + 0.05f, entity.getPosition().z())
+                        .rotateY(resource.getRotation().y)
+                        .rotateX(1.57f) // Lay flat on ground
+                        .scale(scale)
+                        .translate(0, -0.5f, 0); // Center sprite mesh
+                    
                     blockShader.setMatrix4f("model", modelMatrix);
                     blockShader.setInt("highlightPass", 0);
                     mesh.render();
+                }
+            } else if (entity instanceof com.za.minecraft.entities.DecorationEntity decoration) {
+                com.za.minecraft.entities.EntityDefinition def = decoration.getDefinition();
+                if (def == null) continue;
+
+                Mesh mesh = entityDefMeshCache.get(def);
+                if (mesh == null) {
+                    if ("item".equals(def.modelType())) {
+                        mesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(def.texture(), atlas, 0);
+                    } else if ("block".equals(def.modelType())) {
+                        // Если это блок, то texture в JSON - это его Identifier
+                        com.za.minecraft.utils.Identifier blockId = com.za.minecraft.utils.Identifier.of(def.texture());
+                        com.za.minecraft.world.blocks.BlockDefinition blockDef = com.za.minecraft.world.blocks.BlockRegistry.getBlock(blockId);
+                        if (blockDef != null) {
+                            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(blockDef.getId()), atlas);
+                        }
                     }
+                    if (mesh != null) entityDefMeshCache.put(def, mesh);
+                }
+
+                if (mesh != null) {
+                    org.joml.Vector3f scale = def.visualScale();
+                    modelMatrix.identity()
+                        .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z())
+                        .rotateY(entity.getRotation().y);
+                    
+                    if ("block".equals(def.modelType())) {
+                        // Блоки центрируются по осям X и Z, и лежат на земле Y=0
+                        modelMatrix.scale(scale.x, scale.y, scale.z)
+                                   .translate(-0.5f, 0, -0.5f);
                     } else {
+                        modelMatrix.scale(scale.x, scale.y, scale.z);
+                    }
+                    
+                    blockShader.setMatrix4f("model", modelMatrix);
+                    blockShader.setInt("highlightPass", 0);
+                    mesh.render();
+                }
+            } else {
 
                 if (playerMesh == null) createPlayerMesh();
                 modelMatrix.identity()

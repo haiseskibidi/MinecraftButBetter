@@ -5,6 +5,7 @@
   "solid": false,
   "transparent": true,
   "placement": "CROSS_PLANE",
+  "replaceable": true,
   "hardness": 0.0,
   "dropItem": "minecraft:straw",
   "dropChance": 0.2,

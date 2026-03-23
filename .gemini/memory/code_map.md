@@ -218,8 +218,14 @@
 Назначение: Автоматическая генерация AABB на основе прозрачности текстуры.
 Функции: Попиксельное сканирование, вычисление границ, кеширование.
 
-### com.za.minecraft.utils.NumericalRegistry (NEW)
-Назначение: Реестр с автоматическим управлением целочисленными ID.
+### com.za.minecraft.entities.EntityRegistry (NEW)
+Назначение: Реестр определений сущностей (EntityDefinition) из JSON.
+
+### com.za.minecraft.entities.DecorationEntity (NEW)
+Назначение: Универсальная сущность для 3D декораций (бревна, камни) на основе JSON.
+
+### com.za.minecraft.world.blocks.entity.PitKilnBlockEntity (NEW)
+Назначение: Управление процессом обжига глины (таймер, превращение).
 
 ### com.za.minecraft.utils.I18n
 Назначение: Система локализации на базе JSON-файлов.

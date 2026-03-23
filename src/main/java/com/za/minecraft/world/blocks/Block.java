@@ -40,7 +40,11 @@ public class Block {
     public boolean isSolid() {
         return BlockRegistry.getBlock(type).isSolid();
     }
-    
+
+    public boolean isReplaceable() {
+        return BlockRegistry.getBlock(type).isReplaceable();
+    }
+
     public boolean isTransparent() {
         return BlockRegistry.getBlock(type).isTransparent();
     }

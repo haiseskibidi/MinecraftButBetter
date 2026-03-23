@@ -285,6 +285,17 @@ public class GameLoop {
         // Отрисовка прогресса разрушения блока
         renderer.getUIRenderer().renderMiningProgress(window.getWidth(), window.getHeight(), inputManager.getBreakingProgress());
         
+        // Отрисовка прогресса обжига
+        if (highlightedBlock != null && highlightedBlock.isHit()) {
+            com.za.minecraft.world.blocks.Block block = world.getBlock(highlightedBlock.getBlockPos());
+            if (block.getType() == com.za.minecraft.world.blocks.Blocks.BURNING_PIT_KILN.getId()) {
+                com.za.minecraft.world.blocks.entity.BlockEntity be = world.getBlockEntity(highlightedBlock.getBlockPos());
+                if (be instanceof com.za.minecraft.world.blocks.entity.PitKilnBlockEntity kiln) {
+                    renderer.getUIRenderer().renderFiringProgress(window.getWidth(), window.getHeight(), kiln.getProgress());
+                }
+            }
+        }
+        
         // Отрисовка голода
         renderer.getUIRenderer().renderHunger(window.getWidth(), window.getHeight(), player.getHunger());
         

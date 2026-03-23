@@ -198,6 +198,25 @@ public class UIRenderer {
         glDisable(GL_BLEND);
     }
 
+    public void renderFiringProgress(int screenWidth, int screenHeight, float progress) {
+        if (progress <= 0.0f) return;
+
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        String text = com.za.minecraft.utils.I18n.format("gui.firing_progress", (int)(progress * 100));
+        int textSize = 18;
+        int textWidth = fontRenderer.getStringWidth(text, textSize);
+        int x = (screenWidth - textWidth) / 2;
+        int y = (screenHeight / 2) + 30;
+
+        fontRenderer.drawString(text, x, y, textSize, screenWidth, screenHeight);
+
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+    }
+
     public void renderHunger(int screenWidth, int screenHeight, float hunger) {
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
@@ -570,8 +589,8 @@ public class UIRenderer {
             
             // Draw durability bar for tools
             if (stack.getItem().isTool()) {
-                ToolItem tool = (ToolItem) stack.getItem();
-                float dur = (float)stack.getDurability() / tool.getMaxDurability();
+                com.za.minecraft.world.items.component.ToolComponent tool = stack.getItem().getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
+                float dur = (float)stack.getDurability() / tool.maxDurability();
                 if (dur < 1.0f) {
                     renderDurabilityBar(x + 2, y + size - 4, size - 4, dur, screenWidth, screenHeight);
                 }

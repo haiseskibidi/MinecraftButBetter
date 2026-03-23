@@ -3,5 +3,6 @@
     "identifier":  "minecraft:air",
     "translationKey":  "block.minecraft.air",
     "solid":  false,
-    "transparent":  false
+    "transparent":  false,
+    "replaceable": true
 }

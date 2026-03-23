@@ -199,12 +199,30 @@ public class ChunkMeshGenerator {
                             Block neighbor = world.getBlock(worldX + dir.getDx(), worldY + dir.getDy(), worldZ + dir.getDz());
                             
                             boolean drawFace = true;
-                            if (neighbor.isAir()) {
+                            com.za.minecraft.world.blocks.BlockDefinition neighborDef = com.za.minecraft.world.blocks.BlockRegistry.getBlock(neighbor.getType());
+
+                            // Проверяем, лежит ли текущая грань на границе блока 1x1x1
+                            boolean onBoundary = false;
+                            switch (face) {
+                                case 0: onBoundary = (box.getMax().z == 1.0f); break; // NORTH (+Z)
+                                case 1: onBoundary = (box.getMin().z == 0.0f); break; // SOUTH (-Z)
+                                case 2: onBoundary = (box.getMax().x == 1.0f); break; // EAST (+X)
+                                case 3: onBoundary = (box.getMin().x == 0.0f); break; // WEST (-X)
+                                case 4: onBoundary = (box.getMax().y == 1.0f); break; // UP (+Y)
+                                case 5: onBoundary = (box.getMin().y == 0.0f); break; // DOWN (-Y)
+                            }
+
+                            if (def.isAlwaysRender()) {
                                 drawFace = true;
-                            } else if (neighbor.isFullCube() && !neighbor.isTransparent()) {
+                            } else if (!onBoundary) {
+                                // Если грань внутри блока (рецессия), всегда рисуем её
+                                drawFace = true;
+                            } else if (neighbor.isAir()) {
+                                drawFace = true;
+                            } else if (neighbor.isFullCube() && !neighbor.isTransparent() && !neighborDef.isAlwaysRender()) {
                                 drawFace = false;
                             } else if (isTranslucent && neighbor.getType() == block.getType()) {
-                                drawFace = false; // Internal faces between same translucent type are not needed
+                                drawFace = false;
                             } else {
                                 drawFace = true;
                             }

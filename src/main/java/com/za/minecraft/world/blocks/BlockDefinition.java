@@ -17,6 +17,8 @@ public class BlockDefinition {
     private String dropItem = null; // Identifier of the item to drop (null = drop self)
     private float dropChance = 1.0f; // Chance to drop the item (0.0 to 1.0)
     private boolean canSupportScavenge = false;
+    private boolean alwaysRender = false;
+    private boolean replaceable = false;
     private PlacementType placementType = PlacementType.DEFAULT;
     private BlockTextures textures;
     private boolean fullCube = true;
@@ -47,7 +49,7 @@ public class BlockDefinition {
 
     public BlockDefinition setShape(VoxelShape shape) {
         this.shape = shape;
-        this.fullCube = (shape == VoxelShape.FULL_CUBE);
+        this.fullCube = shape.isFullCube();
         return this;
     }
 
@@ -134,6 +136,23 @@ public class BlockDefinition {
         return placementType;
     }
 
+    public boolean isAlwaysRender() {
+        return alwaysRender;
+    }
+
+    public BlockDefinition setAlwaysRender(boolean alwaysRender) {
+        this.alwaysRender = alwaysRender;
+        return this;
+    }
+
+    public boolean isReplaceable() {
+        return replaceable;
+    }
+
+    public BlockDefinition setReplaceable(boolean replaceable) {
+        this.replaceable = replaceable;
+        return this;
+    }
 
     public boolean isSolid() {
         return solid;

@@ -60,5 +60,9 @@
   "block.minecraft.emerald_ore": "Изумрудная руда",
   "block.minecraft.lapis_ore": "Лазуритовая руда",
   "block.minecraft.redstone_ore": "Редстоуновая руда",
-  "block.minecraft.copper_ore": "Медная руда"
+  "block.minecraft.copper_ore": "Медная руда",
+  "block.minecraft.pit_kiln": "Ямный обжиг (подготовка)",
+  "block.minecraft.burning_pit_kiln": "Горящая яма для обжига",
+  "item.minecraft.fire_starter": "Приспособление для розжига",
+  "gui.firing_progress": "Обжиг: %d%%"
 }

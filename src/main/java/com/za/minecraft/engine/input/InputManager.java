@@ -637,8 +637,11 @@ public class InputManager {
                             breakingProgress = 0.0f;
                             breakDelayTimer = BREAK_COOLDOWN;
                             if (currentStack != null && currentItem.isTool()) {
-                                currentStack.setDurability(currentStack.getDurability() - 1);
-                                if (currentStack.getDurability() <= 0) player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
+                                com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
+                                if (tool != null && (tool.isEffectiveAgainstAll() || tool.type().name().equalsIgnoreCase(blockDef.getRequiredTool()))) {
+                                    currentStack.setDurability(currentStack.getDurability() - 1);
+                                    if (currentStack.getDurability() <= 0) player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
+                                }
                             }
                         }
                     }
@@ -657,7 +660,48 @@ public class InputManager {
                 if (raycast.isHit() && isNewRightClick) {
                     BlockPos hitPos = raycast.getBlockPos();
                     int hitBlockType = world.getBlock(hitPos).getType();
-                    if (hitBlockType == Blocks.CAMPFIRE.getId()) {
+                    
+                    // --- Pit Kiln Logic ---
+                    if (player.isSneaking() && isNewRightClick) {
+                        if (hitBlockType == Blocks.UNFIRED_VESSEL.getId()) {
+                            if (currentItem != null && currentItem.getId() == Items.STRAW.getId()) {
+                                world.setBlock(hitPos, new Block(Blocks.PIT_KILN.getId(), (byte)0));
+                                player.getInventory().consumeSelected(1);
+                                actionConsumed = true;
+                            }
+                        } else if (hitBlockType == Blocks.PIT_KILN.getId()) {
+                            Block block = world.getBlock(hitPos);
+                            int logs = block.getMetadata();
+                            
+                            if (logs < 4 && currentItem != null && currentItem.getIdentifier().getPath().contains("log")) {
+                                // Позиции для бревен "плюсиком"
+                                float[][] offsets = {{0.25f, 0, 0}, {-0.25f, 0, 0}, {0, 0, 0.25f}, {0, 0, -0.25f}};
+                                float[] rotations = {0, 0, 1.57f, 1.57f};
+                                // Добавляем микро-смещение по Y для второй пары бревен (индексы 2 и 3), чтобы избежать Z-fighting
+                                float yOffset = (logs >= 2) ? 0.005f : 0.0f;
+                                
+                                Vector3f pos = new Vector3f(hitPos.x() + 0.5f + offsets[logs][0], hitPos.y() + 0.05f + yOffset, hitPos.z() + 0.5f + offsets[logs][2]);
+                                world.spawnEntity(new com.za.minecraft.entities.DecorationEntity(pos, Identifier.of("minecraft:log_pile"), rotations[logs]));
+                                
+                                world.setBlock(hitPos, new Block(Blocks.PIT_KILN.getId(), (byte)(logs + 1)));
+                                player.getInventory().consumeSelected(1);
+                                actionConsumed = true;
+                            } else if (logs == 4 && currentItem != null && currentItem.getId() == Items.FIRE_STARTER.getId()) {
+                                // Удаляем сущности бревен в радиусе блока
+                                world.getEntities().stream()
+                                    .filter(e -> e instanceof com.za.minecraft.entities.DecorationEntity)
+                                    .filter(e -> e.getPosition().distance(new Vector3f(hitPos.x() + 0.5f, hitPos.y(), hitPos.z() + 0.5f)) < 1.0f)
+                                    .forEach(e -> e.setRemoved());
+                                
+                                world.setBlock(hitPos, new Block(Blocks.BURNING_PIT_KILN.getId()));
+                                world.setBlockEntity(new com.za.minecraft.world.blocks.entity.PitKilnBlockEntity(hitPos));
+                                // В будущем уменьшить прочность огнива
+                                actionConsumed = true;
+                            }
+                        }
+                    }
+
+                    if (!actionConsumed && hitBlockType == Blocks.CAMPFIRE.getId()) {
                         if (currentItem != null && currentItem.getId() == Items.RAW_MEAT.getId()) {
                             player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), new ItemStack(Items.COOKED_MEAT));
                             actionConsumed = true;
@@ -708,12 +752,12 @@ public class InputManager {
                     }
                 }
                 
-                if (!actionConsumed && (isNewRightClick || placeDelayTimer <= 0) && raycast.isHit()) {
+                if (!actionConsumed && (isNewRightClick || placeDelayTimer <= 0) && raycast.isHit() && !isSpecialInteracting(player, raycast, currentStack)) {
                     if (currentItem != null && currentItem.isBlock()) {
                         int blockType = currentItem.getId();
                         Vector3f normal = raycast.getNormal();
                         BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
-                        if (!isPlayerAt(player, pPos)) {
+                        if (!isPlayerAt(player, pPos) && world.getBlock(pPos).isReplaceable()) {
                             byte meta = calculateMetadata(blockType, normal, raycast.getHitPoint(), camera);
                             world.setBlock(pPos, new Block(blockType, meta));
                             if (networkClient != null && networkClient.isConnected()) networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), blockType);
@@ -728,17 +772,37 @@ public class InputManager {
             rightMousePressed = rm;
         }
 
-        if (!inventoryOpen && !paused && !nappingOpen && raycast.isHit() && currentItem != null && currentItem.isBlock() && player.isSneaking()) {
+        if (!inventoryOpen && !paused && !nappingOpen && raycast.isHit() && currentItem != null && currentItem.isBlock() && !isSpecialInteracting(player, raycast, currentStack)) {
             int blockType = currentItem.getId();
             Vector3f normal = raycast.getNormal();
             BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
-            if (!isPlayerAt(player, pPos) && needsPreview(blockType)) {
+            if (!isPlayerAt(player, pPos) && world.getBlock(pPos).isReplaceable() && needsPreview(blockType)) {
                 byte meta = calculateMetadata(blockType, normal, raycast.getHitPoint(), camera);
                 renderer.setPreviewBlock(pPos, new Block(blockType, meta));
             } else renderer.setPreviewBlock(null, null);
         } else renderer.setPreviewBlock(null, null);
 
         return raycast;
+    }
+
+    /**
+     * Проверяет, выполняется ли сейчас специальное взаимодействие с блоком,
+     * которое должно подавлять стандартные действия (например, превью установки блока).
+     */
+    private boolean isSpecialInteracting(Player player, RaycastResult raycast, ItemStack currentStack) {
+        if (!player.isSneaking() || !raycast.isHit() || currentStack == null) return false;
+
+        int hitBlockType = GameLoop.getInstance().getWorld().getBlock(raycast.getBlockPos()).getType();
+        Item currentItem = currentStack.getItem();
+
+        // Условия для Pit Kiln
+        if (hitBlockType == Blocks.UNFIRED_VESSEL.getId() && currentItem.getId() == Items.STRAW.getId()) return true;
+        if (hitBlockType == Blocks.PIT_KILN.getId()) {
+            if (currentItem.getIdentifier().getPath().contains("log")) return true;
+            if (currentItem.getId() == Items.FIRE_STARTER.getId()) return true;
+        }
+
+        return false;
     }
     
     private boolean needsPreview(int type) {

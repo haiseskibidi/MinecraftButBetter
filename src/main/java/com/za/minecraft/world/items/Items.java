@@ -24,9 +24,9 @@ public class Items {
     public static Item FIRED_VESSEL;
     public static Item CLAY_BALL;
     public static Item STRAW;
+    public static Item FIRE_STARTER;
 
-    public static void init() {
-        for (java.lang.reflect.Field field : Items.class.getFields()) {
+    public static void init() {        for (java.lang.reflect.Field field : Items.class.getFields()) {
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
                 try {
                     Identifier id = Identifier.of("minecraft", field.getName().toLowerCase());

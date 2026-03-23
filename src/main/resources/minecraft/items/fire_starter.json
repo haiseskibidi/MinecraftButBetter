@@ -1,0 +1,13 @@
+{
+    "id": 405,
+    "identifier": "minecraft:fire_starter",
+    "translationKey": "item.minecraft.fire_starter",
+    "texture": "minecraft/textures/item/flint_and_steel.png",
+    "components": {
+        "minecraft:tool": {
+            "type": "NONE",
+            "efficiency": 1.0,
+            "durability": 8
+        }
+    }
+}
