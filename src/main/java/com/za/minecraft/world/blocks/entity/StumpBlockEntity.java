@@ -8,8 +8,8 @@ import com.za.minecraft.utils.Identifier;
  * Сущность блока для пня (Stump).
  * Хранит предмет, лежащий на пне, и прогресс его обработки.
  */
-public class StumpBlockEntity extends BlockEntity {
-    private ItemStack heldStack = null;
+public class StumpBlockEntity extends BlockEntity implements ICraftingSurface {
+    private ItemStack[] inventory = new ItemStack[9];
     private int progress = 0;
     private Identifier currentToolId = null;
 
@@ -17,21 +17,35 @@ public class StumpBlockEntity extends BlockEntity {
         super(pos);
     }
 
-    public void setHeldStack(ItemStack stack) {
-        this.heldStack = stack;
+    @Override
+    public ItemStack getStackInSlot(int slot) {
+        if (slot < 0 || slot >= 9) return null;
+        return inventory[slot];
+    }
+
+    @Override
+    public void setStackInSlot(int slot, ItemStack stack) {
+        if (slot >= 0 && slot < 9) {
+            inventory[slot] = stack;
+            this.progress = 0;
+            this.currentToolId = null;
+        }
+    }
+
+    @Override
+    public int getCraftingProgress() {
+        return progress;
+    }
+
+    @Override
+    public void incrementProgress() {
+        this.progress++;
+    }
+
+    @Override
+    public void resetProgress() {
         this.progress = 0;
         this.currentToolId = null;
-        
-        // Уведомляем мир об изменении, чтобы вызвать перерисовку (если нужно)
-        // В нашем случае Renderer опрашивает BE каждый кадр, так что достаточно просто обновить данные.
-    }
-
-    public ItemStack getHeldStack() {
-        return heldStack;
-    }
-
-    public int getProgress() {
-        return progress;
     }
 
     public void incrementProgress(Identifier toolId) {
@@ -43,12 +57,18 @@ public class StumpBlockEntity extends BlockEntity {
         this.progress++;
     }
 
-    public void resetProgress() {
-        this.progress = 0;
-        this.currentToolId = null;
+    public boolean hasItem() {
+        for (ItemStack s : inventory) {
+            if (s != null) return true;
+        }
+        return false;
     }
 
-    public boolean hasItem() {
-        return heldStack != null;
+    public ItemStack getHeldStack() {
+        // Для обратной совместимости или быстрого доступа к первому предмету
+        for (ItemStack s : inventory) {
+            if (s != null) return s;
+        }
+        return null;
     }
 }

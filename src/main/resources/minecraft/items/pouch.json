@@ -2,7 +2,7 @@
   "id": 409,
   "identifier": "minecraft:pouch",
   "translationKey": "item.minecraft.pouch",
-  "texture": "minecraft/textures/item/pouch.png",
+  "texture": "minecraft/textures/item/bundle.png",
   "weight": 0.5,
   "visualScale": 0.8,
   "components": {

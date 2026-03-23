@@ -555,6 +555,17 @@ public class InputManager {
                     BlockPos hitPos = raycast.getBlockPos();
                     int blockType = world.getBlock(hitPos).getType();
                     BlockDefinition blockDef = BlockRegistry.getBlock(blockType);
+                    
+                    float rx = raycast.getHitPoint().x - hitPos.x();
+                    float ry = raycast.getHitPoint().y - hitPos.y();
+                    float rz = raycast.getHitPoint().z - hitPos.z();
+
+                    // Сначала проверяем кастомный клик (для крафта и т.д.)
+                    if (blockDef.onLeftClick(world, hitPos, player, currentStack, rx, ry, rz, isNewLeftClick)) {
+                        leftMousePressed = true;
+                        return null; 
+                    }
+
                     float hardness = blockDef.getHardness();
 
                     if (hardness >= 0) {
@@ -663,7 +674,11 @@ public class InputManager {
                     int hitBlockType = world.getBlock(hitPos).getType();
                     BlockDefinition blockDef = BlockRegistry.getBlock(hitBlockType);
                     
-                    if (blockDef != null && blockDef.onUse(world, hitPos, player, currentStack)) {
+                    float rx = raycast.getHitPoint().x - hitPos.x();
+                    float ry = raycast.getHitPoint().y - hitPos.y();
+                    float rz = raycast.getHitPoint().z - hitPos.z();
+
+                    if (blockDef != null && blockDef.onUse(world, hitPos, player, currentStack, rx, ry, rz)) {
                         actionConsumed = true;
                     }
                     

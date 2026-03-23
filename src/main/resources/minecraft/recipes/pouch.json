@@ -1,0 +1,16 @@
+{
+  "identifier": "minecraft:pouch",
+  "type": "in_world_crafting",
+  "tool": "minecraft:sharpened_stick",
+  "hits": 5,
+  "ingredients": [
+    "minecraft:string",
+    "minecraft:string",
+    "minecraft:string",
+    "minecraft:string"
+  ],
+  "result": {
+    "item": "minecraft:pouch",
+    "count": 1
+  }
+}

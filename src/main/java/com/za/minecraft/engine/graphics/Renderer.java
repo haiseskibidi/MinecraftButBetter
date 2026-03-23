@@ -334,15 +334,19 @@ public class Renderer {
         
         blockShader.use();
         for (com.za.minecraft.world.blocks.entity.BlockEntity be : world.getBlockEntities().values()) {
-            if (be instanceof com.za.minecraft.world.blocks.entity.StumpBlockEntity stump) {
-                if (stump.hasItem()) {
-                    com.za.minecraft.world.items.ItemStack stack = stump.getHeldStack();
+            if (be instanceof com.za.minecraft.world.blocks.entity.ICraftingSurface surface) {
+                int totalItems = surface.getActiveSlotsCount();
+                if (totalItems == 0) continue;
+
+                for (int i = 0; i < 9; i++) {
+                    com.za.minecraft.world.items.ItemStack stack = surface.getStackInSlot(i);
+                    if (stack == null) continue;
+
                     com.za.minecraft.world.items.Item item = stack.getItem();
-                    
                     Mesh mesh = itemMeshCache.get(item);
                     if (mesh == null) {
                         if (item.isBlock()) {
-                            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas);
+                            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new com.za.minecraft.world.blocks.Block(item.getId()), atlas);
                         } else {
                             mesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
                         }
@@ -350,18 +354,20 @@ public class Renderer {
                     }
 
                     if (mesh != null) {
+                        org.joml.Vector3f transform = com.za.minecraft.world.blocks.CraftingLayoutEngine.getSlotTransform(i, totalItems);
                         float scale = item.isBlock() ? 0.4f : item.getVisualScale() * 0.6f;
-                        BlockPos pos = be.getPos();
+                        float finalScale = scale * transform.y; // transform.y is the layout scale factor
                         
+                        BlockPos pos = be.getPos();
                         modelMatrix.identity()
-                            .translate(pos.x() + 0.5f, pos.y() + 1.02f, pos.z() + 0.5f);
+                            .translate(pos.x() + 0.5f + transform.x, pos.y() + 1.01f, pos.z() + 0.5f + transform.z);
                         
                         if (item.isBlock()) {
-                            modelMatrix.scale(scale)
+                            modelMatrix.scale(finalScale)
                                        .translate(-0.5f, 0, -0.5f);
                         } else {
                             modelMatrix.rotateX(1.57f) // Lay flat
-                                       .scale(scale)
+                                       .scale(finalScale)
                                        .translate(0, -0.5f, 0);
                         }
                         

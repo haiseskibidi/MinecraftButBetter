@@ -210,9 +210,19 @@ public class BlockDefinition {
 
     /**
      * Вызывается при нажатии ПКМ по блоку.
+     * @param hitX Относительная координата X клика (0.0-1.0)
+     * @param hitY Относительная координата Y клика (0.0-1.0)
+     * @param hitZ Относительная координата Z клика (0.0-1.0)
      * @return true, если действие было поглощено и стандартная обработка не требуется.
      */
-    public boolean onUse(com.za.minecraft.world.World world, BlockPos pos, com.za.minecraft.entities.Player player, com.za.minecraft.world.items.ItemStack heldStack) {
+    public boolean onUse(com.za.minecraft.world.World world, BlockPos pos, com.za.minecraft.entities.Player player, com.za.minecraft.world.items.ItemStack heldStack, float hitX, float hitY, float hitZ) {
+        return false;
+    }
+
+    /**
+     * Вызывается при нажатии ЛКМ по блоку.
+     */
+    public boolean onLeftClick(com.za.minecraft.world.World world, BlockPos pos, com.za.minecraft.entities.Player player, com.za.minecraft.world.items.ItemStack heldStack, float hitX, float hitY, float hitZ, boolean isNewClick) {
         return false;
     }
 

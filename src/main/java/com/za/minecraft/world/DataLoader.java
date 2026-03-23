@@ -164,6 +164,26 @@ public class DataLoader {
                 } else {
                     Logger.error("Failed to parse stump recipe " + id + ": Result item " + resId + " not found!");
                 }
+            } else if (type.equalsIgnoreCase("in_world_crafting")) {
+                JsonArray ingredientsArray = obj.getAsJsonArray("ingredients");
+                List<Identifier> ingredients = new ArrayList<>();
+                for (JsonElement e : ingredientsArray) {
+                    ingredients.add(Identifier.of(e.getAsString()));
+                }
+
+                Identifier tool = obj.has("tool") ? Identifier.of(obj.get("tool").getAsString()) : null;
+                int hits = obj.get("hits").getAsInt();
+
+                JsonObject resObj = obj.getAsJsonObject("result");
+                Identifier resId = Identifier.of(resObj.get("item").getAsString());
+                int count = resObj.has("count") ? resObj.get("count").getAsInt() : 1;
+
+                com.za.minecraft.world.items.Item resItem = com.za.minecraft.world.items.ItemRegistry.getItem(resId);
+                if (resItem != null) {
+                    RecipeRegistry.register(new com.za.minecraft.world.recipes.InWorldRecipe(id, ingredients, tool, hits, new ItemStack(resItem, count)));
+                } else {
+                    Logger.error("Failed to parse in_world recipe " + id + ": Result item " + resId + " not found!");
+                }
             }
         } catch (Exception e) {
             Logger.error("Failed to parse recipe: " + e.getMessage());
