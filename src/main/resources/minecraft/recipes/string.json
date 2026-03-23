@@ -1,0 +1,10 @@
+{
+  "identifier": "minecraft:string",
+  "type": "stump_crafting",
+  "input": "minecraft:plant_fiber",
+  "hits": 3,
+  "result": {
+    "item": "minecraft:string",
+    "count": 1
+  }
+}

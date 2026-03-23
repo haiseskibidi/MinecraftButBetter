@@ -113,7 +113,7 @@ public class ChunkMeshGenerator {
         MeshData data = new MeshData();
         com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType());
         
-        if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE) {
+        if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
             float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
             float u0 = uvs[0], v0 = uvs[1], u1 = uvs[4], v1 = uvs[5];
             addCrossPlane(data, 0, 0, 0, 0, 0, 1, 1, u0, v0, u1, v1, (float)block.getType());
@@ -163,7 +163,7 @@ public class ChunkMeshGenerator {
                     Block block = chunk.getBlock(x, y, z);
                     if (block.isAir()) continue;
                     com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType());
-                    if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE) {
+                    if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
                         float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
                         float u0 = uvs[0], v0 = uvs[1], u1 = uvs[4], v1 = uvs[5];
                         

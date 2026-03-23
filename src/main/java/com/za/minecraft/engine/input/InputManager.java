@@ -611,24 +611,63 @@ public class InputManager {
                         }
 
                         if (breakingProgress >= 1.0f) {
-                            String dropId = blockDef.getDropItem();
-                            float chance = blockDef.getDropChance();
+                            java.util.List<com.za.minecraft.world.blocks.DropRule> rules = blockDef.getDropRules();
+                            boolean customDropHandled = false;
                             
-                            if (Math.random() <= chance) {
-                                Item itemToGive = (dropId != null) ? ItemRegistry.getItem(Identifier.of(dropId)) : ItemRegistry.getItem(blockDef.getIdentifier());
+                            if (!rules.isEmpty()) {
+                                String currentToolStr = "none";
+                                if (currentItem != null && currentItem.isTool()) {
+                                    com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
+                                    if (tool != null) currentToolStr = tool.type().name().toLowerCase();
+                                }
                                 
-                                if (itemToGive != null) {
-                                    // Спавним предмет в центре блока
-                                    Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
-                                    com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
-                                    // Добавляем небольшую случайную скорость
-                                    drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
-                                    world.spawnEntity(drop);
+                                for (com.za.minecraft.world.blocks.DropRule rule : rules) {
+                                    // Проверяем, подходит ли инструмент для этого правила (none = любой)
+                                    if (rule.requiredToolType().equalsIgnoreCase("none") || rule.requiredToolType().equalsIgnoreCase(currentToolStr)) {
+                                        if (Math.random() <= rule.chance()) {
+                                            Item itemToGive = ItemRegistry.getItem(Identifier.of(rule.dropItemIdentifier()));
+                                            if (itemToGive != null) {
+                                                Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
+                                                com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
+                                                drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
+                                                world.spawnEntity(drop);
+                                                customDropHandled = true;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Если правил нет, используем старую (Legacy) логику дропа
+                            if (rules.isEmpty()) {
+                                String dropId = blockDef.getDropItem();
+                                float chance = blockDef.getDropChance();
+                                
+                                if (Math.random() <= chance) {
+                                    Item itemToGive = (dropId != null) ? ItemRegistry.getItem(Identifier.of(dropId)) : ItemRegistry.getItem(blockDef.getIdentifier());
+                                    
+                                    if (itemToGive != null) {
+                                        Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
+                                        com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
+                                        drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
+                                        world.spawnEntity(drop);
+                                    }
                                 }
                             }
                             
-                            world.setBlock(hitPos, new Block(Blocks.AIR.getId()));
-                            if (networkClient != null && networkClient.isConnected()) {
+                            // Если это двойное растение - ломаем и соседа
+                            if (blockDef.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
+                                int meta = world.getBlock(hitPos).getMetadata();
+                                BlockPos otherPos = (meta == 0) ? hitPos.up() : hitPos.down();
+                                if (world.getBlock(otherPos).getType() == blockType) {
+                                    world.setBlock(otherPos, new Block(com.za.minecraft.world.blocks.Blocks.AIR.getId()));
+                                    if (networkClient != null && networkClient.isConnected()) {
+                                        networkClient.sendBlockUpdate(otherPos.x(), otherPos.y(), otherPos.z(), com.za.minecraft.world.blocks.Blocks.AIR.getId());
+                                    }
+                                }
+                            }
+
+                            world.setBlock(hitPos, new Block(com.za.minecraft.world.blocks.Blocks.AIR.getId()));                            if (networkClient != null && networkClient.isConnected()) {
                                 networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), Blocks.AIR.getId());
                             }
                             breakingBlockPos = null;
@@ -765,16 +804,37 @@ public class InputManager {
                 if (!actionConsumed && (isNewRightClick || placeDelayTimer <= 0) && raycast.isHit() && !isSpecialInteracting(player, raycast, currentStack)) {
                     if (currentItem != null && currentItem.isBlock()) {
                         int blockType = currentItem.getId();
+                        BlockDefinition def = BlockRegistry.getBlock(blockType);
                         Vector3f normal = raycast.getNormal();
                         BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);
+                        
                         if (!isPlayerAt(player, pPos) && world.getBlock(pPos).isReplaceable()) {
-                            byte meta = calculateMetadata(blockType, normal, raycast.getHitPoint(), camera);
-                            world.setBlock(pPos, new Block(blockType, meta));
-                            if (networkClient != null && networkClient.isConnected()) networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), blockType);
-                            ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
-                            player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
-                            placeDelayTimer = PLACE_COOLDOWN;
-                            actionConsumed = true;
+                            if (def.getPlacementType() == PlacementType.DOUBLE_PLANT) {
+                                BlockPos topPos = pPos.up();
+                                if (world.getBlock(topPos).isReplaceable() && !isPlayerAt(player, topPos)) {
+                                    // Ставим низ (meta 0) и верх (meta 1)
+                                    world.setBlock(pPos, new Block(blockType, (byte)0));
+                                    world.setBlock(topPos, new Block(blockType, (byte)1));
+                                    
+                                    if (networkClient != null && networkClient.isConnected()) {
+                                        networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), blockType);
+                                        networkClient.sendBlockUpdate(topPos.x(), topPos.y(), topPos.z(), blockType);
+                                    }
+                                    
+                                    ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
+                                    player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
+                                    placeDelayTimer = PLACE_COOLDOWN;
+                                    actionConsumed = true;
+                                }
+                            } else {
+                                byte meta = calculateMetadata(blockType, normal, raycast.getHitPoint(), camera);
+                                world.setBlock(pPos, new Block(blockType, meta));
+                                if (networkClient != null && networkClient.isConnected()) networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), blockType);
+                                ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
+                                player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
+                                placeDelayTimer = PLACE_COOLDOWN;
+                                actionConsumed = true;
+                            }
                         }
                     }
                 }

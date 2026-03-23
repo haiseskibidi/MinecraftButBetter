@@ -26,6 +26,8 @@ public class Items {
     public static Item CLAY_BALL;
     public static Item STRAW;
     public static Item SHARPENED_STICK;
+    public static Item PLANT_FIBER;
+    public static Item STRING;
     public static Item FIRE_STARTER;
 
     public static void init() {        for (java.lang.reflect.Field field : Items.class.getFields()) {

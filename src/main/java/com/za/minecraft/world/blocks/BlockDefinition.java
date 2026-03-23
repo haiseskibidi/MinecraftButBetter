@@ -6,6 +6,9 @@ import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.blocks.entity.BlockEntity;
 import com.za.minecraft.world.physics.VoxelShape;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class BlockDefinition {
     private final int id;
     private final Identifier identifier;
@@ -14,14 +17,30 @@ public class BlockDefinition {
     private final boolean transparent;
     private float hardness = 1.0f; // Default hardness
     private String requiredTool = "none"; // pickaxe, shovel, axe, crowbar, knife
-    private String dropItem = null; // Identifier of the item to drop (null = drop self)
-    private float dropChance = 1.0f; // Chance to drop the item (0.0 to 1.0)
+    
+    // Legacy support fields
+    private String dropItem = null;
+    private float dropChance = 1.0f;
+    
+    // Advanced drop rules
+    private final List<DropRule> dropRules = new ArrayList<>();
+    
     private boolean canSupportScavenge = false;
     private boolean alwaysRender = false;
     private boolean replaceable = false;
+    private String upperTexture = null; // Текстура для верхней части DOUBLE_PLANT
     private PlacementType placementType = PlacementType.DEFAULT;
     private BlockTextures textures;
     private boolean fullCube = true;
+
+    // ... в методе getTextures() или аналогичном ...
+    public void setUpperTexture(String upperTexture) {
+        this.upperTexture = upperTexture;
+    }
+
+    public String getUpperTexture() {
+        return upperTexture;
+    }
 
     // Default shape is a full cube. Subclasses can override.
     protected VoxelShape shape = VoxelShape.FULL_CUBE;
@@ -40,6 +59,15 @@ public class BlockDefinition {
         this.name = translationKey;
         this.solid = solid;
         this.transparent = transparent;
+    }
+
+    public BlockDefinition addDropRule(DropRule rule) {
+        this.dropRules.add(rule);
+        return this;
+    }
+
+    public List<DropRule> getDropRules() {
+        return dropRules;
     }
 
     public BlockDefinition setTextures(BlockTextures textures) {

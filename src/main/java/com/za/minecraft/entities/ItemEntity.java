@@ -33,12 +33,21 @@ public class ItemEntity extends Entity {
             pickupDelay -= deltaTime;
         }
         
-        // Air friction
-        float friction = onGround ? 0.85f : 0.98f;
-        
-        // Heavy items have more momentum but also more ground friction
+        // Трение (Friction)
+        float friction;
         if (onGround) {
-            friction = 0.70f / stack.getItem().getWeight(); // Heavier = stops faster on ground
+            // Универсальная формула: чем тяжелее предмет, тем быстрее он останавливается (меньше коэффициент)
+            // Вес 0.1 (волокно) -> 0.95 (долго скользит)
+            // Вес 1.0 (обычный предмет) -> 0.80 (стандарт)
+            // Вес 2.5 (тяжелый блок) -> 0.50 (быстро останавливается)
+            float weightFactor = stack.getItem().getWeight();
+            friction = 0.98f - (weightFactor * 0.2f);
+            
+            // Защита: трение не может быть меньше 0.1 (мгновенный стоп) и больше 0.98 (вечный полет)
+            friction = Math.max(0.1f, Math.min(0.98f, friction));
+        } else {
+            // В воздухе трение почти отсутствует
+            friction = 0.98f;
         }
         
         velocity.x *= friction;

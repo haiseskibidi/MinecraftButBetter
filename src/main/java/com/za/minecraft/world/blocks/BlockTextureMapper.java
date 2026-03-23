@@ -45,9 +45,17 @@ public class BlockTextureMapper {
     
     private static String keyFor(Block block, int face) {
         int type = block.getType();
+        BlockDefinition def = BlockRegistry.getBlock(type);
         BlockTextures textures = BlockRegistry.getTextures(type);
         if (textures == null) {
             return "minecraft/textures/block/dirt.png";
+        }
+
+        // --- DOUBLE_PLANT logic ---
+        if (def != null && def.getPlacementType() == PlacementType.DOUBLE_PLANT) {
+            if (block.getMetadata() == 1 && def.getUpperTexture() != null) {
+                return def.getUpperTexture();
+            }
         }
 
         // Orientation-sensitive mapping for logs (WOOD)

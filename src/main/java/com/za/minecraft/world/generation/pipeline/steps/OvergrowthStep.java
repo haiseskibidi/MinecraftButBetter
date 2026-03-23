@@ -55,6 +55,16 @@ public class OvergrowthStep implements GenerationStep {
                         if (groundBlock.getType() == Blocks.DIRT.getId() || groundBlock.getType() == Blocks.GRASS_BLOCK.getId()) {
                             if (random.nextFloat() < 0.05f) {
                                 generateMutatedTree(world, worldX, surfaceY + 1, worldZ);
+                            } else if (random.nextFloat() < 0.4f) {
+                                if (random.nextFloat() < 0.2f) {
+                                    // Высокая трава (DOUBLE_PLANT) - ставим низ и верх
+                                    if (world.getBlock(worldX, surfaceY + 2, worldZ).isAir()) {
+                                        world.setBlock(worldX, surfaceY + 1, worldZ, new Block(Blocks.TALL_GRASS.getId(), (byte)0));
+                                        world.setBlock(worldX, surfaceY + 2, worldZ, new Block(Blocks.TALL_GRASS.getId(), (byte)1));
+                                    }
+                                } else {
+                                    world.setBlock(worldX, surfaceY + 1, worldZ, new Block(Blocks.SHORT_GRASS.getId()));
+                                }
                             }
                         }
                     }

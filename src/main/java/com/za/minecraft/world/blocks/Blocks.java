@@ -45,6 +45,7 @@ public class Blocks {
     public static BlockDefinition FIRED_VESSEL;
     public static BlockDefinition CLAY;
     public static BlockDefinition SHORT_GRASS;
+    public static BlockDefinition TALL_GRASS;
     public static BlockDefinition DIAMOND_ORE;
     public static BlockDefinition EMERALD_ORE;
     public static BlockDefinition LAPIS_ORE;

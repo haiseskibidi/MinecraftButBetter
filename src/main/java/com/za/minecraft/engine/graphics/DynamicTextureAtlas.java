@@ -55,15 +55,18 @@ public class DynamicTextureAtlas {
                 IntBuffer h = stack.mallocInt(1);
                 IntBuffer c = stack.mallocInt(1);
                 ByteBuffer img = loadImageFromPath(stack, path, w, h, c);
+                boolean isStbAllocated = true;
+                
                 if (img == null) {
                     Logger.error("Failed to load block texture: %s (%s)", path, stbi_failure_reason());
                     img = createSolidImage(tileSize, tileSize, (byte) 255, (byte) 0, (byte) 255, (byte) 255);
                     w.put(0, tileSize);
                     h.put(0, tileSize);
+                    isStbAllocated = false;
                 }
+                
                 // Resize if needed (simple nearest neighbor if not 16x16)
                 int iw = w.get(0), ih = h.get(0);
-                boolean isStbAllocated = true;
                 if (iw != tileSize || ih != tileSize) {
                     ByteBuffer resized = ByteBuffer.allocateDirect(tileSize * tileSize * 4);
                     for (int y = 0; y < tileSize; y++) {
@@ -78,7 +81,9 @@ public class DynamicTextureAtlas {
                             resized.put(dst + 3, img.get(src + 3));
                         }
                     }
-                    stbi_image_free(img);
+                    if (isStbAllocated) {
+                        stbi_image_free(img);
+                    }
                     img = resized;
                     iw = ih = tileSize;
                     isStbAllocated = false;

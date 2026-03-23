@@ -79,9 +79,18 @@ public class Renderer {
         
         atlas = new DynamicTextureAtlas(16);
         // Add all block textures
-        for (String key : com.za.minecraft.world.blocks.BlockRegistry.allTextureKeys()) {
-            String path = "src/main/resources/" + key;
-            atlas.add(key, path);
+        for (com.za.minecraft.world.blocks.BlockDefinition def : com.za.minecraft.world.blocks.BlockRegistry.getRegistry().values()) {
+            if (def.getTextures() != null) {
+                for (int face = 0; face < 6; face++) {
+                    String key = def.getTextures().getTextureForFace(face);
+                    if (key != null) {
+                        atlas.add(key, "src/main/resources/" + key);
+                    }
+                }
+            }
+            if (def.getUpperTexture() != null) {
+                atlas.add(def.getUpperTexture(), "src/main/resources/" + def.getUpperTexture());
+            }
         }
         // Add all item textures
         for (com.za.minecraft.world.items.Item item : com.za.minecraft.world.items.ItemRegistry.getAllItems().values()) {

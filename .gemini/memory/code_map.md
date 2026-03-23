@@ -85,8 +85,8 @@
 
 ### com.za.minecraft.world.blocks.BlockDefinition (UPDATED)
 Назначение: Описание свойств типа блока.
-Поля: id (int), identifier, requiredTool, dropItem, canSupportScavenge, placementType, hardness, solid, transparent, textures.
-Функции: getId(), getIdentifier(), getRequiredTool(), getDropItem(), canSupportScavenge(), getPlacementType()
+Поля: id (int), identifier, requiredTool, dropItem, canSupportScavenge, placementType, hardness, solid, transparent, textures, upperTexture (NEW).
+Функции: getId(), getIdentifier(), getRequiredTool(), getDropItem(), canSupportScavenge(), getPlacementType(), getUpperTexture()
 
 ### com.za.minecraft.world.blocks.Block (UPDATED)
 Назначение: Легковесный экземпляр блока в мире.
@@ -120,6 +120,10 @@
 ### com.za.minecraft.world.generation.TerrainGenerator
 Назначение: Координация Generation Pipeline.
 Шаги: CityLayoutStep, BuildingGeneratorStep, OvergrowthStep, ScavengeDecorationStep.
+
+### com.za.minecraft.world.generation.pipeline.steps.OvergrowthStep (UPDATED)
+Назначение: Зарастание руин растительностью.
+Логика: Генерирует короткую и высокую траву, деревья. Для высокой травы ставит два блока с разными метаданными (низ и верх) согласно PlacementType.DOUBLE_PLANT.
 
 ### com.za.minecraft.world.generation.pipeline.steps.ScavengeDecorationStep (NEW)
 Назначение: Data-Driven спавн 3D ресурсов на поверхности мира на основе `scavenge.json`.

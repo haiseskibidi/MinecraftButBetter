@@ -305,9 +305,27 @@ public class DataLoader {
             if (obj.has("requiredTool")) def.setRequiredTool(obj.get("requiredTool").getAsString());
             if (obj.has("dropItem")) def.setDropItem(obj.get("dropItem").getAsString());
             if (obj.has("dropChance")) def.setDropChance(obj.get("dropChance").getAsFloat());
+            
+            // Расширенная система дропа (DropRule)
+            if (obj.has("drops")) {
+                JsonArray dropsArr = obj.getAsJsonArray("drops");
+                for (JsonElement dropEl : dropsArr) {
+                    JsonObject dropObj = dropEl.getAsJsonObject();
+                    String tool = dropObj.has("tool") ? dropObj.get("tool").getAsString() : "none";
+                    String item = dropObj.get("item").getAsString();
+                    float chance = dropObj.has("chance") ? dropObj.get("chance").getAsFloat() : 1.0f;
+                    def.addDropRule(new com.za.minecraft.world.blocks.DropRule(tool, item, chance));
+                }
+            }
+
             if (obj.has("supportScavenge")) def.setSupportScavenge(obj.get("supportScavenge").getAsBoolean());
             if (obj.has("alwaysRender")) def.setAlwaysRender(obj.get("alwaysRender").getAsBoolean());
             if (obj.has("replaceable")) def.setReplaceable(obj.get("replaceable").getAsBoolean());
+            
+            if (obj.has("upperTexture")) {
+                def.setUpperTexture("minecraft/textures/block/" + obj.get("upperTexture").getAsString());
+            }
+
             if (obj.has("placement")) {
                 def.setPlacementType(com.za.minecraft.world.blocks.PlacementType.valueOf(obj.get("placement").getAsString().toUpperCase()));
             }
@@ -369,7 +387,7 @@ public class DataLoader {
             String texture = obj.get("texture").getAsString();
             String type = obj.has("type") ? obj.get("type").getAsString() : "default";
 
-            Item item = ItemTypeRegistry.create(type, (byte)id, identifier, translationKey, texture);
+            Item item = ItemTypeRegistry.create(type, id, identifier, translationKey, texture);
             
             if (obj.has("weight")) item.setWeight(obj.get("weight").getAsFloat());
             if (obj.has("visualScale")) item.setVisualScale(obj.get("visualScale").getAsFloat());

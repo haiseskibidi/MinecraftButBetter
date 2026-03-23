@@ -26,6 +26,8 @@ public class Texture {
             
             ByteBuffer image;
             
+            boolean isStbAllocated = false;
+            
             // Пробуем загрузить как ресурс из ClassPath (для JAR)
             String resourcePath = path.replace("src/main/resources/", "");
             var inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath);
@@ -36,14 +38,17 @@ public class Texture {
                 imageBuffer.flip();
                 image = stbi_load_from_memory(imageBuffer, w, h, channels, 4);
                 inputStream.close();
+                if (image != null) isStbAllocated = true;
             } else {
                 // Fallback: загружаем как файл (для разработки)
                 image = stbi_load(path, w, h, channels, 4);
+                if (image != null) isStbAllocated = true;
             }
             
             if (image == null) {
                 Logger.error("Failed to load texture: %s - %s", path, stbi_failure_reason());
                 image = createWhiteTexture(stack, w, h);
+                isStbAllocated = false;
             }
             
             this.width = w.get(0);
@@ -69,7 +74,9 @@ public class Texture {
                 glGenerateMipmap(GL_TEXTURE_2D);
             }
             
-            stbi_image_free(image);
+            if (isStbAllocated) {
+                stbi_image_free(image);
+            }
             
             Logger.info("Texture loaded: %s (%dx%d)", path, width, height);
         } catch (IOException e) {
