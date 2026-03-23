@@ -150,6 +150,10 @@ public class World {
     public Player getPlayer() {
         return player;
     }
+
+    public java.util.Map<BlockPos, com.za.minecraft.world.blocks.entity.BlockEntity> getBlockEntities() {
+        return blockEntities;
+    }
     
     public Block getBlock(BlockPos pos) {
         return getBlock(pos.x(), pos.y(), pos.z());

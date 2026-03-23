@@ -5,7 +5,6 @@ import com.za.minecraft.world.items.Item;
 import com.za.minecraft.world.items.ItemRegistry;
 import com.za.minecraft.world.items.ItemStack;
 import com.za.minecraft.world.items.Items;
-import com.za.minecraft.world.items.ToolItem;
 
 public class Inventory {
     public static final int HOTBAR_SIZE = 9;

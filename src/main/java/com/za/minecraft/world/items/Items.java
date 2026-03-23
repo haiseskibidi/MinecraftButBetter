@@ -7,6 +7,7 @@ import com.za.minecraft.utils.Identifier;
  */
 public class Items {
     public static Item STONE_KNIFE;
+    public static Item STONE_AXE;
     public static Item SCRAP_PICKAXE;
     public static Item CROWBAR;
     public static Item FUEL_CANISTER;
@@ -24,6 +25,7 @@ public class Items {
     public static Item FIRED_VESSEL;
     public static Item CLAY_BALL;
     public static Item STRAW;
+    public static Item SHARPENED_STICK;
     public static Item FIRE_STARTER;
 
     public static void init() {        for (java.lang.reflect.Field field : Items.class.getFields()) {

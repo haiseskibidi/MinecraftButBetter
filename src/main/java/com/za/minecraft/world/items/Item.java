@@ -110,6 +110,28 @@ public class Item {
     }
 
     public float getMiningSpeed(int blockType) {
-        return 0.5f; // Base hand speed
+        com.za.minecraft.world.blocks.BlockDefinition blockDef = com.za.minecraft.world.blocks.BlockRegistry.getBlock(blockType);
+        if (blockDef == null) return 1.0f;
+
+        String required = blockDef.getRequiredTool();
+        
+        // Если блок вообще не требует инструментов (например, воздух или простые блоки)
+        if (required == null || required.equalsIgnoreCase("none")) {
+            return 1.0f;
+        }
+
+        ToolComponent tool = getComponent(ToolComponent.class);
+        if (tool != null) {
+            // Если инструмент эффективен против этого типа блоков (или против всех)
+            if (tool.isEffectiveAgainstAll() || tool.type().name().equalsIgnoreCase(required)) {
+                return tool.efficiency();
+            } else {
+                // Если инструмент не подходит, он все равно чуть лучше руки
+                return 0.3f;
+            }
+        }
+        
+        // Скорость рукой (или блоком) по блоку, требующему инструмент
+        return 0.2f; 
     }
 }

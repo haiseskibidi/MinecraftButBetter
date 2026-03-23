@@ -181,6 +181,14 @@ public class BlockDefinition {
     }
 
     /**
+     * Вызывается при нажатии ПКМ по блоку.
+     * @return true, если действие было поглощено и стандартная обработка не требуется.
+     */
+    public boolean onUse(com.za.minecraft.world.World world, BlockPos pos, com.za.minecraft.entities.Player player, com.za.minecraft.world.items.ItemStack heldStack) {
+        return false;
+    }
+
+    /**
      * Создает новую сущность блока для данного определения.
      * Переопределяется в подклассах для блоков с логикой.
      */

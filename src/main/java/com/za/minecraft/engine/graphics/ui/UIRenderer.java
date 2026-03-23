@@ -8,7 +8,6 @@ import com.za.minecraft.engine.core.PlayerMode;
 import com.za.minecraft.entities.Player;
 import com.za.minecraft.world.items.Item;
 import com.za.minecraft.world.items.ItemStack;
-import com.za.minecraft.world.items.ToolItem;
 import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.blocks.BlockTextureMapper;
 import com.za.minecraft.world.blocks.BlockRegistry;
@@ -336,19 +335,8 @@ public class UIRenderer {
 
     private void drawFallbackIcon(Item item) {
         uiShader.setInt("useTexture", 0);
-        if (item.isTool()) {
-            ToolItem tool = (ToolItem) item;
-            switch (tool.getToolType()) {
-                case KNIFE: uiShader.setUniform("tintColor", 0.7f, 0.7f, 0.7f, 1.0f); break;
-                case PICKAXE: uiShader.setUniform("tintColor", 0.5f, 0.3f, 0.1f, 1.0f); break;
-                case CROWBAR: uiShader.setUniform("tintColor", 0.2f, 0.6f, 0.8f, 1.0f); break;
-                default: uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
-            }
-        } else if (item.isFood()) {
-            uiShader.setUniform("tintColor", 1.0f, 0.5f, 0.5f, 1.0f);
-        } else {
-            uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
-        }
+        // Рисуем ярко-пурпурный квадрат для визуализации отсутствующей текстуры (Missing Texture)
+        uiShader.setUniform("tintColor", 1.0f, 0.0f, 1.0f, 0.8f);
         uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
         uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
     }

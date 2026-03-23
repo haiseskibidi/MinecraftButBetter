@@ -1,0 +1,15 @@
+{
+  "id": 150,
+  "identifier": "minecraft:stump",
+  "translationKey": "block.minecraft.stump",
+  "type": "stump",
+  "solid": true,
+  "transparent": false,
+  "hardness": 2.0,
+  "requiredTool": "axe",
+  "textures": {
+    "top": "oak_log_top.png",
+    "bottom": "oak_log_top.png",
+    "side": "oak_log.png"
+  }
+}

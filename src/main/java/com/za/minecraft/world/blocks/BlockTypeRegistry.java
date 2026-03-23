@@ -19,6 +19,7 @@ public class BlockTypeRegistry {
         register("generator", GeneratorBlockDefinition::new);
         register("lamp", LampBlockDefinition::new);
         register("battery", BatteryBlockDefinition::new);
+        register("stump", StumpBlockDefinition::new);
     }
 
     public static void register(String type, BlockFactory factory) {

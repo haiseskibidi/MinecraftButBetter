@@ -52,6 +52,7 @@ public class Blocks {
     public static BlockDefinition COPPER_ORE;
     public static BlockDefinition PIT_KILN;
     public static BlockDefinition BURNING_PIT_KILN;
+    public static BlockDefinition STUMP;
     
     public static void init() {
         for (java.lang.reflect.Field field : Blocks.class.getFields()) {

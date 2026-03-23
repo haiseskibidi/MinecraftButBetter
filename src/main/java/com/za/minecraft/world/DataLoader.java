@@ -10,11 +10,10 @@ import com.za.minecraft.world.blocks.BlockDefinition;
 import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.blocks.BlockTextures;
 import com.za.minecraft.world.blocks.BlockTypeRegistry;
-import com.za.minecraft.world.items.FoodItem;
 import com.za.minecraft.world.items.Item;
 import com.za.minecraft.world.items.ItemRegistry;
 import com.za.minecraft.world.items.ItemTypeRegistry;
-import com.za.minecraft.world.items.ToolItem;
+import com.za.minecraft.world.items.ToolType;
 import com.za.minecraft.world.items.ItemStack;
 import com.za.minecraft.world.items.component.FoodComponent;
 import com.za.minecraft.world.items.component.FuelComponent;
@@ -123,6 +122,21 @@ public class DataLoader {
                     }
                 }
                 RecipeRegistry.register(new NappingRecipe(id, input, result, pattern));
+            } else if (type.equalsIgnoreCase("stump_crafting")) {
+                Identifier input = Identifier.of(obj.get("input").getAsString());
+                Identifier tool = obj.has("tool") ? Identifier.of(obj.get("tool").getAsString()) : null;
+                int hits = obj.get("hits").getAsInt();
+                
+                JsonObject resObj = obj.getAsJsonObject("result");
+                Identifier resId = Identifier.of(resObj.get("item").getAsString());
+                int count = resObj.has("count") ? resObj.get("count").getAsInt() : 1;
+                
+                com.za.minecraft.world.items.Item resItem = com.za.minecraft.world.items.ItemRegistry.getItem(resId);
+                if (resItem != null) {
+                    RecipeRegistry.register(new com.za.minecraft.world.recipes.StumpRecipe(id, input, tool, hits, new ItemStack(resItem, count)));
+                } else {
+                    Logger.error("Failed to parse stump recipe " + id + ": Result item " + resId + " not found!");
+                }
             }
         } catch (Exception e) {
             Logger.error("Failed to parse recipe: " + e.getMessage());
@@ -364,26 +378,26 @@ public class DataLoader {
             if (obj.has("components")) {
                 JsonObject comps = obj.getAsJsonObject("components");
                 
-                if (comps.has("minecraft:food")) {
-                    JsonObject f = comps.getAsJsonObject("minecraft:food");
+                if (comps.has("minecraft:food") || comps.has("food")) {
+                    JsonObject f = comps.has("minecraft:food") ? comps.getAsJsonObject("minecraft:food") : comps.getAsJsonObject("food");
                     item.addComponent(FoodComponent.class, new FoodComponent(
                         f.get("nutrition").getAsFloat(),
                         f.get("saturation").getAsFloat()
                     ));
                 }
                 
-                if (comps.has("minecraft:tool")) {
-                    JsonObject t = comps.getAsJsonObject("minecraft:tool");
+                if (comps.has("minecraft:tool") || comps.has("tool")) {
+                    JsonObject t = comps.has("minecraft:tool") ? comps.getAsJsonObject("minecraft:tool") : comps.getAsJsonObject("tool");
                     item.addComponent(ToolComponent.class, new ToolComponent(
-                        ToolItem.ToolType.valueOf(t.get("type").getAsString().toUpperCase()),
+                        ToolType.valueOf(t.get("type").getAsString().toUpperCase()),
                         t.get("efficiency").getAsFloat(),
                         t.get("durability").getAsInt(),
                         t.has("isEffectiveAgainstAll") && t.get("isEffectiveAgainstAll").getAsBoolean()
                     ));
                 }
 
-                if (comps.has("minecraft:fuel")) {
-                    JsonObject f = comps.getAsJsonObject("minecraft:fuel");
+                if (comps.has("minecraft:fuel") || comps.has("fuel")) {
+                    JsonObject f = comps.has("minecraft:fuel") ? comps.getAsJsonObject("minecraft:fuel") : comps.getAsJsonObject("fuel");
                     item.addComponent(FuelComponent.class, new FuelComponent(
                         f.get("fuelAmount").getAsFloat()
                     ));
@@ -399,7 +413,7 @@ public class DataLoader {
             }
             if (type.equals("tool") && (obj.has("toolType") || obj.has("efficiency") || obj.has("durability"))) {
                 item.addComponent(ToolComponent.class, new ToolComponent(
-                    obj.has("toolType") ? ToolItem.ToolType.valueOf(obj.get("toolType").getAsString().toUpperCase()) : ToolItem.ToolType.NONE,
+                    obj.has("toolType") ? ToolType.valueOf(obj.get("toolType").getAsString().toUpperCase()) : ToolType.NONE,
                     obj.has("efficiency") ? obj.get("efficiency").getAsFloat() : 1.0f,
                     obj.has("durability") ? obj.get("durability").getAsInt() : 0,
                     obj.has("isEffectiveAgainstAll") && obj.get("isEffectiveAgainstAll").getAsBoolean()

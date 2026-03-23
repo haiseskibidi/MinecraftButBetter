@@ -1,0 +1,11 @@
+{
+  "identifier": "minecraft:stone_axe",
+  "type": "stump_crafting",
+  "input": "minecraft:stick",
+  "tool": "minecraft:axe_head",
+  "hits": 3,
+  "result": {
+    "item": "minecraft:stone_axe",
+    "count": 1
+  }
+}

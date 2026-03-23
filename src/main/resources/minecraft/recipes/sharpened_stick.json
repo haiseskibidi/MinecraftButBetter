@@ -1,0 +1,11 @@
+{
+  "identifier": "minecraft:sharpened_stick",
+  "type": "stump_crafting",
+  "input": "minecraft:stick",
+  "tool": "minecraft:stone_knife",
+  "hits": 3,
+  "result": {
+    "item": "minecraft:sharpened_stick",
+    "count": 1
+  }
+}

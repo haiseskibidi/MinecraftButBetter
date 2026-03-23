@@ -1,0 +1,7 @@
+{
+  "id": 406,
+  "identifier": "minecraft:sharpened_stick",
+  "translationKey": "item.minecraft.sharpened_stick",
+  "texture": "minecraft/textures/item/stick.png",
+  "weight": 0.5
+}

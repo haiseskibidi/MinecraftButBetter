@@ -18,8 +18,6 @@ import com.za.minecraft.world.items.Item;
 import com.za.minecraft.world.items.ItemRegistry;
 import com.za.minecraft.world.items.ItemStack;
 import com.za.minecraft.world.items.Items;
-import com.za.minecraft.world.items.ToolItem;
-import com.za.minecraft.world.items.FoodItem;
 import com.za.minecraft.world.items.component.FuelComponent;
 import com.za.minecraft.world.physics.Raycast;
 import com.za.minecraft.world.physics.RaycastResult;
@@ -660,6 +658,18 @@ public class InputManager {
                 if (raycast.isHit() && isNewRightClick) {
                     BlockPos hitPos = raycast.getBlockPos();
                     int hitBlockType = world.getBlock(hitPos).getType();
+                    BlockDefinition blockDef = BlockRegistry.getBlock(hitBlockType);
+                    
+                    if (blockDef != null && blockDef.onUse(world, hitPos, player, currentStack)) {
+                        actionConsumed = true;
+                    }
+                    
+                    // --- Log to Stump Transformation ---
+                    if (!actionConsumed && hitBlockType == Blocks.OAK_LOG.getId() && currentItem != null && currentItem.getId() == Items.STONE_AXE.getId()) {
+                        world.setBlock(hitPos, new Block(Blocks.STUMP.getId()));
+                        com.za.minecraft.utils.Logger.info("Created a stump from log");
+                        actionConsumed = true;
+                    }
                     
                     // --- Pit Kiln Logic ---
                     if (player.isSneaking() && isNewRightClick) {

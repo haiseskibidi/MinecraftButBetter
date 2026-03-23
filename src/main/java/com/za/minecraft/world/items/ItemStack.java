@@ -12,8 +12,11 @@ public class ItemStack {
     public ItemStack(Item item, int count) {
         this.item = item;
         this.count = count;
-        if (item instanceof ToolItem) {
-            this.durability = ((ToolItem) item).getMaxDurability();
+        
+        // Инициализация прочности из компонентов (для новых предметов Tier 1)
+        com.za.minecraft.world.items.component.ToolComponent toolComp = item.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
+        if (toolComp != null) {
+            this.durability = toolComp.maxDurability();
         }
     }
 

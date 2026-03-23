@@ -316,9 +316,55 @@ public class Renderer {
         glDepthMask(true);
         
         renderEntities(camera, world);
+        renderBlockEntities(camera, world);
         renderPlayers(camera, networkClient);
     }
     
+    private void renderBlockEntities(Camera camera, World world) {
+        if (world.getBlockEntities().isEmpty()) return;
+        
+        blockShader.use();
+        for (com.za.minecraft.world.blocks.entity.BlockEntity be : world.getBlockEntities().values()) {
+            if (be instanceof com.za.minecraft.world.blocks.entity.StumpBlockEntity stump) {
+                if (stump.hasItem()) {
+                    com.za.minecraft.world.items.ItemStack stack = stump.getHeldStack();
+                    com.za.minecraft.world.items.Item item = stack.getItem();
+                    
+                    Mesh mesh = itemMeshCache.get(item);
+                    if (mesh == null) {
+                        if (item.isBlock()) {
+                            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas);
+                        } else {
+                            mesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
+                        }
+                        if (mesh != null) itemMeshCache.put(item, mesh);
+                    }
+
+                    if (mesh != null) {
+                        float scale = item.isBlock() ? 0.4f : item.getVisualScale() * 0.6f;
+                        BlockPos pos = be.getPos();
+                        
+                        modelMatrix.identity()
+                            .translate(pos.x() + 0.5f, pos.y() + 1.02f, pos.z() + 0.5f);
+                        
+                        if (item.isBlock()) {
+                            modelMatrix.scale(scale)
+                                       .translate(-0.5f, 0, -0.5f);
+                        } else {
+                            modelMatrix.rotateX(1.57f) // Lay flat
+                                       .scale(scale)
+                                       .translate(0, -0.5f, 0);
+                        }
+                        
+                        blockShader.setMatrix4f("model", modelMatrix);
+                        blockShader.setInt("highlightPass", 0);
+                        mesh.render();
+                    }
+                }
+            }
+        }
+    }
+
     private void renderEntities(Camera camera, World world) {
         if (world.getEntities().isEmpty()) return;
         

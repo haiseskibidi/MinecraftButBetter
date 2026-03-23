@@ -13,10 +13,8 @@ public class ItemTypeRegistry {
 
     static {
         register("default", Item::new);
-        register("tool", (id, identifier, translationKey, texturePath) -> 
-            new ToolItem(id, identifier, translationKey, texturePath, ToolItem.ToolType.NONE, 1.0f, 0));
-        register("food", (id, identifier, translationKey, texturePath) -> 
-            new FoodItem(id, identifier, translationKey, texturePath, 0.0f, 0.0f));
+        register("tool", Item::new);
+        register("food", Item::new);
         register("block", BlockItem::new);
     }
 

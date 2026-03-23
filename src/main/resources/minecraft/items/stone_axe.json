@@ -1,0 +1,15 @@
+{
+  "id": 405,
+  "identifier": "minecraft:stone_axe",
+  "translationKey": "item.minecraft.stone_axe",
+  "texture": "minecraft/textures/item/stone_axe.png",
+  "visualScale": 1.2,
+  "weight": 1.5,
+  "components": {
+    "minecraft:tool": {
+      "type": "axe",
+      "efficiency": 4.0,
+      "durability": 120
+    }
+  }
+}

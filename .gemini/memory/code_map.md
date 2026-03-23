@@ -224,6 +224,12 @@
 ### com.za.minecraft.entities.DecorationEntity (NEW)
 Назначение: Универсальная сущность для 3D декораций (бревна, камни) на основе JSON.
 
+### com.za.minecraft.world.blocks.entity.StumpBlockEntity (NEW)
+Назначение: Сохранение предмета и прогресса ударов для механики крафта на пне.
+
+### com.za.minecraft.world.blocks.StumpBlockDefinition (NEW)
+Назначение: Обработка логики кликов (положить/забрать/ударить) по пню.
+
 ### com.za.minecraft.world.blocks.entity.PitKilnBlockEntity (NEW)
 Назначение: Управление процессом обжига глины (таймер, превращение).
 
