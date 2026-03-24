@@ -47,7 +47,7 @@ public class Texture {
             
             if (image == null) {
                 Logger.error("Failed to load texture: %s - %s", path, stbi_failure_reason());
-                image = createWhiteTexture(stack, w, h);
+                image = generateMissingTexture(stack, w, h);
                 isStbAllocated = false;
             }
             
@@ -81,6 +81,8 @@ public class Texture {
             Logger.info("Texture loaded: %s (%dx%d)", path, width, height);
         } catch (IOException e) {
             Logger.error("IOException while loading texture: %s", e, path);
+            // Instead of throwing, we could also use generateMissingTexture here if we had a stack...
+            // But for now, let it fail or handle better.
             throw new RuntimeException("Failed to load texture: " + path, e);
         }
     }
@@ -90,16 +92,18 @@ public class Texture {
     }
     
     public Texture() {
-        this.width = 16;
-        this.height = 16;
+        this.width = 2;
+        this.height = 2;
         
         byte[] pixels = new byte[width * height * 4];
-        for (int i = 0; i < pixels.length; i += 4) {
-            pixels[i] = (byte) 255;     // R
-            pixels[i + 1] = (byte) 255; // G
-            pixels[i + 2] = (byte) 255; // B
-            pixels[i + 3] = (byte) 255; // A
-        }
+        // 0,0 - Purple
+        pixels[0] = (byte)255; pixels[1] = 0; pixels[2] = (byte)255; pixels[3] = (byte)255;
+        // 1,0 - Black
+        pixels[4] = 0; pixels[5] = 0; pixels[6] = 0; pixels[7] = (byte)255;
+        // 0,1 - Black
+        pixels[8] = 0; pixels[9] = 0; pixels[10] = 0; pixels[11] = (byte)255;
+        // 1,1 - Purple
+        pixels[12] = (byte)255; pixels[13] = 0; pixels[14] = (byte)255; pixels[15] = (byte)255;
         
         ByteBuffer buffer = ByteBuffer.allocateDirect(pixels.length);
         buffer.put(pixels).flip();
@@ -114,20 +118,22 @@ public class Texture {
         
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
         
-        Logger.info("White texture created (%dx%d)", width, height);
+        Logger.info("Missing texture stub created (%dx%d)", width, height);
     }
     
-    private ByteBuffer createWhiteTexture(MemoryStack stack, IntBuffer w, IntBuffer h) {
-        w.put(0, 16);
-        h.put(0, 16);
+    private ByteBuffer generateMissingTexture(MemoryStack stack, IntBuffer w, IntBuffer h) {
+        w.put(0, 2);
+        h.put(0, 2);
         
-        ByteBuffer buffer = stack.malloc(16 * 16 * 4);
-        for (int i = 0; i < 16 * 16 * 4; i += 4) {
-            buffer.put(i, (byte) 255);
-            buffer.put(i + 1, (byte) 255);
-            buffer.put(i + 2, (byte) 255);
-            buffer.put(i + 3, (byte) 255);
-        }
+        ByteBuffer buffer = stack.malloc(2 * 2 * 4);
+        // Pixel (0,0) - Purple
+        buffer.put(0, (byte) 255); buffer.put(1, (byte) 0); buffer.put(2, (byte) 255); buffer.put(3, (byte) 255);
+        // Pixel (1,0) - Black
+        buffer.put(4, (byte) 0); buffer.put(5, (byte) 0); buffer.put(6, (byte) 0); buffer.put(7, (byte) 255);
+        // Pixel (0,1) - Black
+        buffer.put(8, (byte) 0); buffer.put(9, (byte) 0); buffer.put(10, (byte) 0); buffer.put(11, (byte) 255);
+        // Pixel (1,1) - Purple
+        buffer.put(12, (byte) 255); buffer.put(13, (byte) 0); buffer.put(14, (byte) 255); buffer.put(15, (byte) 255);
         
         return buffer;
     }

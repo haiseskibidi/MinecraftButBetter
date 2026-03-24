@@ -4,6 +4,7 @@
     "translationKey":  "block.minecraft.campfire",
     "solid":  true,
     "transparent":  true,
+    "type": "campfire",
     "hardness":  1.0,
     "textures":  {
                      "top":  "cobblestone.png",

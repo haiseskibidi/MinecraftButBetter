@@ -84,4 +84,9 @@ public class GeneratorBlockEntity extends BlockEntity implements ITickable, IEne
     public void setRunning(boolean running) {
         this.running = running && fuel > 0;
     }
+
+    @Override
+    public boolean shouldTick() {
+        return running;
+    }
 }

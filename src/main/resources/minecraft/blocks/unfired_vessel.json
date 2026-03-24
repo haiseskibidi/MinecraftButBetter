@@ -4,6 +4,7 @@
   "translationKey": "block.minecraft.unfired_vessel",
   "solid": true,
   "transparent": true,
+  "type": "unfired_vessel",
   "hardness": 0.5,
   "shape": [
     [0.3125, 0.0, 0.3125, 0.6875, 0.375, 0.6875]

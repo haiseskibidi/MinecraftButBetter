@@ -48,4 +48,9 @@ public class PitKilnBlockEntity extends BlockEntity implements ITickable {
     public boolean isBurning() {
         return burning;
     }
+
+    @Override
+    public boolean shouldTick() {
+        return burning;
+    }
 }

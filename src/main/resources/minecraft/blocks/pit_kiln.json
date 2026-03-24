@@ -4,6 +4,7 @@
     "translationKey": "block.minecraft.pit_kiln",
     "solid": false,
     "transparent": true,
+    "type": "pit_kiln",
     "hardness": 0.2,
     "textures": {
         "all": "hay_block_side.png"

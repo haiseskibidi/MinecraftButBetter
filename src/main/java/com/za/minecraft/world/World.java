@@ -127,12 +127,24 @@ public class World {
                 tickableBlockEntities.remove(i);
                 continue;
             }
-            tickable.update(deltaTime);
+            if (tickable.shouldTick()) {
+                tickable.update(deltaTime);
+            }
         }
         
         if (player != null) {
             player.update(deltaTime, this);
         }
+    }
+
+    public void registerTickable(ITickable tickable) {
+        if (!tickableBlockEntities.contains(tickable)) {
+            tickableBlockEntities.add(tickable);
+        }
+    }
+
+    public void unregisterTickable(ITickable tickable) {
+        tickableBlockEntities.remove(tickable);
     }
 
     public void spawnEntity(Entity entity) {

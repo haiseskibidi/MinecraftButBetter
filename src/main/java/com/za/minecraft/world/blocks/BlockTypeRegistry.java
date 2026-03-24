@@ -20,6 +20,10 @@ public class BlockTypeRegistry {
         register("lamp", LampBlockDefinition::new);
         register("battery", BatteryBlockDefinition::new);
         register("stump", StumpBlockDefinition::new);
+        register("campfire", CampfireBlockDefinition::new);
+        register("pit_kiln", PitKilnBlockDefinition::new);
+        register("unfired_vessel", UnfiredVesselBlockDefinition::new);
+        register("log", LogBlockDefinition::new);
     }
 
     public static void register(String type, BlockFactory factory) {

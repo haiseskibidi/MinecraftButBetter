@@ -5,4 +5,8 @@ package com.za.minecraft.world.blocks.entity;
  */
 public interface ITickable {
     void update(float deltaTime);
+    
+    default boolean shouldTick() {
+        return true;
+    }
 }

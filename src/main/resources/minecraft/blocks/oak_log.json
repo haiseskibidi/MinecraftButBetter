@@ -4,6 +4,7 @@
     "translationKey":  "block.minecraft.oak_log",
     "solid":  true,
     "transparent":  false,
+    "type": "log",
     "hardness":  2.0,
     "textures":  {
                      "top":  "oak_log_top.png",

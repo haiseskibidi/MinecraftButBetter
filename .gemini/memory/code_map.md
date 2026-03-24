@@ -84,10 +84,18 @@
 Назначение: Перечисление режимов игры (SINGLEPLAYER, MULTIPLAYER_HOST, MULTIPLAYER_CLIENT).
 
 ### com.za.minecraft.engine.input.InputManager (UPDATED)
-Назначение: Обработка ввода и управление взаимодействием.
-Логика: Полностью де-хардкожена. Поддерживает сбор 3D ресурсов (`ResourceEntity`) и универсальную установку через `PlacementType`.
+Назначение: Обработка ввода и диспетчеризация действий.
+Логика: Полностью де-хардкожена. Делегирует взаимодействие с блоками через `blockDef.onUse`.
 Функции: input(), handleInventoryClick(window, button), calculateMetadata(type, normal, hitPoint, camera), needsPreview(type), getSlotAt(), dropStack(), getHoveredSlotIndex(), getDraggedSlots(), clearHeldStack()
 Зависимости: Window, Camera, Player, World, BlockRegistry
+
+### com.za.minecraft.world.blocks.entity.ITickable (UPDATED)
+Назначение: Интерфейс для обновляемых сущностей.
+Функции: Метод `update`, добавлен `shouldTick()` для оптимизации (Lazy Ticking).
+
+### com.za.minecraft.engine.graphics.Texture (UPDATED)
+Назначение: Управление OpenGL текстурами.
+Функции: Загрузка через STB, генерация мипмапов. Добавлен fallback `generateMissingTexture` (пурпурно-черная шахматка).
 
 ## Graphics
 ### com.za.minecraft.engine.graphics.Renderer (UPDATED)
@@ -136,9 +144,29 @@
 Инициализация: **Reflection**. Поля (GRASS_BLOCK, STONE и т.д.) заполняются автоматически при запуске, сопоставляя имена с Identifier.
 
 ### com.za.minecraft.world.blocks.BlockDefinition (UPDATED)
-Назначение: Описание свойств типа блока.
-Поля: id (int), identifier, requiredTool, dropItem, canSupportScavenge, placementType, hardness, solid, transparent, textures, upperTexture (NEW).
-Функции: getId(), getIdentifier(), getRequiredTool(), getDropItem(), canSupportScavenge(), getPlacementType(), getUpperTexture()
+Назначение: Базовый класс для всех определений блоков.
+Функции: Хранит свойства (solid, transparent, hardness), обрабатывает взаимодействие через `onUse` и `onLeftClick`.
+Зависимости: Identifier, VoxelShape, World, Player.
+
+### com.za.minecraft.world.blocks.CampfireBlockDefinition (NEW)
+Назначение: Логика костра.
+Функции: Обработка жарки сырого мяса (`RAW_MEAT` -> `COOKED_MEAT`) через `onUse`.
+
+### com.za.minecraft.world.blocks.PitKilnBlockDefinition (NEW)
+Назначение: Логика ямного обжига.
+Функции: Управление наполнением ямы бревнами и запуск обжига через огниво.
+
+### com.za.minecraft.world.blocks.UnfiredVesselBlockDefinition (NEW)
+Назначение: Логика сырого сосуда.
+Функции: Превращение в `PIT_KILN` при использовании соломы (`STRAW`) на блоке.
+
+### com.za.minecraft.world.blocks.LogBlockDefinition (NEW)
+Назначение: Логика бревна.
+Функции: Превращение в `STUMP` при ударе каменным топором (`STONE_AXE`).
+
+### com.za.minecraft.world.blocks.BlockTypeRegistry (NEW)
+Назначение: Реестр фабрик для различных типов блоков.
+Функции: Маппинг строкового `type` из JSON в конструкторы подклассов `BlockDefinition`.
 
 ### com.za.minecraft.world.blocks.Block (UPDATED)
 Назначение: Легковесный экземпляр блока в мире.
