@@ -5,9 +5,10 @@
     {
       "id": "equipment",
       "type": "vertical",
-      "anchor": "center",
-      "alignY": "bottom",
-      "x": "-8%",
+      "relativeTo": "pockets",
+      "relativeAlign": "left",
+      "relativeAlignY": "bottom",
+      "fixedOffsetX": -10,
       "y": "-5%",
       "rows": 4,
       "spacing": 4
@@ -15,9 +16,10 @@
     {
       "id": "offhand",
       "type": "grid",
-      "anchor": "center",
-      "alignY": "top",
-      "x": "-8%",
+      "relativeTo": "pockets",
+      "relativeAlign": "left",
+      "relativeAlignY": "top",
+      "fixedOffsetX": -10,
       "y": "-4%",
       "cols": 1,
       "rows": 1
@@ -25,10 +27,12 @@
     {
       "id": "pockets",
       "type": "grid",
-      "anchor": "center",
+      "relativeTo": "hotbar",
+      "relativeAlignX": "center",
       "alignY": "bottom",
-      "x": "0%",
+      "fixedOffsetX": 20,
       "y": "-5%",
+      "fixedOffsetY": 60,
       "cols": 4,
       "rows": 2,
       "spacing": 4
@@ -36,9 +40,10 @@
     {
       "id": "pouch",
       "type": "grid",
-      "anchor": "center",
-      "alignY": "bottom",
-      "x": "8%",
+      "relativeTo": "pockets",
+      "relativeAlign": "right",
+      "relativeAlignY": "bottom",
+      "fixedOffsetX": 10,
       "y": "-5%",
       "cols": 2,
       "rows": 4,

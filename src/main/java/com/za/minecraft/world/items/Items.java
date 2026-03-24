@@ -29,6 +29,7 @@ public class Items {
     public static Item PLANT_FIBER;
     public static Item STRING;
     public static Item FIRE_STARTER;
+    public static Item POUCH;
 
     public static void init() {        for (java.lang.reflect.Field field : Items.class.getFields()) {
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {

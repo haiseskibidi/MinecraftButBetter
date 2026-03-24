@@ -23,12 +23,21 @@ public class InventoryLayout {
         }
     }
 
+    public static class GroupBounds {
+        public int x, y, width, height;
+        public GroupBounds(int x, int y, int w, int h) {
+            this.x = x; this.y = y; this.width = w; this.height = h;
+        }
+    }
+
     public static List<SlotUI> generateLayout(int sw, int sh, int slotSize, int spacing, Player player, GUIConfig config) {
         List<SlotUI> slots = new ArrayList<>();
         Inventory inv = player.getInventory();
+        Map<String, GroupBounds> groupBoundsMap = new HashMap<>();
         
+        // Pass 1: Calculate absolute positions and dimensions for all groups
         for (GUIConfig.GroupConfig groupCfg : config.groups) {
-            // Check condition
+            // Check condition (same logic as before)
             if (groupCfg.condition != null) {
                 if (groupCfg.condition.equals("has_pouch")) {
                     ItemStack acc = inv.getStack(Inventory.SLOT_ACCESSORY);
@@ -41,14 +50,12 @@ public class InventoryLayout {
             SlotGroup group = inv.getGroup(groupCfg.id);
             List<Slot> targetSlots = (group != null) ? group.getSlots() : null;
 
-            // Special case for developer_panel which uses RegistryInventory with scrolling
             if (groupCfg.id.equals("developer_panel")) {
                 RegistryInventory regInv = new RegistryInventory();
                 targetSlots = new ArrayList<>();
                 int scroll = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getDevScroll();
                 int maxDisplay = groupCfg.cols * groupCfg.rows;
                 int startIdx = scroll * groupCfg.cols;
-                
                 for (int i = 0; i < maxDisplay && (startIdx + i) < regInv.size(); i++) {
                     targetSlots.add(new Slot(regInv, startIdx + i, "any"));
                 }
@@ -56,7 +63,6 @@ public class InventoryLayout {
 
             if (targetSlots == null) continue;
 
-            // Calculate group dimensions for centering
             int groupWidth = 0;
             int groupHeight = 0;
             if (groupCfg.type.equals("grid")) {
@@ -72,25 +78,82 @@ public class InventoryLayout {
                 groupHeight = slotSize;
             }
 
-            // Calculate base position from anchor
             int baseX = sw / 2;
             int baseY = sh / 2;
-
             if (groupCfg.anchor.contains("bottom")) baseY = sh;
             else if (groupCfg.anchor.contains("top")) baseY = 0;
             if (groupCfg.anchor.contains("left")) baseX = 0;
             else if (groupCfg.anchor.contains("right")) baseX = sw;
 
-            // Apply alignX (default: center)
             if (groupCfg.alignX.equals("center")) baseX -= groupWidth / 2;
             else if (groupCfg.alignX.equals("right")) baseX -= groupWidth;
-
-            // Apply alignY (default: center)
             if (groupCfg.alignY.equals("center")) baseY -= groupHeight / 2;
             else if (groupCfg.alignY.equals("bottom")) baseY -= groupHeight;
 
-            int startX = baseX + calculateCoord(groupCfg.x, sw);
-            int startY = baseY + calculateCoord(groupCfg.y, sh);
+            int startX = baseX + calculateCoord(groupCfg.x, sw) + groupCfg.fixedOffsetX;
+            int startY = baseY + calculateCoord(groupCfg.y, sh) + groupCfg.fixedOffsetY;
+
+            groupBoundsMap.put(groupCfg.id, new GroupBounds(startX, startY, groupWidth, groupHeight));
+        }
+
+        // Pass 2: Apply relative positioning and create SlotUI objects
+        for (GUIConfig.GroupConfig groupCfg : config.groups) {
+            GroupBounds bounds = groupBoundsMap.get(groupCfg.id);
+            if (bounds == null) continue;
+
+            int startX = bounds.x;
+            int startY = bounds.y;
+
+            if (groupCfg.relativeTo != null && groupBoundsMap.containsKey(groupCfg.relativeTo)) {
+                GroupBounds rel = groupBoundsMap.get(groupCfg.relativeTo);
+                
+                // Handle Horizontal Relative Positioning
+                if ("right".equals(groupCfg.relativeAlign)) {
+                    startX = rel.x + rel.width + groupCfg.fixedOffsetX;
+                } else if ("left".equals(groupCfg.relativeAlign)) {
+                    startX = rel.x - bounds.width + groupCfg.fixedOffsetX;
+                }
+                
+                // Handle Vertical Relative Positioning
+                if ("bottom".equals(groupCfg.relativeAlign)) {
+                    startY = rel.y + rel.height + groupCfg.fixedOffsetY;
+                } else if ("top".equals(groupCfg.relativeAlign)) {
+                    startY = rel.y - bounds.height + groupCfg.fixedOffsetY;
+                }
+
+                // Handle Secondary Alignment (e.g. center against parent)
+                if ("center".equals(groupCfg.relativeAlignY)) {
+                    startY = rel.y + (rel.height / 2 - bounds.height / 2) + groupCfg.fixedOffsetY;
+                } else if ("top".equals(groupCfg.relativeAlignY)) {
+                    startY = rel.y + groupCfg.fixedOffsetY;
+                } else if ("bottom".equals(groupCfg.relativeAlignY)) {
+                    startY = rel.y + rel.height - bounds.height + groupCfg.fixedOffsetY;
+                }
+
+                if ("center".equals(groupCfg.relativeAlignX)) {
+                    startX = rel.x + (rel.width / 2 - bounds.width / 2) + groupCfg.fixedOffsetX;
+                } else if ("left".equals(groupCfg.relativeAlignX)) {
+                    startX = rel.x + groupCfg.fixedOffsetX;
+                } else if ("right".equals(groupCfg.relativeAlignX)) {
+                    startX = rel.x + rel.width - bounds.width + groupCfg.fixedOffsetX;
+                }
+            }
+
+            SlotGroup group = inv.getGroup(groupCfg.id);
+            List<Slot> targetSlots = (group != null) ? group.getSlots() : null;
+
+            if (groupCfg.id.equals("developer_panel")) {
+                RegistryInventory regInv = new RegistryInventory();
+                targetSlots = new ArrayList<>();
+                int scroll = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getDevScroll();
+                int maxDisplay = groupCfg.cols * groupCfg.rows;
+                int startIdx = scroll * groupCfg.cols;
+                for (int i = 0; i < maxDisplay && (startIdx + i) < regInv.size(); i++) {
+                    targetSlots.add(new Slot(regInv, startIdx + i, "any"));
+                }
+            }
+
+            if (targetSlots == null) continue;
 
             for (int i = 0; i < targetSlots.size(); i++) {
                 int col = 0, row = 0;

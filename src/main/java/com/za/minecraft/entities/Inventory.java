@@ -236,7 +236,7 @@ public class Inventory implements IInventory {
             
             for (Slot slot : group.getSlots()) {
                 ItemStack existing = slot.getStack();
-                if (existing != null && existing.isStackableWith(stack)) {
+                if (existing != null && existing.isStackableWith(stack) && slot.isItemValid(stack)) {
                     existing.setCount(existing.getCount() + stack.getCount());
                     setStackInSlot(slotIndex, null);
                     return;

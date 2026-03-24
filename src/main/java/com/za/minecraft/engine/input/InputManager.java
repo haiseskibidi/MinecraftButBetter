@@ -238,6 +238,14 @@ public class InputManager {
             } else if (slot.isItemValid(heldStack)) {
                 slot.setStack(heldStack);
                 heldStack = slotStack;
+                
+                // Trigger GUI re-init if accessory slot changed
+                if (slot.getIndex() == Inventory.SLOT_ACCESSORY) {
+                    com.za.minecraft.engine.graphics.ui.InventoryScreen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+                    if (screen != null) {
+                        screen.init(window.getWidth(), window.getHeight());
+                    }
+                }
             }
         } else if (button == GLFW_MOUSE_BUTTON_2) {
             if (heldStack == null) {
@@ -245,11 +253,27 @@ public class InputManager {
                     int toTake = (int) Math.ceil(slotStack.getCount() / 2.0);
                     heldStack = slotStack.split(toTake);
                     if (slotStack.getCount() <= 0) slot.setStack(null);
+                    
+                    // Trigger GUI re-init if accessory slot changed (removed)
+                    if (slot.getIndex() == Inventory.SLOT_ACCESSORY) {
+                        com.za.minecraft.engine.graphics.ui.InventoryScreen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+                        if (screen != null) {
+                            screen.init(window.getWidth(), window.getHeight());
+                        }
+                    }
                 }
             } else if (slot.isItemValid(heldStack)) {
                 if (slotStack == null) {
                     slot.setStack(heldStack.split(1));
                     if (heldStack.getCount() <= 0) heldStack = null;
+                    
+                    // Trigger GUI re-init if accessory slot changed
+                    if (slot.getIndex() == Inventory.SLOT_ACCESSORY) {
+                        com.za.minecraft.engine.graphics.ui.InventoryScreen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+                        if (screen != null) {
+                            screen.init(window.getWidth(), window.getHeight());
+                        }
+                    }
                 } else if (heldStack.isStackableWith(slotStack)) {
                     slotStack.setCount(slotStack.getCount() + 1);
                     heldStack.setCount(heldStack.getCount() - 1);

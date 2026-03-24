@@ -28,12 +28,16 @@
 - **PlayerInventoryScreen**: Реализация, которая строит интерфейс игрока, используя `InventoryLayout`.
 - **ChestScreen**: Пример универсального окна для контейнеров 9xN.
 
-### 3. Data-Driven Layout System
+### 3. Data-Driven Layout System (UPDATED)
 - **GUIConfig**: POJO-класс для маппинга JSON-конфигураций (`minecraft/gui/*.json`).
-- **InventoryLayout**: Двигатель верстки. Позволяет описывать интерфейс через:
+- **InventoryLayout**: Двухпроходный двигатель верстки. 
+  - **Pass 1**: Расчет абсолютных координат на основе `anchors` и `alignment`.
+  - **Pass 2**: Применение относительного позиционирования (`relativeTo`) и финальных пиксельных смещений (`fixedOffsetX/Y`).
+- **Layout Features**:
   - **Anchors**: `top-left`, `center`, `bottom-right` и др.
-  - **Alignment**: CSS-подобные `alignX` и `alignY` для позиционирования групп относительно точки привязки.
-  - **Units**: Поддержка пикселей (`px`), процентов (`%`) и относительных единиц.
+  - **Relative Positioning**: привязка группы к другой группе (`relativeTo`, `relativeAlign`).
+  - **Axis Alignment**: независимое выравнивание осей (`relativeAlignX`, `relativeAlignY`) для создания сложных структур (например, привязка брони к боковой грани карманов с сохранением собственного Y).
+  - **Fixed Offsets**: пиксельная коррекция (`fixedOffsetX/Y`) для идеального совмещения сеток с разным количеством колонок (например, офсет 20px для выравнивания 4 колонок над 9).
   - **Conditions**: Условная отрисовка групп (например, `developer_mode` или `has_pouch`).
 
 ### 4. Управление и Взаимодействие

@@ -43,12 +43,14 @@
 Назначение: Визуальное представление слота на экране.
 Функции: getX(), getY(), getSlot(), isMouseOver(mx, my, size)
 
-### com.za.minecraft.engine.graphics.ui.InventoryLayout
-Назначение: Двигатель верстки GUI. Рассчитывает позиции слотов на основе правил Anchor и Alignment из JSON.
+### com.za.minecraft.engine.graphics.ui.InventoryLayout (UPDATED)
+Назначение: Двухпроходный двигатель верстки GUI. Рассчитывает позиции слотов на основе правил Anchor, Alignment и Relative Positioning из JSON.
+Логика: Pass 1 рассчитывает базу, Pass 2 применяет привязки к родительским группам и фиксированные офсеты.
 Функции: generateLayout(sw, sh, slotSize, spacing, player, GUIConfig)
 
-### com.za.minecraft.engine.graphics.ui.GUIConfig
+### com.za.minecraft.engine.graphics.ui.GUIConfig (UPDATED)
 Назначение: POJO для десериализации JSON-конфигураций интерфейса.
+Новые поля: fixedOffsetX, fixedOffsetY, relativeTo, relativeAlign, relativeAlignX, relativeAlignY.
 
 ### com.za.minecraft.engine.graphics.ui.GUIRegistry
 Назначение: Реестр загруженных конфигураций GUI.
