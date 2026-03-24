@@ -49,13 +49,21 @@ public class DataLoader {
             loadItems(ns);
         }
         com.za.minecraft.utils.events.RegistryEvents.fireItemRegistration();
+        
+        // --- Essential Initialization Order ---
+        // 1. Map blocks to items automatically
+        com.za.minecraft.world.items.ItemRegistry.init();
+        // 2. Fill static holder classes via reflection
+        com.za.minecraft.world.blocks.Blocks.init();
+        com.za.minecraft.world.items.Items.init();
+        // 3. Register structures (depends on blocks)
+        for (String ns : namespaces) {
+            loadStructures(ns);
+        }
+        com.za.minecraft.world.generation.structures.PrefabManager.init();
 
         for (String ns : namespaces) {
             loadEntityDefinitions(ns);
-        }
-
-        for (String ns : namespaces) {
-            loadStructures(ns);
         }
 
         for (String ns : namespaces) {

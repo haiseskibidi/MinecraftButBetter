@@ -45,6 +45,17 @@ public class JournalScreen implements Screen {
         // Настройка области прокрутки
         contentScroller.setBounds(guiLeft + sidebarWidth + 5, guiTop + topBarHeight, width - sidebarWidth - 10, height - topBarHeight - 10);
         
+        // Restore last state from registry
+        Identifier lastCatId = JournalRegistry.getLastSelectedCategoryId();
+        Identifier lastEntryId = JournalRegistry.getLastSelectedEntryId();
+        
+        if (lastCatId != null) {
+            selectedCategory = JournalRegistry.getCategory(lastCatId);
+        }
+        if (lastEntryId != null) {
+            selectedEntry = JournalRegistry.getEntry(lastEntryId);
+        }
+        
         List<JournalCategory> categories = JournalRegistry.getAllCategories();
         if (selectedCategory == null && !categories.isEmpty()) {
             selectedCategory = categories.get(0);
@@ -317,7 +328,12 @@ public class JournalScreen implements Screen {
         for (JournalCategory cat : JournalRegistry.getAllCategories()) {
             int itemH = Math.max(28, fr.getWrappedStringHeight(I18n.get(cat.name()), 12, maxW - 15) + 12);
             if (mx >= x && mx <= x + sidebarWidth && my >= curY && my <= curY + itemH) {
-                selectedCategory = cat; selectedEntry = null; contentScroller.reset(); return true;
+                selectedCategory = cat; 
+                selectedEntry = null; 
+                JournalRegistry.setLastSelectedCategoryId(cat.id());
+                JournalRegistry.setLastSelectedEntryId(null);
+                contentScroller.reset(); 
+                return true;
             }
             curY += itemH + 2;
             if (cat == selectedCategory) {
@@ -327,7 +343,10 @@ public class JournalScreen implements Screen {
                     if (entry == null) continue;
                     int eH = fr.getWrappedStringHeight(I18n.get(entry.title()), 13, maxW - 20) + 10;
                     if (mx >= x + 5 && mx <= x + sidebarWidth - 5 && my >= curY && my <= curY + eH) {
-                        selectedEntry = entry; contentScroller.reset(); return true;
+                        selectedEntry = entry; 
+                        JournalRegistry.setLastSelectedEntryId(entry.id());
+                        contentScroller.reset(); 
+                        return true;
                     }
                     curY += eH + 1;
                 }

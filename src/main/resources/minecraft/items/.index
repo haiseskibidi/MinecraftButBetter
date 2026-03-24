@@ -4,7 +4,6 @@ canned_food.json
 clay_ball.json
 cooked_meat.json
 crowbar.json
-fired_vessel.json
 flint.json
 fuel_canister.json
 pickaxe_head.json
@@ -14,7 +13,6 @@ scrap_pickaxe.json
 stick.json
 stone_arrowhead.json
 stone_knife.json
-unfired_vessel.json
 straw.json
 fire_starter.json
 stone_axe.json

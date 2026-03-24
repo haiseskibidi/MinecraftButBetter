@@ -13,7 +13,7 @@
     },
     {
       "type": "header",
-      "value": "Плетение нитей"
+      "value": "journal.entry.stump.weaving"
     },
     {
       "type": "recipe",
@@ -21,11 +21,11 @@
     },
     {
       "type": "text",
-      "value": "Положите на пень растительное волокно и ударьте по нему 3 раза рукой."
+      "value": "journal.entry.stump.weaving_desc"
     },
     {
       "type": "header",
-      "value": "Заточенная палка"
+      "value": "journal.entry.stump.sharpened_stick"
     },
     {
       "type": "recipe",
@@ -33,11 +33,11 @@
     },
     {
       "type": "text",
-      "value": "Положите палку на пень и ударьте по ней любым камнем 3 раза."
+      "value": "journal.entry.stump.sharpened_stick_desc"
     },
     {
       "type": "header",
-      "value": "Каменный топор"
+      "value": "journal.entry.stump.stone_axe"
     },
     {
       "type": "recipe",
@@ -45,11 +45,11 @@
     },
     {
       "type": "text",
-      "value": "Чтобы собрать топор, положите на пень палку и ударьте по ней наконечником топора 3 раза."
+      "value": "journal.entry.stump.stone_axe_desc"
     },
     {
       "type": "header",
-      "value": "Мешочек для вещей"
+      "value": "journal.entry.stump.pouch"
     },
     {
       "type": "recipe",
@@ -57,14 +57,14 @@
     },
     {
       "type": "text",
-      "value": "Выложите на пень 4 нити и ударьте по ним заточенной палкой 5 раз."
+      "value": "journal.entry.stump.pouch_desc"
     },
     {
       "type": "spacer"
     },
     {
       "type": "text",
-      "value": "Примечание: Работа на пне — это дискретные удары. Прогресс крафта засчитывается только при физическом нажатии ЛКМ."
+      "value": "journal.entry.stump.note"
     }
   ]
 }

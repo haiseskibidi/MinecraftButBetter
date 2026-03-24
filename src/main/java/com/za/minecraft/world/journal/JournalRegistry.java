@@ -10,6 +10,9 @@ public class JournalRegistry {
     private static final Map<Identifier, JournalCategory> CATEGORIES = new HashMap<>();
     private static final Map<Identifier, JournalEntry> ENTRIES = new HashMap<>();
     private static final List<Identifier> CATEGORY_ORDER = new ArrayList<>();
+    
+    private static Identifier lastSelectedCategoryId;
+    private static Identifier lastSelectedEntryId;
 
     public static void registerCategory(JournalCategory category) {
         CATEGORIES.put(category.id(), category);
@@ -42,5 +45,21 @@ public class JournalRegistry {
         CATEGORIES.clear();
         ENTRIES.clear();
         CATEGORY_ORDER.clear();
+    }
+
+    public static Identifier getLastSelectedCategoryId() {
+        return lastSelectedCategoryId;
+    }
+
+    public static void setLastSelectedCategoryId(Identifier id) {
+        lastSelectedCategoryId = id;
+    }
+
+    public static Identifier getLastSelectedEntryId() {
+        return lastSelectedEntryId;
+    }
+
+    public static void setLastSelectedEntryId(Identifier id) {
+        lastSelectedEntryId = id;
     }
 }

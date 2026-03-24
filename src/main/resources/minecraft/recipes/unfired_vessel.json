@@ -1,0 +1,16 @@
+{
+  "identifier": "minecraft:unfired_vessel",
+  "type": "napping",
+  "input": "minecraft:clay_ball",
+  "result": {
+    "item": "minecraft:unfired_vessel",
+    "count": 1
+  },
+  "pattern": [
+    " ### ",
+    "#   #",
+    "#   #",
+    "#   #",
+    " ### "
+  ]
+}

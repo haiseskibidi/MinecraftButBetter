@@ -13,7 +13,7 @@
     },
     {
       "type": "header",
-      "value": "Каменные инструменты:"
+      "value": "journal.entry.napping.tools"
     },
     {
       "type": "recipe",
@@ -35,7 +35,7 @@
     },
     {
       "type": "header",
-      "value": "Оружие:"
+      "value": "journal.entry.napping.weapons"
     },
     {
       "type": "recipe",
@@ -43,7 +43,7 @@
     },
     {
       "type": "text",
-      "value": "Примечание: Серые квадраты показывают, какие части камня нужно сколоть. Ударяйте по ним, пока не добьетесь нужной формы."
+      "value": "journal.entry.napping.note"
     }
   ]
 }
