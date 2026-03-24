@@ -43,14 +43,19 @@
 Назначение: Визуальное представление слота на экране.
 Функции: getX(), getY(), getSlot(), isMouseOver(mx, my, size)
 
-### com.za.minecraft.engine.graphics.ui.InventoryLayout (UPDATED)
-Назначение: Двухпроходный двигатель верстки GUI. Рассчитывает позиции слотов на основе правил Anchor, Alignment и Relative Positioning из JSON.
-Логика: Pass 1 рассчитывает базу, Pass 2 применяет привязки к родительским группам и фиксированные офсеты.
-Функции: generateLayout(sw, sh, slotSize, spacing, player, GUIConfig)
+### src/main/resources/shaders/ui_fragment.glsl (UPDATED)
+Назначение: Пиксельный шейдер для элементов интерфейса.
+Логика: Поддержка `isGrayscale` униформы для обесцвечивания текстур плейсхолдеров.
 
-### com.za.minecraft.engine.graphics.ui.GUIConfig (UPDATED)
-Назначение: POJO для десериализации JSON-конфигураций интерфейса.
-Новые поля: fixedOffsetX, fixedOffsetY, relativeTo, relativeAlign, relativeAlignX, relativeAlignY.
+### com.za.minecraft.engine.graphics.ui.UIRenderer (UPDATED)
+Назначение: Главный рендерер GUI.
+Функции: renderSlot(x, y, size, stack, placeholder, sw, sh, atlas).
+Логика: При отрисовке плейсхолдера включает `isGrayscale = 1` и применяет альфу 0.4.
+
+### com.za.minecraft.entities.inventory.Slot (UPDATED)
+Назначение: Логический слот.
+Новые поля: placeholderTexture, type (String).
+Логика: `isItemValid` проверяет гибридную строгую валидацию (разрешает в `any` или при совпадении типов).
 
 ### com.za.minecraft.engine.graphics.ui.GUIRegistry
 Назначение: Реестр загруженных конфигураций GUI.

@@ -55,10 +55,11 @@ public class Slot {
     public boolean isItemValid(ItemStack stack) {
         if (stack == null) return true;
         
-        // Strict equipment check: if item has strict equipment component, it MUST match slot type
+        // Strict equipment check: 
+        // Allow if slot is generic ("any") OR if slot type matches item requirement
         com.za.minecraft.world.items.component.EquipmentComponent eq = stack.getItem().getComponent(com.za.minecraft.world.items.component.EquipmentComponent.class);
         if (eq != null && eq.isStrict()) {
-            if (!eq.getSlotType().equals(this.type)) return false;
+            if (!this.type.equals("any") && !eq.getSlotType().equals(this.type)) return false;
         }
 
         return validator.test(stack) && inventory.isItemValid(index, stack);

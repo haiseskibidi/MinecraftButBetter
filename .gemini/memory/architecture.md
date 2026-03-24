@@ -31,14 +31,11 @@
 ### 3. Data-Driven Layout System (UPDATED)
 - **GUIConfig**: POJO-класс для маппинга JSON-конфигураций (`minecraft/gui/*.json`).
 - **InventoryLayout**: Двухпроходный двигатель верстки. 
-  - **Pass 1**: Расчет абсолютных координат на основе `anchors` и `alignment`.
-  - **Pass 2**: Применение относительного позиционирования (`relativeTo`) и финальных пиксельных смещений (`fixedOffsetX/Y`).
 - **Layout Features**:
-  - **Anchors**: `top-left`, `center`, `bottom-right` и др.
+  - **Ghost Icons (Placeholders)**: привязка текстур к пустым слотам через JSON (`placeholders: { index: "texture_name" }`).
+  - **Grayscale Effect**: фрагментный шейдер (`ui_fragment.glsl`) поддерживает униформу `isGrayscale`. При значении 1 текстура обесцвечивается по формуле яркости (luminance), что используется для отрисовки плейсхолдеров с прозрачностью 0.4.
+  - **Hybrid Strict Validation**: система позволяет предметам иметь флаг `strict` в `EquipmentComponent`. Предмет разрешается в слоте, если `slot.type == "any"` ИЛИ `slot.type == item.requiredType`. Это позволяет блокировать "мешочек в слоте шлема", сохраняя возможность носить его в карманах.
   - **Relative Positioning**: привязка группы к другой группе (`relativeTo`, `relativeAlign`).
-  - **Axis Alignment**: независимое выравнивание осей (`relativeAlignX`, `relativeAlignY`) для создания сложных структур (например, привязка брони к боковой грани карманов с сохранением собственного Y).
-  - **Fixed Offsets**: пиксельная коррекция (`fixedOffsetX/Y`) для идеального совмещения сеток с разным количеством колонок (например, офсет 20px для выравнивания 4 колонок над 9).
-  - **Conditions**: Условная отрисовка групп (например, `developer_mode` или `has_pouch`).
 
 ### 4. Управление и Взаимодействие
 - **ScreenManager**: Синглтон, хранящий активный `InventoryScreen`. Делегирует события ввода и вызовы отрисовки от `InputManager` и `UIRenderer`.

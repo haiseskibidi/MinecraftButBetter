@@ -121,6 +121,7 @@ public class UIRenderer {
         uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
         uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
         uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+        uiShader.setInt("isGrayscale", 0);
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -563,14 +564,16 @@ public class UIRenderer {
                 tex.bind();
                 uiShader.use();
                 uiShader.setInt("useTexture", 1);
+                uiShader.setInt("isGrayscale", 1);
                 uiShader.setUniform("scale", gsX, gsY, 0.0f, 0.0f);
                 uiShader.setUniform("position_offset", gpX, gpY, 0.0f, 0.0f);
                 uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
                 uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-                uiShader.setUniform("tintColor", 0.5f, 0.5f, 0.5f, 0.4f); // Gray and transparent
+                uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 0.4f); // Pure white + alpha, grayscale handles the rest
                 
                 glBindVertexArray(quadVAO);
                 glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+                uiShader.setInt("isGrayscale", 0);
             }
         }
         glBindVertexArray(0);
