@@ -45,9 +45,12 @@ public class LogBlockDefinition extends BlockDefinition {
                 StumpBlockEntity be = (StumpBlockEntity) world.getBlockEntity(pos);
                 if (be != null) {
                     be.setCarvingMask(0);
+                    // Применяем первый удар сразу, чтобы не нужно было нажимать 2 раза
+                    int index = CarvingLayoutEngine.getZoneIndex(hitX, hitZ);
+                    be.setCarvingBit(index);
                 }
                 
-                com.za.minecraft.utils.Logger.info("Started carving %s into %s", recipe.getInputBlock(), recipe.getIntermediateBlock());
+                com.za.minecraft.utils.Logger.info("Started carving %s into %s at zone %d", recipe.getInputBlock(), recipe.getIntermediateBlock(), CarvingLayoutEngine.getZoneIndex(hitX, hitZ));
                 return true;
             }
         }

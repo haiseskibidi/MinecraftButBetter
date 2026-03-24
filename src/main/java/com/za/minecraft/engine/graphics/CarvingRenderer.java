@@ -14,8 +14,13 @@ public class CarvingRenderer {
         int mask = stump.getCarvingMask();
         BlockPos pos = stump.getPos();
         
-        // Получаем UV для обтёсанного дерева
-        float[] uv = atlas.uvFor("stripped_oak_log_top.png");
+        // Получаем тип блока из мира по позиции сущности
+        if (stump.getWorld() == null) return;
+        int blockType = stump.getWorld().getBlock(pos).getType();
+        com.za.minecraft.world.blocks.BlockTextures textures = com.za.minecraft.world.blocks.BlockRegistry.getTextures(blockType);
+        if (textures == null || textures.getTop() == null) return;
+        
+        float[] uv = atlas.uvFor(textures.getTop());
         if (uv == null) return;
 
         if (fullFaceMesh == null) {
@@ -24,7 +29,8 @@ public class CarvingRenderer {
 
         shader.setBoolean("useMask", true);
         shader.setInt("faceMask", mask);
-        shader.setUniform("overlayUV", uv[0], uv[1], uv[2], uv[3]);
+        // Исправленные индексы для minU, minV, maxU, maxV
+        shader.setUniform("overlayUV", uv[0], uv[1], uv[4], uv[5]);
         shader.setFloat("brightnessMultiplier", 1.25f);
 
         // Сдвигаем на 1.01f вверх, чтобы точно быть над блоком
