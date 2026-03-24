@@ -54,6 +54,8 @@ public class JournalScreen implements Screen {
         }
         if (lastEntryId != null) {
             selectedEntry = JournalRegistry.getEntry(lastEntryId);
+            // Restore scroll for this specific entry
+            contentScroller.setScrollY(JournalRegistry.getLastScrollY());
         }
         
         List<JournalCategory> categories = JournalRegistry.getAllCategories();
@@ -332,6 +334,7 @@ public class JournalScreen implements Screen {
                 selectedEntry = null; 
                 JournalRegistry.setLastSelectedCategoryId(cat.id());
                 JournalRegistry.setLastSelectedEntryId(null);
+                JournalRegistry.setLastScrollY(0);
                 contentScroller.reset(); 
                 return true;
             }
@@ -345,6 +348,7 @@ public class JournalScreen implements Screen {
                     if (mx >= x + 5 && mx <= x + sidebarWidth - 5 && my >= curY && my <= curY + eH) {
                         selectedEntry = entry; 
                         JournalRegistry.setLastSelectedEntryId(entry.id());
+                        JournalRegistry.setLastScrollY(0);
                         contentScroller.reset(); 
                         return true;
                     }
@@ -365,6 +369,9 @@ public class JournalScreen implements Screen {
     @Override
     public boolean handleKeyPress(int key) {
         if (key == org.lwjgl.glfw.GLFW.GLFW_KEY_J || key == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+            // Save scroll state before closing
+            JournalRegistry.setLastScrollY(contentScroller.getOffset());
+            
             com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
             com.za.minecraft.engine.core.GameLoop.getInstance().toggleJournal();
             return true;

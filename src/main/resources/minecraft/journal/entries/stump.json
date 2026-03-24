@@ -60,6 +60,18 @@
       "value": "journal.entry.stump.pouch_desc"
     },
     {
+      "type": "header",
+      "value": "journal.entry.fire_starter.crafting"
+    },
+    {
+      "type": "recipe",
+      "value": "minecraft:fire_starter"
+    },
+    {
+      "type": "text",
+      "value": "journal.entry.fire_starter.desc2"
+    },
+    {
       "type": "spacer"
     },
     {

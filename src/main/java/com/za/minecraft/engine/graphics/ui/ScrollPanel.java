@@ -65,6 +65,10 @@ public class ScrollPanel {
         return scrollOffset;
     }
 
+    public void setScrollY(float offset) {
+        this.scrollOffset = offset;
+    }
+
     public void renderScrollbar(UIRenderer renderer, int sw, int sh) {
         if (maxScroll <= 0) return;
 

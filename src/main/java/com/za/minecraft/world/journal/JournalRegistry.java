@@ -13,6 +13,7 @@ public class JournalRegistry {
     
     private static Identifier lastSelectedCategoryId;
     private static Identifier lastSelectedEntryId;
+    private static float lastScrollY = 0;
 
     public static void registerCategory(JournalCategory category) {
         CATEGORIES.put(category.id(), category);
@@ -61,5 +62,13 @@ public class JournalRegistry {
 
     public static void setLastSelectedEntryId(Identifier id) {
         lastSelectedEntryId = id;
+    }
+
+    public static float getLastScrollY() {
+        return lastScrollY;
+    }
+
+    public static void setLastScrollY(float y) {
+        lastScrollY = y;
     }
 }
