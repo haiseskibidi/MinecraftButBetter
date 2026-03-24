@@ -16,6 +16,7 @@ public class Item {
     protected final String texturePath;
     protected float weight = 1.0f;
     protected float visualScale = 1.0f;
+    protected float miningSpeed = 1.0f;
     
     private final Map<Class<? extends ItemComponent>, ItemComponent> components = new HashMap<>();
 
@@ -77,6 +78,14 @@ public class Item {
     public void setVisualScale(float visualScale) {
         this.visualScale = visualScale;
     }
+
+    public float getBaseMiningSpeed() {
+        return miningSpeed;
+    }
+
+    public void setMiningSpeed(float miningSpeed) {
+        this.miningSpeed = miningSpeed;
+    }
     
     public boolean isTool() {
         return hasComponent(ToolComponent.class);
@@ -132,6 +141,6 @@ public class Item {
         }
         
         // Скорость рукой (или блоком) по блоку, требующему инструмент
-        return 0.2f; 
+        return this.miningSpeed; 
     }
 }

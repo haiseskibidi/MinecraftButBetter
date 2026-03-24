@@ -609,14 +609,11 @@ public class InputManager {
                                 breakingBlockPos = hitPos;
                                 breakingProgress = 0.0f;
                             }
-                            // Calculate mining speed. Fallback to 0.08 if no item.
-                            float miningSpeed = 0.08f;
-                            if (currentItem != null) {
-                                miningSpeed = currentItem.getMiningSpeed(blockType);
-                            } else {
-                                // Hand mining speed
-                                miningSpeed = 0.08f;
-                            }
+                            
+                            // Get mining speed from current item or HAND fallback
+                            float miningSpeed = (currentItem != null) ? 
+                                currentItem.getMiningSpeed(blockType) : 
+                                Items.HAND.getMiningSpeed(blockType);
 
                             if (breakDelayTimer <= 0) {
                                 float breakSpeed = miningSpeed / hardness;

@@ -24,6 +24,32 @@
 Назначение: Группа слотов с общим поведением и условием активации (activeSupplier).
 Функции: isActive(), addSlot(Slot), withActiveSupplier(Supplier)
 
+## UI System (UPDATED)
+### com.za.minecraft.engine.graphics.ui.Screen
+Назначение: Базовый интерфейс для всех игровых экранов (`init`, `render`, `handleMouseClick`, `handleScroll`).
+
+### com.za.minecraft.engine.graphics.ui.ScrollPanel
+Назначение: Модульный компонент для скроллинга. Использует `glScissor` для аппаратного отсечения контента.
+
+### com.za.minecraft.engine.graphics.ui.JournalScreen
+Назначение: Реализация планшета выжившего. Отображает категории, статьи и динамические рецепты.
+
+## Journal System (NEW)
+### com.za.minecraft.world.journal.JournalRegistry
+Назначение: Реестр категорий и записей дневника.
+
+### com.za.minecraft.world.journal.JournalEntry / JournalCategory / JournalElement
+Назначение: Модели данных для структуры контента планшета.
+
+## Item System (UPDATED)
+### com.za.minecraft.world.items.Item (UPDATED)
+Назначение: Базовый класс предмета.
+Логика: Добавлена поддержка `miningSpeed` напрямую в класс для Data-Driven настройки эффективности (включая пустую руку).
+
+### com.za.minecraft.world.DataLoader (UPDATED)
+Назначение: Загрузчик ресурсов.
+Логика: Добавлена поддержка парсинга `miningSpeed` из JSON предметов и загрузка всей структуры Journal.
+
 ## GUI System (UPDATED)
 ### com.za.minecraft.engine.graphics.ui.Screen
 Назначение: Базовый интерфейс для всех игровых экранов.

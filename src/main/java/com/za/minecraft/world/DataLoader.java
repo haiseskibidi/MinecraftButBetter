@@ -531,6 +531,7 @@ public class DataLoader {
             
             if (obj.has("weight")) item.setWeight(obj.get("weight").getAsFloat());
             if (obj.has("visualScale")) item.setVisualScale(obj.get("visualScale").getAsFloat());
+            if (obj.has("miningSpeed")) item.setMiningSpeed(obj.get("miningSpeed").getAsFloat());
             
             // Парсинг компонентов (перезаписывают дефолтные из конструктора)
             if (obj.has("components")) {
