@@ -716,8 +716,12 @@ public class InputManager {
                     float ry = raycast.getHitPoint().y - hitPos.y();
                     float rz = raycast.getHitPoint().z - hitPos.z();
 
-                    if (blockDef != null && blockDef.onUse(world, hitPos, player, currentStack, rx, ry, rz)) {
-                        actionConsumed = true;
+                    if (blockDef != null) {
+                        com.za.minecraft.utils.Logger.info("Block onUse: %s (type: %s), hitY=%.2f", 
+                            blockDef.getIdentifier(), blockDef.getClass().getSimpleName(), ry);
+                        if (blockDef.onUse(world, hitPos, player, currentStack, rx, ry, rz)) {
+                            actionConsumed = true;
+                        }
                     }
                 }
 

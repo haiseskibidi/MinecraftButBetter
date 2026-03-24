@@ -285,6 +285,13 @@ public class DataLoader {
                 } else {
                     Logger.error("Failed to parse in_world recipe " + id + ": Result item " + resId + " not found!");
                 }
+            } else if (type.equalsIgnoreCase("carving")) {
+                Identifier input = Identifier.of(obj.get("input").getAsString());
+                Identifier tool = obj.has("tool") ? Identifier.of(obj.get("tool").getAsString()) : null;
+                Identifier intermediate = Identifier.of(obj.get("intermediate").getAsString());
+                Identifier result = Identifier.of(obj.get("result").getAsString());
+                
+                RecipeRegistry.register(new com.za.minecraft.world.recipes.CarvingRecipe(id, input, tool, intermediate, result));
             }
         } catch (Exception e) {
             Logger.error("Failed to parse recipe: " + e.getMessage());

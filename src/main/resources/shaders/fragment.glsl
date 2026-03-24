@@ -20,6 +20,10 @@ uniform vec3 highlightColor;
 uniform bool previewPass; // Если true — рисуем полупрозрачный блок
 uniform float previewAlpha;
 uniform bool viewModelPass; // Если true — применяем специальное освещение для вида от первого лица
+uniform float brightnessMultiplier = 1.0;
+uniform int faceMask = 0; // 16-bit mask for 4x4 grid
+uniform bool useMask = false;
+uniform vec4 overlayUV; // minU, minV, maxU, maxV
 
 void main() {
     vec4 textureColor = vec4(1.0);
@@ -30,10 +34,39 @@ void main() {
         baseColor = highlightColor;
         alpha = 1.0;
     } else {
-        textureColor = texture(textureSampler, fragTexCoord);
+        // Логика маскирования (для обтёсывания и т.д.)
+        if (useMask) {
+            vec2 localUV = fragTexCoord;
+            
+            // Расчет бита маски (4x4)
+            int x = int(clamp(localUV.x * 4.0, 0.0, 3.99));
+            int z = int(clamp(localUV.y * 4.0, 0.0, 3.99));
+            int bit = z * 4 + x;
+            
+            if (((faceMask >> bit) & 1) == 0) {
+                discard;
+            }
+
+            // Идеальная интерполяция внутри границ атласа с защитой от bleeding
+            // overlayUV: x=minU, y=minV, z=maxU, w=maxV
+            float eps = 0.0001; // Микро-отступ
+            vec2 safeMin = overlayUV.xy + eps;
+            vec2 safeMax = overlayUV.zw - eps;
+            vec2 atlasUV = mix(safeMin, safeMax, localUV);
+            
+            textureColor = texture(textureSampler, atlasUV);
+        } else {
+            textureColor = texture(textureSampler, fragTexCoord);
+        }
+
         if (textureColor.a < 0.1) discard;
         baseColor = textureColor.rgb;
         alpha = textureColor.a;
+    }
+
+    // Brighten Stump Top Face (ID 150)
+    if (highlightPass == 0 && abs(blockType - 150.0) < 0.1 && fragNormal.y > 0.9) {
+        baseColor *= 1.25;
     }
 
     // Connected Textures for Glass (Type 19)
@@ -110,7 +143,7 @@ void main() {
     float diffuse = max(dot(fragNormal, -lightDirection), 0.0);
     vec3 lighting = ambientLight + lightColor * diffuse;
     
-    fragColor = vec4(lighting * baseColor, alpha);
+    fragColor = vec4(lighting * baseColor * brightnessMultiplier, alpha);
     
     if (previewPass) {
         fragColor.rgb = mix(fragColor.rgb, vec3(1.0, 1.0, 1.0), 0.3); 

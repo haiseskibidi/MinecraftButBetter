@@ -293,6 +293,10 @@
 Назначение: Рецепт для механики скалывания камней (Tier 1).
 Поля: inputId, result, pattern (5x5 boolean array).
 
+### com.za.minecraft.world.recipes.CarvingRecipe (NEW)
+Назначение: Data-Driven рецепт для обтёсывания блоков (бревно -> пень).
+Поля: inputBlock, tool, intermediateBlock, resultBlock.
+
 ## Entities & Physics (UPDATED)
 ### com.za.minecraft.entities.Entity (UPDATED)
 Назначение: Базовый физический объект.

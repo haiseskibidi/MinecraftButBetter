@@ -1,14 +1,14 @@
 {
-  "id": 150,
-  "identifier": "minecraft:stump",
-  "translationKey": "block.minecraft.stump",
+  "id": 151,
+  "identifier": "minecraft:unfinished_stump",
+  "translationKey": "block.minecraft.unfinished_stump",
   "type": "stump",
   "solid": true,
   "transparent": false,
   "hardness": 2.0,
   "requiredTool": "axe",
   "textures": {
-    "top": "stripped_oak_log_top.png",
+    "top": "oak_log_top.png",
     "bottom": "oak_log_top.png",
     "side": "oak_log.png"
   }

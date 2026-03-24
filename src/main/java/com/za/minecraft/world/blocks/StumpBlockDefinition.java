@@ -8,6 +8,7 @@ import com.za.minecraft.world.blocks.entity.BlockEntity;
 import com.za.minecraft.world.blocks.entity.StumpBlockEntity;
 import com.za.minecraft.world.blocks.entity.ICraftingSurface;
 import com.za.minecraft.world.items.ItemStack;
+import com.za.minecraft.world.items.Items;
 import com.za.minecraft.world.recipes.RecipeRegistry;
 import com.za.minecraft.world.recipes.InWorldRecipe;
 import java.util.ArrayList;
@@ -25,16 +26,41 @@ public class StumpBlockDefinition extends BlockDefinition {
     @Override
     public boolean onUse(World world, BlockPos pos, Player player, ItemStack heldStack, float hitX, float hitY, float hitZ) {
         BlockEntity be = world.getBlockEntity(pos);
-        ICraftingSurface surface;
+        if (!(be instanceof StumpBlockEntity)) {
+            be = new StumpBlockEntity(pos);
+            world.setBlockEntity(be);
+        }
+        StumpBlockEntity stump = (StumpBlockEntity) be;
 
-        if (be instanceof ICraftingSurface s) {
-            surface = s;
-        } else {
-            StumpBlockEntity stump = new StumpBlockEntity(pos);
-            world.setBlockEntity(stump);
-            surface = stump;
+        // --- Логика обтёсывания (Carving) ---
+        if (!stump.isFullyCarved()) {
+            if (heldStack != null && heldStack.getItem().getIdentifier().getPath().contains("knife") && player.isSneaking() && hitY > 0.8f) {
+                if (!stump.canCarve()) return true; // Consume click but do nothing if on cooldown
+
+                // Вычисляем индекс зоны 4x4 через движок
+                int index = CarvingLayoutEngine.getZoneIndex(hitX, hitZ);
+                stump.setCarvingBit(index);
+
+                com.za.minecraft.utils.Logger.info("Carving stump at zone %d, mask: %d", index, stump.getCarvingMask());
+
+                // Если всё обтёсано - превращаем в финальный пень
+                if (stump.isFullyCarved()) {
+                    world.setBlock(pos, new Block(Blocks.STUMP.getId()));
+                    StumpBlockEntity finalStump = (StumpBlockEntity) world.getBlockEntity(pos);
+                    if (finalStump != null) {
+                        finalStump.setCarvingMask(0xFFFF);
+                        com.za.minecraft.utils.Logger.info("Stump carving finished!");
+                    }
+                }
+                return true;
+            }
+            com.za.minecraft.utils.Logger.info("Carving blocked: item is not knife or not sneaking. Carved: %b", stump.isFullyCarved());
+            // Блокировать крафт, если пень не обтёсан
+            return false;
         }
 
+        // --- Обычная логика крафта ---
+        ICraftingSurface surface = stump;
         int slot = CraftingLayoutEngine.getSlotIndex(hitX, hitZ);
         ItemStack inSlot = surface.getStackInSlot(slot);
 
@@ -65,7 +91,9 @@ public class StumpBlockDefinition extends BlockDefinition {
     @Override
     public boolean onLeftClick(World world, BlockPos pos, Player player, ItemStack heldStack, float hitX, float hitY, float hitZ, boolean isNewClick) {
         BlockEntity be = world.getBlockEntity(pos);
-        if (!(be instanceof ICraftingSurface surface)) return false;
+        if (!(be instanceof StumpBlockEntity stump) || !stump.isFullyCarved()) return false;
+        
+        ICraftingSurface surface = stump;
 
         // Если бьем по верхней грани (hitY > 0.8) - это попытка крафта
         if (hitY > 0.8f) {

@@ -29,6 +29,7 @@ public class Renderer {
     private Framebuffer framebuffer;
     private PostProcessor postProcessor;
     private UIRenderer uiRenderer;
+    private CarvingRenderer carvingRenderer;
     private boolean fxaaEnabled = false;
     private Mesh highlightMesh;
     private Mesh playerMesh;
@@ -136,6 +137,8 @@ public class Renderer {
         
         uiRenderer = new UIRenderer();
         uiRenderer.init();
+
+        carvingRenderer = new CarvingRenderer();
     }
     
     public void render(Window window, Camera camera, World world, RaycastResult highlightedBlock, com.za.minecraft.network.GameClient networkClient) {
@@ -334,12 +337,19 @@ public class Renderer {
         
         blockShader.use();
         for (com.za.minecraft.world.blocks.entity.BlockEntity be : world.getBlockEntities().values()) {
-            if (be instanceof com.za.minecraft.world.blocks.entity.ICraftingSurface surface) {
-                int totalItems = surface.getActiveSlotsCount();
+            if (be instanceof com.za.minecraft.world.blocks.entity.StumpBlockEntity stump) {
+                
+                // 1. Отрисовка прогресса обтёсывания (Carving)
+                if (!stump.isFullyCarved()) {
+                    carvingRenderer.render(stump, atlas, blockShader, modelMatrix);
+                }
+
+                // 2. Отрисовка предметов на пне (Crafting)
+                int totalItems = stump.getActiveSlotsCount();
                 if (totalItems == 0) continue;
 
                 for (int i = 0; i < 9; i++) {
-                    com.za.minecraft.world.items.ItemStack stack = surface.getStackInSlot(i);
+                    com.za.minecraft.world.items.ItemStack stack = stump.getStackInSlot(i);
                     if (stack == null) continue;
 
                     com.za.minecraft.world.items.Item item = stack.getItem();
@@ -716,6 +726,10 @@ public class Renderer {
             if (mesh != null) mesh.cleanup();
         }
         itemMeshCache.clear();
+
+        if (carvingRenderer != null) {
+            carvingRenderer.cleanup();
+        }
         
         if (atlas != null) atlas.cleanup();
         if (blockShader != null) blockShader.cleanup();

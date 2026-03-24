@@ -1,0 +1,8 @@
+{
+  "identifier": "minecraft:oak_log_carving",
+  "type": "carving",
+  "input": "minecraft:oak_log",
+  "tool": "minecraft:stone_knife",
+  "intermediate": "minecraft:unfinished_stump",
+  "result": "minecraft:stump"
+}

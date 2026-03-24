@@ -9,5 +9,11 @@
         "jdtls"
       ]
     }
+  },
+  "experimental": {
+    "toolOutputMasking": {
+      "toolProtectionThreshold": 50000,
+      "minPrunableTokensThreshold": 30000
+    }
   }
 }

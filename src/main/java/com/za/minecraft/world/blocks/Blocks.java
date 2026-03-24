@@ -54,6 +54,7 @@ public class Blocks {
     public static BlockDefinition PIT_KILN;
     public static BlockDefinition BURNING_PIT_KILN;
     public static BlockDefinition STUMP;
+    public static BlockDefinition UNFINISHED_STUMP;
     
     public static void init() {
         for (java.lang.reflect.Field field : Blocks.class.getFields()) {
