@@ -158,6 +158,10 @@ public class FontRenderer {
     }
 
     public void drawString(String text, int x, int y, int size, int screenWidth, int screenHeight) {
+        drawString(text, x, y, size, screenWidth, screenHeight, 1.0f, 1.0f, 1.0f, 1.0f);
+    }
+
+    public void drawString(String text, int x, int y, int size, int screenWidth, int screenHeight, float r, float g, float b, float a) {
         if (text == null || text.isEmpty()) {
             return;
         }
@@ -166,7 +170,7 @@ public class FontRenderer {
 
         shader.use();
         shader.setInt("useTexture", 1);
-        shader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+        shader.setUniform("tintColor", r, g, b, a);
 
         glBindVertexArray(vao);
 
@@ -228,6 +232,64 @@ public class FontRenderer {
         }
 
         glBindVertexArray(0);
+    }
+
+    public void drawWrappedString(String text, int x, int y, int size, int maxWidth, int screenWidth, int screenHeight) {
+        drawWrappedString(text, x, y, size, maxWidth, screenWidth, screenHeight, 1.0f, 1.0f, 1.0f, 1.0f);
+    }
+
+    public void drawWrappedString(String text, int x, int y, int size, int maxWidth, int screenWidth, int screenHeight, float r, float g, float b, float a) {
+        if (text == null || text.isEmpty()) return;
+        
+        String[] words = text.split(" ");
+        StringBuilder currentLine = new StringBuilder();
+        int currentY = y;
+        int lineHeight = (int)(size * 1.3f); // Увеличил интервал для читаемости
+        
+        for (String word : words) {
+            String testLine = currentLine.length() == 0 ? word : currentLine.toString() + " " + word;
+            if (getStringWidth(testLine, size) > maxWidth) {
+                if (currentLine.length() > 0) {
+                    drawString(currentLine.toString(), x, currentY, size, screenWidth, screenHeight, r, g, b, a);
+                    currentY += lineHeight;
+                    currentLine = new StringBuilder(word);
+                } else {
+                    drawString(word, x, currentY, size, screenWidth, screenHeight, r, g, b, a);
+                    currentY += lineHeight;
+                }
+            } else {
+                currentLine = new StringBuilder(testLine);
+            }
+        }
+        
+        if (currentLine.length() > 0) {
+            drawString(currentLine.toString(), x, currentY, size, screenWidth, screenHeight, r, g, b, a);
+        }
+    }
+
+    public int getWrappedStringHeight(String text, int size, int maxWidth) {
+        if (text == null || text.isEmpty()) return 0;
+        
+        String[] words = text.split(" ");
+        int lines = 1;
+        StringBuilder currentLine = new StringBuilder();
+        int lineHeight = (int)(size * 1.3f);
+        
+        for (String word : words) {
+            String testLine = currentLine.length() == 0 ? word : currentLine.toString() + " " + word;
+            if (getStringWidth(testLine, size) > maxWidth) {
+                if (currentLine.length() > 0) {
+                    lines++;
+                    currentLine = new StringBuilder(word);
+                } else {
+                    lines++;
+                }
+            } else {
+                currentLine = new StringBuilder(testLine);
+            }
+        }
+        
+        return lines * lineHeight;
     }
 
     private void renderCustomGlyph(GlyphInfo glyph, int x, int y, int size, int screenWidth, int screenHeight) {

@@ -15,10 +15,9 @@ public class ItemRegistry {
         BlockRegistry.getRegistry().getIds().forEach(id -> {
             var def = BlockRegistry.getRegistry().get(id);
             int intId = BlockRegistry.getRegistry().getId(id);
-            if (intId != 0) { // Not AIR
-                Item blockItem = new BlockItem(intId, def.getIdentifier(), def.getName(), def.getTextures() != null ? def.getTextures().getNorth() : "");
-                registerItem(blockItem);
-            }
+            
+            Item blockItem = new BlockItem(intId, def.getIdentifier(), def.getName(), def.getTextures() != null ? def.getTextures().getNorth() : "");
+            registerItem(blockItem);
         });
     }
 

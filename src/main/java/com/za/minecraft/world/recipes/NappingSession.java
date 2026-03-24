@@ -42,7 +42,7 @@ public class NappingSession {
         for (IRecipe recipe : recipes) {
             if (recipe instanceof NappingRecipe nappingRecipe) {
                 // Совпадает ли материал?
-                if (nappingRecipe.getInputId().equals(inputItem.getIdentifier())) {
+                if (nappingRecipe.isInputValid(inputItem.getIdentifier())) {
                     // Совпадает ли паттерн?
                     if (Arrays.equals(grid, nappingRecipe.getPattern())) {
                         return nappingRecipe;

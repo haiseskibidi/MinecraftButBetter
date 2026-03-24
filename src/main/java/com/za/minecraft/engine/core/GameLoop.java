@@ -34,6 +34,7 @@ public class GameLoop {
     private boolean running;
     private boolean paused = false;
     private boolean inventoryOpen = false;
+    private boolean jPressed = false;
     private boolean ePressed = false;
     private boolean escPressed = false;
     
@@ -71,6 +72,10 @@ public class GameLoop {
 
     public InputManager getInputManager() {
         return inputManager;
+    }
+
+    public Renderer getRenderer() {
+        return renderer;
     }
 
     public void setInventoryOpen(boolean open) {
@@ -172,15 +177,36 @@ public class GameLoop {
     }
     
     private void input() {
+        com.za.minecraft.engine.graphics.ui.Screen active = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+        
         boolean eKey = window.isKeyPressed(GLFW_KEY_E);
         if (eKey && !ePressed && !paused) {
-            toggleInventory();
+            if (active != null) {
+                if (active.handleKeyPress(GLFW_KEY_E)) return;
+                com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
+                toggleInventory();
+            } else {
+                toggleInventory();
+            }
         }
         ePressed = eKey;
 
+        boolean jKey = window.isKeyPressed(GLFW_KEY_J);
+        if (jKey && !jPressed && !paused) {
+            if (active != null && active.handleKeyPress(GLFW_KEY_J)) {
+                // Consumed by screen
+            } else {
+                toggleJournal();
+            }
+        }
+        jPressed = jKey;
+
         boolean escKey = window.isKeyPressed(GLFW_KEY_ESCAPE);
         if (escKey && !escPressed) {
-            if (inventoryOpen) {
+            if (active != null && active.handleKeyPress(GLFW_KEY_ESCAPE)) {
+                // Consumed
+            } else if (inventoryOpen) {
+                com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
                 toggleInventory();
             } else if (currentNappingSession != null) {
                 closeNappingWithWaste();
@@ -191,6 +217,20 @@ public class GameLoop {
         escPressed = escKey;
 
         highlightedBlock = inputManager.input(window, camera, player, timer.getDeltaF(), renderer, world, networkClient);
+    }
+
+    public void toggleJournal() {
+        if (currentNappingSession != null) return;
+        
+        inventoryOpen = !inventoryOpen;
+        if (inventoryOpen) {
+            inputManager.disableMouseCapture(window);
+            com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().openScreen(
+                new com.za.minecraft.engine.graphics.ui.JournalScreen(), window.getWidth(), window.getHeight());
+        } else {
+            inputManager.enableMouseCapture(window);
+            com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
+        }
     }
     
     public void toggleInventory() {
@@ -335,5 +375,9 @@ public class GameLoop {
 
     public boolean isPaused() {
         return paused;
+    }
+
+    public Window getWindow() {
+        return window;
     }
 }

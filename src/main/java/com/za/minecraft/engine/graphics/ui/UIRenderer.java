@@ -32,6 +32,7 @@ public class UIRenderer {
     private Texture hotbarTexture;
     private Texture hotbarSelectionTexture;
     private Map<Integer, Texture> itemTextures = new HashMap<>();
+    private Map<String, Texture> externalTextures = new HashMap<>();
     
     private int quadVAO;
     private int quadVBO;
@@ -359,7 +360,7 @@ public class UIRenderer {
             screenManager.openPlayerInventory(player, screenWidth, screenHeight);
         }
         
-        InventoryScreen activeScreen = screenManager.getActiveScreen();
+        Screen activeScreen = screenManager.getActiveScreen();
         
         // Dynamic re-init if resolution or player mode changed
         com.za.minecraft.engine.core.PlayerMode currentMode = player.getMode();
@@ -372,39 +373,59 @@ public class UIRenderer {
         
         activeScreen.render(this, screenWidth, screenHeight, atlas);
 
-        int slotSize = (int)(18 * Hotbar.HOTBAR_SCALE);
+        if (activeScreen instanceof InventoryScreen invScreen) {
+            int slotSize = (int)(18 * Hotbar.HOTBAR_SCALE);
 
-        // Draw Held Stack
-        ItemStack held = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getHeldStack();
-        if (held != null) {
+            // Draw Held Stack
+            ItemStack held = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getHeldStack();
+            if (held != null) {
+                float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
+                float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
+                renderItemIcon(held.getItem(), (int)mx - slotSize/2, (int)my - slotSize/2, slotSize, screenWidth, screenHeight, atlas);
+                if (held.getCount() > 1) {
+                    String count = String.valueOf(held.getCount());
+                    fontRenderer.drawString(count, (int)mx + 8, (int)my + 8, 14, screenWidth, screenHeight);
+                }
+            }
+            
+            // Draw Tooltip for hovered slot
+            renderInventoryTooltip(invScreen, slotSize, player, screenWidth, screenHeight);
+
+            // Draw Highlights (Hover and Drag)
             float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
             float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
-            renderItemIcon(held.getItem(), (int)mx - slotSize/2, (int)my - slotSize/2, slotSize, screenWidth, screenHeight, atlas);
-            if (held.getCount() > 1) {
-                String count = String.valueOf(held.getCount());
-                fontRenderer.drawString(count, (int)mx + 8, (int)my + 8, 14, screenWidth, screenHeight);
-            }
-        }
-        
-        // Draw Tooltip for hovered slot
-        renderInventoryTooltip(activeScreen, slotSize, player, screenWidth, screenHeight);
-
-        // Draw Highlights (Hover and Drag)
-        float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
-        float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
-        SlotUI hoveredUI = activeScreen.getSlotAt(mx, my);
-        java.util.Set<com.za.minecraft.entities.inventory.Slot> dragged = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getDraggedSlots();
-        
-        for (SlotUI ui : activeScreen.getSlots()) {
-            if (dragged.contains(ui.getSlot())) {
-                renderHighlight(ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, 0.2f, 0.6f, 1.0f, 0.4f);
-            } else if (ui == hoveredUI) {
-                renderHighlight(ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, 1.0f, 1.0f, 1.0f, 0.3f);
+            SlotUI hoveredUI = invScreen.getSlotAt(mx, my);
+            java.util.Set<com.za.minecraft.entities.inventory.Slot> dragged = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getDraggedSlots();
+            
+            for (SlotUI ui : invScreen.getSlots()) {
+                if (dragged.contains(ui.getSlot())) {
+                    renderHighlight(ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, 0.2f, 0.6f, 1.0f, 0.4f);
+                } else if (ui == hoveredUI) {
+                    renderHighlight(ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, 1.0f, 1.0f, 1.0f, 0.3f);
+                }
             }
         }
         
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
+    }
+
+    public void renderRect(int x, int y, int width, int height, int sw, int sh, float r, float g, float b, float a) {
+        uiShader.use();
+        uiShader.setInt("useTexture", 0);
+        
+        float scaleX = (float)width / sw;
+        float scaleY = (float)height / sh;
+        float posX = (2.0f * x / sw) - 1.0f + scaleX;
+        float posY = 1.0f - (2.0f * y / sh) - scaleY;
+
+        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("tintColor", r, g, b, a);
+
+        glBindVertexArray(quadVAO);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
     }
 
     public void renderHighlight(int x, int y, int size, int sw, int sh, float r, float g, float b, float a) {
@@ -704,6 +725,45 @@ public class UIRenderer {
             int textY = y - textSize / 2;
             fontRenderer.drawString(text, textX, textY, textSize, screenWidth, screenHeight);
         }
+    }
+
+    public void renderExternalImage(String path, int x, int y, int width, int height, int sw, int sh) {
+        Texture tex = externalTextures.get(path);
+        if (tex == null) {
+            try {
+                tex = new Texture("src/main/resources/" + path, false, false);
+                externalTextures.put(path, tex);
+            } catch (Exception e) {
+                Logger.error("Failed to load external image: " + path);
+                return;
+            }
+        }
+        
+        if (tex != null) {
+            tex.bind();
+            uiShader.use();
+            uiShader.setInt("useTexture", 1);
+            uiShader.setInt("isGrayscale", 0);
+            
+            float scaleX = (float)width / sw;
+            float scaleY = (float)height / sh;
+            float posX = (2.0f * x / sw) - 1.0f + scaleX;
+            float posY = 1.0f - (2.0f * y / sh) - scaleY;
+            
+            uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+            uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+            uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+            uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
+            uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+            
+            glBindVertexArray(quadVAO);
+            glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
+    }
+
+    public FontRenderer getFontRenderer() {
+        return fontRenderer;
     }
 
     public void cleanup() {

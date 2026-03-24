@@ -69,19 +69,27 @@ public class StumpBlockDefinition extends BlockDefinition {
 
         // Если бьем по верхней грани (hitY > 0.8) - это попытка крафта
         if (hitY > 0.8f) {
-            if (heldStack != null && isNewClick) {
-                tryCraft(surface, player, heldStack);
+            // Пытаемся скрафтить (даже если heldStack == null, рука подставится внутри tryCraft)
+            if (isNewClick) {
+                if (tryCraft(surface, player, heldStack)) {
+                    return true; // Крафт сработал, прерываем ломание
+                }
             }
-            return true; // Предотвращаем ломание блока, даже если это не "новый" клик
+
+            // Если мы просто зажали ЛКМ или крафт не подошел,
+            // мы всё равно возвращаем true, чтобы игрок случайно не сломал пень во время работы.
+            // Но если игрок бьет СБОКУ (hitY <= 0.8), он сможет его сломать.
+            return true; 
         }
 
         return false;
     }
 
+
     private boolean tryCraft(ICraftingSurface surface, Player player, ItemStack tool) {
-        if (tool == null) return false;
+        // If no tool is held, use the HAND item identifier
+        Identifier toolId = (tool != null) ? tool.getItem().getIdentifier() : com.za.minecraft.world.items.Items.HAND.getIdentifier();
         
-        Identifier toolId = tool.getItem().getIdentifier();
         List<ItemStack> currentItems = new ArrayList<>();
         for (int i = 0; i < 9; i++) {
             ItemStack s = surface.getStackInSlot(i);

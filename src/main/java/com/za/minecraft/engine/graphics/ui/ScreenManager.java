@@ -8,7 +8,7 @@ import com.za.minecraft.entities.Player;
  */
 public class ScreenManager {
     private static ScreenManager instance;
-    private InventoryScreen activeScreen;
+    private Screen activeScreen;
 
     private ScreenManager() {}
 
@@ -27,11 +27,18 @@ public class ScreenManager {
         activeScreen.init(sw, sh);
     }
 
+    public void openScreen(Screen screen, int sw, int sh) {
+        this.activeScreen = screen;
+        if (activeScreen != null) {
+            activeScreen.init(sw, sh);
+        }
+    }
+
     public void closeScreen() {
         activeScreen = null;
     }
 
-    public InventoryScreen getActiveScreen() {
+    public Screen getActiveScreen() {
         return activeScreen;
     }
 

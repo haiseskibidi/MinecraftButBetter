@@ -88,6 +88,11 @@ public class InputManager {
         glfwSetMouseButtonCallback(window.getWindowHandle(), (windowHandle, button, action, mode) -> {
             if (GameLoop.getInstance().isInventoryOpen()) {
                 if (action == GLFW_PRESS) {
+                    com.za.minecraft.engine.graphics.ui.Screen active = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+                    if (active != null && active.handleMouseClick(currentPos.x, currentPos.y, button)) {
+                        return;
+                    }
+
                     dragButton = button;
                     draggedSlots.clear();
                     isDragging = false;
@@ -121,6 +126,11 @@ public class InputManager {
         });
         
         glfwSetScrollCallback(window.getWindowHandle(), (windowHandle, xoffset, yoffset) -> {
+            com.za.minecraft.engine.graphics.ui.Screen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+            if (screen != null && screen.handleScroll(yoffset)) {
+                return;
+            }
+            
             Player p = GameLoop.getInstance().getPlayer();
             if (p != null) {
                 if (GameLoop.getInstance().isInventoryOpen() && p.getMode() == PlayerMode.DEVELOPER) {
@@ -140,9 +150,9 @@ public class InputManager {
     }
     
     private com.za.minecraft.entities.inventory.Slot getSlotAt(float mx, float my) {
-        com.za.minecraft.engine.graphics.ui.InventoryScreen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
-        if (screen != null) {
-            com.za.minecraft.engine.graphics.ui.SlotUI ui = screen.getSlotAt(mx, my);
+        com.za.minecraft.engine.graphics.ui.Screen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+        if (screen instanceof com.za.minecraft.engine.graphics.ui.InventoryScreen invScreen) {
+            com.za.minecraft.engine.graphics.ui.SlotUI ui = invScreen.getSlotAt(mx, my);
             return ui != null ? ui.getSlot() : null;
         }
         return null;
@@ -241,7 +251,7 @@ public class InputManager {
                 
                 // Trigger GUI re-init if accessory slot changed
                 if (slot.getIndex() == Inventory.SLOT_ACCESSORY) {
-                    com.za.minecraft.engine.graphics.ui.InventoryScreen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+                    com.za.minecraft.engine.graphics.ui.Screen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
                     if (screen != null) {
                         screen.init(window.getWidth(), window.getHeight());
                     }
@@ -256,7 +266,7 @@ public class InputManager {
                     
                     // Trigger GUI re-init if accessory slot changed (removed)
                     if (slot.getIndex() == Inventory.SLOT_ACCESSORY) {
-                        com.za.minecraft.engine.graphics.ui.InventoryScreen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+                        com.za.minecraft.engine.graphics.ui.Screen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
                         if (screen != null) {
                             screen.init(window.getWidth(), window.getHeight());
                         }
@@ -269,7 +279,7 @@ public class InputManager {
                     
                     // Trigger GUI re-init if accessory slot changed
                     if (slot.getIndex() == Inventory.SLOT_ACCESSORY) {
-                        com.za.minecraft.engine.graphics.ui.InventoryScreen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+                        com.za.minecraft.engine.graphics.ui.Screen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
                         if (screen != null) {
                             screen.init(window.getWidth(), window.getHeight());
                         }
@@ -293,17 +303,16 @@ public class InputManager {
         float mx = currentPos.x;
         float my = currentPos.y;
 
-        com.za.minecraft.engine.graphics.ui.InventoryScreen activeScreen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
-        if (activeScreen == null) return;
-
-        com.za.minecraft.engine.graphics.ui.SlotUI slotUI = activeScreen.getSlotAt(mx, my);
-
-        if (slotUI != null) {
-            handleInventoryClickOnSlot(window, button, slotUI.getSlot());
-        } else {
-            if (heldStack != null) {
-                dropStack(heldStack, player, GameLoop.getInstance().getWorld(), GameLoop.getInstance().getCamera(), true);
-                heldStack = null;
+        com.za.minecraft.engine.graphics.ui.Screen screen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+        if (screen instanceof com.za.minecraft.engine.graphics.ui.InventoryScreen invScreen) {
+            com.za.minecraft.engine.graphics.ui.SlotUI slotUI = invScreen.getSlotAt(mx, my);
+            if (slotUI != null) {
+                handleInventoryClickOnSlot(window, button, slotUI.getSlot());
+            } else {
+                if (heldStack != null) {
+                    dropStack(heldStack, player, GameLoop.getInstance().getWorld(), GameLoop.getInstance().getCamera(), true);
+                    heldStack = null;
+                }
             }
         }
     }
@@ -600,9 +609,17 @@ public class InputManager {
                                 breakingBlockPos = hitPos;
                                 breakingProgress = 0.0f;
                             }
-                            Item mineItem = currentItem != null ? currentItem : ItemRegistry.getItem(Blocks.AIR.getId());
-                            if (breakDelayTimer <= 0 && mineItem != null) {
-                                float breakSpeed = mineItem.getMiningSpeed(blockType) / hardness;
+                            // Calculate mining speed. Fallback to 0.08 if no item.
+                            float miningSpeed = 0.08f;
+                            if (currentItem != null) {
+                                miningSpeed = currentItem.getMiningSpeed(blockType);
+                            } else {
+                                // Hand mining speed
+                                miningSpeed = 0.08f;
+                            }
+
+                            if (breakDelayTimer <= 0) {
+                                float breakSpeed = miningSpeed / hardness;
                                 breakingProgress += breakSpeed * deltaTime;
                                 player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
                                 player.addNoise(hardness * 0.05f * deltaTime);
@@ -714,7 +731,7 @@ public class InputManager {
                         boolean hasNapping = false;
                         for (com.za.minecraft.world.recipes.IRecipe r : nappingRecipes) {
                             com.za.minecraft.world.recipes.NappingRecipe nr = (com.za.minecraft.world.recipes.NappingRecipe) r;
-                            if (nr.getInputId().equals(currentItem.getIdentifier())) {
+                            if (nr.isInputValid(currentItem.getIdentifier())) {
                                 hasNapping = true;
                                 break;
                             }

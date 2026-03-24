@@ -1,0 +1,70 @@
+{
+  "id": "minecraft:stump",
+  "title": "journal.entry.stump.title",
+  "icon": "minecraft:stump",
+  "elements": [
+    {
+      "type": "text",
+      "value": "journal.entry.stump.desc1"
+    },
+    {
+      "type": "tip",
+      "value": "journal.entry.stump.tip"
+    },
+    {
+      "type": "header",
+      "value": "Плетение нитей"
+    },
+    {
+      "type": "recipe",
+      "value": "minecraft:string"
+    },
+    {
+      "type": "text",
+      "value": "Положите на пень растительное волокно и ударьте по нему 3 раза рукой."
+    },
+    {
+      "type": "header",
+      "value": "Заточенная палка"
+    },
+    {
+      "type": "recipe",
+      "value": "minecraft:sharpened_stick"
+    },
+    {
+      "type": "text",
+      "value": "Положите палку на пень и ударьте по ней любым камнем 3 раза."
+    },
+    {
+      "type": "header",
+      "value": "Каменный топор"
+    },
+    {
+      "type": "recipe",
+      "value": "minecraft:stone_axe"
+    },
+    {
+      "type": "text",
+      "value": "Чтобы собрать топор, положите на пень палку и ударьте по ней наконечником топора 3 раза."
+    },
+    {
+      "type": "header",
+      "value": "Мешочек для вещей"
+    },
+    {
+      "type": "recipe",
+      "value": "minecraft:pouch"
+    },
+    {
+      "type": "text",
+      "value": "Выложите на пень 4 нити и ударьте по ним заточенной палкой 5 раз."
+    },
+    {
+      "type": "spacer"
+    },
+    {
+      "type": "text",
+      "value": "Примечание: Работа на пне — это дискретные удары. Прогресс крафта засчитывается только при физическом нажатии ЛКМ."
+    }
+  ]
+}

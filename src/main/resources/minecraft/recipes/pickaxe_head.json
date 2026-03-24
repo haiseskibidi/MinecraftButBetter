@@ -1,7 +1,7 @@
 {
   "identifier": "minecraft:pickaxe_head",
   "type": "napping",
-  "input": "minecraft:flint",
+  "input": ["minecraft:flint", "minecraft:rock"],
   "result": {
     "item": "minecraft:pickaxe_head",
     "count": 1

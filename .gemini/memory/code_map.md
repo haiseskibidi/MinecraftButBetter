@@ -24,7 +24,16 @@
 Назначение: Группа слотов с общим поведением и условием активации (activeSupplier).
 Функции: isActive(), addSlot(Slot), withActiveSupplier(Supplier)
 
-## GUI System (NEW)
+## GUI System (UPDATED)
+### com.za.minecraft.engine.graphics.ui.Screen
+Назначение: Базовый интерфейс для всех игровых экранов.
+
+### com.za.minecraft.engine.graphics.ui.ScrollPanel
+Назначение: Универсальный компонент прокрутки с поддержкой Scissor Test.
+
+### com.za.minecraft.engine.graphics.ui.JournalScreen
+Назначение: Планшет выжившего. Отображает динамический контент из JSON.
+
 ### com.za.minecraft.engine.graphics.ui.ScreenManager
 Назначение: Синглтон для управления активным экраном инвентаря.
 Функции: openPlayerInventory(player, sw, sh), openChest(container, playerInv, sw, sh), closeScreen(), getActiveScreen(), render(...)

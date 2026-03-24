@@ -1,7 +1,7 @@
 {
   "identifier": "minecraft:stone_arrowhead",
   "type": "napping",
-  "input": "minecraft:rock",
+  "input": ["minecraft:flint", "minecraft:rock"],
   "result": {
     "item": "minecraft:stone_arrowhead",
     "count": 1

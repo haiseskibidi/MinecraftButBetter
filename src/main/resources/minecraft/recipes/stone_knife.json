@@ -1,7 +1,7 @@
 {
   "identifier": "minecraft:stone_knife",
   "type": "napping",
-  "input": "minecraft:flint",
+  "input": ["minecraft:flint", "minecraft:rock"],
   "result": {
     "item": "minecraft:stone_knife",
     "count": 1

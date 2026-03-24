@@ -1,0 +1,10 @@
+{
+  "id": "minecraft:basics",
+  "name": "journal.category.basics",
+  "icon": "minecraft:stick",
+  "entries": [
+    "minecraft:scavenging",
+    "minecraft:napping",
+    "minecraft:stump"
+  ]
+}

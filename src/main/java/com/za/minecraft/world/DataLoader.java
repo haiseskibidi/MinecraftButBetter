@@ -66,7 +66,93 @@ public class DataLoader {
             loadGUIs(ns);
         }
 
+        for (String ns : namespaces) {
+            loadJournal(ns);
+        }
+
         loadScavengeSettings();
+    }
+
+    private static void loadJournal(String ns) {
+        loadJournalCategories(ns);
+        loadJournalEntries(ns);
+    }
+
+    private static void loadJournalCategories(String namespace) {
+        String path = namespace + "/journal/categories";
+        List<String> files = listResources(path);
+        for (String file : files) {
+            try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path + "/" + file)) {
+                if (is == null) continue;
+                String json = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                JsonObject obj = GSON.fromJson(json, JsonObject.class);
+                
+                Identifier id = Identifier.of(obj.get("id").getAsString());
+                String name = obj.get("name").getAsString();
+                Identifier icon = Identifier.of(obj.get("icon").getAsString());
+                
+                List<Identifier> entries = new ArrayList<>();
+                if (obj.has("entries")) {
+                    JsonArray arr = obj.getAsJsonArray("entries");
+                    for (JsonElement e : arr) {
+                        entries.add(Identifier.of(e.getAsString()));
+                    }
+                }
+                
+                com.za.minecraft.world.journal.JournalCategory category = new com.za.minecraft.world.journal.JournalCategory(id, name, icon, entries);
+                com.za.minecraft.world.journal.JournalRegistry.registerCategory(category);
+            } catch (Exception e) {
+                Logger.error("Failed to load journal category " + file + ": " + e.getMessage());
+            }
+        }
+    }
+
+    private static void loadJournalEntries(String namespace) {
+        String path = namespace + "/journal/entries";
+        List<String> files = listResources(path);
+        for (String file : files) {
+            try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path + "/" + file)) {
+                if (is == null) continue;
+                String json = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+                JsonObject obj = GSON.fromJson(json, JsonObject.class);
+                
+                Identifier id = Identifier.of(obj.get("id").getAsString());
+                String title = obj.get("title").getAsString();
+                Identifier icon = obj.has("icon") ? Identifier.of(obj.get("icon").getAsString()) : null;
+                
+                List<com.za.minecraft.world.journal.JournalElement> elements = new ArrayList<>();
+                if (obj.has("elements")) {
+                    JsonArray arr = obj.getAsJsonArray("elements");
+                    for (JsonElement e : arr) {
+                        JsonObject elObj = e.getAsJsonObject();
+                        String typeStr = elObj.get("type").getAsString().toUpperCase();
+                        com.za.minecraft.world.journal.JournalElement.Type type = com.za.minecraft.world.journal.JournalElement.Type.valueOf(typeStr);
+                        
+                        String value = elObj.has("value") ? elObj.get("value").getAsString() : null;
+                        String imgPath = elObj.has("path") ? elObj.get("path").getAsString() : null;
+                        float scale = elObj.has("scale") ? elObj.get("scale").getAsFloat() : 1.0f;
+                        String color = elObj.has("color") ? elObj.get("color").getAsString() : null;
+                        String align = elObj.has("alignment") ? elObj.get("alignment").getAsString() : "left";
+                        
+                        List<Identifier> items = null;
+                        if (elObj.has("items")) {
+                            items = new ArrayList<>();
+                            JsonArray itemArr = elObj.getAsJsonArray("items");
+                            for (JsonElement it : itemArr) {
+                                items.add(Identifier.of(it.getAsString()));
+                            }
+                        }
+                        
+                        elements.add(new com.za.minecraft.world.journal.JournalElement(type, value, imgPath, scale, items, color, align));
+                    }
+                }
+                
+                com.za.minecraft.world.journal.JournalEntry entry = new com.za.minecraft.world.journal.JournalEntry(id, title, icon, elements);
+                com.za.minecraft.world.journal.JournalRegistry.registerEntry(entry);
+            } catch (Exception e) {
+                Logger.error("Failed to load journal entry " + file + ": " + e.getMessage());
+            }
+        }
     }
 
     private static void loadGUIs(String namespace) {
@@ -127,11 +213,17 @@ public class DataLoader {
             String type = obj.get("type").getAsString();
 
             if (type.equalsIgnoreCase("napping")) {
-                Identifier input = Identifier.of(obj.get("input").getAsString());
+                List<Identifier> inputs = new ArrayList<>();
+                if (obj.get("input").isJsonArray()) {
+                    for (JsonElement e : obj.getAsJsonArray("input")) inputs.add(Identifier.of(e.getAsString()));
+                } else {
+                    inputs.add(Identifier.of(obj.get("input").getAsString()));
+                }
+
                 JsonObject resObj = obj.getAsJsonObject("result");
                 Identifier resId = Identifier.of(resObj.get("item").getAsString());
                 com.za.minecraft.world.items.Item resItem = com.za.minecraft.world.items.ItemRegistry.getItem(resId);
-                
+
                 if (resItem == null) {
                     Logger.error("Failed to parse recipe " + id + ": Result item " + resId + " not found!");
                     return;
@@ -148,8 +240,9 @@ public class DataLoader {
                         pattern[i * 5 + j] = line.charAt(j) == '#';
                     }
                 }
-                RecipeRegistry.register(new NappingRecipe(id, input, result, pattern));
-            } else if (type.equalsIgnoreCase("stump_crafting")) {
+                RecipeRegistry.register(new NappingRecipe(id, inputs, result, pattern));
+            }
+ else if (type.equalsIgnoreCase("stump_crafting")) {
                 Identifier input = Identifier.of(obj.get("input").getAsString());
                 Identifier tool = obj.has("tool") ? Identifier.of(obj.get("tool").getAsString()) : null;
                 int hits = obj.get("hits").getAsInt();

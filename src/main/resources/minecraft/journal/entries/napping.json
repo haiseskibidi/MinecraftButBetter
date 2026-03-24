@@ -1,0 +1,49 @@
+{
+  "id": "minecraft:napping",
+  "title": "journal.entry.napping.title",
+  "icon": "minecraft:rock",
+  "elements": [
+    {
+      "type": "text",
+      "value": "journal.entry.napping.desc1"
+    },
+    {
+      "type": "tip",
+      "value": "journal.entry.napping.desc2"
+    },
+    {
+      "type": "header",
+      "value": "Каменные инструменты:"
+    },
+    {
+      "type": "recipe",
+      "value": "minecraft:stone_knife"
+    },
+    {
+      "type": "spacer"
+    },
+    {
+      "type": "recipe",
+      "value": "minecraft:axe_head"
+    },
+    {
+      "type": "spacer"
+    },
+    {
+      "type": "recipe",
+      "value": "minecraft:pickaxe_head"
+    },
+    {
+      "type": "header",
+      "value": "Оружие:"
+    },
+    {
+      "type": "recipe",
+      "value": "minecraft:stone_arrowhead"
+    },
+    {
+      "type": "text",
+      "value": "Примечание: Серые квадраты показывают, какие части камня нужно сколоть. Ударяйте по ним, пока не добьетесь нужной формы."
+    }
+  ]
+}

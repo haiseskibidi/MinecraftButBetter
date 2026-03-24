@@ -79,5 +79,20 @@
   "block.minecraft.pit_kiln": "Ямный обжиг (подготовка)",
   "block.minecraft.burning_pit_kiln": "Горящая яма для обжига",
   "item.minecraft.fire_starter": "Приспособление для розжига",
-  "gui.firing_progress": "Обжиг: %d%%"
+  "gui.firing_progress": "Обжиг: %d%%",
+  "journal.category.basics": "Основы выживания",
+  "journal.entry.scavenging.title": "Сбор ресурсов",
+  "journal.entry.scavenging.desc1": "В этом суровом мире всё начинается с земли. Ищите палки и камни прямо под ногами.",
+  "journal.entry.scavenging.tools": "Полезные находки",
+  "journal.entry.scavenging.desc2": "Палки выпадают из листвы или валяются на земле. Кремни можно найти в гравии или песке.",
+  "journal.entry.napping.title": "Скалывание камней",
+  "journal.entry.napping.desc1": "Чтобы получить острый край, возьмите два камня или кремня и начните ударять их друг о друга.",
+  "journal.entry.napping.desc2": "Используйте ПКМ, держа два подходящих камня, чтобы открыть интерфейс скалывания.",
+  "journal.entry.stump.title": "Рабочий пень",
+  "journal.entry.stump.desc1": "Обычное бревно можно превратить в рабочий пень, нажав по нему ПКМ топором. Пень станет вашей первой мастерской для крафта в мире.",
+  "journal.entry.stump.tip": "Используйте ПКМ, чтобы положить предметы на поверхность пня. ЛКМ с нужным инструментом — чтобы начать работу.",
+  "journal.title": "Дневник выжившего",
+  "journal.tip_header": "СОВЕТ",
+  "journal.recipe_napping": "Схема скалывания:",
+  "journal.welcome": "Выберите раздел слева, чтобы начать обучение"
 }

@@ -1,8 +1,11 @@
 {
   "identifier": "minecraft:string",
-  "type": "stump_crafting",
-  "input": "minecraft:plant_fiber",
+  "type": "in_world_crafting",
+  "tool": "minecraft:hand",
   "hits": 3,
+  "ingredients": [
+    "minecraft:plant_fiber"
+  ],
   "result": {
     "item": "minecraft:string",
     "count": 1
