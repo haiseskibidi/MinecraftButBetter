@@ -195,9 +195,9 @@
 Назначение: Логика сырого сосуда.
 Функции: Превращение в `PIT_KILN` при использовании соломы (`STRAW`) на блоке.
 
-### com.za.minecraft.world.blocks.LogBlockDefinition (NEW)
+### com.za.minecraft.world.blocks.LogBlockDefinition (UPDATED)
 Назначение: Логика бревна.
-Функции: Превращение в `STUMP` при ударе каменным топором (`STONE_AXE`).
+Функции: Превращение в `STUMP` при ударе каменным топором. При обтёсывании ножом (`carving`) мгновенно применяет первый бит маски для бесшовного взаимодействия.
 
 ### com.za.minecraft.world.blocks.BlockTypeRegistry (NEW)
 Назначение: Реестр фабрик для различных типов блоков.
