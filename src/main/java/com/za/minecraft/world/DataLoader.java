@@ -478,7 +478,8 @@ public class DataLoader {
                 if (comps.has("minecraft:equipment") || comps.has("equipment")) {
                     JsonObject e = comps.has("minecraft:equipment") ? comps.getAsJsonObject("minecraft:equipment") : comps.getAsJsonObject("equipment");
                     item.addComponent(com.za.minecraft.world.items.component.EquipmentComponent.class, new com.za.minecraft.world.items.component.EquipmentComponent(
-                        e.get("slot").getAsString()
+                        e.get("slot").getAsString(),
+                        e.has("strict") && e.get("strict").getAsBoolean()
                     ));
                 }
             }

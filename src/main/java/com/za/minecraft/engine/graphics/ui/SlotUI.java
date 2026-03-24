@@ -8,11 +8,21 @@ import com.za.minecraft.entities.inventory.Slot;
 public class SlotUI {
     private final Slot slot;
     private final int x, y;
+    private String placeholderTexture;
 
     public SlotUI(Slot slot, int x, int y) {
         this.slot = slot;
         this.x = x;
         this.y = y;
+    }
+
+    public SlotUI withPlaceholder(String texture) {
+        this.placeholderTexture = texture;
+        return this;
+    }
+
+    public String getPlaceholderTexture() {
+        return placeholderTexture;
     }
 
     public Slot getSlot() {

@@ -9,6 +9,7 @@ public class Slot {
     private final int index;
     private final String type;
     private Predicate<ItemStack> validator;
+    private String placeholderTexture;
 
     public Slot(IInventory inventory, int index, String type) {
         this.inventory = inventory;
@@ -20,6 +21,15 @@ public class Slot {
     public Slot withValidator(Predicate<ItemStack> validator) {
         this.validator = validator;
         return this;
+    }
+
+    public Slot withPlaceholder(String texture) {
+        this.placeholderTexture = texture;
+        return this;
+    }
+
+    public String getPlaceholderTexture() {
+        return placeholderTexture;
     }
 
     public IInventory getInventory() {
@@ -44,6 +54,13 @@ public class Slot {
 
     public boolean isItemValid(ItemStack stack) {
         if (stack == null) return true;
+        
+        // Strict equipment check: if item has strict equipment component, it MUST match slot type
+        com.za.minecraft.world.items.component.EquipmentComponent eq = stack.getItem().getComponent(com.za.minecraft.world.items.component.EquipmentComponent.class);
+        if (eq != null && eq.isStrict()) {
+            if (!eq.getSlotType().equals(this.type)) return false;
+        }
+
         return validator.test(stack) && inventory.isItemValid(index, stack);
     }
 }

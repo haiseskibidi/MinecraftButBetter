@@ -27,6 +27,7 @@ public class GUIConfig {
         public int cols = 1;       // For grid type
         public int rows = 1;       // For grid type (can be auto if -1)
         public int spacing = 2;
+        public java.util.Map<Integer, String> placeholders; // Map slot index in group to placeholder texture
         public String condition;   // Optional condition (e.g., "has_pouch", "developer_mode")
     }
 }

@@ -23,7 +23,7 @@ public abstract class InventoryScreen {
     public void render(UIRenderer renderer, int sw, int sh, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
         for (SlotUI slotUI : slots) {
             if (slotUI.getSlot().getInventory().isSlotActive(slotUI.getSlot().getIndex())) {
-                renderer.renderSlot(slotUI.getX(), slotUI.getY(), getSlotSize(), slotUI.getSlot().getStack(), sw, sh, atlas);
+                renderer.renderSlot(slotUI.getX(), slotUI.getY(), getSlotSize(), slotUI.getSlot().getStack(), slotUI.getPlaceholderTexture(), sw, sh, atlas);
             }
         }
     }

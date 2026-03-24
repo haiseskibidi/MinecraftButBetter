@@ -11,7 +11,14 @@
       "fixedOffsetX": -10,
       "y": "-5%",
       "rows": 4,
-      "spacing": 4
+      "spacing": 4,
+      "placeholders": {
+        "0": "empty_armor_slot_helmet",
+        "1": "empty_armor_slot_chestplate",
+        "2": "empty_armor_slot_leggings",
+        "3": "empty_armor_slot_boots",
+        "5": "bundle"
+      }
     },
     {
       "id": "offhand",
@@ -22,7 +29,10 @@
       "fixedOffsetX": -10,
       "y": "-4%",
       "cols": 1,
-      "rows": 1
+      "rows": 1,
+      "placeholders": {
+        "0": "empty_armor_slot_shield"
+      }
     },
     {
       "id": "pockets",

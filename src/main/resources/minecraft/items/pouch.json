@@ -7,7 +7,8 @@
   "visualScale": 0.8,
   "components": {
     "equipment": {
-      "slot": "accessory"
+      "slot": "accessory",
+      "strict": true
     },
     "bag": {
       "slots": 8

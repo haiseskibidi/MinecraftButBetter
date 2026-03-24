@@ -449,7 +449,7 @@ public class UIRenderer {
             int x = devX + col * (slotSize + spacing);
             int y = startY + row * (slotSize + spacing);
             
-            renderSlot(x, y, slotSize, new ItemStack(allItems.get(i)), sw, sh, atlas);
+            renderSlot(x, y, slotSize, new ItemStack(allItems.get(i)), null, sw, sh, atlas);
         }
 
         float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
@@ -496,7 +496,7 @@ public class UIRenderer {
         }
     }
 
-    public void renderSlot(int x, int y, int size, ItemStack stack, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
+    public void renderSlot(int x, int y, int size, ItemStack stack, String placeholder, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
         // Slot background
         uiShader.use();
         uiShader.setInt("useTexture", 0);
@@ -532,6 +532,45 @@ public class UIRenderer {
                 if (dur < 1.0f) {
                     renderDurabilityBar(x + 2, y + size - 4, size - 4, dur, screenWidth, screenHeight);
                 }
+            }
+        } else if (placeholder != null && !placeholder.isEmpty()) {
+            // Render Ghost Icon (Placeholder)
+            float ghostSize = (size - 4) * 0.7f;
+            float gX = x + (size - ghostSize) / 2.0f;
+            float gY = y + (size - ghostSize) / 2.0f;
+            
+            // We use itemTextures cache for placeholders too
+            Texture tex = null;
+            try {
+                // Check if it's a full path or just a name
+                String path = placeholder.contains("/") ? placeholder : "minecraft/textures/item/" + placeholder + ".png";
+                int placeholderId = placeholder.hashCode();
+                tex = itemTextures.get(placeholderId);
+                if (tex == null) {
+                    tex = new Texture("src/main/resources/" + path, false, false);
+                    itemTextures.put(placeholderId, tex);
+                }
+            } catch (Exception e) {
+                // Silent fail for placeholders
+            }
+
+            if (tex != null) {
+                float gsX = ghostSize / screenWidth;
+                float gsY = ghostSize / screenHeight;
+                float gpX = (2.0f * gX / screenWidth) - 1.0f + gsX;
+                float gpY = 1.0f - (2.0f * gY / screenHeight) - gsY;
+
+                tex.bind();
+                uiShader.use();
+                uiShader.setInt("useTexture", 1);
+                uiShader.setUniform("scale", gsX, gsY, 0.0f, 0.0f);
+                uiShader.setUniform("position_offset", gpX, gpY, 0.0f, 0.0f);
+                uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+                uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
+                uiShader.setUniform("tintColor", 0.5f, 0.5f, 0.5f, 0.4f); // Gray and transparent
+                
+                glBindVertexArray(quadVAO);
+                glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
             }
         }
         glBindVertexArray(0);

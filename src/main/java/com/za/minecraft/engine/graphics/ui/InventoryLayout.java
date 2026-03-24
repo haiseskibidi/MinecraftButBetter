@@ -168,7 +168,17 @@ public class InventoryLayout {
                 
                 int x = startX + col * (slotSize + groupCfg.spacing);
                 int y = startY + row * (slotSize + groupCfg.spacing);
-                slots.add(new SlotUI(targetSlots.get(i), x, y));
+                
+                Slot slot = targetSlots.get(i);
+                SlotUI slotUI = new SlotUI(slot, x, y);
+                
+                if (groupCfg.placeholders != null && groupCfg.placeholders.containsKey(i)) {
+                    String placeholder = groupCfg.placeholders.get(i);
+                    slot.withPlaceholder(placeholder);
+                    slotUI.withPlaceholder(placeholder);
+                }
+                
+                slots.add(slotUI);
             }
         }
 
