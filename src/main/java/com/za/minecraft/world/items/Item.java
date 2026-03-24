@@ -16,7 +16,7 @@ public class Item {
     protected final String texturePath;
     protected float weight = 1.0f;
     protected float visualScale = 1.0f;
-    protected float miningSpeed = 1.0f;
+    protected float miningSpeed = 0.1f;
     
     private final Map<Class<? extends ItemComponent>, ItemComponent> components = new HashMap<>();
 
@@ -135,8 +135,8 @@ public class Item {
             if (tool.isEffectiveAgainstAll() || tool.type().name().equalsIgnoreCase(required)) {
                 return tool.efficiency();
             } else {
-                // Если инструмент не подходит, он все равно чуть лучше руки
-                return 0.3f;
+                // Если инструмент не подходит, он работает на базовой скорости предмета
+                return this.miningSpeed;
             }
         }
         
