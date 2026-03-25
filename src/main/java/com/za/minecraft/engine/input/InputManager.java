@@ -578,10 +578,11 @@ public class InputManager {
         boolean sneaking = shiftPressed && !player.isFlying() && !inventoryOpen && !paused && !nappingOpen;
         player.setSneaking(sneaking);
         
+        boolean physicallySneaking = player.isPhysicallySneaking();
         boolean sprinting = (window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL)) && !inventoryOpen && !paused && !nappingOpen;
         player.setSprinting(sprinting);
-        float baseSpeed = player.isFlying() ? FLY_SPEED : (sneaking ? MOVE_SPEED * 0.3f : MOVE_SPEED);
-        if (sprinting && !sneaking) baseSpeed *= (player.isFlying() ? FLY_FAST_MULTIPLIER : GROUND_SPRINT_MULTIPLIER);
+        float baseSpeed = player.isFlying() ? FLY_SPEED : (physicallySneaking ? MOVE_SPEED * 0.3f : MOVE_SPEED);
+        if (sprinting && !physicallySneaking) baseSpeed *= (player.isFlying() ? FLY_FAST_MULTIPLIER : GROUND_SPRINT_MULTIPLIER);
 
         player.setMoving(moveVector.length() > 0);
         if (moveVector.length() > 0) {

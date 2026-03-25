@@ -26,6 +26,10 @@ public abstract class Entity {
         this.position = new Vector3f(position);
         this.velocity = new Vector3f();
         this.rotation = new Vector3f();
+        setBoundingBox(width, height);
+    }
+
+    protected void setBoundingBox(float width, float height) {
         this.boundingBox = new AABB(
             -width / 2, 0, -width / 2,
             width / 2, height, width / 2

@@ -9,11 +9,14 @@ import org.joml.Vector3f;
  */
 public class Player extends LivingEntity {
     private static final float PLAYER_WIDTH = 0.6f;
-    private static final float PLAYER_HEIGHT = 1.8f;
+    private static final float STANDING_HEIGHT = 1.8f;
+    private static final float SNEAKING_HEIGHT = 1.45f;
+    private static final float STANDING_EYE_HEIGHT = 1.62f;
+    private static final float SNEAKING_EYE_HEIGHT = 1.25f;
     private static final float JUMP_VELOCITY = 8.0f;
     
     private final Inventory inventory;
-    private PlayerMode mode = PlayerMode.SURVIVAL;
+    private com.za.minecraft.engine.core.PlayerMode mode = com.za.minecraft.engine.core.PlayerMode.SURVIVAL;
     
     // Survival stats
     private float hunger = 20.0f;
@@ -24,7 +27,8 @@ public class Player extends LivingEntity {
     private boolean moving = false;
     private boolean sprinting = false;
     
-    // Animation states
+    // Animation and State
+    private float currentEyeHeight = STANDING_EYE_HEIGHT;
     private float walkBobTimer = 0.0f;
     private float bobIntensity = 0.0f;
     private float swingProgress = 0.0f;
@@ -35,7 +39,7 @@ public class Player extends LivingEntity {
     private static final float NOISE_DECAY_RATE = 0.5f;
     
     public Player(Vector3f startPosition) {
-        super(startPosition, PLAYER_WIDTH, PLAYER_HEIGHT, 20.0f);
+        super(startPosition, PLAYER_WIDTH, STANDING_HEIGHT, 20.0f);
         this.inventory = new Inventory();
     }
     
@@ -45,9 +49,70 @@ public class Player extends LivingEntity {
         updateHunger(deltaTime);
         updateNoise(deltaTime);
         updateAnimations(deltaTime);
+        updateSneakState(world, deltaTime);
         
         // Base physics and movement from Entity
         super.update(deltaTime, world);
+    }
+
+    private void updateSneakState(World world, float deltaTime) {
+        float targetHeight = sneaking ? SNEAKING_HEIGHT : STANDING_HEIGHT;
+        float targetEyeHeight = sneaking ? SNEAKING_EYE_HEIGHT : STANDING_EYE_HEIGHT;
+
+        // If trying to stand up, check if there's enough space
+        if (!sneaking && boundingBox.getMax().y < STANDING_HEIGHT) {
+            if (canStandUp(world)) {
+                setBoundingBox(PLAYER_WIDTH, STANDING_HEIGHT);
+            } else {
+                // Force sneaking if blocked
+                targetHeight = SNEAKING_HEIGHT;
+                targetEyeHeight = SNEAKING_EYE_HEIGHT;
+            }
+        } else if (sneaking && boundingBox.getMax().y > SNEAKING_HEIGHT) {
+            setBoundingBox(PLAYER_WIDTH, SNEAKING_HEIGHT);
+        }
+
+        // Smooth eye height transition
+        float lerpSpeed = 10.0f;
+        currentEyeHeight += (targetEyeHeight - currentEyeHeight) * lerpSpeed * deltaTime;
+    }
+
+    private boolean canStandUp(World world) {
+        // Check 1.8m height from current feet position
+        com.za.minecraft.world.physics.AABB standingBox = new com.za.minecraft.world.physics.AABB(
+            -PLAYER_WIDTH / 2, 0, -PLAYER_WIDTH / 2,
+            PLAYER_WIDTH / 2, STANDING_HEIGHT, PLAYER_WIDTH / 2
+        ).offset(position);
+
+        int minX = (int) Math.floor(standingBox.getMin().x);
+        int maxX = (int) Math.floor(standingBox.getMax().x);
+        int minY = (int) Math.floor(standingBox.getMin().y);
+        int maxY = (int) Math.floor(standingBox.getMax().y);
+        int minZ = (int) Math.floor(standingBox.getMin().z);
+        int maxZ = (int) Math.floor(standingBox.getMax().z);
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    com.za.minecraft.world.blocks.Block block = world.getBlock(x, y, z);
+                    if (!block.isAir() && block.isSolid()) {
+                        com.za.minecraft.world.physics.VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
+                        if (shape != null) {
+                            for (com.za.minecraft.world.physics.AABB box : shape.getBoxes()) {
+                                if (standingBox.intersects(box.offset(x, y, z))) {
+                                    return false;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    public float getEyeHeight() {
+        return currentEyeHeight;
     }
 
     private void updateAnimations(float deltaTime) {
@@ -126,6 +191,10 @@ public class Player extends LivingEntity {
 
     public boolean isSneaking() {
         return sneaking;
+    }
+
+    public boolean isPhysicallySneaking() {
+        return boundingBox.getMax().y < STANDING_HEIGHT - 0.01f;
     }
 
     public void setMoving(boolean moving) {

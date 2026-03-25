@@ -294,7 +294,7 @@ public class GameLoop {
         world.update(interval);
         
         // Синхронизация камеры после движения игрока
-        camera.setPosition(player.getPosition().x, player.getPosition().y + 1.62f, player.getPosition().z);
+        camera.setPosition(player.getPosition().x, player.getPosition().y + player.getEyeHeight(), player.getPosition().z);
         
         if (networkClient != null && networkClient.isConnected()) {
             networkClient.sendPlayerPosition();
