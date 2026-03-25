@@ -12,7 +12,19 @@ public class Blocks {
     public static BlockDefinition DIRT;
     public static BlockDefinition STONE;
     public static BlockDefinition OAK_LOG;
+    public static BlockDefinition BIRCH_LOG;
+    public static BlockDefinition SPRUCE_LOG;
+    public static BlockDefinition JUNGLE_LOG;
+    public static BlockDefinition ACACIA_LOG;
+    public static BlockDefinition DARK_OAK_LOG;
+    
     public static BlockDefinition OAK_LEAVES;
+    public static BlockDefinition BIRCH_LEAVES;
+    public static BlockDefinition SPRUCE_LEAVES;
+    public static BlockDefinition JUNGLE_LEAVES;
+    public static BlockDefinition ACACIA_LEAVES;
+    public static BlockDefinition DARK_OAK_LEAVES;
+    
     public static BlockDefinition OAK_PLANKS;
     public static BlockDefinition COBBLESTONE;
     public static BlockDefinition BEDROCK;

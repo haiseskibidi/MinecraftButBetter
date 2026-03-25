@@ -10,14 +10,9 @@ import java.util.List;
 public class WoodTypeRegistry {
     private static final List<Identifier> WOOD_TYPES = new ArrayList<>();
 
-    static {
-        // Регистрация ванильных типов (порядок важен для метаданных)
-        register(Identifier.of("minecraft:oak_log"));
-        register(Identifier.of("minecraft:birch_log"));
-        register(Identifier.of("minecraft:spruce_log"));
-        register(Identifier.of("minecraft:jungle_log"));
-        register(Identifier.of("minecraft:acacia_log"));
-        register(Identifier.of("minecraft:dark_oak_log"));
+    public static void init(List<Identifier> types) {
+        WOOD_TYPES.clear();
+        WOOD_TYPES.addAll(types);
     }
 
     public static int register(Identifier logId) {
@@ -36,5 +31,13 @@ public class WoodTypeRegistry {
 
     public static int getIndex(Identifier logId) {
         return WOOD_TYPES.indexOf(logId);
+    }
+    
+    public static int size() {
+        return WOOD_TYPES.size();
+    }
+    
+    public static List<Identifier> getAllLogs() {
+        return new ArrayList<>(WOOD_TYPES);
     }
 }

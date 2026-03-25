@@ -102,16 +102,16 @@ public class TreeGenerator {
         // Birch trees are taller and thinner
         int height = 5 + random.nextInt(3);
         
-        // Generate trunk (using wood blocks for now - could add birch wood later)
+        // Generate trunk
         for (int dy = 0; dy < height; dy++) {
-            world.setBlock(new BlockPos(x, y + dy, z), new Block(Blocks.OAK_LOG.getId(), (byte)(Block.DIR_UP | Block.BIT_NATURAL)));
+            world.setBlock(new BlockPos(x, y + dy, z), new Block(Blocks.BIRCH_LOG.getId(), (byte)(Block.DIR_UP | Block.BIT_NATURAL)));
         }
         
         // Smaller, more compact crown
         int crownY = y + height - 1;
         
         // Top
-        world.setBlock(new BlockPos(x, crownY + 1, z), new Block(Blocks.OAK_LEAVES.getId()));
+        world.setBlock(new BlockPos(x, crownY + 1, z), new Block(Blocks.BIRCH_LEAVES.getId(), Block.BIT_NATURAL));
         
         // Main crown (smaller than oak)
         for (int layer = 0; layer < 2; layer++) {
@@ -127,7 +127,7 @@ public class TreeGenerator {
                     BlockPos leafPos = new BlockPos(x + dx, currentY, z + dz);
                     Block existingBlock = world.getBlock(leafPos);
                     if (existingBlock.isAir()) {
-                        world.setBlock(leafPos, new Block(Blocks.OAK_LEAVES.getId(), Block.BIT_NATURAL));
+                        world.setBlock(leafPos, new Block(Blocks.BIRCH_LEAVES.getId(), Block.BIT_NATURAL));
                     }
                 }
             }

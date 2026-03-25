@@ -2,7 +2,10 @@ package com.za.minecraft.world.generation.pipeline.steps;
 
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.blocks.Block;
+import com.za.minecraft.world.blocks.BlockDefinition;
+import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.blocks.Blocks;
+import com.za.minecraft.world.blocks.WoodTypeRegistry;
 import com.za.minecraft.world.chunks.Chunk;
 import com.za.minecraft.world.generation.SimplexNoise;
 import com.za.minecraft.world.generation.pipeline.GenerationStep;
@@ -48,7 +51,16 @@ public class OvergrowthStep implements GenerationStep {
                         }
                         else if (groundBlock.getType() == Blocks.RUSTY_METAL.getId()) {
                             if (random.nextFloat() < 0.15f) {
-                                world.setBlock(worldX, surfaceY + 1, worldZ, new Block(Blocks.OAK_LEAVES.getId()));
+                                // Random leaf type
+                                int woodIdx = random.nextInt(WoodTypeRegistry.size());
+                                com.za.minecraft.utils.Identifier logId = WoodTypeRegistry.getLogId(woodIdx);
+                                com.za.minecraft.utils.Identifier leafId = com.za.minecraft.utils.Identifier.of(logId.getNamespace(), logId.getPath().replace("_log", "_leaves"));
+                                BlockDefinition leafDef = BlockRegistry.getRegistry().get(leafId);
+                                if (leafDef != null) {
+                                    world.setBlock(worldX, surfaceY + 1, worldZ, new Block(leafDef.getId()));
+                                } else {
+                                    world.setBlock(worldX, surfaceY + 1, worldZ, new Block(Blocks.OAK_LEAVES.getId()));
+                                }
                             }
                         }
 
@@ -84,10 +96,20 @@ public class OvergrowthStep implements GenerationStep {
     }
 
     private void generateMutatedTree(World world, int x, int y, int z) {
+        int woodIdx = random.nextInt(com.za.minecraft.world.blocks.WoodTypeRegistry.size());
+        com.za.minecraft.utils.Identifier logId = com.za.minecraft.world.blocks.WoodTypeRegistry.getLogId(woodIdx);
+        com.za.minecraft.utils.Identifier leafId = com.za.minecraft.utils.Identifier.of(logId.getNamespace(), logId.getPath().replace("_log", "_leaves"));
+        
+        com.za.minecraft.world.blocks.BlockDefinition logDef = com.za.minecraft.world.blocks.BlockRegistry.getRegistry().get(logId);
+        com.za.minecraft.world.blocks.BlockDefinition leafDef = com.za.minecraft.world.blocks.BlockRegistry.getRegistry().get(leafId);
+        
+        int logIdVal = logDef != null ? logDef.getId() : Blocks.OAK_LOG.getId();
+        int leafIdVal = leafDef != null ? leafDef.getId() : Blocks.OAK_LEAVES.getId();
+
         int height = 3 + random.nextInt(4);
         // Trunk
         for (int dy = 0; dy < height; dy++) {
-            world.setBlock(x, y + dy, z, new Block(Blocks.OAK_LOG.getId(), Block.BIT_NATURAL));
+            world.setBlock(x, y + dy, z, new Block(logIdVal, Block.BIT_NATURAL));
         }
 
         // Leaves
@@ -97,9 +119,10 @@ public class OvergrowthStep implements GenerationStep {
                 for (int dz = -2; dz <= 2; dz++) {
                     if (Math.abs(dx) + Math.abs(dy) + Math.abs(dz) <= 3) {
                         if (random.nextFloat() > 0.3f) {
-                            Block existing = world.getBlock(x + dx, crownY + dy, z + dz);
+                            com.za.minecraft.world.BlockPos pos = new com.za.minecraft.world.BlockPos(x + dx, crownY + dy, z + dz);
+                            Block existing = world.getBlock(pos);
                             if (existing.isAir()) {
-                                world.setBlock(x + dx, crownY + dy, z + dz, new Block(Blocks.OAK_LEAVES.getId(), Block.BIT_NATURAL));
+                                world.setBlock(pos, new Block(leafIdVal, Block.BIT_NATURAL));
                             }
                         }
                     }

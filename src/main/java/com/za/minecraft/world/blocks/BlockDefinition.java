@@ -28,6 +28,7 @@ public class BlockDefinition {
     
     private boolean canSupportScavenge = false;
     private int fellingStages = 0;
+    private Identifier nextStage = null;
     private boolean alwaysRender = false;
     private boolean replaceable = false;
     private String upperTexture = null; // Текстура для верхней части DOUBLE_PLANT
@@ -179,6 +180,15 @@ public class BlockDefinition {
 
     public BlockDefinition setFellingStages(int fellingStages) {
         this.fellingStages = fellingStages;
+        return this;
+    }
+
+    public Identifier getNextStage() {
+        return nextStage;
+    }
+
+    public BlockDefinition setNextStage(Identifier nextStage) {
+        this.nextStage = nextStage;
         return this;
     }
 

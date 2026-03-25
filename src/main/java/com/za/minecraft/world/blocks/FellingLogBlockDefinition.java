@@ -26,21 +26,21 @@ public class FellingLogBlockDefinition extends BlockDefinition {
         }
 
         // Определяем следующую стадию
-        String currentPath = getIdentifier().getPath(); // например felling_stage_1
-        int stageNum = Integer.parseInt(currentPath.substring(currentPath.length() - 1));
+        Identifier nextStageId = getNextStage();
         
-        if (stageNum < 4) {
-            String nextStageId = "minecraft:felling_stage_" + (stageNum + 1);
-            int nextBlockId = BlockRegistry.getBlock(Identifier.of(nextStageId)).getId();
-            
-            // Сохраняем метаданные (индекс дерева)
-            world.setBlock(pos, new Block(nextBlockId, block.getMetadata()));
-            com.za.minecraft.utils.Logger.info("Felling stage: " + stageNum + " -> " + (stageNum + 1) + ", woodIndex: " + block.getMetadata());
-            return false; // Блок заменен, не удаляем
-        } else {
-            // Последняя стадия — рубим всё дерево
-            TreecapitatorService.getInstance().fellTree(world, pos, player);
-            return true; // Блок удаляется
+        if (nextStageId != null) {
+            BlockDefinition nextDef = BlockRegistry.getBlock(nextStageId);
+            if (nextDef != null) {
+                // Сохраняем метаданные (индекс дерева)
+                world.setBlock(pos, new Block(nextDef.getId(), block.getMetadata()));
+                com.za.minecraft.utils.Logger.info("Felling stage: %s -> %s, woodIndex: %d", 
+                    getIdentifier(), nextStageId, block.getMetadata());
+                return false; // Блок заменен, не удаляем
+            }
         }
+
+        // Если следующей стадии нет — рубим всё дерево
+        TreecapitatorService.getInstance().fellTree(world, pos, player);
+        return true; // Блок удаляется
     }
 }

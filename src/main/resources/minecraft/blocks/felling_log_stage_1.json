@@ -5,6 +5,7 @@
   "solid": true,
   "transparent": true,
   "type": "felling_log",
+  "next_stage": "minecraft:felling_stage_2",
   "hardness": 2.0,
   "shape": [[0.1, 0.0, 0.1, 0.9, 1.0, 0.9]],
   "tags": ["treecapitator"]

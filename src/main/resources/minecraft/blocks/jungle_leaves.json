@@ -1,0 +1,13 @@
+{
+    "id": 172,
+    "identifier": "minecraft:jungle_leaves",
+    "translationKey": "block.minecraft.jungle_leaves",
+    "solid": true,
+    "transparent": true,
+    "hardness": 0.2,
+    "textures": {
+        "all": "jungle_leaves.png"
+    },
+    "requiredTool": "knife",
+    "tags": ["treecapitator"]
+}

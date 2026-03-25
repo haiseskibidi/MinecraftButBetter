@@ -43,6 +43,7 @@ public class DataLoader {
         for (String ns : namespaces) {
             loadBlocks(ns);
         }
+        loadWoodTypes();
         com.za.minecraft.utils.events.RegistryEvents.fireBlockRegistration();
         
         for (String ns : namespaces) {
@@ -362,6 +363,21 @@ public class DataLoader {
         return namespaces;
     }
 
+    private static void loadWoodTypes() {
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("minecraft/registry/wood_types.json")) {
+            if (is == null) return;
+            JsonArray root = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonArray.class);
+            List<Identifier> types = new ArrayList<>();
+            for (JsonElement el : root) {
+                types.add(Identifier.of(el.getAsString()));
+            }
+            com.za.minecraft.world.blocks.WoodTypeRegistry.init(types);
+            Logger.info("Loaded " + types.size() + " wood types");
+        } catch (Exception e) {
+            Logger.error("Failed to load wood types: " + e.getMessage());
+        }
+    }
+
     private static void loadBlocks(String namespace) {
         List<String> files = listResources(namespace + "/blocks");
         if (files.isEmpty()) {
@@ -458,6 +474,8 @@ public class DataLoader {
             BlockDefinition def = BlockTypeRegistry.create(type, id, identifier, translationKey, solid, transparent);
             if (obj.has("hardness")) def.setHardness(obj.get("hardness").getAsFloat());
             if (obj.has("fellingStages")) def.setFellingStages(obj.get("fellingStages").getAsInt());
+            if (obj.has("nextStage")) def.setNextStage(Identifier.of(obj.get("nextStage").getAsString()));
+            if (obj.has("next_stage")) def.setNextStage(Identifier.of(obj.get("next_stage").getAsString()));
             if (obj.has("requiredTool")) def.setRequiredTool(obj.get("requiredTool").getAsString());
             if (obj.has("dropItem")) def.setDropItem(obj.get("dropItem").getAsString());
             if (obj.has("dropChance")) def.setDropChance(obj.get("dropChance").getAsFloat());

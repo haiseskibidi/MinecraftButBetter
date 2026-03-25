@@ -1,0 +1,19 @@
+{
+    "id": 160,
+    "identifier": "minecraft:birch_log",
+    "translationKey": "block.minecraft.birch_log",
+    "solid": true,
+    "transparent": false,
+    "type": "log",
+    "hardness": 2.0,
+    "textures": {
+        "top": "birch_log_top.png",
+        "bottom": "birch_log_top.png",
+        "side": "birch_log.png"
+    },
+    "requiredTool": "axe",
+    "placement": "log",
+    "next_stage": "minecraft:felling_stage_1",
+    "fellingStages": 5,
+    "tags": ["treecapitator", "minecraft:logs"]
+}
