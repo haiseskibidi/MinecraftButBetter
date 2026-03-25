@@ -1,0 +1,18 @@
+{
+  "playerWidth": 0.6,
+  "standingHeight": 1.8,
+  "sneakingHeight": 1.45,
+  "standingEyeHeight": 1.62,
+  "sneakingEyeHeight": 1.25,
+  "maxGrabHeight": 2.45,
+  "minGrabHeight": 1.25,
+  "grabDistance": 0.7,
+  "climbDuration": 0.45,
+  "jumpVelocity": 8.0,
+  "baseMoveSpeed": 3.8,
+  "flySpeed": 9.0,
+  "sprintMultiplier": 1.45,
+  "sneakSpeedMultiplier": 0.3,
+  "mouseSensitivity": 0.002,
+  "flySprintMultiplier": 1.8
+}

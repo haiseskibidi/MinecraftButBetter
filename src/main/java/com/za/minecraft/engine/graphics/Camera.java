@@ -18,6 +18,9 @@ public class Camera {
     
     // Offset for bobbing/animations
     private float xOffset = 0, yOffset = 0, zOffset = 0;
+    private float pitchOffset = 0;
+    private float rollOffset = 0;
+    private float fovOffset = 0;
     
     // No caching to avoid subtle jitter; compute per frame
     
@@ -36,9 +39,9 @@ public class Camera {
     
     public Matrix4f getViewMatrix() {
         return viewMatrix.identity()
-            .rotateX(-rotation.x)
+            .rotateX(-(rotation.x + pitchOffset))
             .rotateY(-rotation.y)
-            .rotateZ(-rotation.z)
+            .rotateZ(-(rotation.z + rollOffset))
             .translate(-position.x - xOffset, -position.y - yOffset, -position.z - zOffset);
     }
 
@@ -47,9 +50,21 @@ public class Camera {
         this.yOffset = y;
         this.zOffset = z;
     }
+
+    public void setPitchOffset(float offset) {
+        this.pitchOffset = offset;
+    }
+
+    public void setRollOffset(float offset) {
+        this.rollOffset = offset;
+    }
+
+    public void setFovOffset(float offset) {
+        this.fovOffset = offset;
+    }
     
     public Matrix4f getProjectionMatrix() {
-        return projectionMatrix.setPerspective(fov, aspectRatio, Z_NEAR, Z_FAR);
+        return projectionMatrix.setPerspective(fov + fovOffset, aspectRatio, Z_NEAR, Z_FAR);
     }
     
     public void updateAspectRatio(float aspectRatio) {

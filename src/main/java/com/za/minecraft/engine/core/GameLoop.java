@@ -295,7 +295,10 @@ public class GameLoop {
         
         // Синхронизация камеры после движения игрока
         camera.setPosition(player.getPosition().x, player.getPosition().y + player.getEyeHeight(), player.getPosition().z);
-        
+        camera.setPitchOffset(player.getCameraPitchOffset());
+        camera.setRollOffset(player.getCameraRollOffset());
+        camera.setFovOffset(player.getFovOffset());
+
         if (networkClient != null && networkClient.isConnected()) {
             networkClient.sendPlayerPosition();
         }

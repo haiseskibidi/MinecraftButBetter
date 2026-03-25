@@ -27,11 +27,6 @@ import org.joml.Vector3f;
 import static org.lwjgl.glfw.GLFW.*;
 
 public class InputManager {
-    private static final float MOUSE_SENSITIVITY = 0.002f;
-    private static final float MOVE_SPEED = 3.8f;
-    private static final float FLY_SPEED = 9.0f;
-    private static final float FLY_FAST_MULTIPLIER = 1.8f;
-    private static final float GROUND_SPRINT_MULTIPLIER = 1.45f;
     
     private final Vector2f previousPos;
     private final Vector2f currentPos;
@@ -41,6 +36,7 @@ public class InputManager {
     private boolean firstMouse = true;
     private boolean leftMousePressed = false;
     private boolean rightMousePressed = false;
+    private boolean spaceKeyPressed = false;
     private boolean rKeyPressed = false;
     private boolean zKeyPressed = false;
     private boolean f3KeyPressed = false;
@@ -429,6 +425,14 @@ public class InputManager {
         boolean nappingOpen = GameLoop.getInstance().isNappingOpen();
         boolean paused = GameLoop.getInstance().isPaused();
 
+        Vector3f lookDir = new Vector3f(0, 0, -1).rotateX(camera.getRotation().x).rotateY(camera.getRotation().y).normalize();
+        RaycastResult raycast = Raycast.raycast(world, camera.getPosition(), lookDir);
+        ItemStack currentStack = player.getInventory().getSelectedItemStack();
+        Item currentItem = currentStack != null ? currentStack.getItem() : null;
+
+        com.za.minecraft.world.physics.PhysicsSettings settings = com.za.minecraft.world.physics.PhysicsSettings.getInstance();
+        com.za.minecraft.entities.parkour.ParkourHandler parkour = player.getParkourHandler();
+
         // Блокируем хотбар во время скалывания или инвентаря
         if (!nappingOpen && !inventoryOpen) {
             for (int i = 0; i < 9; i++) {
@@ -552,7 +556,33 @@ public class InputManager {
         previousPos.y = currentPos.y;
 
         if (!inventoryOpen && !paused && !nappingOpen) {
-            camera.moveRotation(rotVec.x * MOUSE_SENSITIVITY, rotVec.y * MOUSE_SENSITIVITY, 0);
+            float deltaPitch = rotVec.x * settings.mouseSensitivity;
+            float deltaYaw = rotVec.y * settings.mouseSensitivity;
+
+            if (parkour.isRestrictingCamera()) {
+                float baseYaw = parkour.getBaseYaw();
+                Vector3f currentRot = camera.getRotation();
+                
+                // Clamp Pitch (X)
+                float newPitch = currentRot.x + deltaPitch;
+                newPitch = Math.max(-1.4f, Math.min(1.2f, newPitch));
+                camera.getRotation().x = newPitch;
+
+                // Clamp Yaw (Y) relative to baseYaw
+                float newYaw = currentRot.y + deltaYaw;
+                float relativeYaw = newYaw - baseYaw;
+                
+                // Normalize relativeYaw to -PI to PI
+                while (relativeYaw < -Math.PI) relativeYaw += Math.PI * 2;
+                while (relativeYaw > Math.PI) relativeYaw -= Math.PI * 2;
+                
+                float yawLimit = 1.4f; // ~80 degrees
+                relativeYaw = Math.max(-yawLimit, Math.min(yawLimit, relativeYaw));
+                
+                camera.getRotation().y = baseYaw + relativeYaw;
+            } else {
+                camera.moveRotation(deltaPitch, deltaYaw, 0);
+            }
         }
 
         float intensity = player.getBobIntensity();
@@ -569,23 +599,31 @@ public class InputManager {
         }
         
         float moveY = 0;
+        boolean spaceDown = window.isKeyPressed(GLFW_KEY_SPACE);
+        boolean spaceNewPress = spaceDown && !spaceKeyPressed;
+        spaceKeyPressed = spaceDown;
+
         if (!inventoryOpen && !paused && !nappingOpen) {
-            if (window.isKeyPressed(GLFW_KEY_SPACE)) moveY = 1;
+            if (spaceDown) moveY = 1;
         }
+        
         boolean shiftPressed = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT);
         if (shiftPressed && !inventoryOpen && !paused && !nappingOpen) moveY = -1;
         
         boolean sneaking = shiftPressed && !player.isFlying() && !inventoryOpen && !paused && !nappingOpen;
         player.setSneaking(sneaking);
-        
+
+        boolean inParkour = parkour.isInParkour();
+
         boolean physicallySneaking = player.isPhysicallySneaking();
         boolean sprinting = (window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL)) && !inventoryOpen && !paused && !nappingOpen;
         player.setSprinting(sprinting);
-        float baseSpeed = player.isFlying() ? FLY_SPEED : (physicallySneaking ? MOVE_SPEED * 0.3f : MOVE_SPEED);
-        if (sprinting && !physicallySneaking) baseSpeed *= (player.isFlying() ? FLY_FAST_MULTIPLIER : GROUND_SPRINT_MULTIPLIER);
+        
+        float baseSpeed = player.isFlying() ? settings.flySpeed : (physicallySneaking ? settings.baseMoveSpeed * settings.sneakSpeedMultiplier : settings.baseMoveSpeed);
+        if (sprinting && !physicallySneaking) baseSpeed *= (player.isFlying() ? settings.flySprintMultiplier : settings.sprintMultiplier);
 
         player.setMoving(moveVector.length() > 0);
-        if (moveVector.length() > 0) {
+        if (moveVector.length() > 0 && !inParkour) {
             moveVector.normalize();
             float yaw = -camera.getRotation().y;
             float moveX = (float)Math.sin(yaw) * moveVector.y + (float)Math.cos(yaw) * moveVector.x;
@@ -594,18 +632,39 @@ public class InputManager {
             float targetVz = moveZ * baseSpeed;
             float accelGain = player.getMode() == PlayerMode.DEVELOPER ? 30.0f : (player.isFlying() ? 24.0f : 18.0f);
             player.applyHorizontalAcceleration((targetVx - player.getVelocity().x) * accelGain * deltaTime, (targetVz - player.getVelocity().z) * accelGain * deltaTime, baseSpeed);
-        } else {
+        } else if (!inParkour) {
             float decelGain = player.isFlying() ? 20.0f : 15.0f;
             player.applyHorizontalAcceleration(-player.getVelocity().x * decelGain * deltaTime, -player.getVelocity().z * decelGain * deltaTime, baseSpeed);
         }
         
-        if (player.isFlying()) {
+        if (player.isFlying() && !inParkour) {
             player.addVelocity(0, (moveY * baseSpeed - player.getVelocity().y) * 25.0f * deltaTime, 0);
-        } else if (moveY > 0 && !inventoryOpen && !paused && !nappingOpen) {
-            if (player.isOnGround()) {
-                player.addNoise(0.20f); 
+        }
+        
+        // Parkour and Jump logic
+        if (!inventoryOpen && !paused && !nappingOpen) {
+            if (spaceNewPress) {
+                if (parkour.isHanging()) {
+                    parkour.startClimb(player);
+                } else if (!parkour.isClimbing()) {
+                    if (player.isOnGround()) {
+                        player.addNoise(0.20f);
+                        player.jump();
+                    } else if (!player.isFlying()) {
+                        parkour.tryLedgeGrab(player, world, lookDir);
+                    }
+                }
             }
-            player.jump();
+
+            if (shiftPressed && parkour.isHanging()) {
+                // Add a tiny backward impulse when dropping to prevent clipping into the block
+                float pushBack = 0.15f;
+                float yaw = -camera.getRotation().y;
+                player.getVelocity().x = (float) Math.sin(yaw) * -pushBack;
+                player.getVelocity().z = (float) Math.cos(yaw) * pushBack;
+                
+                parkour.cancel(player);
+            }
         }
         
         boolean fKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_F);
@@ -651,13 +710,8 @@ public class InputManager {
         }
         qKeyPressed = qKeyCurrentlyPressed;
         
-        Vector3f lookDir = new Vector3f(0, 0, -1).rotateX(camera.getRotation().x).rotateY(camera.getRotation().y).normalize();
         com.za.minecraft.entities.Entity hitEntity = Raycast.raycastEntity(world, camera.getPosition(), lookDir);
-        RaycastResult raycast = Raycast.raycast(world, camera.getPosition(), lookDir);
         
-        ItemStack currentStack = player.getInventory().getSelectedItemStack();
-        Item currentItem = currentStack != null ? currentStack.getItem() : null;
-
         if (!inventoryOpen && !paused && !nappingOpen) {
             boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1);
             boolean isNewLeftClick = lm && !leftMousePressed;

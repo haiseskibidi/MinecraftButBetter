@@ -80,6 +80,20 @@ public class DataLoader {
         }
 
         loadScavengeSettings();
+        loadPhysicsSettings();
+    }
+
+    private static void loadPhysicsSettings() {
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("minecraft/registry/physics.json")) {
+            if (is == null) return;
+            com.za.minecraft.world.physics.PhysicsSettings settings = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), com.za.minecraft.world.physics.PhysicsSettings.class);
+            if (settings != null) {
+                com.za.minecraft.world.physics.PhysicsSettings.setInstance(settings);
+                Logger.info("Loaded physics settings");
+            }
+        } catch (Exception e) {
+            Logger.error("Failed to load physics settings: " + e.getMessage());
+        }
     }
 
     private static void loadJournal(String ns) {

@@ -8,6 +8,15 @@
 - **gui/**: Элементы интерфейса (widgets.png, icons.png).
 - **font/**: Текстуры шрифтов (ascii.png, unicode_page_04.png).
 
+### src/main/resources/minecraft/registry
+- **physics.json**: Конфигурация физических констант (гравитация, скорость паркура).
+
+## Parkour System (NEW)
+### com.za.minecraft.entities.parkour.ParkourHandler
+Назначение: Машина состояний паркура и расчет траекторий.
+Логика: Использует 3D Quadratic Bezier для подъема. Рандомизирует `climbSide`.
+Функции: update(), tryLedgeGrab(), startClimb(), getProgress(), getClimbSide()
+
 ## Inventory System (v3) (NEW)
 ### com.za.minecraft.world.inventory.IInventory
 Назначение: Универсальный интерфейс для любого объекта, способного хранить ItemStack.

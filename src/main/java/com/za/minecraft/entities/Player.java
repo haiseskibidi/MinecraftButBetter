@@ -8,19 +8,14 @@ import org.joml.Vector3f;
  * The human-controlled entity.
  */
 public class Player extends LivingEntity {
-    private static final float PLAYER_WIDTH = 0.6f;
-    private static final float STANDING_HEIGHT = 1.8f;
-    private static final float SNEAKING_HEIGHT = 1.45f;
-    private static final float STANDING_EYE_HEIGHT = 1.62f;
-    private static final float SNEAKING_EYE_HEIGHT = 1.25f;
-    private static final float JUMP_VELOCITY = 8.0f;
-    
     private final Inventory inventory;
     private com.za.minecraft.engine.core.PlayerMode mode = com.za.minecraft.engine.core.PlayerMode.SURVIVAL;
+    private final com.za.minecraft.entities.parkour.ParkourHandler parkourHandler = new com.za.minecraft.entities.parkour.ParkourHandler();
     
     // Survival stats
     private float hunger = 20.0f;
     private float saturation = 5.0f;
+    private float stamina = 1.0f;
     private float noiseLevel = 0.0f;
     private float continuousNoise = 0.0f;
     private boolean sneaking = false;
@@ -28,19 +23,26 @@ public class Player extends LivingEntity {
     private boolean sprinting = false;
     
     // Animation and State
-    private float currentEyeHeight = STANDING_EYE_HEIGHT;
+    private float currentEyeHeight;
     private float walkBobTimer = 0.0f;
     private float bobIntensity = 0.0f;
     private float swingProgress = 0.0f;
     private boolean swinging = false;
-    
+    private float parkourCameraTilt = 0.0f;
+    private float parkourCameraRoll = 0.0f;
+    private float fovOffset = 0.0f;
+
     private static final float MAX_HUNGER = 20.0f;
     private static final float HUNGER_DEPletion_RATE = 0.1f; // Increased 20x for testing (was 0.005f)
     private static final float NOISE_DECAY_RATE = 0.5f;
     
     public Player(Vector3f startPosition) {
-        super(startPosition, PLAYER_WIDTH, STANDING_HEIGHT, 20.0f);
+        super(startPosition, 
+              com.za.minecraft.world.physics.PhysicsSettings.getInstance().playerWidth, 
+              com.za.minecraft.world.physics.PhysicsSettings.getInstance().standingHeight, 
+              20.0f);
         this.inventory = new Inventory();
+        this.currentEyeHeight = com.za.minecraft.world.physics.PhysicsSettings.getInstance().standingEyeHeight;
     }
     
     @Override
@@ -50,26 +52,40 @@ public class Player extends LivingEntity {
         updateNoise(deltaTime);
         updateAnimations(deltaTime);
         updateSneakState(world, deltaTime);
+        parkourHandler.update(this, deltaTime, world);
         
         // Base physics and movement from Entity
         super.update(deltaTime, world);
     }
 
+    public com.za.minecraft.entities.parkour.ParkourHandler getParkourHandler() {
+        return parkourHandler;
+    }
+
+    public float getStamina() {
+        return stamina;
+    }
+
+    public void setStamina(float stamina) {
+        this.stamina = stamina;
+    }
+
     private void updateSneakState(World world, float deltaTime) {
-        float targetHeight = sneaking ? SNEAKING_HEIGHT : STANDING_HEIGHT;
-        float targetEyeHeight = sneaking ? SNEAKING_EYE_HEIGHT : STANDING_EYE_HEIGHT;
+        com.za.minecraft.world.physics.PhysicsSettings settings = com.za.minecraft.world.physics.PhysicsSettings.getInstance();
+        float targetHeight = sneaking ? settings.sneakingHeight : settings.standingHeight;
+        float targetEyeHeight = sneaking ? settings.sneakingEyeHeight : settings.standingEyeHeight;
 
         // If trying to stand up, check if there's enough space
-        if (!sneaking && boundingBox.getMax().y < STANDING_HEIGHT) {
+        if (!sneaking && boundingBox.getMax().y < settings.standingHeight) {
             if (canStandUp(world)) {
-                setBoundingBox(PLAYER_WIDTH, STANDING_HEIGHT);
+                setBoundingBox(settings.playerWidth, settings.standingHeight);
             } else {
                 // Force sneaking if blocked
-                targetHeight = SNEAKING_HEIGHT;
-                targetEyeHeight = SNEAKING_EYE_HEIGHT;
+                targetHeight = settings.sneakingHeight;
+                targetEyeHeight = settings.sneakingEyeHeight;
             }
-        } else if (sneaking && boundingBox.getMax().y > SNEAKING_HEIGHT) {
-            setBoundingBox(PLAYER_WIDTH, SNEAKING_HEIGHT);
+        } else if (sneaking && boundingBox.getMax().y > settings.sneakingHeight) {
+            setBoundingBox(settings.playerWidth, settings.sneakingHeight);
         }
 
         // Smooth eye height transition
@@ -78,10 +94,11 @@ public class Player extends LivingEntity {
     }
 
     private boolean canStandUp(World world) {
-        // Check 1.8m height from current feet position
+        com.za.minecraft.world.physics.PhysicsSettings settings = com.za.minecraft.world.physics.PhysicsSettings.getInstance();
+        // Check standing height from current feet position
         com.za.minecraft.world.physics.AABB standingBox = new com.za.minecraft.world.physics.AABB(
-            -PLAYER_WIDTH / 2, 0, -PLAYER_WIDTH / 2,
-            PLAYER_WIDTH / 2, STANDING_HEIGHT, PLAYER_WIDTH / 2
+            -settings.playerWidth / 2, 0, -settings.playerWidth / 2,
+            settings.playerWidth / 2, settings.standingHeight, settings.playerWidth / 2
         ).offset(position);
 
         int minX = (int) Math.floor(standingBox.getMin().x);
@@ -140,6 +157,63 @@ public class Player extends LivingEntity {
                 swinging = false;
             }
         }
+
+        // Physically-Based Parkour Camera Logic
+        float targetTilt = 0.0f;
+        float targetRoll = 0.0f;
+        float targetFovOffset = 0.0f;
+        com.za.minecraft.entities.parkour.ParkourHandler.ParkourState pState = parkourHandler.getState();
+        float pProgress = parkourHandler.getProgress();
+
+        if (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.CLIMBING) {
+            float t = pProgress;
+            float side = parkourHandler.getClimbSide();
+            
+            // 1. Tilt: Non-linear dip and recovery
+            targetTilt = (float) (Math.sin(t * Math.PI) * 0.22f);
+            
+            // 2. Roll: Shifting weight between arms (Asymmetric and randomized)
+            targetRoll = (float) (Math.sin(t * Math.PI * 1.5) * 0.08f * side);
+            
+            // 3. FOV: Dynamic expansion based on vertical momentum
+            targetFovOffset = (float) (Math.sin(t * Math.PI) * 0.12f * (1.0f - t * 0.5f));
+            
+            // 4. Effort-based Jitter (Shaking)
+            if (t > 0.15f && t < 0.6f) {
+                float intensity = (float) Math.sin((t - 0.15f) / 0.45f * Math.PI) * 0.008f;
+                targetTilt += (float) (Math.sin(System.currentTimeMillis() / 15.0) * intensity);
+                targetRoll += (float) (Math.cos(System.currentTimeMillis() / 12.0) * intensity);
+            }
+        } else if (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.GRABBING) {
+            float env = (float) Math.sin(pProgress * Math.PI);
+            targetTilt = -0.15f * env;
+            targetRoll = 0.05f * env;
+            targetFovOffset = 0.04f * env;
+        } else if (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.HANGING) {
+            targetTilt = 0.04f;
+            targetRoll = (float) (Math.sin(System.currentTimeMillis() / 800.0) * 0.012f);
+        }
+        
+        // Multi-rate Lerp for organic feel
+        float tiltLerp = (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.NONE) ? 4.0f : 12.0f;
+        float rollLerp = (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.NONE) ? 3.0f : 10.0f;
+        float fovLerp = (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.NONE) ? 2.0f : 8.0f;
+
+        parkourCameraTilt += (targetTilt - parkourCameraTilt) * tiltLerp * deltaTime;
+        parkourCameraRoll += (targetRoll - parkourCameraRoll) * rollLerp * deltaTime;
+        fovOffset += (targetFovOffset - fovOffset) * fovLerp * deltaTime;
+    }
+
+    public float getCameraPitchOffset() {
+        return parkourCameraTilt;
+    }
+
+    public float getCameraRollOffset() {
+        return parkourCameraRoll;
+    }
+
+    public float getFovOffset() {
+        return fovOffset;
     }
 
     public void swing() {
@@ -194,7 +268,8 @@ public class Player extends LivingEntity {
     }
 
     public boolean isPhysicallySneaking() {
-        return boundingBox.getMax().y < STANDING_HEIGHT - 0.01f;
+        com.za.minecraft.world.physics.PhysicsSettings settings = com.za.minecraft.world.physics.PhysicsSettings.getInstance();
+        return boundingBox.getMax().y < settings.standingHeight - 0.01f;
     }
 
     public void setMoving(boolean moving) {
@@ -234,7 +309,7 @@ public class Player extends LivingEntity {
     
     public void jump() {
         if (onGround || flying) {
-            velocity.y = JUMP_VELOCITY;
+            velocity.y = com.za.minecraft.world.physics.PhysicsSettings.getInstance().jumpVelocity;
             onGround = false;
         }
     }

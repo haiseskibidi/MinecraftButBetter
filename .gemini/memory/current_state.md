@@ -126,15 +126,25 @@
   - Локализация (I18n) и Unicode-шрифты.
 
 ## Последние изменения
+- **Modular Physics & Parkour (v1.0)**:
+  - **Data-Driven Physics**: Physical constants (climb duration, grab distance, jump velocity) externalized to `physics.json`.
+  - **Clamber & Roll (Cinematic Parkour)**:
+    - **Bezier Trajectory**: Implemented a unified 3D Quadratic Bezier path for climbing, ensuring perfect motion smoothness without independent axis jerking.
+    - **Cinematic Feedback**: High-fidelity camera system with non-linear Tilt (pitch), dynamic Roll (leaning into movements), and asymmetric FOV pulses.
+    - **Effort Simulation**: Added procedural micro-vibrations (shaking) during peak exertion phases of climbing to simulate physical strain.
+    - **Randomized Leading Hand**: Every climb randomly selects a `climbSide` multiplier, flipping the camera roll direction for organic visual variety.
+  - **Ledge Grabbing Logic**: Advanced raycasting for ledge detection with hitbox-aware positioning to prevent wall clipping.
+  - **Physics Stability**: Fixed on-ground detection logic in `Entity.java` to eliminate walk-animation flickering on sloped or complex terrain.
 - **Inventory v3 Implementation**: полный переход на Data-Driven GUI и абстракцию хранилищ.
 - **CSS Layout Logic**: внедрена поддержка выравнивания `alignX`/`alignY` в GUI.
 - **Bugfixes**: исправлены критические ошибки индексов в `Inventory.java`.
 
 ## В работе
+- **Stamina System**: Implement exhaustion logic for hanging and climbing.
+- **Collision Edge Cases**: Refining interactions with corners and slabs.
 - **Generic Containers**: Тестирование `ChestScreen` и расширение поддержки сундуков.
-- **UI Scaling**: Проверка адаптивности интерфейса.
 
 ## Roadmap
-- [x] Milestone 2: Базовые механики выживания (Inventory v3, Hunger, Noise).
-- [ ] Milestone 3: Моддинг-API и Расширяемость (Registry Events, Mod Loader).
+- [x] Milestone 2: Базовые механики выживания (Inventory v3, Hunger, Noise, Parkour v1).
+- [ ] Milestone 3: Моддинг-API и Расширяемость (Registry Events, Mod Loader, Physics Registry).
 - [ ] Milestone 4: Полноценный геймплей (Мир, Существа, Прогрессия).

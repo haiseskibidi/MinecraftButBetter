@@ -60,12 +60,22 @@ public abstract class Entity {
     protected void move(World world, float dx, float dy, float dz) {
         float originalDy = dy;
         AABB currentBox = boundingBox.offset(position);
-        
-        // Vertical movement with collision
+
+        // --- Vertical movement with collision ---
         if (dy != 0) {
-            for (int x = (int) Math.floor(currentBox.getMin().x); x <= Math.floor(currentBox.getMax().x); x++) {
-                for (int z = (int) Math.floor(currentBox.getMin().z); z <= Math.floor(currentBox.getMax().z); z++) {
-                    for (int y = (int) Math.floor(currentBox.getMin().y + dy); y <= Math.floor(currentBox.getMax().y + dy); y++) {
+            // Reset onGround only if we are moving significantly upwards (jump)
+            if (dy > 0.001f) onGround = false; 
+
+            int minX = (int) Math.floor(currentBox.getMin().x);
+            int maxX = (int) Math.floor(currentBox.getMax().x);
+            int minZ = (int) Math.floor(currentBox.getMin().z);
+            int maxZ = (int) Math.floor(currentBox.getMax().z);
+            int minY = (int) Math.floor(currentBox.getMin().y + Math.min(0, dy));
+            int maxY = (int) Math.floor(currentBox.getMax().y + Math.max(0, dy));
+
+            for (int x = minX; x <= maxX; x++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    for (int y = minY; y <= maxY; y++) {
                         Block block = world.getBlock(x, y, z);
                         if (!block.isAir() && block.isSolid()) {
                             com.za.minecraft.world.physics.VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
@@ -73,16 +83,14 @@ public abstract class Entity {
                                 for (AABB box : shape.getBoxes()) {
                                     AABB blockBox = box.offset(x, y, z);
                                     AABB testBox = currentBox.offset(0, dy, 0);
-                                    
                                     if (testBox.intersects(blockBox)) {
                                         if (dy > 0) {
                                             dy = blockBox.getMin().y - currentBox.getMax().y - 0.001f;
                                         } else {
                                             dy = blockBox.getMax().y - currentBox.getMin().y + 0.001f;
-                                            onGround = true;
+                                            onGround = true; 
                                         }
                                         velocity.y = 0;
-                                        break;
                                     }
                                 }
                             }
@@ -93,12 +101,24 @@ public abstract class Entity {
             position.y += dy;
             currentBox = boundingBox.offset(position);
         }
-        
-        // Horizontal movement with collision (X)
+
+        // If we were falling but didn't hit ground this frame, we are no longer on ground
+        if (originalDy < -0.001f && onGround && Math.abs(dy - originalDy) < 0.0001f) {
+            onGround = false;
+        }
+
+        // --- Horizontal movement with collision (X) ---
         if (dx != 0) {
-            for (int x = (int) Math.floor(currentBox.getMin().x + dx); x <= Math.floor(currentBox.getMax().x + dx); x++) {
-                for (int z = (int) Math.floor(currentBox.getMin().z); z <= Math.floor(currentBox.getMax().z); z++) {
-                    for (int y = (int) Math.floor(currentBox.getMin().y); y <= Math.floor(currentBox.getMax().y); y++) {
+            int minX = (int) Math.floor(currentBox.getMin().x + Math.min(0, dx));
+            int maxX = (int) Math.floor(currentBox.getMax().x + Math.max(0, dx));
+            int minZ = (int) Math.floor(currentBox.getMin().z);
+            int maxZ = (int) Math.floor(currentBox.getMax().z);
+            int minY = (int) Math.floor(currentBox.getMin().y);
+            int maxY = (int) Math.floor(currentBox.getMax().y);
+
+            for (int x = minX; x <= maxX; x++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    for (int y = minY; y <= maxY; y++) {
                         Block block = world.getBlock(x, y, z);
                         if (!block.isAir() && block.isSolid()) {
                             com.za.minecraft.world.physics.VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
@@ -106,15 +126,10 @@ public abstract class Entity {
                                 for (AABB box : shape.getBoxes()) {
                                     AABB blockBox = box.offset(x, y, z);
                                     AABB testBox = currentBox.offset(dx, 0, 0);
-                                    
                                     if (testBox.intersects(blockBox)) {
-                                        if (dx > 0) {
-                                            dx = blockBox.getMin().x - currentBox.getMax().x - 0.001f;
-                                        } else {
-                                            dx = blockBox.getMax().x - currentBox.getMin().x + 0.001f;
-                                        }
+                                        if (dx > 0) dx = blockBox.getMin().x - currentBox.getMax().x - 0.001f;
+                                        else dx = blockBox.getMax().x - currentBox.getMin().x + 0.001f;
                                         velocity.x = 0;
-                                        break;
                                     }
                                 }
                             }
@@ -125,12 +140,19 @@ public abstract class Entity {
             position.x += dx;
             currentBox = boundingBox.offset(position);
         }
-        
-        // Horizontal movement with collision (Z)
+
+        // --- Horizontal movement with collision (Z) ---
         if (dz != 0) {
-            for (int x = (int) Math.floor(currentBox.getMin().x); x <= Math.floor(currentBox.getMax().x); x++) {
-                for (int z = (int) Math.floor(currentBox.getMin().z + dz); z <= Math.floor(currentBox.getMax().z + dz); z++) {
-                    for (int y = (int) Math.floor(currentBox.getMin().y); y <= Math.floor(currentBox.getMax().y); y++) {
+            int minX = (int) Math.floor(currentBox.getMin().x);
+            int maxX = (int) Math.floor(currentBox.getMax().x);
+            int minZ = (int) Math.floor(currentBox.getMin().z + Math.min(0, dz));
+            int maxZ = (int) Math.floor(currentBox.getMax().z + Math.max(0, dz));
+            int minY = (int) Math.floor(currentBox.getMin().y);
+            int maxY = (int) Math.floor(currentBox.getMax().y);
+
+            for (int x = minX; x <= maxX; x++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    for (int y = minY; y <= maxY; y++) {
                         Block block = world.getBlock(x, y, z);
                         if (!block.isAir() && block.isSolid()) {
                             com.za.minecraft.world.physics.VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
@@ -138,15 +160,10 @@ public abstract class Entity {
                                 for (AABB box : shape.getBoxes()) {
                                     AABB blockBox = box.offset(x, y, z);
                                     AABB testBox = currentBox.offset(0, 0, dz);
-                                    
                                     if (testBox.intersects(blockBox)) {
-                                        if (dz > 0) {
-                                            dz = blockBox.getMin().z - currentBox.getMax().z - 0.001f;
-                                        } else {
-                                            dz = blockBox.getMax().z - currentBox.getMin().z + 0.001f;
-                                        }
+                                        if (dz > 0) dz = blockBox.getMin().z - currentBox.getMax().z - 0.001f;
+                                        else dz = blockBox.getMax().z - currentBox.getMin().z + 0.001f;
                                         velocity.z = 0;
-                                        break;
                                     }
                                 }
                             }
@@ -155,12 +172,6 @@ public abstract class Entity {
                 }
             }
             position.z += dz;
-        }
-        
-        if (Math.abs(originalDy) > 0.001f && Math.abs(dy) < 0.001f && originalDy < 0) {
-            onGround = true;
-        } else if (Math.abs(originalDy) > 0.001f) {
-            onGround = false;
         }
     }
 
