@@ -85,20 +85,21 @@ public class OvergrowthStep implements GenerationStep {
 
     private void generateMutatedTree(World world, int x, int y, int z) {
         int height = 3 + random.nextInt(4);
-        
+        // Trunk
         for (int dy = 0; dy < height; dy++) {
-            world.setBlock(x, y + dy, z, new Block(Blocks.OAK_LOG.getId()));
+            world.setBlock(x, y + dy, z, new Block(Blocks.OAK_LOG.getId(), Block.BIT_NATURAL));
         }
-        
-        int crownY = y + height - 1;
-        for (int dx = -2; dx <= 2; dx++) {
-            for (int dy = -1; dy <= 2; dy++) {
+
+        // Leaves
+        int crownY = y + height - 2;
+        for (int dy = 0; dy <= 3; dy++) {
+            for (int dx = -2; dx <= 2; dx++) {
                 for (int dz = -2; dz <= 2; dz++) {
                     if (Math.abs(dx) + Math.abs(dy) + Math.abs(dz) <= 3) {
                         if (random.nextFloat() > 0.3f) {
                             Block existing = world.getBlock(x + dx, crownY + dy, z + dz);
                             if (existing.isAir()) {
-                                world.setBlock(x + dx, crownY + dy, z + dz, new Block(Blocks.OAK_LEAVES.getId()));
+                                world.setBlock(x + dx, crownY + dy, z + dz, new Block(Blocks.OAK_LEAVES.getId(), Block.BIT_NATURAL));
                             }
                         }
                     }

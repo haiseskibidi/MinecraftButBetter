@@ -8,5 +8,6 @@
     "textures":  {
                      "all":  "oak_leaves.png"
                  },
-    "requiredTool":  "knife"
+    "requiredTool":  "knife",
+    "tags": ["treecapitator"]
 }

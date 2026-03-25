@@ -7,6 +7,7 @@ import com.za.minecraft.world.blocks.entity.ITickable;
 import com.za.minecraft.world.chunks.Chunk;
 import com.za.minecraft.world.chunks.ChunkPos;
 import com.za.minecraft.world.generation.TerrainGenerator;
+import com.za.minecraft.world.items.ItemStack;
 
 import com.za.minecraft.entities.Entity;
 import com.za.minecraft.entities.Player;
@@ -218,6 +219,31 @@ public class World {
         }
     }
 
+    /**
+     * Вызывается игроком при завершении прогресса разрушения блока.
+     * @return true если блок должен быть удален.
+     */
+    public boolean onBlockBreak(BlockPos pos, Player player) {
+        Block block = getBlock(pos);
+        if (block.isAir()) return true;
+
+        com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType());
+        return def.onBlockBreak(this, pos, block, player);
+    }
+
+    /**
+     * Разрушает блок игроком. Вызывает хук onDestroyed.
+     */
+    public void destroyBlock(BlockPos pos, Player player) {
+        Block block = getBlock(pos);
+        if (block.isAir()) return;
+
+        com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType());
+        def.onDestroyed(this, pos, block, player);
+
+        setBlock(pos, new Block(Blocks.AIR.getId()));
+    }
+
     public void setBlockEntity(BlockEntity entity) {
         BlockPos pos = entity.getPos();
         removeBlockEntity(pos); // Clean up any existing at this position
@@ -226,6 +252,12 @@ public class World {
         blockEntities.put(pos, entity);
         if (entity instanceof ITickable) {
             tickableBlockEntities.add((ITickable) entity);
+        }
+
+        // Trigger mesh update for the chunk
+        com.za.minecraft.world.chunks.Chunk chunk = getChunk(com.za.minecraft.world.chunks.ChunkPos.fromBlockPos(pos.x(), pos.z()));
+        if (chunk != null) {
+            chunk.setNeedsMeshUpdate(true);
         }
     }
 
@@ -237,6 +269,11 @@ public class World {
         BlockEntity entity = blockEntities.remove(pos);
         if (entity != null) {
             entity.setRemoved();
+            // Trigger mesh update for the chunk
+            com.za.minecraft.world.chunks.Chunk chunk = getChunk(com.za.minecraft.world.chunks.ChunkPos.fromBlockPos(pos.x(), pos.z()));
+            if (chunk != null) {
+                chunk.setNeedsMeshUpdate(true);
+            }
         }
     }
 
@@ -262,6 +299,11 @@ public class World {
     
     public void setBlock(int x, int y, int z, int blockType) {
         setBlock(x, y, z, new Block(blockType));
+    }
+
+    public void spawnItem(ItemStack stack, float x, float y, float z) {
+        com.za.minecraft.entities.ItemEntity entity = new com.za.minecraft.entities.ItemEntity(new Vector3f(x, y, z), stack);
+        spawnEntity(entity);
     }
 
     /**

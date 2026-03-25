@@ -34,6 +34,7 @@ public class Renderer {
     private Mesh highlightMesh;
     private Mesh playerMesh;
     private Mesh previewMesh;
+    private final Map<Integer, Mesh> blockMeshCache = new java.util.HashMap<>();
     private final Vector3f lightDirection;
     
     // View Model caching
@@ -295,6 +296,12 @@ public class Renderer {
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
         blockShader.setMatrix4f("view", camera.getViewMatrix());
         
+        // --- Глобальный сброс динамических состояний ---
+        blockShader.setBoolean("useMask", false);
+        blockShader.setBoolean("previewPass", false);
+        blockShader.setFloat("brightnessMultiplier", 1.0f);
+        blockShader.setInt("highlightPass", 0);
+
         for (Chunk chunk : world.getLoadedChunks()) {
             if (chunk.needsMeshUpdate() || !chunkMeshes.containsKey(chunk)) {
                 updateChunkMesh(chunk, world);
@@ -332,19 +339,38 @@ public class Renderer {
         renderPlayers(camera, networkClient);
     }
     
+    public void renderBlock(BlockPos pos, com.za.minecraft.world.blocks.BlockDefinition def, Shader shader, Camera camera) {
+        Matrix4f model = new Matrix4f().identity().translate(pos.x(), pos.y(), pos.z());
+        renderBlock(pos, def, shader, camera, model);
+    }
+
+    public void renderBlock(BlockPos pos, com.za.minecraft.world.blocks.BlockDefinition def, Shader shader, Camera camera, Matrix4f modelMatrix) {
+        shader.setMatrix4f("model", modelMatrix);
+        
+        // Получаем или создаем меш для конкретного типа блока
+        Mesh mesh = blockMeshCache.get(def.getId());
+        if (mesh == null) {
+            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(def.getId()), atlas);
+            if (mesh != null) {
+                blockMeshCache.put(def.getId(), mesh);
+            }
+        }
+
+        if (mesh != null) {
+            mesh.render();
+        }
+    }
+
     private void renderBlockEntities(Camera camera, World world) {
         if (world.getBlockEntities().isEmpty()) return;
         
         blockShader.use();
         for (com.za.minecraft.world.blocks.entity.BlockEntity be : world.getBlockEntities().values()) {
-            if (be instanceof com.za.minecraft.world.blocks.entity.StumpBlockEntity stump) {
-                
-                // 1. Отрисовка прогресса обтёсывания (Carving)
-                if (!stump.isFullyCarved()) {
-                    carvingRenderer.render(stump, atlas, blockShader, modelMatrix);
-                }
+            // Универсальный рендерер для динамических блоков
+            carvingRenderer.render(be, atlas, blockShader, modelMatrix, this);
 
-                // 2. Отрисовка предметов на пне (Crafting)
+            if (be instanceof com.za.minecraft.world.blocks.entity.StumpBlockEntity stump) {
+                // Отрисовка предметов на пне (Crafting)
                 int totalItems = stump.getActiveSlotsCount();
                 if (totalItems == 0) continue;
 
@@ -721,6 +747,11 @@ public class Renderer {
         if (playerMesh != null) playerMesh.cleanup();
         if (previewMesh != null) previewMesh.cleanup();
         if (heldItemMesh != null) heldItemMesh.cleanup();
+        
+        for (Mesh mesh : blockMeshCache.values()) {
+            if (mesh != null) mesh.cleanup();
+        }
+        blockMeshCache.clear();
         
         for (Mesh mesh : itemMeshCache.values()) {
             if (mesh != null) mesh.cleanup();

@@ -41,14 +41,14 @@ public class TreeGenerator {
         
         // Generate trunk
         for (int dy = 0; dy < height; dy++) {
-            world.setBlock(new BlockPos(x, y + dy, z), new Block(Blocks.OAK_LOG.getId(), Block.DIR_UP));
+            world.setBlock(new BlockPos(x, y + dy, z), new Block(Blocks.OAK_LOG.getId(), (byte)(Block.DIR_UP | Block.BIT_NATURAL)));
         }
         
         // Generate leaves crown
         int crownY = y + height - 1;
         
         // Top layer (single block)
-        world.setBlock(new BlockPos(x, crownY + 1, z), new Block(Blocks.OAK_LEAVES.getId()));
+        world.setBlock(new BlockPos(x, crownY + 1, z), new Block(Blocks.OAK_LEAVES.getId(), Block.BIT_NATURAL));
         
         // Main crown layers
         for (int layer = 0; layer < 2; layer++) {
@@ -70,7 +70,7 @@ public class TreeGenerator {
                     BlockPos leafPos = new BlockPos(x + dx, currentY, z + dz);
                     Block existingBlock = world.getBlock(leafPos);
                     if (existingBlock.isAir()) {
-                        world.setBlock(leafPos, new Block(Blocks.OAK_LEAVES.getId()));
+                        world.setBlock(leafPos, new Block(Blocks.OAK_LEAVES.getId(), Block.BIT_NATURAL));
                     }
                 }
             }
@@ -104,7 +104,7 @@ public class TreeGenerator {
         
         // Generate trunk (using wood blocks for now - could add birch wood later)
         for (int dy = 0; dy < height; dy++) {
-            world.setBlock(new BlockPos(x, y + dy, z), new Block(Blocks.OAK_LOG.getId(), Block.DIR_UP));
+            world.setBlock(new BlockPos(x, y + dy, z), new Block(Blocks.OAK_LOG.getId(), (byte)(Block.DIR_UP | Block.BIT_NATURAL)));
         }
         
         // Smaller, more compact crown
@@ -127,7 +127,7 @@ public class TreeGenerator {
                     BlockPos leafPos = new BlockPos(x + dx, currentY, z + dz);
                     Block existingBlock = world.getBlock(leafPos);
                     if (existingBlock.isAir()) {
-                        world.setBlock(leafPos, new Block(Blocks.OAK_LEAVES.getId()));
+                        world.setBlock(leafPos, new Block(Blocks.OAK_LEAVES.getId(), Block.BIT_NATURAL));
                     }
                 }
             }

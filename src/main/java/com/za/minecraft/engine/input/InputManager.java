@@ -624,65 +624,67 @@ public class InputManager {
                         }
 
                         if (breakingProgress >= 1.0f) {
-                            java.util.List<com.za.minecraft.world.blocks.DropRule> rules = blockDef.getDropRules();
-                            boolean customDropHandled = false;
-                            
-                            if (!rules.isEmpty()) {
-                                String currentToolStr = "none";
-                                if (currentItem != null && currentItem.isTool()) {
-                                    com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
-                                    if (tool != null) currentToolStr = tool.type().name().toLowerCase();
-                                }
-                                
-                                for (com.za.minecraft.world.blocks.DropRule rule : rules) {
-                                    // Проверяем, подходит ли инструмент для этого правила (none = любой)
-                                    if (rule.requiredToolType().equalsIgnoreCase("none") || rule.requiredToolType().equalsIgnoreCase(currentToolStr)) {
-                                        if (Math.random() <= rule.chance()) {
-                                            Item itemToGive = ItemRegistry.getItem(Identifier.of(rule.dropItemIdentifier()));
+                            if (hitPos != null) {
+                                if (world.onBlockBreak(hitPos, player)) {
+                                    // Обычное разрушение с дропом
+                                    java.util.List<com.za.minecraft.world.blocks.DropRule> rules = blockDef.getDropRules();
+                                    
+                                    if (!rules.isEmpty()) {
+                                        String currentToolStr = "none";
+                                        if (currentItem != null && currentItem.isTool()) {
+                                            com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
+                                            if (tool != null) currentToolStr = tool.type().name().toLowerCase();
+                                        }
+                                        
+                                        for (com.za.minecraft.world.blocks.DropRule rule : rules) {
+                                            if (rule.requiredToolType().equalsIgnoreCase("none") || rule.requiredToolType().equalsIgnoreCase(currentToolStr)) {
+                                                if (Math.random() <= rule.chance()) {
+                                                    Item itemToGive = ItemRegistry.getItem(Identifier.of(rule.dropItemIdentifier()));
+                                                    if (itemToGive != null) {
+                                                        Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
+                                                        com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
+                                                        drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
+                                                        world.spawnEntity(drop);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        String dropId = blockDef.getDropItem();
+                                        float chance = blockDef.getDropChance();
+                                        if (Math.random() <= chance) {
+                                            Item itemToGive = (dropId != null) ? ItemRegistry.getItem(Identifier.of(dropId)) : ItemRegistry.getItem(blockDef.getIdentifier());
                                             if (itemToGive != null) {
                                                 Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
                                                 com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
                                                 drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
                                                 world.spawnEntity(drop);
-                                                customDropHandled = true;
                                             }
                                         }
                                     }
-                                }
-                            }
 
-                            // Если правил нет, используем старую (Legacy) логику дропа
-                            if (rules.isEmpty()) {
-                                String dropId = blockDef.getDropItem();
-                                float chance = blockDef.getDropChance();
-                                
-                                if (Math.random() <= chance) {
-                                    Item itemToGive = (dropId != null) ? ItemRegistry.getItem(Identifier.of(dropId)) : ItemRegistry.getItem(blockDef.getIdentifier());
-                                    
-                                    if (itemToGive != null) {
-                                        Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
-                                        com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
-                                        drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
-                                        world.spawnEntity(drop);
+                                    // Если это двойное растение - ломаем и соседа
+                                    if (blockDef.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
+                                        int meta = world.getBlock(hitPos).getMetadata();
+                                        BlockPos otherPos = (meta == 0) ? hitPos.up() : hitPos.down();
+                                        if (world.getBlock(otherPos).getType() == blockType) {
+                                            world.setBlock(otherPos, new Block(com.za.minecraft.world.blocks.Blocks.AIR.getId()));
+                                            if (networkClient != null && networkClient.isConnected()) {
+                                                networkClient.sendBlockUpdate(otherPos.x(), otherPos.y(), otherPos.z(), com.za.minecraft.world.blocks.Blocks.AIR.getId());
+                                            }
+                                        }
                                     }
-                                }
-                            }
-                            
-                            // Если это двойное растение - ломаем и соседа
-                            if (blockDef.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
-                                int meta = world.getBlock(hitPos).getMetadata();
-                                BlockPos otherPos = (meta == 0) ? hitPos.up() : hitPos.down();
-                                if (world.getBlock(otherPos).getType() == blockType) {
-                                    world.setBlock(otherPos, new Block(com.za.minecraft.world.blocks.Blocks.AIR.getId()));
+
+                                    world.destroyBlock(hitPos, player);
                                     if (networkClient != null && networkClient.isConnected()) {
-                                        networkClient.sendBlockUpdate(otherPos.x(), otherPos.y(), otherPos.z(), com.za.minecraft.world.blocks.Blocks.AIR.getId());
+                                        networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), Blocks.AIR.getId());
                                     }
+                                } else {
+                                    // Block wasn't destroyed (multi-stage), reset progress
+                                    breakingProgress = 0;
                                 }
                             }
 
-                            world.setBlock(hitPos, new Block(com.za.minecraft.world.blocks.Blocks.AIR.getId()));                            if (networkClient != null && networkClient.isConnected()) {
-                                networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), Blocks.AIR.getId());
-                            }
                             breakingBlockPos = null;
                             breakingProgress = 0.0f;
                             breakDelayTimer = BREAK_COOLDOWN;
@@ -717,8 +719,6 @@ public class InputManager {
                     float rz = raycast.getHitPoint().z - hitPos.z();
 
                     if (blockDef != null) {
-                        com.za.minecraft.utils.Logger.info("Block onUse: %s (type: %s), hitY=%.2f", 
-                            blockDef.getIdentifier(), blockDef.getClass().getSimpleName(), ry);
                         if (blockDef.onUse(world, hitPos, player, currentStack, rx, ry, rz)) {
                             actionConsumed = true;
                         }
@@ -739,7 +739,6 @@ public class InputManager {
                         }
                         
                         if (hasNapping) {
-                            com.za.minecraft.utils.Logger.info("Starting napping for: " + currentItem.getName());
                             GameLoop.getInstance().startNapping(currentItem);
                             actionConsumed = true;
                         }
@@ -766,7 +765,6 @@ public class InputManager {
                             if (def.getPlacementType() == PlacementType.DOUBLE_PLANT) {
                                 BlockPos topPos = pPos.up();
                                 if (world.getBlock(topPos).isReplaceable() && !isPlayerAt(player, topPos)) {
-                                    // Ставим низ (meta 0) и верх (meta 1)
                                     world.setBlock(pPos, new Block(blockType, (byte)0));
                                     world.setBlock(topPos, new Block(blockType, (byte)1));
                                     
@@ -809,23 +807,15 @@ public class InputManager {
         return raycast;
     }
 
-    /**
-     * Проверяет, выполняется ли сейчас специальное взаимодействие с блоком,
-     * которое должно подавлять стандартные действия (например, превью установки блока).
-     */
     private boolean isSpecialInteracting(Player player, RaycastResult raycast, ItemStack currentStack) {
         if (!player.isSneaking() || !raycast.isHit() || currentStack == null) return false;
-
         int hitBlockType = GameLoop.getInstance().getWorld().getBlock(raycast.getBlockPos()).getType();
         Item currentItem = currentStack.getItem();
-
-        // Условия для Pit Kiln
         if (hitBlockType == Blocks.UNFIRED_VESSEL.getId() && currentItem.getId() == Items.STRAW.getId()) return true;
         if (hitBlockType == Blocks.PIT_KILN.getId()) {
             if (currentItem.getIdentifier().getPath().contains("log")) return true;
             if (currentItem.getId() == Items.FIRE_STARTER.getId()) return true;
         }
-
         return false;
     }
     

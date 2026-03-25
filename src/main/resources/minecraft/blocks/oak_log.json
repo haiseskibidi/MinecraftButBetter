@@ -12,5 +12,7 @@
                      "side":  "oak_log.png"
                  },
     "requiredTool":  "axe",
-    "placement":  "log"
+    "placement":  "log",
+    "fellingStages": 5,
+    "tags": ["treecapitator"]
 }

@@ -15,6 +15,7 @@ out vec3 fragNormal;
 out vec3 fragPos;
 out float blockType;
 out float neighborData;
+out vec3 vLocalPos;
 
 void main() {
     fragTexCoord = texCoord;
@@ -22,5 +23,6 @@ void main() {
     fragPos = vec3(model * vec4(position, 1.0));
     blockType = blockTypeAttr;
     neighborData = neighborDataAttr;
+    vLocalPos = position;
     gl_Position = projection * view * model * vec4(position, 1.0);
 }

@@ -1,4 +1,12 @@
 {
+  
+    "context": {
+      "include": [
+        "gemini.md",
+        ".gemini/gemini.md"
+      ]
+    },
+  
   "mcpServers": {
     "java-lsp": {
       "command": "java",
@@ -17,3 +25,4 @@
     }
   }
 }
+

@@ -23,6 +23,7 @@ iron_ore.json
 mossy_cobblestone.json
 oak_leaves.json
 oak_log.json
+stripped_oak_log.json
 oak_planks.json
 obsidian.json
 rusty_metal.json
@@ -49,3 +50,7 @@ burning_pit_kiln.json
 stump.json
 unfinished_stump.json
 tall_grass.json
+felling_log_stage_1.json
+felling_log_stage_2.json
+felling_log_stage_3.json
+felling_log_stage_4.json

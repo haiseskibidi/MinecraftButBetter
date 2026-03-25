@@ -3,6 +3,7 @@ package com.za.minecraft.world.blocks;
 import com.za.minecraft.utils.Identifier;
 import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.World;
+import com.za.minecraft.world.TreecapitatorService;
 import com.za.minecraft.entities.Player;
 import com.za.minecraft.world.items.ItemStack;
 import com.za.minecraft.world.items.Items;
@@ -62,5 +63,36 @@ public class LogBlockDefinition extends BlockDefinition {
         }
 
         return false;
+    }
+
+    @Override
+    public boolean onBlockBreak(World world, BlockPos pos, Block block, Player player) {
+        // Если игрок присел или это не натуральное дерево — ломаем сразу
+        if (player.isSneaking() || !block.isNatural()) {
+            return true;
+        }
+
+        // Проверяем наличие топора
+        ItemStack held = player.getInventory().getSelectedItemStack();
+        if (held == null || !held.getItem().getIdentifier().getPath().contains("axe")) {
+            return true; // Рукой ломаем по одному блоку
+        }
+
+        // Переходим на первую стадию срубания
+        int stage1Id = BlockRegistry.getBlock(Identifier.of("minecraft:felling_stage_1")).getId();
+        
+        // Сохраняем тип дерева в метаданных (через наш WoodTypeRegistry)
+        int woodIndex = WoodTypeRegistry.getIndex(this.getIdentifier());
+        if (woodIndex < 0) woodIndex = 0; // fallback на дуб
+        
+        world.setBlock(pos, new Block(stage1Id, (byte)woodIndex));
+        
+        com.za.minecraft.utils.Logger.info("Log started felling: converted to stage 1, woodIndex: " + woodIndex);
+        return false; // Блок не удаляется, а заменяется
+    }
+
+    @Override
+    public void onDestroyed(World world, BlockPos pos, Block block, Player player) {
+        // Логика перенесена в onBlockBreak для постепенного срубания
     }
 }

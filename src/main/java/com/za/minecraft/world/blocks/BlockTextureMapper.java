@@ -1,6 +1,7 @@
 package com.za.minecraft.world.blocks;
 
 import com.za.minecraft.engine.graphics.DynamicTextureAtlas;
+import com.za.minecraft.utils.Identifier;
 
 public class BlockTextureMapper {
     // face order: 0:+Z(front), 1:-Z(back), 2:+X(right), 3:-X(left), 4:+Y(top), 5:-Y(bottom)
@@ -9,7 +10,7 @@ public class BlockTextureMapper {
         float[] uv = atlas.uvFor(key);
         // For logs on horizontal axes, rotate side texture 90° so fibers align with axis
         if (block.getType() == Blocks.OAK_LOG.getId()) {
-            byte meta = block.getMetadata();
+            byte meta = (byte)(block.getMetadata() & 0x07); // Игнорируем флаги (напр. BIT_NATURAL)
             if (meta == Block.DIR_EAST || meta == Block.DIR_WEST) {
                 if (face == 0 || face == 1 || face == 4 || face == 5) {
                     return rotateUv90(uv, true);
@@ -46,6 +47,30 @@ public class BlockTextureMapper {
     private static String keyFor(Block block, int face) {
         int type = block.getType();
         BlockDefinition def = BlockRegistry.getBlock(type);
+        
+        // --- Логика универсальных стадий срубания ---
+        if (def instanceof FellingLogBlockDefinition) {
+            int woodIndex = block.getMetadata() & 0xFF;
+            Identifier logId = WoodTypeRegistry.getLogId(woodIndex);
+            
+            // Ищем stripped версию блока в реестре
+            Identifier strippedId = Identifier.of(logId.getNamespace(), "stripped_" + logId.getPath());
+            BlockDefinition strippedDef = BlockRegistry.getBlock(strippedId);
+            
+            if (strippedDef != null) {
+                BlockTextures strippedTextures = BlockRegistry.getTextures(strippedDef.getId());
+                if (strippedTextures != null) {
+                    return (face == 4 || face == 5) ? strippedTextures.getTop() : strippedTextures.getNorth();
+                }
+            }
+            
+            // Если не нашли stripped, используем оригинальное бревно (лучше чем земля или весь атлас)
+            BlockTextures originalTextures = BlockRegistry.getTextures(BlockRegistry.getBlock(logId).getId());
+            if (originalTextures != null) {
+                return (face == 4 || face == 5) ? originalTextures.getTop() : originalTextures.getNorth();
+            }
+        }
+
         BlockTextures textures = BlockRegistry.getTextures(type);
         if (textures == null) {
             return "minecraft/textures/block/dirt.png";
@@ -60,7 +85,7 @@ public class BlockTextureMapper {
 
         // Orientation-sensitive mapping for logs (WOOD)
         if (type == Blocks.OAK_LOG.getId()) {
-            byte meta = block.getMetadata();
+            byte meta = (byte)(block.getMetadata() & 0x07); // Игнорируем флаги
             String cap = textures.getTop();
             String side = textures.getNorth(); // any side is fine; all equal
             if (meta == Block.DIR_UP || meta == Block.DIR_DOWN) return (face == 4 || face == 5) ? cap : side;

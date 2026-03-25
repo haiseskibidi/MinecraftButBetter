@@ -24,8 +24,10 @@ public class BlockDefinition {
     
     // Advanced drop rules
     private final List<DropRule> dropRules = new ArrayList<>();
+    private final List<String> tags = new ArrayList<>();
     
     private boolean canSupportScavenge = false;
+    private int fellingStages = 0;
     private boolean alwaysRender = false;
     private boolean replaceable = false;
     private String upperTexture = null; // Текстура для верхней части DOUBLE_PLANT
@@ -64,6 +66,17 @@ public class BlockDefinition {
     public BlockDefinition addDropRule(DropRule rule) {
         this.dropRules.add(rule);
         return this;
+    }
+
+    public BlockDefinition addTag(String tag) {
+        if (!tags.contains(tag)) {
+            tags.add(tag);
+        }
+        return this;
+    }
+
+    public boolean hasTag(String tag) {
+        return tags.contains(tag);
     }
 
     public List<DropRule> getDropRules() {
@@ -160,6 +173,15 @@ public class BlockDefinition {
         return this;
     }
 
+    public int getFellingStages() {
+        return fellingStages;
+    }
+
+    public BlockDefinition setFellingStages(int fellingStages) {
+        this.fellingStages = fellingStages;
+        return this;
+    }
+
     public PlacementType getPlacementType() {
         return placementType;
     }
@@ -232,5 +254,20 @@ public class BlockDefinition {
      */
     public BlockEntity createBlockEntity(BlockPos pos) {
         return null;
+    }
+
+    /**
+     * Вызывается непосредственно перед тем, как блок будет заменен на воздух или другой блок игроком.
+     */
+    public void onDestroyed(com.za.minecraft.world.World world, BlockPos pos, Block block, com.za.minecraft.entities.Player player) {
+    }
+
+    /**
+     * Вызывается, когда игрок завершил разрушение блока (breakingProgress >= 1.0).
+     * Если возвращает true, блок удаляется из мира.
+     * Если возвращает false, блок остается (используется для многоступенчатого срубания).
+     */
+    public boolean onBlockBreak(com.za.minecraft.world.World world, BlockPos pos, Block block, com.za.minecraft.entities.Player player) {
+        return true;
     }
 }

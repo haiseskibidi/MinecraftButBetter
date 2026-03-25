@@ -1,0 +1,17 @@
+{
+  "id": 155,
+  "identifier": "minecraft:stripped_oak_log",
+  "translationKey": "block.minecraft.stripped_oak_log",
+  "solid": true,
+  "transparent": false,
+  "type": "log",
+  "hardness": 2.0,
+  "textures": {
+    "top": "stripped_oak_log_top.png",
+    "bottom": "stripped_oak_log_top.png",
+    "north": "stripped_oak_log.png",
+    "south": "stripped_oak_log.png",
+    "east": "stripped_oak_log.png",
+    "west": "stripped_oak_log.png"
+  }
+}

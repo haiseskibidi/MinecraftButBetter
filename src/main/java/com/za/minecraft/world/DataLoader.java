@@ -457,6 +457,7 @@ public class DataLoader {
 
             BlockDefinition def = BlockTypeRegistry.create(type, id, identifier, translationKey, solid, transparent);
             if (obj.has("hardness")) def.setHardness(obj.get("hardness").getAsFloat());
+            if (obj.has("fellingStages")) def.setFellingStages(obj.get("fellingStages").getAsInt());
             if (obj.has("requiredTool")) def.setRequiredTool(obj.get("requiredTool").getAsString());
             if (obj.has("dropItem")) def.setDropItem(obj.get("dropItem").getAsString());
             if (obj.has("dropChance")) def.setDropChance(obj.get("dropChance").getAsFloat());
@@ -484,6 +485,14 @@ public class DataLoader {
             if (obj.has("placement")) {
                 def.setPlacementType(com.za.minecraft.world.blocks.PlacementType.valueOf(obj.get("placement").getAsString().toUpperCase()));
             }
+
+            if (obj.has("tags")) {
+                JsonArray tagsArr = obj.getAsJsonArray("tags");
+                for (JsonElement tagEl : tagsArr) {
+                    def.addTag(tagEl.getAsString());
+                }
+            }
+
             if (obj.has("shape")) {
                 JsonArray shapeArr = obj.getAsJsonArray("shape");
                 com.za.minecraft.world.physics.VoxelShape voxelShape = new com.za.minecraft.world.physics.VoxelShape();

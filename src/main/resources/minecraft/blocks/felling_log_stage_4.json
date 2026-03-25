@@ -1,0 +1,11 @@
+{
+  "id": 454,
+  "identifier": "minecraft:felling_stage_4",
+  "translationKey": "block.minecraft.felling_log",
+  "solid": true,
+  "transparent": true,
+  "type": "felling_log",
+  "hardness": 2.0,
+  "shape": [[0.4, 0.0, 0.4, 0.6, 1.0, 0.6]],
+  "tags": ["treecapitator"]
+}

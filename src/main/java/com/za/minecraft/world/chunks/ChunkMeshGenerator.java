@@ -140,6 +140,23 @@ public class ChunkMeshGenerator {
         return data.build();
     }
 
+    public static Mesh generateCustomAABBMesh(Block block, AABB box, DynamicTextureAtlas atlas) {
+        MeshData data = new MeshData();
+        Vector3f min = box.getMin(), max = box.getMax();
+        float[][] facePositions = new float[][]{
+            {min.x, min.y, max.z,  max.x, min.y, max.z,  max.x, max.y, max.z,  min.x, max.y, max.z},
+            {max.x, min.y, min.z,  min.x, min.y, min.z,  min.x, max.y, min.z,  max.x, max.y, min.z},
+            {max.x, min.y, max.z,  max.x, min.y, min.z,  max.x, max.y, min.z,  max.x, max.y, max.z},
+            {min.x, min.y, min.z,  min.x, min.y, max.z,  min.x, max.y, max.z,  min.x, max.y, min.z},
+            {min.x, max.y, max.z,  max.x, max.y, max.z,  max.x, max.y, min.z,  min.x, max.y, min.z},
+            {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
+        };
+        for (int face = 0; face < 6; face++) {
+            data.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0);
+        }
+        return data.build();
+    }
+
     public static ChunkMeshResult generateMesh(Chunk chunk, World world, DynamicTextureAtlas atlas) {
         MeshData opaque = new MeshData();
         MeshData translucent = new MeshData();
@@ -162,6 +179,19 @@ public class ChunkMeshGenerator {
                 for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
                     Block block = chunk.getBlock(x, y, z);
                     if (block.isAir()) continue;
+
+                    BlockPos worldPos = new BlockPos(
+                        chunk.getPosition().x() * Chunk.CHUNK_SIZE + x,
+                        y,
+                        chunk.getPosition().z() * Chunk.CHUNK_SIZE + z
+                    );
+
+                    // Если блок сейчас срубается (является стадией), не рендерим его в основном меше чанка
+                    // Он будет рендериться динамически или мы его просто пропускаем, 
+                    // так как стадии теперь - это обычные блоки, но с тегом.
+                    // На самом деле, стадии ДОЛЖНЫ рендериться как обычные блоки, 
+                    // поэтому это условие можно убрать.
+
                     com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType());
                     if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
                         float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
@@ -196,7 +226,8 @@ public class ChunkMeshGenerator {
                         // Use directions enum for neighbor checks
                         for (int face = 0; face < 6; face++) {
                             Direction dir = directions[face];
-                            Block neighbor = world.getBlock(worldX + dir.getDx(), worldY + dir.getDy(), worldZ + dir.getDz());
+                            BlockPos nPos = new BlockPos(worldX + dir.getDx(), worldY + dir.getDy(), worldZ + dir.getDz());
+                            Block neighbor = world.getBlock(nPos);
                             
                             boolean drawFace = true;
                             com.za.minecraft.world.blocks.BlockDefinition neighborDef = com.za.minecraft.world.blocks.BlockRegistry.getBlock(neighbor.getType());
@@ -212,12 +243,14 @@ public class ChunkMeshGenerator {
                                 case 5: onBoundary = (box.getMin().y == 0.0f); break; // DOWN (-Y)
                             }
 
+                            boolean neighborIsFelling = neighborDef != null && neighborDef.hasTag("treecapitator");
+
                             if (def.isAlwaysRender()) {
                                 drawFace = true;
                             } else if (!onBoundary) {
                                 // Если грань внутри блока (рецессия), всегда рисуем её
                                 drawFace = true;
-                            } else if (neighbor.isAir()) {
+                            } else if (neighbor.isAir() || neighborIsFelling) {
                                 drawFace = true;
                             } else if (neighbor.isFullCube() && !neighbor.isTransparent() && !neighborDef.isAlwaysRender()) {
                                 drawFace = false;

@@ -24,6 +24,7 @@ public class BlockTypeRegistry {
         register("pit_kiln", PitKilnBlockDefinition::new);
         register("unfired_vessel", UnfiredVesselBlockDefinition::new);
         register("log", LogBlockDefinition::new);
+        register("felling_log", FellingLogBlockDefinition::new);
     }
 
     public static void register(String type, BlockFactory factory) {
