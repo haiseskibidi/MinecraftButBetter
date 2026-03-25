@@ -3,6 +3,7 @@
   "identifier": "minecraft:fuel_canister",
   "translationKey": "item.minecraft.fuel_canister",
   "texture": "minecraft/textures/item/honey_bottle.png",
+  "maxStackSize": 1,
   "components": {
     "minecraft:fuel": {
       "fuelAmount": 100.0

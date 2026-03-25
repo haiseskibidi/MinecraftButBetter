@@ -3,6 +3,7 @@
   "identifier": "minecraft:scrap_pickaxe",
   "translationKey": "item.minecraft.scrap_pickaxe",
   "texture": "minecraft/textures/item/wooden_pickaxe.png",
+  "maxStackSize": 1,
   "components": {
     "minecraft:tool": {
       "type": "pickaxe",

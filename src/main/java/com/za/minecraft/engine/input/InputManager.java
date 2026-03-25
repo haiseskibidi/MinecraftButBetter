@@ -49,6 +49,14 @@ public class InputManager {
     private ItemStack heldStack = null;
     private com.za.minecraft.entities.inventory.Slot hoveredSlot = null;
     
+    // UI tracking
+    private long lastClickTime = 0;
+    private int lastClickSlot = -1;
+    private boolean[] numKeysPressed = new boolean[9];
+    
+    private int lastQuickMovedSlot = -1;
+    private int lastQuickCopiedDevItem = -1;
+    
     // Drag-to-Distribute state
     private java.util.Set<com.za.minecraft.entities.inventory.Slot> draggedSlots = new java.util.LinkedHashSet<>();
     private int dragButton = -1;
@@ -231,9 +239,19 @@ public class InputManager {
         if (player == null) return;
 
         boolean shift = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT) || window.isKeyPressed(GLFW_KEY_RIGHT_SHIFT);
+        long currentTime = System.currentTimeMillis();
+        boolean doubleClick = (currentTime - lastClickTime < 250) && (lastClickSlot == slot.getIndex());
+        
+        lastClickTime = currentTime;
+        lastClickSlot = slot.getIndex();
+
         if (shift && button == GLFW_MOUSE_BUTTON_1) {
             if (player.getInventory() instanceof Inventory inv) {
-                inv.quickMove(slot.getIndex());
+                if (doubleClick) {
+                    inv.collectAllTo(slot.getIndex());
+                } else {
+                    inv.quickMove(slot.getIndex());
+                }
             }
             return;
         }
@@ -308,7 +326,7 @@ public class InputManager {
             if (slotUI != null) {
                 handleInventoryClickOnSlot(window, button, slotUI.getSlot());
             } else if (player.getMode() == PlayerMode.DEVELOPER) {
-                handleDevPanelClick(mx, my);
+                handleDevPanelClick(window, mx, my);
             } else {
                 if (heldStack != null) {
                     dropStack(heldStack, player, GameLoop.getInstance().getWorld(), GameLoop.getInstance().getCamera(), true);
@@ -318,11 +336,11 @@ public class InputManager {
         }
     }
 
-    private void handleDevPanelClick(float mx, float my) {
+    private Item getDevItemAt(float mx, float my) {
         com.za.minecraft.engine.graphics.ui.UIRenderer uiRenderer = GameLoop.getInstance().getRenderer().getUIRenderer();
         com.za.minecraft.engine.graphics.ui.ScrollPanel scroller = uiRenderer.getDevScroller();
         
-        if (!scroller.isMouseOver(mx, my)) return;
+        if (!scroller.isMouseOver(mx, my)) return null;
 
         // Dev Panel metrics (MUST match UIRenderer.renderDeveloperPanel)
         int cols = 7;
@@ -345,14 +363,29 @@ public class InputManager {
             // Only handle clicks on visible items (inside scroller bounds)
             if (my >= startY && my <= startY + scroller.getHeight()) {
                 if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
-                    Item item = allItems.get(i);
-                    // Return logic: if already holding this item, clear it
-                    if (heldStack != null && heldStack.getItem().getId() == item.getId()) {
-                        heldStack = null;
-                    } else {
-                        heldStack = new ItemStack(item, item.isBlock() ? 64 : 1);
-                    }
-                    return;
+                    return allItems.get(i);
+                }
+            }
+        }
+        return null;
+    }
+
+    private void handleDevPanelClick(Window window, float mx, float my) {
+        Item item = getDevItemAt(mx, my);
+        if (item != null) {
+            boolean shift = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT) || window.isKeyPressed(GLFW_KEY_RIGHT_SHIFT);
+            
+            if (shift) {
+                Player player = GameLoop.getInstance().getPlayer();
+                if (player != null) {
+                    player.getInventory().addItem(new ItemStack(item, item.getMaxStackSize()));
+                }
+            } else {
+                // Return logic: if already holding this item, clear it
+                if (heldStack != null && heldStack.getItem().getId() == item.getId()) {
+                    heldStack = null;
+                } else {
+                    heldStack = new ItemStack(item, item.getMaxStackSize());
                 }
             }
         }
@@ -404,6 +437,24 @@ public class InputManager {
                     break;
                 }
             }
+        } else if (inventoryOpen) {
+            for (int i = 0; i < 9; i++) {
+                boolean pressed = window.isKeyPressed(GLFW_KEY_1 + i);
+                if (pressed && !numKeysPressed[i]) {
+                    if (hoveredSlot != null) {
+                        player.getInventory().swapWithHotbar(hoveredSlot.getIndex(), i);
+                    } else if (player.getMode() == PlayerMode.DEVELOPER) {
+                        Item devItem = getDevItemAt(currentPos.x, currentPos.y);
+                        if (devItem != null) {
+                            player.getInventory().copyFromDevPanel(devItem, i);
+                        }
+                    }
+                }
+                numKeysPressed[i] = pressed;
+            }
+        } else {
+            // Reset num keys state when neither condition is met
+            for (int i = 0; i < 9; i++) numKeysPressed[i] = false;
         }
 
         if (inventoryOpen || nappingOpen) {
@@ -441,6 +492,25 @@ public class InputManager {
                 com.za.minecraft.entities.inventory.Slot newHovered = getSlotAt(currentPos.x, currentPos.y);
                 if (newHovered != hoveredSlot) {
                     hoveredSlot = newHovered;
+                    
+                    // Mouse Tweaks: Shift + Drag quick move
+                    if (window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1) && (window.isKeyPressed(GLFW_KEY_LEFT_SHIFT) || window.isKeyPressed(GLFW_KEY_RIGHT_SHIFT))) {
+                        if (hoveredSlot != null && hoveredSlot.getIndex() != lastQuickMovedSlot && heldStack == null) {
+                            if (player.getInventory() instanceof Inventory inv) {
+                                inv.quickMove(hoveredSlot.getIndex());
+                                lastQuickMovedSlot = hoveredSlot.getIndex();
+                            }
+                        } else if (hoveredSlot == null && player.getMode() == PlayerMode.DEVELOPER) {
+                            Item devItem = getDevItemAt(currentPos.x, currentPos.y);
+                            if (devItem != null && devItem.getId() != lastQuickCopiedDevItem) {
+                                // Find first free hotbar slot or overwrite if needed? 
+                                // Standard creative behavior is to try to add to inventory.
+                                player.getInventory().addItem(new ItemStack(devItem, devItem.getMaxStackSize()));
+                                lastQuickCopiedDevItem = devItem.getId();
+                            }
+                        }
+                    }
+
                     if (isDragging && dragButton != -1 && heldStack != null && hoveredSlot != null) {
                         ItemStack slotStack = hoveredSlot.getStack();
                         boolean canReceive = (slotStack == null || heldStack.isStackableWith(slotStack));

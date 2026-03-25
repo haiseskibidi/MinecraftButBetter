@@ -17,6 +17,7 @@ public class Item {
     protected float weight = 1.0f;
     protected float visualScale = 1.0f;
     protected float miningSpeed = 0.1f;
+    protected int maxStackSize = -1; // -1 means use type default
     
     private final Map<Class<? extends ItemComponent>, ItemComponent> components = new HashMap<>();
 
@@ -97,6 +98,17 @@ public class Item {
 
     public boolean isBlock() {
         return false;
+    }
+
+    public void setMaxStackSize(int maxStackSize) {
+        this.maxStackSize = maxStackSize;
+    }
+
+    public int getMaxStackSize() {
+        if (maxStackSize != -1) return maxStackSize;
+        if (isTool()) return 1;
+        if (isBlock()) return 128;
+        return 16;
     }
 
     public static class ViewmodelTransform {

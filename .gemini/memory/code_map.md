@@ -44,11 +44,11 @@
 ## Item System (UPDATED)
 ### com.za.minecraft.world.items.Item (UPDATED)
 Назначение: Базовый класс предмета.
-Логика: Добавлена поддержка `miningSpeed` напрямую в класс для Data-Driven настройки эффективности (включая пустую руку).
+Логика: Добавлена поддержка `miningSpeed` и `maxStackSize` напрямую в класс для Data-Driven настройки эффективности и вместимости стаков.
 
 ### com.za.minecraft.world.DataLoader (UPDATED)
 Назначение: Загрузчик ресурсов.
-Логика: Добавлена поддержка парсинга `miningSpeed` из JSON предметов и загрузка всей структуры Journal.
+Логика: Добавлена поддержка парсинга `miningSpeed` и `maxStackSize` из JSON предметов, а также загрузка всей структуры Journal.
 
 ## GUI System (UPDATED)
 ### com.za.minecraft.engine.graphics.ui.Screen

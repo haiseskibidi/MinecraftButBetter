@@ -62,7 +62,15 @@ public class ItemStack {
 
     public boolean isStackableWith(ItemStack other) {
         if (other == null) return false;
-        if (item.isTool()) return false; // Tools don't stack
-        return item.getId() == other.getItem().getId();
+        if (item.getId() != other.getItem().getId()) return false;
+        return count < item.getMaxStackSize();
+    }
+
+    public boolean isFull() {
+        return count >= item.getMaxStackSize();
+    }
+
+    public int getAvailableSpace() {
+        return Math.max(0, item.getMaxStackSize() - count);
     }
 }

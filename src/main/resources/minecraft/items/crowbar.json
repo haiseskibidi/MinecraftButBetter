@@ -3,6 +3,7 @@
     "identifier":  "minecraft:crowbar",
     "translationKey":  "item.minecraft.crowbar",
     "texture":  "minecraft/textures/block/lever.png",
+    "maxStackSize": 1,
     "type":  "tool",
     "toolType":  "crowbar",
     "efficiency":  3.0,

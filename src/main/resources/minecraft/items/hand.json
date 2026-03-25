@@ -3,5 +3,6 @@
   "identifier": "minecraft:hand",
   "translationKey": "item.minecraft.hand",
   "texture": "minecraft:textures/item/hand.png",
-  "miningSpeed": 0.08
+  "miningSpeed": 0.08,
+  "maxStackSize": 1
 }

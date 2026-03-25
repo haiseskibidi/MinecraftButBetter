@@ -3,6 +3,7 @@
     "identifier": "minecraft:fire_starter",
     "translationKey": "item.minecraft.fire_starter",
     "texture": "minecraft/textures/item/flint_and_steel.png",
+    "maxStackSize": 1,
     "components": {
         "minecraft:tool": {
             "type": "NONE",

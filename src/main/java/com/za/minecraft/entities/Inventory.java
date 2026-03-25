@@ -168,17 +168,22 @@ public class Inventory implements IInventory {
     }
 
     public boolean addItem(ItemStack stack) {
-        if (stack == null) return false;
+        if (stack == null || stack.getCount() <= 0) return false;
         
         // 1. Try to stack in active groups (skipping equipment by default for auto-add)
         for (SlotGroup group : groups) {
             if (!group.isActive() || group.getId().equals("equipment")) continue;
             
-            for (Slot slot : group.getSlots()) {
+            for (com.za.minecraft.entities.inventory.Slot slot : group.getSlots()) {
                 ItemStack existing = slot.getStack();
-                if (existing != null && existing.isStackableWith(stack)) {
-                    existing.setCount(existing.getCount() + stack.getCount());
-                    return true;
+                if (existing != null && existing.getItem().getId() == stack.getItem().getId() && !existing.isFull()) {
+                    int space = existing.getAvailableSpace();
+                    int toAdd = Math.min(space, stack.getCount());
+                    
+                    existing.setCount(existing.getCount() + toAdd);
+                    stack.setCount(stack.getCount() - toAdd);
+                    
+                    if (stack.getCount() <= 0) return true;
                 }
             }
         }
@@ -187,15 +192,16 @@ public class Inventory implements IInventory {
         for (SlotGroup group : groups) {
             if (!group.isActive() || group.getId().equals("equipment")) continue;
             
-            for (Slot slot : group.getSlots()) {
+            for (com.za.minecraft.entities.inventory.Slot slot : group.getSlots()) {
                 if (slot.getStack() == null && slot.isItemValid(stack)) {
-                    slot.setStack(stack);
+                    slot.setStack(stack.copy());
+                    stack.setCount(0);
                     return true;
                 }
             }
         }
         
-        return false;
+        return stack.getCount() <= 0;
     }
     
     public void nextSlot() {
@@ -216,6 +222,50 @@ public class Inventory implements IInventory {
         }
     }
 
+    public void swapWithHotbar(int slotIndex, int hotbarIndex) {
+        if (slotIndex < 0 || slotIndex >= TOTAL_SIZE || hotbarIndex < 0 || hotbarIndex >= HOTBAR_SIZE) return;
+        
+        ItemStack temp = slots[slotIndex];
+        slots[slotIndex] = slots[hotbarIndex];
+        slots[hotbarIndex] = temp;
+    }
+
+    public void copyFromDevPanel(Item item, int hotbarIndex) {
+        if (hotbarIndex < 0 || hotbarIndex >= HOTBAR_SIZE) return;
+        slots[hotbarIndex] = new ItemStack(item, item.getMaxStackSize());
+    }
+
+    public void collectAllTo(int targetSlotIndex) {
+        ItemStack targetStack = getStackInSlot(targetSlotIndex);
+        if (targetStack == null || targetStack.isFull()) return;
+
+        Item itemType = targetStack.getItem();
+        int maxStack = itemType.getMaxStackSize();
+
+        for (SlotGroup group : groups) {
+            if (!group.isActive() || group.getId().equals("equipment")) continue;
+
+            for (com.za.minecraft.entities.inventory.Slot slot : group.getSlots()) {
+                if (slot.getIndex() == targetSlotIndex) continue;
+
+                ItemStack otherStack = slot.getStack();
+                if (otherStack != null && otherStack.getItem().getId() == itemType.getId()) {
+                    int space = maxStack - targetStack.getCount();
+                    int toTake = Math.min(space, otherStack.getCount());
+
+                    targetStack.setCount(targetStack.getCount() + toTake);
+                    otherStack.setCount(otherStack.getCount() - toTake);
+
+                    if (otherStack.getCount() <= 0) {
+                        slot.setStack(null);
+                    }
+
+                    if (targetStack.isFull()) return;
+                }
+            }
+        }
+    }
+
     public void quickMove(int slotIndex) {
         ItemStack stack = getStackInSlot(slotIndex);
         if (stack == null) return;
@@ -229,27 +279,34 @@ public class Inventory implements IInventory {
             targetGroups.add("hotbar");
         }
 
-        // 1. Try to stack
+        // 1. Try to stack in target groups
         for (String groupId : targetGroups) {
             SlotGroup group = getGroup(groupId);
             if (group == null || !group.isActive()) continue;
             
-            for (Slot slot : group.getSlots()) {
+            for (com.za.minecraft.entities.inventory.Slot slot : group.getSlots()) {
                 ItemStack existing = slot.getStack();
-                if (existing != null && existing.isStackableWith(stack) && slot.isItemValid(stack)) {
-                    existing.setCount(existing.getCount() + stack.getCount());
-                    setStackInSlot(slotIndex, null);
-                    return;
+                if (existing != null && existing.getItem().getId() == stack.getItem().getId() && !existing.isFull() && slot.isItemValid(stack)) {
+                    int space = existing.getAvailableSpace();
+                    int toMove = Math.min(space, stack.getCount());
+                    
+                    existing.setCount(existing.getCount() + toMove);
+                    stack.setCount(stack.getCount() - toMove);
+                    
+                    if (stack.getCount() <= 0) {
+                        setStackInSlot(slotIndex, null);
+                        return;
+                    }
                 }
             }
         }
 
-        // 2. Try to find empty slot
+        // 2. Try to find empty slot in target groups
         for (String groupId : targetGroups) {
             SlotGroup group = getGroup(groupId);
             if (group == null || !group.isActive()) continue;
             
-            for (Slot slot : group.getSlots()) {
+            for (com.za.minecraft.entities.inventory.Slot slot : group.getSlots()) {
                 if (slot.getStack() == null && slot.isItemValid(stack)) {
                     slot.setStack(stack);
                     setStackInSlot(slotIndex, null);
