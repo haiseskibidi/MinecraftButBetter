@@ -91,4 +91,9 @@ public class ScrollPanel {
     public boolean isMouseOver(float mx, float my) {
         return mx >= x && mx <= x + width && my >= y && my <= y + height;
     }
+
+    public int getX() { return x; }
+    public int getY() { return y; }
+    public int getWidth() { return width; }
+    public int getHeight() { return height; }
 }

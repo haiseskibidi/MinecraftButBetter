@@ -47,7 +47,6 @@ public class InputManager {
     private boolean qKeyPressed = false;
     private boolean verticalMode = false;
     private ItemStack heldStack = null;
-    private int devScroll = 0;
     private com.za.minecraft.entities.inventory.Slot hoveredSlot = null;
     
     // Drag-to-Distribute state
@@ -132,17 +131,17 @@ public class InputManager {
             }
             
             Player p = GameLoop.getInstance().getPlayer();
-            if (p != null) {
+            if (p != null && !GameLoop.getInstance().isNappingOpen()) {
                 if (GameLoop.getInstance().isInventoryOpen() && p.getMode() == PlayerMode.DEVELOPER) {
-                    int totalItems = ItemRegistry.getAllItems().size();
-                    int columns = 7;
-                    int rows = 12;
-                    int maxScroll = Math.max(0, (int) Math.ceil((double) totalItems / columns) - rows);
-                    devScroll = Math.min(maxScroll, Math.max(0, devScroll - (int) yoffset));
-                } else if (!GameLoop.getInstance().isNappingOpen()) {
-                    if (yoffset > 0) p.getInventory().previousSlot();
-                    else if (yoffset < 0) p.getInventory().nextSlot();
+                    com.za.minecraft.engine.graphics.ui.UIRenderer ui = GameLoop.getInstance().getRenderer().getUIRenderer();
+                    if (ui.getDevScroller().isMouseOver(currentPos.x, currentPos.y)) {
+                        ui.getDevScroller().handleScroll(yoffset);
+                        return;
+                    }
                 }
+                
+                if (yoffset > 0) p.getInventory().previousSlot();
+                else if (yoffset < 0) p.getInventory().nextSlot();
             }
         });
         
@@ -308,6 +307,8 @@ public class InputManager {
             com.za.minecraft.engine.graphics.ui.SlotUI slotUI = invScreen.getSlotAt(mx, my);
             if (slotUI != null) {
                 handleInventoryClickOnSlot(window, button, slotUI.getSlot());
+            } else if (player.getMode() == PlayerMode.DEVELOPER) {
+                handleDevPanelClick(mx, my);
             } else {
                 if (heldStack != null) {
                     dropStack(heldStack, player, GameLoop.getInstance().getWorld(), GameLoop.getInstance().getCamera(), true);
@@ -317,26 +318,42 @@ public class InputManager {
         }
     }
 
-    private void handleDevPanelClick(float mx, float my, int devX, int startY, int slotSize, int spacing) {
-        java.util.List<Item> allItems = new java.util.ArrayList<>(ItemRegistry.getAllItems().values());
-        int cols = 7;
-        int rows = 12; 
+    private void handleDevPanelClick(float mx, float my) {
+        com.za.minecraft.engine.graphics.ui.UIRenderer uiRenderer = GameLoop.getInstance().getRenderer().getUIRenderer();
+        com.za.minecraft.engine.graphics.ui.ScrollPanel scroller = uiRenderer.getDevScroller();
         
+        if (!scroller.isMouseOver(mx, my)) return;
+
+        // Dev Panel metrics (MUST match UIRenderer.renderDeveloperPanel)
+        int cols = 7;
+        int slotSize = (int)(18 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
+        int spacing = (int)(2 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
+        int sw = GameLoop.getInstance().getWindow().getWidth();
+        int devX = sw - (cols * (slotSize + spacing)) - 25;
+        int startY = 40;
+
+        java.util.List<Item> allItems = new java.util.ArrayList<>(ItemRegistry.getAllItems().values());
+        float offset = scroller.getOffset();
+
         for (int i = 0; i < allItems.size(); i++) {
-            int idx = i - devScroll * cols;
-            if (idx < 0) continue;
-            
-            int col = idx % cols;
-            int row = idx / cols;
-            if (row >= rows) break;
+            int col = i % cols;
+            int row = i / cols;
             
             int x = devX + col * (slotSize + spacing);
-            int y = startY + row * (slotSize + spacing);
+            int y = startY + row * (slotSize + spacing) - (int)offset;
             
-            if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
-                Item item = allItems.get(i);
-                heldStack = new ItemStack(item, item.isBlock() ? 64 : 1);
-                return;
+            // Only handle clicks on visible items (inside scroller bounds)
+            if (my >= startY && my <= startY + scroller.getHeight()) {
+                if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
+                    Item item = allItems.get(i);
+                    // Return logic: if already holding this item, clear it
+                    if (heldStack != null && heldStack.getItem().getId() == item.getId()) {
+                        heldStack = null;
+                    } else {
+                        heldStack = new ItemStack(item, item.isBlock() ? 64 : 1);
+                    }
+                    return;
+                }
             }
         }
     }
@@ -351,10 +368,6 @@ public class InputManager {
 
     public Vector2f getCurrentMousePos() {
         return currentPos;
-    }
-
-    public int getDevScroll() {
-        return devScroll;
     }
 
     public com.za.minecraft.entities.inventory.Slot getHoveredSlot() {

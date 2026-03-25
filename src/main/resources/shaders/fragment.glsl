@@ -13,8 +13,6 @@ uniform sampler2D textureSampler;
 uniform vec3 lightDirection;
 uniform vec3 lightColor;
 uniform vec3 ambientLight;
-uniform vec4 grassTopUV; // UV координаты grass_block_top.png
-uniform vec4 leavesUV;   // UV координаты oak_leaves.png
 uniform vec4 glassUV;    // UV координаты glass.png
 uniform int highlightPass; // 1 = solid color mode, 0 = texture mode
 uniform vec3 highlightColor;
@@ -63,12 +61,19 @@ void main() {
     }
 
     // Brighten Stump Top Face (ID 150)
-    if (highlightPass == 0 && abs(blockType - 150.0) < 0.1 && fragNormal.y > 0.9) {
+    float actualBlockType = blockType;
+    bool isTinted = false;
+    if (blockType < -0.5) {
+        actualBlockType = abs(blockType) - 1.0;
+        isTinted = true;
+    }
+
+    if (highlightPass == 0 && abs(actualBlockType - 150.0) < 0.1 && fragNormal.y > 0.9) {
         baseColor *= 1.25;
     }
 
     // Connected Textures for Glass (Type 19)
-    if (highlightPass == 0 && abs(blockType - 19.0) < 0.1) {
+    if (highlightPass == 0 && abs(actualBlockType - 19.0) < 0.1) {
         vec2 localUV = (fragTexCoord - glassUV.xy) / (glassUV.zw - glassUV.xy); 
         float t = 0.0625; 
 
@@ -113,26 +118,10 @@ void main() {
         }
     }
 
-    // Grass tinting
-    if (highlightPass == 0 && (abs(blockType - 1.0) < 0.1 || abs(blockType - 124.0) < 0.1 || abs(blockType - 125.0) < 0.1)) {
-        bool isGrassTop = fragTexCoord.x >= grassTopUV.x && fragTexCoord.x <= grassTopUV.z &&
-                         fragTexCoord.y >= grassTopUV.y && fragTexCoord.y <= grassTopUV.w;
-        if (isGrassTop || abs(blockType - 124.0) < 0.1 || abs(blockType - 125.0) < 0.1) {
-            vec3 grassTint = vec3(0.486, 0.784, 0.314);
-            baseColor *= grassTint;
-        }
-    }
-
-    // Leaves tinting
-    if (highlightPass == 0 && abs(blockType - 5.0) < 0.1) {
-        bool isLeaves = fragTexCoord.x >= leavesUV.x && fragTexCoord.x <= leavesUV.z &&
-                        fragTexCoord.y >= leavesUV.y && fragTexCoord.y <= leavesUV.w;
-        if (isLeaves) {
-            if (alpha < 0.5) discard;
-            vec3 leavesTint = vec3(0.486, 0.784, 0.314);
-            baseColor *= leavesTint;
-            alpha = 1.0;
-        }
+    // Universal Tinting
+    if (highlightPass == 0 && isTinted) {
+        vec3 tint = vec3(0.486, 0.784, 0.314);
+        baseColor *= tint;
     }
 
     float diffuse = max(dot(fragNormal, -lightDirection), 0.0);

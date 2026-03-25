@@ -9,5 +9,5 @@
         "all": "spruce_leaves.png"
     },
     "requiredTool": "knife",
-    "tags": ["treecapitator"]
+    "tags": ["treecapitator", "minecraft:tinted"]
 }

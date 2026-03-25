@@ -40,6 +40,7 @@ public class UIRenderer {
     private Hotbar hotbar;
     private PauseMenu pauseMenu;
     private FontRenderer fontRenderer;
+    private final ScrollPanel devScroller = new ScrollPanel();
     private int lastSw = 0, lastSh = 0;
     private com.za.minecraft.engine.core.PlayerMode lastMode = null;
     
@@ -73,6 +74,8 @@ public class UIRenderer {
         uiShader.use();
         uiShader.setInt("textureSampler", 0);
         
+        devScroller.setBounds(0, 0, 0, 0); // Will be set in render
+
         Logger.info("UI Renderer initialized");
     }
     
@@ -376,6 +379,29 @@ public class UIRenderer {
         if (activeScreen instanceof InventoryScreen invScreen) {
             int slotSize = (int)(18 * Hotbar.HOTBAR_SCALE);
 
+            // Draw Highlights (Hover and Drag)
+            float hmx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
+            float hmy = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
+            SlotUI hoveredUI = invScreen.getSlotAt(hmx, hmy);
+            java.util.Set<com.za.minecraft.entities.inventory.Slot> dragged = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getDraggedSlots();
+            
+            for (SlotUI ui : invScreen.getSlots()) {
+                if (dragged.contains(ui.getSlot())) {
+                    renderHighlight(ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, 0.2f, 0.6f, 1.0f, 0.4f);
+                } else if (ui == hoveredUI) {
+                    renderHighlight(ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, 1.0f, 1.0f, 1.0f, 0.3f);
+                }
+            }
+
+            // Developer Panel (Creative Menu)
+            if (player.getMode() == PlayerMode.DEVELOPER) {
+                int spacing = (int)(2 * Hotbar.HOTBAR_SCALE);
+                int devX = screenWidth - (7 * (slotSize + spacing)) - 25;
+                renderDeveloperPanel(devX, 40, slotSize, spacing, screenWidth, screenHeight, atlas);
+            }
+
+            // --- ON TOP OF EVERYTHING ---
+
             // Draw Held Stack
             ItemStack held = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getHeldStack();
             if (held != null) {
@@ -390,20 +416,6 @@ public class UIRenderer {
             
             // Draw Tooltip for hovered slot
             renderInventoryTooltip(invScreen, slotSize, player, screenWidth, screenHeight);
-
-            // Draw Highlights (Hover and Drag)
-            float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
-            float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
-            SlotUI hoveredUI = invScreen.getSlotAt(mx, my);
-            java.util.Set<com.za.minecraft.entities.inventory.Slot> dragged = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getDraggedSlots();
-            
-            for (SlotUI ui : invScreen.getSlots()) {
-                if (dragged.contains(ui.getSlot())) {
-                    renderHighlight(ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, 0.2f, 0.6f, 1.0f, 0.4f);
-                } else if (ui == hoveredUI) {
-                    renderHighlight(ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, 1.0f, 1.0f, 1.0f, 0.3f);
-                }
-            }
         }
         
         glEnable(GL_DEPTH_TEST);
@@ -451,51 +463,71 @@ public class UIRenderer {
 
     private void renderDeveloperPanel(int devX, int startY, int slotSize, int spacing, int sw, int sh, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
         int cols = 7;
-        int rows = 12;
-        int devWidth = cols * (slotSize + spacing);
-        int devHeight = rows * (slotSize + spacing);
+        int rows = 14; // Visible rows
+        int padding = 12;
+        int slotsWidth = cols * (slotSize + spacing) - spacing; // Width of just the slots
+        int devWidth = slotsWidth + padding * 2;
+        int devHeight = rows * (slotSize + spacing) - spacing + padding * 2;
         
-        renderButton(devX + devWidth / 2, startY + devHeight / 2, devWidth + 10, devHeight + 10, sw, sh, null, 0.2f, 0.2f, 0.2f);
-        
+        // 1. Background (Symmetric)
+        int bgX = devX - padding;
+        int bgY = startY - padding;
+        renderRect(bgX, bgY - 24, devWidth, devHeight + 24, sw, sh, 0.05f, 0.05f, 0.05f, 0.95f); // Main BG
+        renderRect(bgX, bgY - 24, devWidth, 24, sw, sh, 0.15f, 0.15f, 0.15f, 1.0f); // Title bar
+        fontRenderer.drawString(com.za.minecraft.utils.I18n.get("gui.developer_panel").toUpperCase(), devX, bgY - 18, 14, sw, sh, 0.0f, 0.6f, 1.0f, 1.0f);
+
+        // 2. Setup Scroller (Matching BG bounds for interaction)
+        devScroller.setBounds(bgX, bgY, devWidth, devHeight);
         List<Item> allItems = new ArrayList<>(ItemRegistry.getAllItems().values());
-        int scroll = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getDevScroll();
-        
+        int totalRows = (allItems.size() + cols - 1) / cols;
+        devScroller.updateContentHeight(totalRows * (slotSize + spacing));
+
+        // 3. Render Content with Scissor
+        devScroller.begin(sw, sh);
+        float offset = devScroller.getOffset();
+
         for (int i = 0; i < allItems.size(); i++) {
-            int idx = i - scroll * cols;
-            if (idx < 0) continue;
-            
-            int col = idx % cols;
-            int row = idx / cols;
-            if (row >= rows) break;
+            int col = i % cols;
+            int row = i / cols;
             
             int x = devX + col * (slotSize + spacing);
-            int y = startY + row * (slotSize + spacing);
+            int y = startY + row * (slotSize + spacing) - (int)offset;
+            
+            // Culling check (optional but good for performance)
+            if (y + slotSize < startY || y > startY + devHeight) continue;
             
             renderSlot(x, y, slotSize, new ItemStack(allItems.get(i)), null, sw, sh, atlas);
         }
+        devScroller.end();
 
+        // 4. Scrollbar
+        devScroller.renderScrollbar(this, sw, sh);
+
+        // 5. Tooltip
         float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
         float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
-        if (mx >= devX && mx <= devX + devWidth && my >= startY && my <= startY + devHeight) {
+        if (devScroller.isMouseOver(mx, my)) {
             for (int i = 0; i < allItems.size(); i++) {
-                int idx = i - scroll * cols;
-                if (idx < 0) continue;
-                int col = idx % cols;
-                int row = idx / cols;
-                if (row >= rows) break;
+                int col = i % cols;
+                int row = i / cols;
                 int x = devX + col * (slotSize + spacing);
-                int y = startY + row * (slotSize + spacing);
+                int y = startY + row * (slotSize + spacing) - (int)offset;
+                
                 if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
                     String name = com.za.minecraft.utils.I18n.get(allItems.get(i).getName());
                     int tx = (int)mx + 12;
                     int ty = (int)my - 12;
                     int textWidth = fontRenderer.getStringWidth(name, 14);
-                    renderButton(tx + textWidth/2, ty + 7, textWidth + 8, 20, sw, sh, null, 0.1f, 0.1f, 0.1f);
-                    fontRenderer.drawString(name, tx + 4, ty + 4, 14, sw, sh);
+                    renderRect(tx, ty - 2, textWidth + 8, 20, sw, sh, 0.1f, 0.1f, 0.1f, 0.9f);
+                    fontRenderer.drawString(name, tx + 4, ty, 14, sw, sh);
                     break;
                 }
             }
         }
+    }
+
+    public ScrollPanel getDevScroller() {
+        return devScroller;
     }
 
     private void renderInventoryTooltip(InventoryScreen screen, int slotSize, Player player, int sw, int sh) {

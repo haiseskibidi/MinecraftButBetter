@@ -120,14 +120,6 @@ public class Renderer {
         blockShader.setVector3f("ambientLight", new Vector3f(0.85f, 0.85f, 0.9f)); // Яркий ambient как в Minecraft
         blockShader.setInt("textureSampler", 0);
         
-        // Передаем UV координаты grass_block_top.png для правильного окрашивания
-        float[] grassTopUV = atlas.uvFor("minecraft/textures/block/grass_block_top.png");
-        blockShader.setUniform("grassTopUV", grassTopUV[0], grassTopUV[1], grassTopUV[2], grassTopUV[5]);
-        
-        // Передаем UV координаты oak_leaves.png для окрашивания листвы
-        float[] leavesUV = atlas.uvFor("minecraft/textures/block/oak_leaves.png");
-        blockShader.setUniform("leavesUV", leavesUV[0], leavesUV[1], leavesUV[2], leavesUV[5]);
-
         // Connected Glass UVs
         float[] glassUV = atlas.uvFor("minecraft/textures/block/glass.png");
         blockShader.setUniform("glassUV", glassUV[0], glassUV[1], glassUV[2], glassUV[5]);

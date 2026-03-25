@@ -11,5 +11,6 @@
   "dropChance": 0.2,
   "textures": {
     "all": "grass.png"
-  }
+  },
+  "tags": ["minecraft:tinted"]
 }

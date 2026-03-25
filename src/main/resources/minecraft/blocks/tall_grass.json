@@ -14,5 +14,6 @@
   "drops": [
     { "tool": "knife", "item": "minecraft:plant_fiber", "chance": 1.0 },
     { "tool": "none", "item": "minecraft:straw", "chance": 0.3 }
-  ]
+  ],
+  "tags": ["minecraft:tinted"]
 }

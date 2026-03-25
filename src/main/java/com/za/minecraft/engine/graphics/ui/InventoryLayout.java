@@ -50,17 +50,6 @@ public class InventoryLayout {
             SlotGroup group = inv.getGroup(groupCfg.id);
             List<Slot> targetSlots = (group != null) ? group.getSlots() : null;
 
-            if (groupCfg.id.equals("developer_panel")) {
-                RegistryInventory regInv = new RegistryInventory();
-                targetSlots = new ArrayList<>();
-                int scroll = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getDevScroll();
-                int maxDisplay = groupCfg.cols * groupCfg.rows;
-                int startIdx = scroll * groupCfg.cols;
-                for (int i = 0; i < maxDisplay && (startIdx + i) < regInv.size(); i++) {
-                    targetSlots.add(new Slot(regInv, startIdx + i, "any"));
-                }
-            }
-
             if (targetSlots == null) continue;
 
             int groupWidth = 0;
@@ -141,17 +130,6 @@ public class InventoryLayout {
 
             SlotGroup group = inv.getGroup(groupCfg.id);
             List<Slot> targetSlots = (group != null) ? group.getSlots() : null;
-
-            if (groupCfg.id.equals("developer_panel")) {
-                RegistryInventory regInv = new RegistryInventory();
-                targetSlots = new ArrayList<>();
-                int scroll = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getDevScroll();
-                int maxDisplay = groupCfg.cols * groupCfg.rows;
-                int startIdx = scroll * groupCfg.cols;
-                for (int i = 0; i < maxDisplay && (startIdx + i) < regInv.size(); i++) {
-                    targetSlots.add(new Slot(regInv, startIdx + i, "any"));
-                }
-            }
 
             if (targetSlots == null) continue;
 

@@ -1,0 +1,15 @@
+{
+  "id": 180,
+  "identifier": "minecraft:stripped_birch_log",
+  "translationKey": "block.minecraft.stripped_birch_log",
+  "solid": true,
+  "transparent": false,
+  "type": "log",
+  "hardness": 2.0,
+  "tags": ["minecraft:logs"],
+  "textures": {
+    "top": "stripped_birch_log_top.png",
+    "bottom": "stripped_birch_log_top.png",
+    "side": "stripped_birch_log.png"
+  }
+}

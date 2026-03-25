@@ -31,7 +31,9 @@ public class BlockDefinition {
     private Identifier nextStage = null;
     private boolean alwaysRender = false;
     private boolean replaceable = false;
-    private String upperTexture = null; // Текстура для верхней части DOUBLE_PLANT
+    private boolean tinted = false;
+    private String upperTexture = null;
+ // Текстура для верхней части DOUBLE_PLANT
     private PlacementType placementType = PlacementType.DEFAULT;
     private BlockTextures textures;
     private boolean fullCube = true;
@@ -211,6 +213,15 @@ public class BlockDefinition {
 
     public BlockDefinition setReplaceable(boolean replaceable) {
         this.replaceable = replaceable;
+        return this;
+    }
+
+    public boolean isTinted() {
+        return tinted;
+    }
+
+    public BlockDefinition setTinted(boolean tinted) {
+        this.tinted = tinted;
         return this;
     }
 

@@ -113,11 +113,16 @@ public class ChunkMeshGenerator {
         MeshData data = new MeshData();
         com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType());
         
+        float finalBlockType = (float)block.getType();
+        if (def != null && def.isTinted()) {
+            finalBlockType = -(finalBlockType + 1.0f);
+        }
+
         if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
             float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
             float u0 = uvs[0], v0 = uvs[1], u1 = uvs[4], v1 = uvs[5];
-            addCrossPlane(data, 0, 0, 0, 0, 0, 1, 1, u0, v0, u1, v1, (float)block.getType());
-            addCrossPlane(data, 0, 0, 0, 0, 1, 1, 0, u0, v0, u1, v1, (float)block.getType());
+            addCrossPlane(data, 0, 0, 0, 0, 0, 1, 1, u0, v0, u1, v1, finalBlockType);
+            addCrossPlane(data, 0, 0, 0, 0, 1, 1, 0, u0, v0, u1, v1, finalBlockType);
             return data.build();
         }
 
@@ -134,7 +139,7 @@ public class ChunkMeshGenerator {
                 {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
             };
             for (int face = 0; face < 6; face++) {
-                data.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0);
+                data.addFace(facePositions[face], FACE_NORMALS[face], finalBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0);
             }
         }
         return data.build();
@@ -180,25 +185,19 @@ public class ChunkMeshGenerator {
                     Block block = chunk.getBlock(x, y, z);
                     if (block.isAir()) continue;
 
-                    BlockPos worldPos = new BlockPos(
-                        chunk.getPosition().x() * Chunk.CHUNK_SIZE + x,
-                        y,
-                        chunk.getPosition().z() * Chunk.CHUNK_SIZE + z
-                    );
-
-                    // Если блок сейчас срубается (является стадией), не рендерим его в основном меше чанка
-                    // Он будет рендериться динамически или мы его просто пропускаем, 
-                    // так как стадии теперь - это обычные блоки, но с тегом.
-                    // На самом деле, стадии ДОЛЖНЫ рендериться как обычные блоки, 
-                    // поэтому это условие можно убрать.
-
                     com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType());
+                    
+                    float finalBlockType = (float)block.getType();
+                    if (def != null && def.isTinted()) {
+                        finalBlockType = -(finalBlockType + 1.0f);
+                    }
+
                     if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
                         float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
                         float u0 = uvs[0], v0 = uvs[1], u1 = uvs[4], v1 = uvs[5];
                         
-                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 0, 1, 1, u0, v0, u1, v1, (float)block.getType());
-                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 1, 1, 0, u0, v0, u1, v1, (float)block.getType());
+                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 0, 1, 1, u0, v0, u1, v1, finalBlockType);
+                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 1, 1, 0, u0, v0, u1, v1, finalBlockType);
                         continue;
                     }
 
@@ -223,34 +222,27 @@ public class ChunkMeshGenerator {
                             {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
                         };
                         
-                        // Use directions enum for neighbor checks
                         for (int face = 0; face < 6; face++) {
-                            Direction dir = directions[face];
+                            Direction dir = Direction.values()[face];
                             BlockPos nPos = new BlockPos(worldX + dir.getDx(), worldY + dir.getDy(), worldZ + dir.getDz());
                             Block neighbor = world.getBlock(nPos);
                             
                             boolean drawFace = true;
                             com.za.minecraft.world.blocks.BlockDefinition neighborDef = com.za.minecraft.world.blocks.BlockRegistry.getBlock(neighbor.getType());
 
-                            // Проверяем, лежит ли текущая грань на границе блока 1x1x1
                             boolean onBoundary = false;
                             switch (face) {
-                                case 0: onBoundary = (box.getMax().z == 1.0f); break; // NORTH (+Z)
-                                case 1: onBoundary = (box.getMin().z == 0.0f); break; // SOUTH (-Z)
-                                case 2: onBoundary = (box.getMax().x == 1.0f); break; // EAST (+X)
-                                case 3: onBoundary = (box.getMin().x == 0.0f); break; // WEST (-X)
-                                case 4: onBoundary = (box.getMax().y == 1.0f); break; // UP (+Y)
-                                case 5: onBoundary = (box.getMin().y == 0.0f); break; // DOWN (-Y)
+                                case 0: onBoundary = (box.getMax().z == 1.0f); break; 
+                                case 1: onBoundary = (box.getMin().z == 0.0f); break; 
+                                case 2: onBoundary = (box.getMax().x == 1.0f); break; 
+                                case 3: onBoundary = (box.getMin().x == 0.0f); break; 
+                                case 4: onBoundary = (box.getMax().y == 1.0f); break; 
+                                case 5: onBoundary = (box.getMin().y == 0.0f); break; 
                             }
 
-                            boolean neighborIsFelling = neighborDef != null && neighborDef.hasTag("treecapitator");
-
-                            if (def.isAlwaysRender()) {
+                            if (def.isAlwaysRender() || !onBoundary) {
                                 drawFace = true;
-                            } else if (!onBoundary) {
-                                // Если грань внутри блока (рецессия), всегда рисуем её
-                                drawFace = true;
-                            } else if (neighbor.isAir() || neighborIsFelling) {
+                            } else if (neighbor.isAir() || (neighborDef != null && neighborDef.hasTag("treecapitator"))) {
                                 drawFace = true;
                             } else if (neighbor.isFullCube() && !neighbor.isTransparent() && !neighborDef.isAlwaysRender()) {
                                 drawFace = false;
@@ -270,7 +262,7 @@ public class ChunkMeshGenerator {
                                         }
                                     }
                                 }
-                                current.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask);
+                                current.addFace(facePositions[face], FACE_NORMALS[face], finalBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask);
                             }
                         }
                     }
@@ -281,14 +273,12 @@ public class ChunkMeshGenerator {
     }
 
     private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float z0, float x1, float z1, float u0, float v0, float u1, float v1, float blockTypeId) {
-        // Front face
         data.addRawQuad(
             new float[]{ox+x0, oy, oz+z0,  ox+x1, oy, oz+z1,  ox+x1, oy+1.0f, oz+z1,  ox+x0, oy+1.0f, oz+z0},
             new float[]{u0, v0, u1, v0, u1, v1, u0, v1},
             new float[]{0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0},
             blockTypeId
         );
-        // Back face
         data.addRawQuad(
             new float[]{ox+x0, oy+1.0f, oz+z0,  ox+x1, oy+1.0f, oz+z1,  ox+x1, oy, oz+z1,  ox+x0, oy, oz+z0},
             new float[]{u0, v1, u1, v1, u1, v0, u0, v0},

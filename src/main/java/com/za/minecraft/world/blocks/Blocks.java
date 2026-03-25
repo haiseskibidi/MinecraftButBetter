@@ -17,6 +17,12 @@ public class Blocks {
     public static BlockDefinition JUNGLE_LOG;
     public static BlockDefinition ACACIA_LOG;
     public static BlockDefinition DARK_OAK_LOG;
+    public static BlockDefinition STRIPPED_OAK_LOG;
+    public static BlockDefinition STRIPPED_BIRCH_LOG;
+    public static BlockDefinition STRIPPED_SPRUCE_LOG;
+    public static BlockDefinition STRIPPED_JUNGLE_LOG;
+    public static BlockDefinition STRIPPED_ACACIA_LOG;
+    public static BlockDefinition STRIPPED_DARK_OAK_LOG;
     
     public static BlockDefinition OAK_LEAVES;
     public static BlockDefinition BIRCH_LEAVES;

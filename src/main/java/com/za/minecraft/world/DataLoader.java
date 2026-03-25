@@ -507,7 +507,11 @@ public class DataLoader {
             if (obj.has("tags")) {
                 JsonArray tagsArr = obj.getAsJsonArray("tags");
                 for (JsonElement tagEl : tagsArr) {
-                    def.addTag(tagEl.getAsString());
+                    String tag = tagEl.getAsString();
+                    def.addTag(tag);
+                    if (tag.equals("minecraft:tinted")) {
+                        def.setTinted(true);
+                    }
                 }
             }
 

@@ -121,7 +121,7 @@
 ### com.za.minecraft.engine.input.InputManager (UPDATED)
 Назначение: Обработка ввода и диспетчеризация действий.
 Логика: Полностью де-хардкожена. Делегирует взаимодействие с блоками через `blockDef.onUse`.
-Функции: input(), handleInventoryClick(window, button), calculateMetadata(type, normal, hitPoint, camera), needsPreview(type), getSlotAt(), dropStack(), getHoveredSlotIndex(), getDraggedSlots(), clearHeldStack()
+Функции: input(), handleInventoryClick(window, button), handleDevPanelClick(mx, my), calculateMetadata(type, normal, hitPoint, camera), needsPreview(type), getSlotAt(), dropStack(), getHoveredSlot(), getDraggedSlots(), clearHeldStack()
 Зависимости: Window, Camera, Player, World, BlockRegistry
 
 ### com.za.minecraft.world.blocks.entity.ITickable (UPDATED)
@@ -145,8 +145,8 @@
 
 ### com.za.minecraft.engine.graphics.ui.UIRenderer (UPDATED)
 Назначение: Отрисовка 2D элементов (прицел, хотбар, инвентарь, меню паузы).
-Логика: Поддержка 32-битных ID предметов в кэше текстур.
-Функции: init(), renderCrosshair(int sw, int sh), renderHotbar(int sw, int sh, DynamicTextureAtlas atlas), renderInventory(int sw, int sh, DynamicTextureAtlas atlas), renderItemIcon(Item item, int x, int y, float size, int sw, int sh, DynamicTextureAtlas atlas)
+Логика: Поддержка 32-битных ID предметов в кэше текстур. Гарантирует правильный Z-order (Held Stack и Tooltips рисуются последними).
+Функции: init(), renderCrosshair(int sw, int sh), renderHotbar(int sw, int sh, DynamicTextureAtlas atlas), renderInventory(int sw, int sh, DynamicTextureAtlas atlas), renderItemIcon(Item item, int x, int y, float size, int sw, int sh, DynamicTextureAtlas atlas), renderDeveloperPanel(...)
 Зависимости: Shader, Texture, FontRenderer, ItemRegistry, BlockTextureMapper
 
 ### com.za.minecraft.engine.graphics.ui.Hotbar
@@ -180,7 +180,7 @@
 
 ### com.za.minecraft.world.blocks.BlockDefinition (UPDATED)
 Назначение: Базовый класс для всех определений блоков.
-Функции: Хранит свойства (solid, transparent, hardness), обрабатывает взаимодействие через `onUse` и `onLeftClick`.
+Функции: Хранит свойства (solid, transparent, hardness), обрабатывает взаимодействие через `onUse` и `onLeftClick`. Поддерживает флаг `tinted` (биомовое окрашивание).
 Зависимости: Identifier, VoxelShape, World, Player.
 
 ### com.za.minecraft.world.blocks.CampfireBlockDefinition (NEW)
