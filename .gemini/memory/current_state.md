@@ -1,6 +1,11 @@
 # Текущий статус проекта "MinecraftButBetter"
 
 ## Реализованные фичи
+- **Modular Physics & Parkour (v2.0)**:
+  - **Data-Driven Animations**: All movement parameters (curves, keyframes, durations) externalized to `parkour_animations.json`.
+  - **Keyframe System**: Implemented a flexible animation engine supporting multiple interpolation types (`sine`, `smoothstep`, `linear`).
+  - **Mirrored Tracks**: Added support for automatic coordinate flipping based on a multiplier (e.g., `climbSide`), enabling procedural hand-alternation logic without hardcode.
+  - **Bezier 3D Path**: Refactored to use JSON-defined apex offsets and interpolation modes.
 - **Survivor's Tablet (Дневник выжившего)**:
   - Полностью реализована модульная система обучения.
   - Современный карточный UI (50% ширины, 65% высоты экрана) с поддержкой прокрутки контента.

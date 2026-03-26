@@ -164,31 +164,29 @@ public class Player extends LivingEntity {
         float targetFovOffset = 0.0f;
         com.za.minecraft.entities.parkour.ParkourHandler.ParkourState pState = parkourHandler.getState();
         float pProgress = parkourHandler.getProgress();
-
+        
+        com.za.minecraft.entities.parkour.animation.ParkourAnimation currentAnim = null;
         if (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.CLIMBING) {
+            currentAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("climbing");
+        } else if (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.GRABBING) {
+            currentAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("grabbing");
+        }
+
+        if (currentAnim != null) {
             float t = pProgress;
             float side = parkourHandler.getClimbSide();
             
-            // 1. Tilt: Non-linear dip and recovery
-            targetTilt = (float) (Math.sin(t * Math.PI) * 0.22f);
+            targetTilt = currentAnim.evaluate("camera_tilt", t, side);
+            targetRoll = currentAnim.evaluate("camera_roll", t, side);
+            targetFovOffset = currentAnim.evaluate("fov_offset", t, side);
             
-            // 2. Roll: Shifting weight between arms (Asymmetric and randomized)
-            targetRoll = (float) (Math.sin(t * Math.PI * 1.5) * 0.08f * side);
-            
-            // 3. FOV: Dynamic expansion based on vertical momentum
-            targetFovOffset = (float) (Math.sin(t * Math.PI) * 0.12f * (1.0f - t * 0.5f));
-            
-            // 4. Effort-based Jitter (Shaking)
-            if (t > 0.15f && t < 0.6f) {
-                float intensity = (float) Math.sin((t - 0.15f) / 0.45f * Math.PI) * 0.008f;
+            // Effort-based Jitter (Shaking) from JSON
+            if (currentAnim.isJitterEnabled() && t > currentAnim.getJitterStart() && t < currentAnim.getJitterEnd()) {
+                float intensityMult = (float) Math.sin((t - currentAnim.getJitterStart()) / (currentAnim.getJitterEnd() - currentAnim.getJitterStart()) * Math.PI);
+                float intensity = currentAnim.getJitterIntensity() * intensityMult;
                 targetTilt += (float) (Math.sin(System.currentTimeMillis() / 15.0) * intensity);
                 targetRoll += (float) (Math.cos(System.currentTimeMillis() / 12.0) * intensity);
             }
-        } else if (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.GRABBING) {
-            float env = (float) Math.sin(pProgress * Math.PI);
-            targetTilt = -0.15f * env;
-            targetRoll = 0.05f * env;
-            targetFovOffset = 0.04f * env;
         } else if (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.HANGING) {
             targetTilt = 0.04f;
             targetRoll = (float) (Math.sin(System.currentTimeMillis() / 800.0) * 0.012f);

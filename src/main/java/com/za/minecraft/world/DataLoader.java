@@ -79,8 +79,68 @@ public class DataLoader {
             loadJournal(ns);
         }
 
+        loadParkourAnimations();
         loadScavengeSettings();
         loadPhysicsSettings();
+    }
+
+    private static void loadParkourAnimations() {
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("minecraft/registry/parkour_animations.json")) {
+            if (is == null) return;
+            JsonObject root = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonObject.class);
+            for (String key : root.keySet()) {
+                JsonObject animObj = root.getAsJsonObject(key);
+                com.za.minecraft.entities.parkour.animation.ParkourAnimation anim = new com.za.minecraft.entities.parkour.animation.ParkourAnimation(key);
+                
+                if (animObj.has("duration")) anim.setDuration(animObj.get("duration").getAsFloat());
+                if (animObj.has("duration_key")) anim.setDurationKey(animObj.get("duration_key").getAsString());
+                
+                if (animObj.has("path")) {
+                    JsonObject p = animObj.getAsJsonObject("path");
+                    if (p.has("type")) anim.setPathType(p.get("type").getAsString());
+                    if (p.has("interpolation")) anim.setPathInterpolation(p.get("interpolation").getAsString());
+                    if (p.has("apex_y_offset")) anim.setApexYOffset(p.get("apex_y_offset").getAsFloat());
+                }
+                
+                if (animObj.has("jitter")) {
+                    JsonObject j = animObj.getAsJsonObject("jitter");
+                    anim.setJitterEnabled(j.get("enabled").getAsBoolean());
+                    anim.setJitterStart(j.get("start").getAsFloat());
+                    anim.setJitterEnd(j.get("end").getAsFloat());
+                    anim.setJitterIntensity(j.get("intensity").getAsFloat());
+                }
+                
+                if (animObj.has("tracks")) {
+                    JsonObject tracks = animObj.getAsJsonObject("tracks");
+                    for (String trackKey : tracks.keySet()) {
+                        com.za.minecraft.entities.parkour.animation.AnimationTrack track = new com.za.minecraft.entities.parkour.animation.AnimationTrack();
+                        JsonArray keys;
+                        
+                        if (tracks.get(trackKey).isJsonObject()) {
+                            JsonObject tObj = tracks.getAsJsonObject(trackKey);
+                            if (tObj.has("mirrored")) track.setMirrored(tObj.get("mirrored").getAsBoolean());
+                            keys = tObj.getAsJsonArray("keyframes");
+                        } else {
+                            keys = tracks.getAsJsonArray(trackKey);
+                        }
+                        
+                        for (com.google.gson.JsonElement ke : keys) {
+                            JsonArray ka = ke.getAsJsonArray();
+                            track.addKeyframe(new com.za.minecraft.entities.parkour.animation.Keyframe(
+                                ka.get(0).getAsFloat(),
+                                ka.get(1).getAsFloat(),
+                                ka.get(2).getAsString()
+                            ));
+                        }
+                        anim.addTrack(trackKey, track);
+                    }
+                }
+                com.za.minecraft.entities.parkour.animation.AnimationRegistry.register(key, anim);
+            }
+            Logger.info("Loaded parkour animations");
+        } catch (Exception e) {
+            Logger.error("Failed to load parkour animations: " + e.getMessage());
+        }
     }
 
     private static void loadPhysicsSettings() {

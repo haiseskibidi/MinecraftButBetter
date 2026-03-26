@@ -30,13 +30,18 @@ public class ParkourHandler {
 
     public void update(Player player, float deltaTime, World world) {
         PhysicsSettings settings = PhysicsSettings.getInstance();
+        com.za.minecraft.entities.parkour.animation.ParkourAnimation grabAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("grabbing");
+        com.za.minecraft.entities.parkour.animation.ParkourAnimation climbAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("climbing");
 
         if (state == ParkourState.GRABBING) {
             transitionTimer += deltaTime;
-            float t = Math.min(1.0f, transitionTimer / GRAB_TRANSITION_TIME);
+            float duration = (grabAnim != null) ? grabAnim.getDuration() : GRAB_TRANSITION_TIME;
+            float t = Math.min(1.0f, transitionTimer / duration);
             
-            // Smooth S-curve for grabbing
-            float easedT = t * t * (3 - 2 * t);
+            // Interpolation from JSON
+            String interp = (grabAnim != null) ? grabAnim.getPathInterpolation() : "smoothstep";
+            float easedT = interpolate(t, interp);
+            
             player.getPosition().set(new Vector3f(startTransitionPosition).lerp(hangingPosition, easedT));
             player.getVelocity().set(0, 0, 0);
             player.setFlying(true);
@@ -51,26 +56,30 @@ public class ParkourHandler {
         } else if (state == ParkourState.CLIMBING) {
             transitionTimer += deltaTime;
             float duration = settings.climbDuration;
+            if (climbAnim != null && climbAnim.getDurationKey() != null) {
+                // Future: could use reflection to get from settings, for now use settings.climbDuration
+                duration = settings.climbDuration;
+            }
             float t = Math.min(1.0f, transitionTimer / duration);
 
-            // Using SmoothStep for the timeline to ensure zero acceleration at start/end
-            float smoothT = t * t * t * (t * (t * 6 - 15) + 10);
+            // Path interpolation from JSON
+            String interp = (climbAnim != null) ? climbAnim.getPathInterpolation() : "smootherstep";
+            float smoothT = interpolate(t, interp);
 
-            // Control points for a "Vault" arc
+            // Quadratic Bezier Path
             float p0x = startTransitionPosition.x;
             float p0y = startTransitionPosition.y;
             float p0z = startTransitionPosition.z;
 
-            // P1 is the "apex" - we lift slightly higher than the target for a natural feel
+            float apexOffset = (climbAnim != null) ? climbAnim.getApexYOffset() : 0.25f;
             float p1x = startTransitionPosition.x;
-            float p1y = targetClimbPosition.y + 0.25f; 
+            float p1y = targetClimbPosition.y + apexOffset; 
             float p1z = startTransitionPosition.z;
 
             float p2x = targetClimbPosition.x;
             float p2y = targetClimbPosition.y;
             float p2z = targetClimbPosition.z;
 
-            // Quadratic Bezier Path
             float invT = 1.0f - smoothT;
             player.getPosition().x = invT * invT * p0x + 2 * invT * smoothT * p1x + smoothT * smoothT * p2x;
             player.getPosition().y = invT * invT * p0y + 2 * invT * smoothT * p1y + smoothT * smoothT * p2y;
@@ -84,6 +93,17 @@ public class ParkourHandler {
                 setState(player, ParkourState.NONE);
             }
         }
+    }
+
+    private float interpolate(float t, String type) {
+        return switch (type.toLowerCase()) {
+            case "smoothstep" -> t * t * (3 - 2 * t);
+            case "smootherstep" -> t * t * t * (t * (t * 6 - 15) + 10);
+            case "sine" -> (float) Math.sin(t * Math.PI / 2.0);
+            case "quad_in" -> t * t;
+            case "quad_out" -> 1.0f - (1.0f - t) * (1.0f - t);
+            default -> t;
+        };
     }
 
     /**
@@ -194,8 +214,17 @@ public class ParkourHandler {
     }
 
     public float getProgress() {
-        if (state == ParkourState.GRABBING) return Math.min(1.0f, transitionTimer / GRAB_TRANSITION_TIME);
-        if (state == ParkourState.CLIMBING) return Math.min(1.0f, transitionTimer / PhysicsSettings.getInstance().climbDuration);
+        com.za.minecraft.entities.parkour.animation.ParkourAnimation grabAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("grabbing");
+        com.za.minecraft.entities.parkour.animation.ParkourAnimation climbAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("climbing");
+
+        if (state == ParkourState.GRABBING) {
+            float duration = (grabAnim != null) ? grabAnim.getDuration() : GRAB_TRANSITION_TIME;
+            return Math.min(1.0f, transitionTimer / duration);
+        }
+        if (state == ParkourState.CLIMBING) {
+            float duration = PhysicsSettings.getInstance().climbDuration;
+            return Math.min(1.0f, transitionTimer / duration);
+        }
         return 0.0f;
     }
 

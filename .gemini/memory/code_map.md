@@ -11,11 +11,22 @@
 ### src/main/resources/minecraft/registry
 - **physics.json**: Конфигурация физических констант (гравитация, скорость паркура).
 
-## Parkour System (NEW)
+## Parkour System (UPDATED)
 ### com.za.minecraft.entities.parkour.ParkourHandler
 Назначение: Машина состояний паркура и расчет траекторий.
-Логика: Использует 3D Quadratic Bezier для подъема. Рандомизирует `climbSide`.
-Функции: update(), tryLedgeGrab(), startClimb(), getProgress(), getClimbSide()
+Логика: Использует JSON-параметры для кривой Безье.
+
+### com.za.minecraft.entities.parkour.animation.AnimationRegistry
+Назначение: Хранилище загруженных из JSON анимаций.
+
+### com.za.minecraft.entities.parkour.animation.ParkourAnimation
+Назначение: Модель анимации, объединяющая треки, параметры пути и дрожания.
+
+### com.za.minecraft.entities.parkour.animation.AnimationTrack
+Назначение: Поток данных для одного параметра. Поддерживает флаг `mirrored`.
+
+### com.za.minecraft.entities.parkour.animation.Keyframe
+Назначение: Точка анимации (время, значение, тип интерполяции).
 
 ## Inventory System (v3) (NEW)
 ### com.za.minecraft.world.inventory.IInventory
