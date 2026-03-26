@@ -1,26 +1,46 @@
 {
-  "duration": 0.2,
-  "path": {
-    "interpolation": "smoothstep"
-  },
+  "duration": 0.25,
   "tracks": {
     "camera_tilt": [
       [0.0, 0.0, "sine"],
-      [0.5, -0.15, "sine"],
+      [0.4, -0.22, "sine"],
       [1.0, 0.0, "linear"]
     ],
     "camera_roll": {
       "mirrored": true,
       "keyframes": [
         [0.0, 0.0, "sine"],
-        [0.5, 0.05, "sine"],
+        [0.4, 0.15, "sine"],
         [1.0, 0.0, "linear"]
       ]
     },
     "fov_offset": [
       [0.0, 0.0, "sine"],
-      [0.5, 0.04, "sine"],
+      [0.4, 0.06, "sine"],
       [1.0, 0.0, "linear"]
+    ],
+    "item_x": {
+      "mirrored": true,
+      "keyframes": [
+        [0.0, 0.0, "sine"],
+        [0.4, 0.35, "sine"],
+        [1.0, 0.2, "linear"]
+      ]
+    },
+    "item_y": [
+      [0.0, 0.0, "sine"],
+      [0.4, -0.5, "sine"],
+      [1.0, -0.3, "linear"]
+    ],
+    "item_z": [
+      [0.0, 0.0, "sine"],
+      [0.4, -0.3, "sine"],
+      [1.0, -0.1, "linear"]
+    ],
+    "item_pitch": [
+      [0.0, 0.0, "sine"],
+      [0.4, 0.9, "sine"],
+      [1.0, 0.4, "linear"]
     ]
   }
 }

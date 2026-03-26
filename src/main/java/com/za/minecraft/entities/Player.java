@@ -7,15 +7,12 @@ import com.za.minecraft.entities.parkour.animation.AnimationProfile;
 import org.joml.Vector3f;
 
 /**
- * AAA-Grade Player Entity. 
- * Synchronized Lerp & Movement Latching to eliminate all micro-jitter.
+ * AAA Player Entity with alternating parkour animations.
  */
 public class Player extends LivingEntity {
     private final Inventory inventory;
     private com.za.minecraft.engine.core.PlayerMode mode = com.za.minecraft.engine.core.PlayerMode.SURVIVAL;
     private final com.za.minecraft.entities.parkour.ParkourHandler parkourHandler = new com.za.minecraft.entities.parkour.ParkourHandler();
-    
-    // Cached Registry to prevent GC spikes
     private final AnimationRegistry animationRegistry = new AnimationRegistry();
     
     // Survival stats
@@ -55,12 +52,12 @@ public class Player extends LivingEntity {
     private float landingImpact = 0.0f;
     private boolean wasOnGround = true;
     
-    // Jitter Mitigation
-    private float moveLatchTimer = 0.0f; // NEW: Keeps "moving" state stable
+    // Advanced Transitions
+    private float parkourWeight = 0.0f; 
+    private float moveLatchTimer = 0.0f;
     private static final float LATCH_DURATION = 0.15f; 
 
     private static final float MAX_HUNGER = 20.0f;
-    private static final float HUNGER_DEPletion_RATE = 0.1f;
     
     public Player(Vector3f startPosition) {
         super(startPosition, 
@@ -76,15 +73,149 @@ public class Player extends LivingEntity {
         inventory.update(world, this, com.za.minecraft.engine.core.GameLoop.getInstance().getCamera());
         updateHunger(deltaTime);
         updateNoise(deltaTime);
-        updateAnimations(deltaTime);
         updateSneakState(world, deltaTime);
         parkourHandler.update(this, deltaTime, world);
         super.update(deltaTime, world);
     }
 
-    public com.za.minecraft.entities.parkour.ParkourHandler getParkourHandler() {
-        return parkourHandler;
+    public void updateAnimations(float deltaTime) {
+        // 1. Core State
+        float currentYaw = getRotation().y;
+        float yawDelta = currentYaw - lastYaw;
+        while (yawDelta < -Math.PI) yawDelta += Math.PI * 2;
+        while (yawDelta > Math.PI) yawDelta -= Math.PI * 2;
+        if (Math.abs(yawDelta) < 0.0001f) yawDelta = 0;
+        
+        float leanTarget = -yawDelta * 0.8f; 
+        if (sprinting) leanTarget *= 1.2f;
+        leanAmount += (leanTarget - leanAmount) * (sneaking ? 3.0f : 7.0f) * deltaTime;
+        lastYaw = currentYaw;
+
+        if (onGround && !wasOnGround && velocity.y < -4.0f) {
+            landingImpact = Math.min(0.15f, Math.abs(velocity.y) * 0.015f);
+        }
+        wasOnGround = onGround;
+        landingImpact += (0.0f - landingImpact) * 10.0f * deltaTime;
+
+        // 2. State Weights
+        boolean isMovingPhysically = onGround && moving && velocity.lengthSquared() > 0.0001f;
+        if (isMovingPhysically) moveLatchTimer = LATCH_DURATION;
+        else moveLatchTimer = Math.max(0, moveLatchTimer - deltaTime);
+        
+        float alphaTarget = (moveLatchTimer > 0) ? 1.0f : 0.0f;
+        movementAlpha += (alphaTarget - movementAlpha) * (sneaking ? 4.0f : 8.0f) * deltaTime;
+
+        com.za.minecraft.entities.parkour.ParkourHandler.ParkourState pState = parkourHandler.getState();
+        boolean inParkour = pState != com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.NONE;
+        float pWeightTarget = inParkour ? 1.0f : 0.0f;
+        parkourWeight += (pWeightTarget - parkourWeight) * (inParkour ? 18.0f : 10.0f) * deltaTime;
+
+        // 3. Profiles
+        String cN = sneaking ? "sneak" : (sprinting ? "sprint" : "walk");
+        String iN = sneaking ? "item_sneak" : (sprinting ? "item_sprint" : "item_walk");
+        String ciN = sneaking ? "sneak_idle" : "idle";
+        String iiN = sneaking ? "item_sneak_idle" : "item_idle";
+
+        AnimationProfile cp = animationRegistry.get(cN);
+        AnimationProfile ip = animationRegistry.get(iN);
+        AnimationProfile cip = animationRegistry.get(ciN);
+        AnimationProfile iip = animationRegistry.get(iiN);
+
+        float iDur = (cip != null) ? cip.getDuration() : 1.0f;
+        float wDur = (cp != null) ? cp.getDuration() : 1.0f;
+        float currentDuration = iDur + (wDur - iDur) * movementAlpha;
+        locomotionTimer += deltaTime / currentDuration;
+
+        // 4. Base Pass (Locomotion)
+        float wTilt = (cp != null) ? cp.evaluate("camera_tilt", locomotionTimer, 1.0f) : 0;
+        float wRoll = (cp != null) ? cp.evaluate("camera_roll", locomotionTimer, 1.0f) : 0;
+        float wFov = (cp != null) ? cp.evaluate("fov_offset", locomotionTimer, 1.0f) : 0;
+        float wCamY = (cp != null) ? cp.evaluate("camera_y", locomotionTimer, 1.0f) : 0;
+
+        float wItX = (ip != null) ? ip.evaluate("item_x", locomotionTimer, 1.0f) : 0;
+        float wItY = (ip != null) ? ip.evaluate("item_y", locomotionTimer, 1.0f) : 0;
+        float wItZ = (ip != null) ? ip.evaluate("item_z", locomotionTimer, 1.0f) : 0;
+        float wItP = (ip != null) ? ip.evaluate("item_pitch", locomotionTimer, 1.0f) : 0;
+        float wItR = (ip != null) ? ip.evaluate("item_roll", locomotionTimer, 1.0f) : 0;
+
+        float iTilt = (cip != null) ? cip.evaluate("camera_tilt", locomotionTimer, 1.0f) : 0;
+        float iRoll = (cip != null) ? cip.evaluate("camera_roll", locomotionTimer, 1.0f) : 0;
+        float iCamY = (cip != null) ? cip.evaluate("camera_y", locomotionTimer, 1.0f) : 0;
+
+        float iItX = (iip != null) ? iip.evaluate("item_x", locomotionTimer, 1.0f) : 0;
+        float iItY = (iip != null) ? iip.evaluate("item_y", locomotionTimer, 1.0f) : 0;
+        float iItZ = (iip != null) ? iip.evaluate("item_z", locomotionTimer, 1.0f) : 0;
+        float iItP = (iip != null) ? iip.evaluate("item_pitch", locomotionTimer, 1.0f) : 0;
+        float iItR = (iip != null) ? iip.evaluate("item_roll", locomotionTimer, 1.0f) : 0;
+
+        float targetTilt = iTilt + (wTilt - iTilt) * movementAlpha;
+        float targetRoll = (iRoll + (wRoll - iRoll) * movementAlpha) + leanAmount;
+        float targetFov = wFov * movementAlpha;
+        float tCamY = iCamY + (wCamY - iCamY) * movementAlpha;
+        
+        float tItX = iItX + (wItX - iItX) * movementAlpha;
+        float tItY = iItY + (wItY - iItY) * movementAlpha;
+        float tItZ = iItZ + (wItZ - iItZ) * movementAlpha;
+        float tItP = iItP + (wItP - iItP) * movementAlpha;
+        float tItR = iItR + (wItR - iItR) * movementAlpha;
+
+        // 5. Heavy Parkour Pass
+        if (parkourWeight > 0.001f) {
+            String pAnimName = (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.CLIMBING) ? "climbing" : "grabbing";
+            AnimationProfile pAnim = animationRegistry.get(pAnimName);
+            if (pAnim != null) {
+                float progress = parkourHandler.getProgress();
+                float side = parkourHandler.getClimbSide();
+
+                float pTilt = pAnim.evaluate("camera_tilt", progress, side);
+                float pRoll = pAnim.evaluate("camera_roll", progress, side);
+                float pFov = pAnim.evaluate("fov_offset", progress, side);
+                
+                float pItX = pAnim.evaluate("item_x", progress, side);
+                float pItY = pAnim.evaluate("item_y", progress, side);
+                float pItZ = pAnim.evaluate("item_z", progress, side);
+                float pItP = pAnim.evaluate("item_pitch", progress, side);
+
+                targetTilt = targetTilt + (pTilt - targetTilt) * parkourWeight;
+                targetRoll = targetRoll + (pRoll - targetRoll) * parkourWeight;
+                targetFov = targetFov + (pFov - targetFov) * parkourWeight;
+                
+                tItX = tItX + (pItX - tItX) * parkourWeight;
+                tItY = tItY + (pItY - tItY) * parkourWeight;
+                tItZ = tItZ + (pItZ - tItZ) * parkourWeight;
+                tItP = tItP + (pItP - tItP) * parkourWeight;
+            }
+        }
+
+        // 6. Final Sync Apply
+        float syncLerp = (sneaking) ? 5.0f : 8.0f;
+        parkourCameraTilt += (targetTilt + landingImpact - parkourCameraTilt) * syncLerp * deltaTime;
+        parkourCameraRoll += (targetRoll - parkourCameraRoll) * syncLerp * deltaTime;
+        fovOffset += (targetFov - fovOffset) * 4.0f * deltaTime;
+        cameraOffsetY += (tCamY - cameraOffsetY) * syncLerp * deltaTime;
+
+        itemOffsetX += (tItX + (leanAmount * 0.1f) - itemOffsetX) * syncLerp * deltaTime;
+        itemOffsetY += (tItY - itemOffsetY) * syncLerp * deltaTime;
+        itemOffsetZ += (tItZ - itemOffsetZ) * syncLerp * deltaTime;
+        itemPitchOffset += (tItP - itemPitchOffset) * syncLerp * deltaTime;
+        itemYawOffset += ((leanAmount * 0.2f) - itemYawOffset) * syncLerp * deltaTime;
+        itemRollOffset += (tItR + (leanAmount * 0.5f) - itemRollOffset) * syncLerp * deltaTime;
+
+        if (swinging) {
+            AnimationProfile swingAnim = animationRegistry.get("item_swing");
+            if (swingAnim != null) {
+                itemSwingTimer += deltaTime / swingAnim.getDuration();
+                if (itemSwingTimer >= 1.0f) { swinging = false; itemSwingTimer = 0; }
+                else {
+                    itemOffsetX += swingAnim.evaluate("item_x", itemSwingTimer, 1.0f);
+                    itemOffsetY += swingAnim.evaluate("item_y", itemSwingTimer, 1.0f);
+                    itemPitchOffset += swingAnim.evaluate("item_pitch", itemSwingTimer, 1.0f);
+                }
+            } else swinging = false;
+        }
     }
+
+    public com.za.minecraft.entities.parkour.ParkourHandler getParkourHandler() { return parkourHandler; }
 
     private void updateSneakState(World world, float deltaTime) {
         com.za.minecraft.world.physics.PhysicsSettings settings = com.za.minecraft.world.physics.PhysicsSettings.getInstance();
@@ -121,130 +252,6 @@ public class Player extends LivingEntity {
     }
 
     public float getEyeHeight() { return currentEyeHeight; }
-
-    private void updateAnimations(float deltaTime) {
-        // 1. Inputs & Physics Feedback
-        float currentYaw = getRotation().y;
-        float yawDelta = currentYaw - lastYaw;
-        while (yawDelta < -Math.PI) yawDelta += Math.PI * 2;
-        while (yawDelta > Math.PI) yawDelta -= Math.PI * 2;
-        
-        // Filter out micro-mouse movements
-        if (Math.abs(yawDelta) < 0.0001f) yawDelta = 0;
-        
-        float leanTarget = -yawDelta * 0.8f; 
-        if (sprinting) leanTarget *= 1.2f;
-        leanAmount += (leanTarget - leanAmount) * (sneaking ? 3.0f : 7.0f) * deltaTime;
-        lastYaw = currentYaw;
-
-        if (onGround && !wasOnGround && velocity.y < -4.0f) {
-            landingImpact = Math.min(0.15f, Math.abs(velocity.y) * 0.015f);
-        }
-        wasOnGround = onGround;
-        landingImpact += (0.0f - landingImpact) * 10.0f * deltaTime;
-
-        // 2. Movement Latching (Anti-Jitter)
-        boolean isMovingPhysically = onGround && moving && velocity.lengthSquared() > 0.0001f;
-        if (isMovingPhysically) moveLatchTimer = LATCH_DURATION;
-        else moveLatchTimer = Math.max(0, moveLatchTimer - deltaTime);
-        
-        boolean stableMoving = moveLatchTimer > 0;
-        float alphaTarget = stableMoving ? 1.0f : 0.0f;
-        movementAlpha += (alphaTarget - movementAlpha) * (sneaking ? 4.0f : 8.0f) * deltaTime;
-
-        // 3. Profiles & Timing
-        String cN = sneaking ? "sneak" : (sprinting ? "sprint" : "walk");
-        String iN = sneaking ? "item_sneak" : (sprinting ? "item_sprint" : "item_walk");
-        String ciN = sneaking ? "sneak_idle" : "idle";
-        String iiN = sneaking ? "item_sneak_idle" : "item_idle";
-
-        AnimationProfile cp = animationRegistry.get(cN);
-        AnimationProfile ip = animationRegistry.get(iN);
-        AnimationProfile cip = animationRegistry.get(ciN);
-        AnimationProfile iip = animationRegistry.get(iiN);
-
-        float iDur = (cip != null) ? cip.getDuration() : 1.0f;
-        float wDur = (cp != null) ? cp.getDuration() : 1.0f;
-        float currentDuration = iDur + (wDur - iDur) * movementAlpha;
-        locomotionTimer += deltaTime / currentDuration;
-
-        // 4. Evaluation and Blending
-        float targetTilt = 0, targetRoll = 0, targetFov = 0, tCamY = 0;
-        float tItX = 0, tItY = 0, tItZ = 0, tItP = 0, tItYw = 0, tItR = 0;
-
-        com.za.minecraft.entities.parkour.ParkourHandler.ParkourState pState = parkourHandler.getState();
-        if (pState != com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.NONE) {
-            AnimationProfile anim = animationRegistry.get((pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.CLIMBING) ? "climbing" : "grabbing");
-            if (anim != null) {
-                targetTilt = anim.evaluate("camera_tilt", parkourHandler.getProgress(), parkourHandler.getClimbSide());
-                targetRoll = anim.evaluate("camera_roll", parkourHandler.getProgress(), parkourHandler.getClimbSide());
-            }
-        } else {
-            // Evaluated values
-            float wTilt = (cp != null) ? cp.evaluate("camera_tilt", locomotionTimer, 1.0f) : 0;
-            float wRoll = (cp != null) ? cp.evaluate("camera_roll", locomotionTimer, 1.0f) : 0;
-            float wFov = (cp != null) ? cp.evaluate("fov_offset", locomotionTimer, 1.0f) : 0;
-            float wCamY = (cp != null) ? cp.evaluate("camera_y", locomotionTimer, 1.0f) : 0;
-
-            float wItX = (ip != null) ? ip.evaluate("item_x", locomotionTimer, 1.0f) : 0;
-            float wItY = (ip != null) ? ip.evaluate("item_y", locomotionTimer, 1.0f) : 0;
-            float wItZ = (ip != null) ? ip.evaluate("item_z", locomotionTimer, 1.0f) : 0;
-            float wItP = (ip != null) ? ip.evaluate("item_pitch", locomotionTimer, 1.0f) : 0;
-            float wItR = (ip != null) ? ip.evaluate("item_roll", locomotionTimer, 1.0f) : 0;
-
-            float iTilt = (cip != null) ? cip.evaluate("camera_tilt", locomotionTimer, 1.0f) : 0;
-            float iRoll = (cip != null) ? cip.evaluate("camera_roll", locomotionTimer, 1.0f) : 0;
-            float iCamY = (cip != null) ? cip.evaluate("camera_y", locomotionTimer, 1.0f) : 0;
-
-            float iItX = (iip != null) ? iip.evaluate("item_x", locomotionTimer, 1.0f) : 0;
-            float iItY = (iip != null) ? iip.evaluate("item_y", locomotionTimer, 1.0f) : 0;
-            float iItZ = (iip != null) ? iip.evaluate("item_z", locomotionTimer, 1.0f) : 0;
-            float iItP = (iip != null) ? iip.evaluate("item_pitch", locomotionTimer, 1.0f) : 0;
-            float iItR = (iip != null) ? iip.evaluate("item_roll", locomotionTimer, 1.0f) : 0;
-
-            // Blending
-            targetTilt = iTilt + (wTilt - iTilt) * movementAlpha;
-            targetRoll = (iRoll + (wRoll - iRoll) * movementAlpha) + leanAmount;
-            targetFov = wFov * movementAlpha;
-            tCamY = iCamY + (wCamY - iCamY) * movementAlpha;
-            
-            tItX = iItX + (wItX - iItX) * movementAlpha;
-            tItY = iItY + (wItY - iItY) * movementAlpha;
-            tItZ = iItZ + (wItZ - iItZ) * movementAlpha;
-            tItP = iItP + (wItP - iItP) * movementAlpha;
-            tItR = iItR + (wItR - iItR) * movementAlpha;
-        }
-
-        // 5. Final Synchronized Lerp (THE JITTER KILLER)
-        // Camera and Item MUST use same speed to prevent relative vibration
-        float syncLerp = (sneaking) ? 5.0f : 8.0f;
-        
-        parkourCameraTilt += (targetTilt + landingImpact - parkourCameraTilt) * syncLerp * deltaTime;
-        parkourCameraRoll += (targetRoll - parkourCameraRoll) * syncLerp * deltaTime;
-        fovOffset += (targetFov - fovOffset) * 4.0f * deltaTime;
-        cameraOffsetY += (tCamY - cameraOffsetY) * syncLerp * deltaTime;
-
-        itemOffsetX += (tItX + (leanAmount * 0.1f) - itemOffsetX) * syncLerp * deltaTime;
-        itemOffsetY += (tItY - itemOffsetY) * syncLerp * deltaTime;
-        itemOffsetZ += (tItZ - itemOffsetZ) * syncLerp * deltaTime;
-        itemPitchOffset += (tItP - itemPitchOffset) * syncLerp * deltaTime;
-        itemYawOffset += ((leanAmount * 0.2f) - itemYawOffset) * syncLerp * deltaTime;
-        itemRollOffset += (tItR + (leanAmount * 0.5f) - itemRollOffset) * syncLerp * deltaTime;
-
-        // 6. Action: Swing
-        if (swinging) {
-            AnimationProfile swingAnim = animationRegistry.get("item_swing");
-            if (swingAnim != null) {
-                itemSwingTimer += deltaTime / swingAnim.getDuration();
-                if (itemSwingTimer >= 1.0f) { swinging = false; itemSwingTimer = 0; }
-                else {
-                    itemOffsetX += swingAnim.evaluate("item_x", itemSwingTimer, 1.0f);
-                    itemOffsetY += swingAnim.evaluate("item_y", itemSwingTimer, 1.0f);
-                    itemPitchOffset += swingAnim.evaluate("item_pitch", itemSwingTimer, 1.0f);
-                }
-            } else swinging = false;
-        }
-    }
 
     public float getCameraPitchOffset() { return parkourCameraTilt; }
     public float getCameraRollOffset() { return parkourCameraRoll; }

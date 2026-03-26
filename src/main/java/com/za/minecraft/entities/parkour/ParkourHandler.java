@@ -7,7 +7,7 @@ import com.za.minecraft.world.physics.AABB;
 import org.joml.Vector3f;
 
 /**
- * Advanced parkour handler with smooth curves and camera restrictions.
+ * Advanced parkour handler with alternating ledge grab sides.
  */
 public class ParkourHandler {
     public enum ParkourState {
@@ -26,7 +26,7 @@ public class ParkourHandler {
     private final Vector3f hangingPosition = new Vector3f();
     private final Vector3f targetClimbPosition = new Vector3f();
     
-    private static final float GRAB_TRANSITION_TIME = 0.2f;
+    private static final float GRAB_TRANSITION_TIME = 0.25f; // Matches grabbing.json
 
     public void update(Player player, float deltaTime, World world) {
         PhysicsSettings settings = PhysicsSettings.getInstance();
@@ -38,7 +38,6 @@ public class ParkourHandler {
             float duration = (grabAnim != null) ? grabAnim.getDuration() : GRAB_TRANSITION_TIME;
             float t = Math.min(1.0f, transitionTimer / duration);
             
-            // Interpolation from JSON
             String interp = (grabAnim != null) ? grabAnim.getPathInterpolation() : "smoothstep";
             float easedT = interpolate(t, interp);
             
@@ -56,17 +55,11 @@ public class ParkourHandler {
         } else if (state == ParkourState.CLIMBING) {
             transitionTimer += deltaTime;
             float duration = settings.climbDuration;
-            if (climbAnim != null && climbAnim.getDurationKey() != null) {
-                // Future: could use reflection to get from settings, for now use settings.climbDuration
-                duration = settings.climbDuration;
-            }
             float t = Math.min(1.0f, transitionTimer / duration);
 
-            // Path interpolation from JSON
             String interp = (climbAnim != null) ? climbAnim.getPathInterpolation() : "smootherstep";
             float smoothT = interpolate(t, interp);
 
-            // Quadratic Bezier Path
             float p0x = startTransitionPosition.x;
             float p0y = startTransitionPosition.y;
             float p0z = startTransitionPosition.z;
@@ -106,14 +99,6 @@ public class ParkourHandler {
         };
     }
 
-    /**
-     * Standard Cubic Bezier calculation for a single dimension (0 to 1).
-     */
-    private float getBezier(float t, float p1, float p2) {
-        float invT = 1.0f - t;
-        return 3.0f * invT * invT * t * p1 + 3.0f * invT * t * t * p2 + t * t * t;
-    }
-
     public void tryLedgeGrab(Player player, World world, Vector3f lookDir) {
         if (state != ParkourState.NONE || player.isOnGround()) return;
 
@@ -131,16 +116,11 @@ public class ParkourHandler {
 
             if (world.getBlock(bx, by, bz).isAir() && world.getBlock(bx, by - 1, bz).isSolid()) {
                 if (canClimbTo(player, world, rayEnd)) {
-                    // Calculate correct distance to keep player hitbox outside the block
-                    // blockCenter (0.5) + playerRadius (width/2) + small epsilon (0.05)
                     float offsetFromCenter = 0.5f + (settings.playerWidth / 2.0f) + 0.05f;
-
-                    // Set up the hanging position
-                    hangingPosition.set(playerPos.x, (float) by - 1.35f, playerPos.z);
                     
+                    hangingPosition.set(playerPos.x, (float) by - 1.35f, playerPos.z);
                     float blockCenterX = bx + 0.5f;
                     float blockCenterZ = bz + 0.5f;
-                    
                     hangingPosition.x = blockCenterX - horizontalDir.x * offsetFromCenter;
                     hangingPosition.z = blockCenterZ - horizontalDir.z * offsetFromCenter;
 
@@ -148,10 +128,10 @@ public class ParkourHandler {
                     transitionTimer = 0;
                     state = ParkourState.GRABBING;
                     
-                    // Store the yaw we are facing when grabbing to restrict camera later
-                    baseYaw = (float) -Math.atan2(horizontalDir.x, -horizontalDir.z);
+                    // TOGGLE SIDE ONLY ONCE PER FULL SEQUENCE
+                    climbSide = -climbSide;
                     
-                    com.za.minecraft.utils.Logger.info("Ledge found! Grabbing...");
+                    baseYaw = (float) -Math.atan2(horizontalDir.x, -horizontalDir.z);
                     return;
                 }
             }
@@ -192,10 +172,8 @@ public class ParkourHandler {
         PhysicsSettings settings = PhysicsSettings.getInstance();
         startTransitionPosition.set(player.getPosition());
         
-        // Randomize leading hand for visual variety
-        climbSide = Math.random() > 0.5 ? 1.0f : -1.0f;
+        // NO TOGGLE HERE - Keep the same side as the grab!
 
-        // Use the direction we are facing (the baseYaw) to move forward
         float forwardX = (float) Math.sin(-baseYaw);
         float forwardZ = -(float) Math.cos(-baseYaw);
         
@@ -214,16 +192,13 @@ public class ParkourHandler {
     }
 
     public float getProgress() {
-        com.za.minecraft.entities.parkour.animation.AnimationProfile grabAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("grabbing");
-        com.za.minecraft.entities.parkour.animation.AnimationProfile climbAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("climbing");
-
         if (state == ParkourState.GRABBING) {
+            com.za.minecraft.entities.parkour.animation.AnimationProfile grabAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("grabbing");
             float duration = (grabAnim != null) ? grabAnim.getDuration() : GRAB_TRANSITION_TIME;
             return Math.min(1.0f, transitionTimer / duration);
         }
         if (state == ParkourState.CLIMBING) {
-            float duration = PhysicsSettings.getInstance().climbDuration;
-            return Math.min(1.0f, transitionTimer / duration);
+            return Math.min(1.0f, transitionTimer / PhysicsSettings.getInstance().climbDuration);
         }
         return 0.0f;
     }

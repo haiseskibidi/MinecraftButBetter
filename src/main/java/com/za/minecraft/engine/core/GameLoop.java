@@ -7,15 +7,11 @@ import com.za.minecraft.engine.input.InputManager;
 import com.za.minecraft.entities.Player;
 import com.za.minecraft.network.GameClient;
 import com.za.minecraft.network.GameServer;
-import com.za.minecraft.utils.Logger;
 import com.za.minecraft.world.World;
-import com.za.minecraft.world.blocks.Block;
-import com.za.minecraft.world.chunks.Chunk;
 import com.za.minecraft.world.physics.RaycastResult;
 import org.joml.Vector3f;
 
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.*;
 
 public class GameLoop {
     private static GameLoop instance;
@@ -58,86 +54,49 @@ public class GameLoop {
         return instance;
     }
     
-    public Player getPlayer() {
-        return player;
-    }
+    public Player getPlayer() { return player; }
+    public World getWorld() { return world; }
+    public Camera getCamera() { return camera; }
+    public InputManager getInputManager() { return inputManager; }
+    public Renderer getRenderer() { return renderer; }
+    public void setInventoryOpen(boolean open) { this.inventoryOpen = open; }
 
-    public World getWorld() {
-        return world;
-    }
-
-    public Camera getCamera() {
-        return camera;
-    }
-
-    public InputManager getInputManager() {
-        return inputManager;
-    }
-
-    public Renderer getRenderer() {
-        return renderer;
-    }
-
-    public void setInventoryOpen(boolean open) {
-        this.inventoryOpen = open;
-    }
-
-    public void runSingleplayer() {
-        runWithMode(GameMode.SINGLEPLAYER, "Player", null);
-    }
-    
-    public void runAsHost(String name) {
-        runWithMode(GameMode.MULTIPLAYER_HOST, name, null);
-    }
-    
-    public void runAsClient(String name, String address) {
-        runWithMode(GameMode.MULTIPLAYER_CLIENT, name, address);
-    }
+    public void runSingleplayer() { runWithMode(GameMode.SINGLEPLAYER, "Player", null); }
+    public void runAsHost(String name) { runWithMode(GameMode.MULTIPLAYER_HOST, name, null); }
+    public void runAsClient(String name, String address) { runWithMode(GameMode.MULTIPLAYER_CLIENT, name, address); }
     
     private void runWithMode(GameMode mode, String name, String address) {
         this.gameMode = mode;
         this.playerName = name;
         this.serverAddress = address;
-        
         init();
         loop();
         cleanup();
     }
     
     private void init() {
-        // Load game data from JSON
         com.za.minecraft.world.DataLoader.loadAll();
-
         window = new Window("Protocol: Grounding", 1280, 720, true);
         window.init();
-        
         timer = new Timer();
         camera = new Camera(new Vector3f(8, 65, 8));
         camera.updateAspectRatio(window.getAspectRatio());
-        
         inputManager = new InputManager();
         renderer = new Renderer();
-        
         inputManager.init(window);
         renderer.init(window.getWidth(), window.getHeight());
         
         long seed = 12345;
-        
         if (gameMode == GameMode.MULTIPLAYER_HOST) {
             localServer = new GameServer(seed);
             localServer.start();
         }
-        
         world = new World(seed);
         player = new Player(new Vector3f(8, 65, 8));
         world.setPlayer(player);
-        
-        // Give Admin Hammer to dev
         player.getInventory().setStackInSlot(0, new com.za.minecraft.world.items.ItemStack(com.za.minecraft.world.items.Items.ADMIN_HAMMER));
-        
         hotbar = new Hotbar(player);
         renderer.setHotbar(hotbar);
-        
         pauseMenu = new com.za.minecraft.engine.graphics.ui.PauseMenu();
         renderer.setPauseMenu(pauseMenu);
         
@@ -146,7 +105,6 @@ public class GameLoop {
             networkClient = new GameClient(world, player, camera, playerName);
             networkClient.connect(ip);
         }
-        
         running = true;
     }
     
@@ -162,11 +120,14 @@ public class GameLoop {
             input();
             
             while (accumulator >= interval) {
-                update(interval);
+                update(interval); // Fixed Physics Update
                 accumulator -= interval;
             }
             
-            render();
+            // Calculate interpolation alpha [0..1]
+            float alpha = accumulator / interval;
+            
+            render(alpha); // Render with interpolation
             
             sync(elapsedTime);
         }
@@ -181,34 +142,25 @@ public class GameLoop {
                 if (active.handleKeyPress(GLFW_KEY_E)) return;
                 com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
                 toggleInventory();
-            } else {
-                toggleInventory();
-            }
+            } else toggleInventory();
         }
         ePressed = eKey;
 
         boolean jKey = window.isKeyPressed(GLFW_KEY_J);
         if (jKey && !jPressed && !paused) {
-            if (active != null && active.handleKeyPress(GLFW_KEY_J)) {
-                // Consumed by screen
-            } else {
-                toggleJournal();
-            }
+            if (active != null && active.handleKeyPress(GLFW_KEY_J)) { }
+            else toggleJournal();
         }
         jPressed = jKey;
 
         boolean escKey = window.isKeyPressed(GLFW_KEY_ESCAPE);
         if (escKey && !escPressed) {
-            if (active != null && active.handleKeyPress(GLFW_KEY_ESCAPE)) {
-                // Consumed
-            } else if (inventoryOpen) {
+            if (active != null && active.handleKeyPress(GLFW_KEY_ESCAPE)) { }
+            else if (inventoryOpen) {
                 com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
                 toggleInventory();
-            } else if (currentNappingSession != null) {
-                closeNappingWithWaste();
-            } else {
-                togglePause();
-            }
+            } else if (currentNappingSession != null) closeNappingWithWaste();
+            else togglePause();
         }
         escPressed = escKey;
 
@@ -217,7 +169,6 @@ public class GameLoop {
 
     public void toggleJournal() {
         if (currentNappingSession != null) return;
-        
         inventoryOpen = !inventoryOpen;
         if (inventoryOpen) {
             inputManager.disableMouseCapture(window);
@@ -230,12 +181,10 @@ public class GameLoop {
     }
     
     public void toggleInventory() {
-        if (currentNappingSession != null) return; // Запрещено во время скалывания
-        
+        if (currentNappingSession != null) return;
         inventoryOpen = !inventoryOpen;
-        if (inventoryOpen) {
-            inputManager.disableMouseCapture(window);
-        } else {
+        if (inventoryOpen) inputManager.disableMouseCapture(window);
+        else {
             inputManager.enableMouseCapture(window);
             com.za.minecraft.world.items.ItemStack held = inputManager.getHeldStack();
             if (held != null) {
@@ -268,36 +217,21 @@ public class GameLoop {
                 com.za.minecraft.world.items.ItemStack newStack = current.getCount() > 1 
                     ? new com.za.minecraft.world.items.ItemStack(current.getItem(), current.getCount() - 1) : null;
                 player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
-                com.za.minecraft.utils.Logger.info("Napping cancelled. Material wasted.");
             }
         }
         closeNapping();
     }
 
-    public boolean isNappingOpen() {
-        return currentNappingSession != null;
-    }
-
-    public com.za.minecraft.world.recipes.NappingSession getNappingSession() {
-        return currentNappingSession;
-    }
-
-
-    private void closeInventory() {
-        inventoryOpen = false;
-        inputManager.enableMouseCapture(window);
-    }
+    public boolean isNappingOpen() { return currentNappingSession != null; }
+    public com.za.minecraft.world.recipes.NappingSession getNappingSession() { return currentNappingSession; }
 
     private void update(float interval) {
         if (paused) return;
         
-        world.update(interval);
+        world.update(interval); // Fixed Physics
         
-        // Синхронизация камеры после движения игрока
+        // Fixed Camera Position (Physics Based)
         camera.setPosition(player.getPosition().x, player.getPosition().y + player.getEyeHeight(), player.getPosition().z);
-        camera.setPitchOffset(player.getCameraPitchOffset());
-        camera.setRollOffset(player.getCameraRollOffset());
-        camera.setFovOffset(player.getFovOffset());
 
         if (networkClient != null && networkClient.isConnected()) {
             networkClient.sendPlayerPosition();
@@ -305,7 +239,6 @@ public class GameLoop {
         
         fpsTimer += interval;
         fpsCounter++;
-        
         if (fpsTimer >= 1.0f) {
             currentFps = fpsCounter;
             fpsCounter = 0;
@@ -313,18 +246,25 @@ public class GameLoop {
         }
     }
     
-    private void render() {
-        renderer.render(window, camera, world, highlightedBlock, networkClient);
-        if (inventoryOpen) {
-            renderer.getUIRenderer().renderInventory(window.getWidth(), window.getHeight(), renderer.getAtlas());
-        } else if (currentNappingSession != null) {
-            com.za.minecraft.engine.graphics.ui.NappingGUI.render(renderer.getUIRenderer(), window.getWidth(), window.getHeight(), currentNappingSession);
+    private void render(float alpha) {
+        // High-Frequency Animation Update (Right before render)
+        if (!paused) {
+            player.updateAnimations(timer.getDeltaF());
+            
+            // Sync animated offsets to camera (High-frequency)
+            camera.setPitchOffset(player.getCameraPitchOffset());
+            camera.setRollOffset(player.getCameraRollOffset());
+            camera.setFovOffset(player.getFovOffset());
+            camera.setOffsets(player.getCameraOffsetX(), player.getCameraOffsetY(), player.getCameraOffsetZ());
         }
 
-        // Отрисовка прогресса разрушения блока
+        renderer.render(window, camera, world, highlightedBlock, networkClient, alpha);
+        
+        if (inventoryOpen) renderer.getUIRenderer().renderInventory(window.getWidth(), window.getHeight(), renderer.getAtlas());
+        else if (currentNappingSession != null) com.za.minecraft.engine.graphics.ui.NappingGUI.render(renderer.getUIRenderer(), window.getWidth(), window.getHeight(), currentNappingSession);
+
         renderer.getUIRenderer().renderMiningProgress(window.getWidth(), window.getHeight(), inputManager.getBreakingProgress());
         
-        // Отрисовка прогресса обжига
         if (highlightedBlock != null && highlightedBlock.isHit()) {
             com.za.minecraft.world.blocks.Block block = world.getBlock(highlightedBlock.getBlockPos());
             if (block.getType() == com.za.minecraft.world.blocks.Blocks.BURNING_PIT_KILN.getId()) {
@@ -335,15 +275,11 @@ public class GameLoop {
             }
         }
         
-        // Отрисовка голода
         renderer.getUIRenderer().renderHunger(window.getWidth(), window.getHeight(), player.getHunger());
-        
-        // Отрисовка шума
         renderer.getUIRenderer().renderNoise(window.getWidth(), window.getHeight(), player.getNoiseLevel());
-        
         renderer.renderDebug(currentFps, window.getWidth(), window.getHeight());
         
-        window.update(); // Only ONE update per frame at the very end
+        window.update();
     }
     
     private void sync(float elapsedTime) {
@@ -354,29 +290,13 @@ public class GameLoop {
     }
     
     private void cleanup() {
-        if (networkClient != null) {
-            networkClient.disconnect();
-        }
-        if (localServer != null) {
-            localServer.stop();
-        }
-        if (renderer != null) {
-            renderer.cleanup();
-        }
-        if (window != null) {
-            window.cleanup();
-        }
+        if (networkClient != null) networkClient.disconnect();
+        if (localServer != null) localServer.stop();
+        if (renderer != null) renderer.cleanup();
+        if (window != null) window.cleanup();
     }
 
-    public boolean isInventoryOpen() {
-        return inventoryOpen;
-    }
-
-    public boolean isPaused() {
-        return paused;
-    }
-
-    public Window getWindow() {
-        return window;
-    }
+    public boolean isInventoryOpen() { return inventoryOpen; }
+    public boolean isPaused() { return paused; }
+    public Window getWindow() { return window; }
 }

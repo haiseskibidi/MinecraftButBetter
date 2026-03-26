@@ -22,7 +22,7 @@ public class PhysicsSettings {
     public float maxGrabHeight = 2.45f;
     public float minGrabHeight = 1.25f;
     public float grabDistance = 0.7f;
-    public float climbDuration = 0.45f;
+    public float climbDuration = 0.28f;
 
     // Base Physics
     public float jumpVelocity = 11.5f;

@@ -158,13 +158,14 @@
 
 ## Graphics
 ### com.za.minecraft.engine.graphics.Renderer (UPDATED)
-Назначение: Координация всех процессов отрисовки (мир, превью блоков, View Model, UI).
-Логика: Кэширование мешей предметов и блоков для 32-битных ID. Поддержка рендеринга `ResourceEntity` с учетом `visualScale`.
-Функции: init(int width, int height), render(Window window, Camera camera, World world, RaycastResult highlightedBlock, GameClient client), renderViewModel(Window, Camera, Player), renderEntities(Camera, World), renderDebug(float fps, int width, int height), setPreviewBlock(BlockPos pos, Block block)
+Назначение: Координация всех процессов отрисовки.
+Логика: Реализует **интерполяцию кадров** (Alpha Lerp) между `prevPosition` и текущей позицией для устранения дрожания при движении. Обновляет анимации в `render` проходе для субфреймовой плавности.
+Функции: render(alpha), renderViewModel(alpha)
 Зависимости: Shader, Mesh, TextureAtlas, Framebuffer, PostProcessor, UIRenderer, DebugRenderer
 
-### com.za.minecraft.engine.graphics.Camera
-Назначение: Управление вектором взгляда игрока и матрицами проекции.
+### com.za.minecraft.engine.graphics.Camera (UPDATED)
+Назначение: Управление вектором взгляда.
+Логика: Поддерживает `prevPosition` и методы интерполяции для плавного движения камеры независимо от UPS.
 Функции: getViewMatrix(), getProjectionMatrix(), moveRotation(float rx, float ry, float rz), updateAspectRatio(float ratio), setOffsets(float x, float y, float z)
 
 ### com.za.minecraft.engine.graphics.ui.UIRenderer (UPDATED)

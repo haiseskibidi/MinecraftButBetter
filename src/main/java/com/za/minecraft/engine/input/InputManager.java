@@ -651,7 +651,7 @@ public class InputManager {
                     if (player.isOnGround()) {
                         player.addNoise(0.20f);
                         player.jump();
-                    } else if (!player.isFlying()) {
+                    } else {
                         parkour.tryLedgeGrab(player, world, lookDir);
                     }
                 }

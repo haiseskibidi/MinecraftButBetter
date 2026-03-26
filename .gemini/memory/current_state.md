@@ -9,6 +9,14 @@
     - Re-tuned `LOD_BIAS` to `-0.5` for sharper distance textures.
     - Implemented **4x Anisotropic Filtering** for clear surfaces at oblique angles.
     - Increased **Alpha Discard threshold to 0.5** in shaders to fix darkening of foliage/grass at a distance.
+- **Modular Animation Engine (v3.5) (NEW)**:
+  - **AAA Locomotion & Interpolation**: Implemented **Fixed-UPS/Interpolated-FPS** architecture (170 UPS logic) to eliminate jitter. Added `prevPosition` and `alpha` support for sub-frame smoothing.
+  - **Full Body Representation**: Extended JSON format with `item_x/y/z` and `item_pitch/roll` tracks. Added `mirror` support for organic hand-alternation.
+  - **Weighted State Blending**: Introduced `parkourWeight` (lerped at 18.0f) for seamless transitions between locomotion and parkour states.
+- **Modular Physics & Parkour (v1.5) (NEW)**:
+  - **Alternating Hands Logic**: Implemented strict side-toggling (`climbSide`) in `ParkourHandler`. Every new ledge grab alternates between left and right hands.
+  - **Snappy Timings**: Re-tuned `grabbing.json` (0.25s) and `PhysicsSettings` (0.28s) for a weighted, responsive feel.
+  - **Universal Accessibility**: Enabled ledge grabbing while flying to ensure consistency across all game modes.
 - **Modular Animation Engine (v3.0)**:
   - **File-per-Animation Architecture**: Externalized animations into individual JSON files in `minecraft/animations/`.
   - **Animation Groups & Randomization**: Supported groups (e.g., `run_1`, `run_2`) with automatic random selection in `AnimationRegistry`.
