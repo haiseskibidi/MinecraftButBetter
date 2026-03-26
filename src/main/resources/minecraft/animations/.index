@@ -2,3 +2,12 @@ grabbing
 climbing
 idle
 walk
+sprint
+sneak
+sneak_idle
+item_idle
+item_walk
+item_sprint
+item_sneak
+item_sneak_idle
+item_swing

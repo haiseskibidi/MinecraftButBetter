@@ -1,0 +1,29 @@
+{
+  "looping": true,
+  "duration": 0.5,
+  "tracks": {
+    "camera_roll": [
+      [0.0, 0.0, "sine"],
+      [0.25, 0.01, "sine"],
+      [0.5, 0.0, "sine"],
+      [0.75, -0.01, "sine"],
+      [1.0, 0.0, "linear"]
+    ],
+    "camera_tilt": [
+      [0.0, 0.02, "linear"],
+      [1.0, 0.02, "linear"]
+    ],
+    "camera_y": [
+      [0.0, 0.0, "sine"],
+      [0.25, 0.03, "sine"],
+      [0.5, 0.0, "sine"],
+      [0.75, 0.03, "sine"],
+      [1.0, 0.0, "linear"]
+    ],
+    "fov_offset": [
+        [0.0, 0.08, "sine"],
+        [0.5, 0.1, "sine"],
+        [1.0, 0.08, "linear"]
+    ]
+  }
+}

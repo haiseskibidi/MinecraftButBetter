@@ -158,6 +158,16 @@ public class DataLoader {
         }
     }
 
+    public static JsonObject loadJson(String path) {
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path)) {
+            if (is == null) return new JsonObject();
+            return GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonObject.class);
+        } catch (Exception e) {
+            Logger.error("Failed to load JSON from " + path + ": " + e.getMessage());
+            return new JsonObject();
+        }
+    }
+
     private static void loadJournal(String ns) {
         loadJournalCategories(ns);
         loadJournalEntries(ns);

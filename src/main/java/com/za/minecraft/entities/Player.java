@@ -2,15 +2,21 @@ package com.za.minecraft.entities;
 
 import com.za.minecraft.engine.core.PlayerMode;
 import com.za.minecraft.world.World;
+import com.za.minecraft.entities.parkour.animation.AnimationRegistry;
+import com.za.minecraft.entities.parkour.animation.AnimationProfile;
 import org.joml.Vector3f;
 
 /**
- * The human-controlled entity.
+ * AAA-Grade Player Entity. 
+ * Synchronized Lerp & Movement Latching to eliminate all micro-jitter.
  */
 public class Player extends LivingEntity {
     private final Inventory inventory;
     private com.za.minecraft.engine.core.PlayerMode mode = com.za.minecraft.engine.core.PlayerMode.SURVIVAL;
     private final com.za.minecraft.entities.parkour.ParkourHandler parkourHandler = new com.za.minecraft.entities.parkour.ParkourHandler();
+    
+    // Cached Registry to prevent GC spikes
+    private final AnimationRegistry animationRegistry = new AnimationRegistry();
     
     // Survival stats
     private float hunger = 20.0f;
@@ -24,17 +30,37 @@ public class Player extends LivingEntity {
     
     // Animation and State
     private float currentEyeHeight;
-    private float walkBobTimer = 0.0f;
-    private float bobIntensity = 0.0f;
-    private float swingProgress = 0.0f;
-    private boolean swinging = false;
     private float parkourCameraTilt = 0.0f;
     private float parkourCameraRoll = 0.0f;
     private float fovOffset = 0.0f;
+    private float cameraOffsetX = 0.0f;
+    private float cameraOffsetY = 0.0f;
+    private float cameraOffsetZ = 0.0f;
+    private float lastYaw = 0.0f;
+    private float leanAmount = 0.0f;
+
+    // Item Animation State
+    private boolean swinging = false;
+    private float itemSwingTimer = 0.0f;
+    private float itemOffsetX = 0.0f;
+    private float itemOffsetY = 0.0f;
+    private float itemOffsetZ = 0.0f;
+    private float itemPitchOffset = 0.0f;
+    private float itemYawOffset = 0.0f;
+    private float itemRollOffset = 0.0f;
+
+    // Locomotion Engine
+    private float locomotionTimer = 0.0f;
+    private float movementAlpha = 0.0f;
+    private float landingImpact = 0.0f;
+    private boolean wasOnGround = true;
+    
+    // Jitter Mitigation
+    private float moveLatchTimer = 0.0f; // NEW: Keeps "moving" state stable
+    private static final float LATCH_DURATION = 0.15f; 
 
     private static final float MAX_HUNGER = 20.0f;
-    private static final float HUNGER_DEPletion_RATE = 0.1f; // Increased 20x for testing (was 0.005f)
-    private static final float NOISE_DECAY_RATE = 0.5f;
+    private static final float HUNGER_DEPletion_RATE = 0.1f;
     
     public Player(Vector3f startPosition) {
         super(startPosition, 
@@ -53,8 +79,6 @@ public class Player extends LivingEntity {
         updateAnimations(deltaTime);
         updateSneakState(world, deltaTime);
         parkourHandler.update(this, deltaTime, world);
-        
-        // Base physics and movement from Entity
         super.update(deltaTime, world);
     }
 
@@ -62,188 +86,181 @@ public class Player extends LivingEntity {
         return parkourHandler;
     }
 
-    public float getStamina() {
-        return stamina;
-    }
-
-    public void setStamina(float stamina) {
-        this.stamina = stamina;
-    }
-
     private void updateSneakState(World world, float deltaTime) {
         com.za.minecraft.world.physics.PhysicsSettings settings = com.za.minecraft.world.physics.PhysicsSettings.getInstance();
-        float targetHeight = sneaking ? settings.sneakingHeight : settings.standingHeight;
         float targetEyeHeight = sneaking ? settings.sneakingEyeHeight : settings.standingEyeHeight;
-
-        // If trying to stand up, check if there's enough space
+        
         if (!sneaking && boundingBox.getMax().y < settings.standingHeight) {
             if (canStandUp(world)) {
                 setBoundingBox(settings.playerWidth, settings.standingHeight);
             } else {
-                // Force sneaking if blocked
-                targetHeight = settings.sneakingHeight;
                 targetEyeHeight = settings.sneakingEyeHeight;
             }
         } else if (sneaking && boundingBox.getMax().y > settings.sneakingHeight) {
             setBoundingBox(settings.playerWidth, settings.sneakingHeight);
         }
-
-        // Smooth eye height transition
-        float lerpSpeed = 10.0f;
-        currentEyeHeight += (targetEyeHeight - currentEyeHeight) * lerpSpeed * deltaTime;
+        currentEyeHeight += (targetEyeHeight - currentEyeHeight) * 10.0f * deltaTime;
     }
 
     private boolean canStandUp(World world) {
         com.za.minecraft.world.physics.PhysicsSettings settings = com.za.minecraft.world.physics.PhysicsSettings.getInstance();
-        // Check standing height from current feet position
         com.za.minecraft.world.physics.AABB standingBox = new com.za.minecraft.world.physics.AABB(
             -settings.playerWidth / 2, 0, -settings.playerWidth / 2,
             settings.playerWidth / 2, settings.standingHeight, settings.playerWidth / 2
         ).offset(position);
-
-        int minX = (int) Math.floor(standingBox.getMin().x);
-        int maxX = (int) Math.floor(standingBox.getMax().x);
-        int minY = (int) Math.floor(standingBox.getMin().y);
-        int maxY = (int) Math.floor(standingBox.getMax().y);
-        int minZ = (int) Math.floor(standingBox.getMin().z);
-        int maxZ = (int) Math.floor(standingBox.getMax().z);
-
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                for (int z = minZ; z <= maxZ; z++) {
+        
+        for (int x = (int)Math.floor(standingBox.getMin().x); x <= (int)Math.floor(standingBox.getMax().x); x++) {
+            for (int y = (int)Math.floor(standingBox.getMin().y); y <= (int)Math.floor(standingBox.getMax().y); y++) {
+                for (int z = (int)Math.floor(standingBox.getMin().z); z <= (int)Math.floor(standingBox.getMax().z); z++) {
                     com.za.minecraft.world.blocks.Block block = world.getBlock(x, y, z);
-                    if (!block.isAir() && block.isSolid()) {
-                        com.za.minecraft.world.physics.VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
-                        if (shape != null) {
-                            for (com.za.minecraft.world.physics.AABB box : shape.getBoxes()) {
-                                if (standingBox.intersects(box.offset(x, y, z))) {
-                                    return false;
-                                }
-                            }
-                        }
-                    }
+                    if (!block.isAir() && block.isSolid()) return false;
                 }
             }
         }
         return true;
     }
 
-    public float getEyeHeight() {
-        return currentEyeHeight;
-    }
-
-    private float idleTimer = 0.0f;
-    private float walkTimer = 0.0f;
+    public float getEyeHeight() { return currentEyeHeight; }
 
     private void updateAnimations(float deltaTime) {
-        // Dynamic Animation System (DDD)
-        com.za.minecraft.entities.parkour.animation.AnimationRegistry registry = new com.za.minecraft.entities.parkour.animation.AnimationRegistry();
+        // 1. Inputs & Physics Feedback
+        float currentYaw = getRotation().y;
+        float yawDelta = currentYaw - lastYaw;
+        while (yawDelta < -Math.PI) yawDelta += Math.PI * 2;
+        while (yawDelta > Math.PI) yawDelta -= Math.PI * 2;
         
-        float targetTilt = 0.0f;
-        float targetRoll = 0.0f;
-        float targetFovOffset = 0.0f;
+        // Filter out micro-mouse movements
+        if (Math.abs(yawDelta) < 0.0001f) yawDelta = 0;
         
+        float leanTarget = -yawDelta * 0.8f; 
+        if (sprinting) leanTarget *= 1.2f;
+        leanAmount += (leanTarget - leanAmount) * (sneaking ? 3.0f : 7.0f) * deltaTime;
+        lastYaw = currentYaw;
+
+        if (onGround && !wasOnGround && velocity.y < -4.0f) {
+            landingImpact = Math.min(0.15f, Math.abs(velocity.y) * 0.015f);
+        }
+        wasOnGround = onGround;
+        landingImpact += (0.0f - landingImpact) * 10.0f * deltaTime;
+
+        // 2. Movement Latching (Anti-Jitter)
+        boolean isMovingPhysically = onGround && moving && velocity.lengthSquared() > 0.0001f;
+        if (isMovingPhysically) moveLatchTimer = LATCH_DURATION;
+        else moveLatchTimer = Math.max(0, moveLatchTimer - deltaTime);
+        
+        boolean stableMoving = moveLatchTimer > 0;
+        float alphaTarget = stableMoving ? 1.0f : 0.0f;
+        movementAlpha += (alphaTarget - movementAlpha) * (sneaking ? 4.0f : 8.0f) * deltaTime;
+
+        // 3. Profiles & Timing
+        String cN = sneaking ? "sneak" : (sprinting ? "sprint" : "walk");
+        String iN = sneaking ? "item_sneak" : (sprinting ? "item_sprint" : "item_walk");
+        String ciN = sneaking ? "sneak_idle" : "idle";
+        String iiN = sneaking ? "item_sneak_idle" : "item_idle";
+
+        AnimationProfile cp = animationRegistry.get(cN);
+        AnimationProfile ip = animationRegistry.get(iN);
+        AnimationProfile cip = animationRegistry.get(ciN);
+        AnimationProfile iip = animationRegistry.get(iiN);
+
+        float iDur = (cip != null) ? cip.getDuration() : 1.0f;
+        float wDur = (cp != null) ? cp.getDuration() : 1.0f;
+        float currentDuration = iDur + (wDur - iDur) * movementAlpha;
+        locomotionTimer += deltaTime / currentDuration;
+
+        // 4. Evaluation and Blending
+        float targetTilt = 0, targetRoll = 0, targetFov = 0, tCamY = 0;
+        float tItX = 0, tItY = 0, tItZ = 0, tItP = 0, tItYw = 0, tItR = 0;
+
         com.za.minecraft.entities.parkour.ParkourHandler.ParkourState pState = parkourHandler.getState();
-        float pProgress = parkourHandler.getProgress();
-        float side = parkourHandler.getClimbSide();
-
         if (pState != com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.NONE) {
-            // Parkour animations (Grabbing/Climbing)
-            String animName = (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.CLIMBING) ? "climbing" : "grabbing";
-            com.za.minecraft.entities.parkour.animation.AnimationProfile anim = registry.get(animName);
+            AnimationProfile anim = animationRegistry.get((pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.CLIMBING) ? "climbing" : "grabbing");
             if (anim != null) {
-                targetTilt = anim.evaluate("camera_tilt", pProgress, side);
-                targetRoll = anim.evaluate("camera_roll", pProgress, side);
-                targetFovOffset = anim.evaluate("fov_offset", pProgress, side);
-
-                if (anim.isJitterEnabled() && pProgress > anim.getJitterStart() && pProgress < anim.getJitterEnd()) {
-                    float intensityMult = (float) Math.sin((pProgress - anim.getJitterStart()) / (anim.getJitterEnd() - anim.getJitterStart()) * Math.PI);
-                    float intensity = anim.getJitterIntensity() * intensityMult;
-                    targetTilt += (float) (Math.sin(System.currentTimeMillis() / 15.0) * intensity);
-                    targetRoll += (float) (Math.cos(System.currentTimeMillis() / 12.0) * intensity);
-                }
+                targetTilt = anim.evaluate("camera_tilt", parkourHandler.getProgress(), parkourHandler.getClimbSide());
+                targetRoll = anim.evaluate("camera_roll", parkourHandler.getProgress(), parkourHandler.getClimbSide());
             }
         } else {
-            // Locomotion animations (Idle/Walk)
-            boolean isMoving = onGround && moving && velocity.lengthSquared() > 0.01f;
-            if (isMoving) {
-                float speedMult = sprinting ? 1.5f : (sneaking ? 0.6f : 1.0f);
-                com.za.minecraft.entities.parkour.animation.AnimationProfile walkAnim = registry.get("walk");
-                if (walkAnim != null) {
-                    walkTimer += deltaTime * speedMult / walkAnim.getDuration();
-                    targetTilt = walkAnim.evaluate("camera_tilt", walkTimer, 1.0f);
-                    targetRoll = walkAnim.evaluate("camera_roll", walkTimer, 1.0f);
-                }
-                idleTimer = 0;
-            } else {
-                com.za.minecraft.entities.parkour.animation.AnimationProfile idleAnim = registry.get("idle");
-                if (idleAnim != null) {
-                    idleTimer += deltaTime / idleAnim.getDuration();
-                    targetTilt = idleAnim.evaluate("camera_tilt", idleTimer, 1.0f);
-                    targetRoll = idleAnim.evaluate("camera_roll", idleTimer, 1.0f);
-                }
-                walkTimer = 0;
-            }
+            // Evaluated values
+            float wTilt = (cp != null) ? cp.evaluate("camera_tilt", locomotionTimer, 1.0f) : 0;
+            float wRoll = (cp != null) ? cp.evaluate("camera_roll", locomotionTimer, 1.0f) : 0;
+            float wFov = (cp != null) ? cp.evaluate("fov_offset", locomotionTimer, 1.0f) : 0;
+            float wCamY = (cp != null) ? cp.evaluate("camera_y", locomotionTimer, 1.0f) : 0;
+
+            float wItX = (ip != null) ? ip.evaluate("item_x", locomotionTimer, 1.0f) : 0;
+            float wItY = (ip != null) ? ip.evaluate("item_y", locomotionTimer, 1.0f) : 0;
+            float wItZ = (ip != null) ? ip.evaluate("item_z", locomotionTimer, 1.0f) : 0;
+            float wItP = (ip != null) ? ip.evaluate("item_pitch", locomotionTimer, 1.0f) : 0;
+            float wItR = (ip != null) ? ip.evaluate("item_roll", locomotionTimer, 1.0f) : 0;
+
+            float iTilt = (cip != null) ? cip.evaluate("camera_tilt", locomotionTimer, 1.0f) : 0;
+            float iRoll = (cip != null) ? cip.evaluate("camera_roll", locomotionTimer, 1.0f) : 0;
+            float iCamY = (cip != null) ? cip.evaluate("camera_y", locomotionTimer, 1.0f) : 0;
+
+            float iItX = (iip != null) ? iip.evaluate("item_x", locomotionTimer, 1.0f) : 0;
+            float iItY = (iip != null) ? iip.evaluate("item_y", locomotionTimer, 1.0f) : 0;
+            float iItZ = (iip != null) ? iip.evaluate("item_z", locomotionTimer, 1.0f) : 0;
+            float iItP = (iip != null) ? iip.evaluate("item_pitch", locomotionTimer, 1.0f) : 0;
+            float iItR = (iip != null) ? iip.evaluate("item_roll", locomotionTimer, 1.0f) : 0;
+
+            // Blending
+            targetTilt = iTilt + (wTilt - iTilt) * movementAlpha;
+            targetRoll = (iRoll + (wRoll - iRoll) * movementAlpha) + leanAmount;
+            targetFov = wFov * movementAlpha;
+            tCamY = iCamY + (wCamY - iCamY) * movementAlpha;
+            
+            tItX = iItX + (wItX - iItX) * movementAlpha;
+            tItY = iItY + (wItY - iItY) * movementAlpha;
+            tItZ = iItZ + (wItZ - iItZ) * movementAlpha;
+            tItP = iItP + (wItP - iItP) * movementAlpha;
+            tItR = iItR + (wItR - iItR) * movementAlpha;
         }
 
-        if (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.HANGING) {
-            targetTilt = 0.04f;
-            targetRoll = (float) (Math.sin(System.currentTimeMillis() / 800.0) * 0.012f);
-        }
+        // 5. Final Synchronized Lerp (THE JITTER KILLER)
+        // Camera and Item MUST use same speed to prevent relative vibration
+        float syncLerp = (sneaking) ? 5.0f : 8.0f;
+        
+        parkourCameraTilt += (targetTilt + landingImpact - parkourCameraTilt) * syncLerp * deltaTime;
+        parkourCameraRoll += (targetRoll - parkourCameraRoll) * syncLerp * deltaTime;
+        fovOffset += (targetFov - fovOffset) * 4.0f * deltaTime;
+        cameraOffsetY += (tCamY - cameraOffsetY) * syncLerp * deltaTime;
 
-        // Multi-rate Lerp for organic feel
-        float tiltLerp = (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.NONE) ? 4.0f : 12.0f;
-        float rollLerp = (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.NONE) ? 3.0f : 10.0f;
-        float fovLerp = (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.NONE) ? 2.0f : 8.0f;
+        itemOffsetX += (tItX + (leanAmount * 0.1f) - itemOffsetX) * syncLerp * deltaTime;
+        itemOffsetY += (tItY - itemOffsetY) * syncLerp * deltaTime;
+        itemOffsetZ += (tItZ - itemOffsetZ) * syncLerp * deltaTime;
+        itemPitchOffset += (tItP - itemPitchOffset) * syncLerp * deltaTime;
+        itemYawOffset += ((leanAmount * 0.2f) - itemYawOffset) * syncLerp * deltaTime;
+        itemRollOffset += (tItR + (leanAmount * 0.5f) - itemRollOffset) * syncLerp * deltaTime;
 
-        parkourCameraTilt += (targetTilt - parkourCameraTilt) * tiltLerp * deltaTime;
-        parkourCameraRoll += (targetRoll - parkourCameraRoll) * rollLerp * deltaTime;
-        fovOffset += (targetFovOffset - fovOffset) * fovLerp * deltaTime;
-
-        // --- Original View Model Bobbing Logic (Keep for now or refactor later) ---
-        if (onGround && moving && velocity.lengthSquared() > 0.01f) {
-            float speedMult = sprinting ? 1.5f : (sneaking ? 0.5f : 1.0f);
-            walkBobTimer += 10.0f * speedMult * deltaTime;
-            bobIntensity = Math.min(1.0f, bobIntensity + 5.0f * deltaTime);
-        } else {
-            bobIntensity = Math.max(0.0f, bobIntensity - 5.0f * deltaTime);
-            if (bobIntensity > 0) walkBobTimer += 5.0f * deltaTime;
-            else walkBobTimer = 0;
-        }
-
+        // 6. Action: Swing
         if (swinging) {
-            swingProgress += 5.0f * deltaTime;
-            if (swingProgress >= 1.0f) {
-                swingProgress = 0;
-                swinging = false;
-            }
+            AnimationProfile swingAnim = animationRegistry.get("item_swing");
+            if (swingAnim != null) {
+                itemSwingTimer += deltaTime / swingAnim.getDuration();
+                if (itemSwingTimer >= 1.0f) { swinging = false; itemSwingTimer = 0; }
+                else {
+                    itemOffsetX += swingAnim.evaluate("item_x", itemSwingTimer, 1.0f);
+                    itemOffsetY += swingAnim.evaluate("item_y", itemSwingTimer, 1.0f);
+                    itemPitchOffset += swingAnim.evaluate("item_pitch", itemSwingTimer, 1.0f);
+                }
+            } else swinging = false;
         }
     }
 
-    public float getCameraPitchOffset() {
-        return parkourCameraTilt;
-    }
+    public float getCameraPitchOffset() { return parkourCameraTilt; }
+    public float getCameraRollOffset() { return parkourCameraRoll; }
+    public float getFovOffset() { return fovOffset; }
+    public float getCameraOffsetX() { return cameraOffsetX; }
+    public float getCameraOffsetY() { return cameraOffsetY; }
+    public float getCameraOffsetZ() { return cameraOffsetZ; }
+    public float getItemOffsetX() { return itemOffsetX; }
+    public float getItemOffsetY() { return itemOffsetY; }
+    public float getItemOffsetZ() { return itemOffsetZ; }
+    public float getItemPitchOffset() { return itemPitchOffset; }
+    public float getItemYawOffset() { return itemYawOffset; }
+    public float getItemRollOffset() { return itemRollOffset; }
 
-    public float getCameraRollOffset() {
-        return parkourCameraRoll;
-    }
-
-    public float getFovOffset() {
-        return fovOffset;
-    }
-
-    public void swing() {
-        if (!swinging) {
-            swinging = true;
-            swingProgress = 0;
-        }
-    }
-
-    public float getWalkBobTimer() { return walkBobTimer; }
-    public float getBobIntensity() { return bobIntensity; }
-    public float getSwingProgress() { return swingProgress; }
+    public void swing() { if (!swinging) { swinging = true; itemSwingTimer = 0; } }
     public boolean isMoving() { return moving; }
-
     private void updateNoise(float deltaTime) {
         float floorNoise = 0.0f;
         if (!flying && moving) {
@@ -251,114 +268,42 @@ public class Player extends LivingEntity {
             else if (sneaking) floorNoise = 0.02f;
             else floorNoise = 0.10f;
         }
-        
-        floorNoise = Math.max(floorNoise, continuousNoise);
-        
-        if (noiseLevel > floorNoise) {
-            noiseLevel = Math.max(floorNoise, noiseLevel - NOISE_DECAY_RATE * deltaTime);
-        } else if (noiseLevel < floorNoise) {
-            noiseLevel = floorNoise;
-        }
-        
+        noiseLevel = Math.max(floorNoise, Math.max(continuousNoise, noiseLevel - 0.5f * deltaTime));
         continuousNoise = 0.0f;
     }
-
-    public void addNoise(float amount) {
-        this.noiseLevel = Math.min(1.0f, this.noiseLevel + amount);
-    }
-
-    public void setContinuousNoise(float level) {
-        this.continuousNoise = Math.max(this.continuousNoise, level);
-    }
-
-    public float getNoiseLevel() {
-        return noiseLevel;
-    }
-
-    public void setSneaking(boolean sneaking) {
-        this.sneaking = sneaking;
-    }
-
-    public boolean isSneaking() {
-        return sneaking;
-    }
-
-    public boolean isPhysicallySneaking() {
-        com.za.minecraft.world.physics.PhysicsSettings settings = com.za.minecraft.world.physics.PhysicsSettings.getInstance();
-        return boundingBox.getMax().y < settings.standingHeight - 0.01f;
-    }
-
-    public void setMoving(boolean moving) {
-        this.moving = moving;
-    }
-
-    public void setSprinting(boolean sprinting) {
-        this.sprinting = sprinting;
-    }
+    public void addNoise(float amount) { this.noiseLevel = Math.min(1.0f, this.noiseLevel + amount); }
+    public void setContinuousNoise(float level) { this.continuousNoise = Math.max(this.continuousNoise, level); }
+    public float getNoiseLevel() { return noiseLevel; }
+    public void setSneaking(boolean sneaking) { this.sneaking = sneaking; }
+    public boolean isSneaking() { return sneaking; }
+    public boolean isPhysicallySneaking() { return boundingBox.getMax().y < com.za.minecraft.world.physics.PhysicsSettings.getInstance().standingHeight - 0.01f; }
+    public void setMoving(boolean moving) { this.moving = moving; }
+    public void setSprinting(boolean sprinting) { this.sprinting = sprinting; }
+    public float getStamina() { return stamina; }
+    public void setStamina(float stamina) { this.stamina = stamina; }
 
     private void updateHunger(float deltaTime) {
-        float depletionMultiplier = 1.0f;
-        if (sprinting) depletionMultiplier = 3.0f;
-        if (!onGround && !flying) depletionMultiplier = 2.0f;
-
-        if (saturation > 0) {
-            saturation -= HUNGER_DEPletion_RATE * depletionMultiplier * deltaTime;
-        } else {
-            hunger = Math.max(0, hunger - HUNGER_DEPletion_RATE * depletionMultiplier * deltaTime);
-        }
+        float mult = sprinting ? 3.0f : (!onGround && !flying ? 2.0f : 1.0f);
+        if (saturation > 0) saturation -= 0.1f * mult * deltaTime;
+        else hunger = Math.max(0, hunger - 0.1f * mult * deltaTime);
     }
-
     public void eat(com.za.minecraft.world.items.Item item) {
-        if (hunger < MAX_HUNGER) {
-            com.za.minecraft.world.items.component.FoodComponent food = item.getComponent(com.za.minecraft.world.items.component.FoodComponent.class);
-            if (food != null) {
-                hunger = Math.min(MAX_HUNGER, hunger + food.nutrition());
-                saturation = Math.min(MAX_HUNGER, saturation + food.saturationBonus());
-                com.za.minecraft.utils.Logger.info("Ate %s. Hunger: %.1f", item.getName(), hunger);
-            }
+        com.za.minecraft.world.items.component.FoodComponent food = item.getComponent(com.za.minecraft.world.items.component.FoodComponent.class);
+        if (food != null && hunger < 20.0f) {
+            hunger = Math.min(20.0f, hunger + food.nutrition());
+            saturation = Math.min(20.0f, saturation + food.saturationBonus());
         }
     }
-
-    public float getHunger() {
-        return hunger;
-    }
-    
-    public void jump() {
-        if (onGround || flying) {
-            velocity.y = com.za.minecraft.world.physics.PhysicsSettings.getInstance().jumpVelocity;
-            onGround = false;
-        }
-    }
-    
-    public void addVelocity(float vx, float vy, float vz) {
-        velocity.add(vx, vy, vz);
-    }
-    
+    public float getHunger() { return hunger; }
+    public void jump() { if (onGround || flying) { velocity.y = com.za.minecraft.world.physics.PhysicsSettings.getInstance().jumpVelocity; onGround = false; } }
+    public void addVelocity(float vx, float vy, float vz) { velocity.add(vx, vy, vz); }
     public void applyHorizontalAcceleration(float ax, float az, float maxSpeed) {
-        velocity.x += ax;
-        velocity.z += az;
+        velocity.x += ax; velocity.z += az;
         float speed = (float) Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
-        if (speed > maxSpeed && speed > 0.0001f) {
-            float scale = maxSpeed / speed;
-            velocity.x *= scale;
-            velocity.z *= scale;
-        }
+        if (speed > maxSpeed && speed > 0.0001f) { float scale = maxSpeed / speed; velocity.x *= scale; velocity.z *= scale; }
     }
-
-    public void setHorizontalVelocity(float vx, float vz) {
-        velocity.x = vx;
-        velocity.z = vz;
-    }
-    
-    public Inventory getInventory() {
-        return inventory;
-    }
-
-    public PlayerMode getMode() {
-        return mode;
-    }
-
-    public void setMode(PlayerMode mode) {
-        this.mode = mode;
-    }
+    public void setHorizontalVelocity(float vx, float vz) { velocity.x = vx; velocity.z = vz; }
+    public Inventory getInventory() { return inventory; }
+    public PlayerMode getMode() { return mode; }
+    public void setMode(PlayerMode mode) { this.mode = mode; }
 }

@@ -1,0 +1,15 @@
+{
+  "looping": true,
+  "duration": 3.0,
+  "tracks": {
+    "camera_y": [
+      [0.0, 0.0, "sine"],
+      [0.5, -0.015, "sine"],
+      [1.0, 0.0, "linear"]
+    ],
+    "camera_tilt": [
+      [0.0, 0.01, "linear"],
+      [1.0, 0.01, "linear"]
+    ]
+  }
+}

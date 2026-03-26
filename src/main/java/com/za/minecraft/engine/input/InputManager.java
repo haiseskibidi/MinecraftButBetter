@@ -585,12 +585,13 @@ public class InputManager {
             }
         }
 
-        float intensity = player.getBobIntensity();
-        float bobX = (float) Math.sin(player.getWalkBobTimer() * 0.5f) * 0.04f * intensity;
-        float bobY = (float) Math.sin(player.getWalkBobTimer()) * 0.04f * intensity;
-        camera.setOffsets(bobX, bobY, 0);
-        
+        camera.setOffsets(player.getCameraOffsetX(), player.getCameraOffsetY(), player.getCameraOffsetZ());
+        camera.setPitchOffset(player.getCameraPitchOffset());
+        camera.setRollOffset(player.getCameraRollOffset());
+        camera.setFovOffset(player.getFovOffset());
+
         Vector2f moveVector = new Vector2f();
+
         if (!inventoryOpen && !paused && !nappingOpen) {
             if (window.isKeyPressed(GLFW_KEY_W)) moveVector.y = 1;
             if (window.isKeyPressed(GLFW_KEY_S)) moveVector.y = -1;

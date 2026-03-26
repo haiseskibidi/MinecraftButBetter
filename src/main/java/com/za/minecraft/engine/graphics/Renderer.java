@@ -197,15 +197,6 @@ public class Renderer {
         
         Matrix4f viewModelMatrix = new Matrix4f().identity();
         
-        float intensity = player.getBobIntensity();
-        float bobX = (float) Math.sin(player.getWalkBobTimer() * 0.5f) * 0.05f * intensity;
-        float bobY = (float) Math.sin(player.getWalkBobTimer()) * 0.04f * intensity;
-
-        float swing = player.getSwingProgress();
-        float swingAngle = (float) Math.sin(swing * Math.PI) * 1.2f;
-        float swingMoveX = (float) Math.sin(swing * Math.PI) * 0.4f;
-        float swingMoveY = (float) Math.sin(swing * Math.PI) * 0.2f;
-
         // --- Render Held Item ---
         ItemStack stack = player.getInventory().getSelectedItemStack();
         if (stack != null) {
@@ -230,13 +221,13 @@ public class Renderer {
             if (heldItemMesh != null) {
                 viewModelMatrix.identity();
                 
-                float px = transform.px + bobX - (isBlock ? swingMoveX : swingMoveX * 0.5f);
-                float py = transform.py + bobY - (isBlock ? swingMoveY : swingMoveY * 0.8f);
-                float pz = transform.pz + (swingMoveX * 0.2f);
+                float px = transform.px + player.getItemOffsetX();
+                float py = transform.py + player.getItemOffsetY();
+                float pz = transform.pz + player.getItemOffsetZ();
                 
-                float rx = (float)Math.toRadians(transform.rx) - (isBlock ? swingAngle * 0.4f : swingAngle * 1.5f);
-                float ry = (float)Math.toRadians(transform.ry) + (isBlock ? swingAngle * 0.2f : swingAngle * 0.2f);
-                float rz = (float)Math.toRadians(transform.rz) + (isBlock ? 0.1f : 0.0f);
+                float rx = (float)Math.toRadians(transform.rx) + player.getItemPitchOffset();
+                float ry = (float)Math.toRadians(transform.ry) + player.getItemYawOffset();
+                float rz = (float)Math.toRadians(transform.rz) + player.getItemRollOffset();
 
                 viewModelMatrix.translate(px, py, pz)
                     .rotateX(rx)

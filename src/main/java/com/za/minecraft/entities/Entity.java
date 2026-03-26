@@ -19,7 +19,7 @@ public abstract class Entity {
     protected boolean flying = false;
     protected boolean removed = false;
     
-    protected static final float GRAVITY = -9.81f * 2.0f;
+    protected static final float GRAVITY = -28.0f;
     protected static final float TERMINAL_VELOCITY = -50.0f;
 
     public Entity(Vector3f position, float width, float height) {

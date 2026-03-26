@@ -1,23 +1,32 @@
 {
   "looping": true,
-  "duration": 1.0,
+  "duration": 1.4,
   "tracks": {
-    "camera_tilt": [
+    "camera_roll": [
       [0.0, 0.0, "sine"],
-      [0.25, 0.05, "sine"],
+      [0.25, 0.005, "sine"],
       [0.5, 0.0, "sine"],
-      [0.75, 0.05, "sine"],
+      [0.75, -0.005, "sine"],
       [1.0, 0.0, "linear"]
     ],
-    "camera_roll": {
-      "mirrored": true,
-      "keyframes": [
-        [0.0, 0.0, "sine"],
-        [0.25, 0.02, "sine"],
-        [0.5, 0.0, "sine"],
-        [0.75, -0.02, "sine"],
-        [1.0, 0.0, "linear"]
-      ]
-    }
+    "camera_tilt": [
+      [0.0, 0.0, "sine"],
+      [0.5, 0.012, "sine"],
+      [1.0, 0.0, "linear"]
+    ],
+    "camera_x": [
+      [0.0, 0.0, "sine"],
+      [0.25, 0.025, "sine"],
+      [0.5, 0.0, "sine"],
+      [0.75, -0.025, "sine"],
+      [1.0, 0.0, "linear"]
+    ],
+    "camera_y": [
+      [0.0, 0.0, "sine"],
+      [0.25, 0.015, "sine"],
+      [0.5, -0.005, "sine"],
+      [0.75, 0.015, "sine"],
+      [1.0, 0.0, "linear"]
+    ]
   }
 }

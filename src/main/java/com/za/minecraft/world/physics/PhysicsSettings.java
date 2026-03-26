@@ -14,9 +14,9 @@ public class PhysicsSettings {
     public float sneakingEyeHeight = 1.25f;
 
     // Movement Multipliers
-    public float sprintMultiplier = 1.45f;
-    public float sneakSpeedMultiplier = 0.3f;
-    public float flySprintMultiplier = 1.8f;
+    public float sprintMultiplier = 1.85f;
+    public float sneakSpeedMultiplier = 0.45f;
+    public float flySprintMultiplier = 2.0f;
 
     // Parkour
     public float maxGrabHeight = 2.45f;
@@ -25,9 +25,9 @@ public class PhysicsSettings {
     public float climbDuration = 0.45f;
 
     // Base Physics
-    public float jumpVelocity = 8.0f;
-    public float baseMoveSpeed = 3.8f;
-    public float flySpeed = 9.0f;
+    public float jumpVelocity = 11.5f;
+    public float baseMoveSpeed = 2.4f;
+    public float flySpeed = 10.0f;
     
     // Input
     public float mouseSensitivity = 0.002f;

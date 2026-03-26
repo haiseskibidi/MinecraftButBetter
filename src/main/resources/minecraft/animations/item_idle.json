@@ -1,0 +1,16 @@
+{
+  "looping": true,
+  "duration": 5.0,
+  "tracks": {
+    "item_y": [
+      [0.0, 0.0, "sine"],
+      [0.5, -0.015, "sine"],
+      [1.0, 0.0, "linear"]
+    ],
+    "item_pitch": [
+      [0.0, 0.0, "sine"],
+      [0.5, 0.02, "sine"],
+      [1.0, 0.0, "linear"]
+    ]
+  }
+}
