@@ -26,21 +26,32 @@ public class BlockTextureMapper {
     }
 
     private static float[] rotateUv90(float[] uv, boolean clockwise) {
-        float u0 = uv[0], v0 = uv[1];
-        float u1 = uv[2], v1 = uv[5];
+        // uv is 12 floats: (U,V,W) x 4 vertices
+        // Vertices: 0:LB, 1:RB, 2:RT, 3:LT
+        float u0 = uv[0], v0 = uv[1], w0 = uv[2];
+        float u1 = uv[3], v1 = uv[4], w1 = uv[5];
+        float u2 = uv[6], v2 = uv[7], w2 = uv[8];
+        float u3 = uv[9], v3 = uv[10], w3 = uv[11];
+
         if (clockwise) {
+            // Rotate 90 CW: 0->1, 1->2, 2->3, 3->0
+            // BUT we want to keep the same vertex positions (LB, RB, RT, LT) 
+            // and rotate the UV mapping ON them.
+            // Old mapping: 0,0 1,0 1,1 0,1
+            // New mapping: 0,1 0,0 1,0 1,1
             return new float[]{
-                u0, v1,
-                u0, v0,
-                u1, v0,
-                u1, v1
+                u3, v3, w3,
+                u0, v0, w0,
+                u1, v1, w1,
+                u2, v2, w2
             };
         } else {
+            // Rotate 90 CCW: 1->0, 2->1, 3->2, 0->3
             return new float[]{
-                u1, v0,
-                u1, v1,
-                u0, v1,
-                u0, v0
+                u1, v1, w1,
+                u2, v2, w2,
+                u3, v3, w3,
+                u0, v0, w0
             };
         }
     }
