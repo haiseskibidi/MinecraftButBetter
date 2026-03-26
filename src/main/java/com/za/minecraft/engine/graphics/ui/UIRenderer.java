@@ -73,6 +73,7 @@ public class UIRenderer {
         
         uiShader.use();
         uiShader.setInt("textureSampler", 0);
+        uiShader.setInt("arraySampler", 1);
         
         devScroller.setBounds(0, 0, 0, 0); // Will be set in render
 
@@ -138,6 +139,7 @@ public class UIRenderer {
         
         uiShader.use();
         uiShader.setInt("useTexture", 1);
+        uiShader.setInt("useArray", 0);
         uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
         
         float crosshairSize = 16.0f;
@@ -299,16 +301,17 @@ public class UIRenderer {
         uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
 
         if (item.isBlock()) {
+            glActiveTexture(GL_TEXTURE1);
             atlas.bind();
             uiShader.setInt("useTexture", 1);
+            uiShader.setInt("useArray", 1);
             float[] uv = BlockTextureMapper.uvFor(new Block(item.getId()), 0, atlas);
-            float uMin = Math.min(uv[0], uv[4]);
-            float vMin = Math.min(uv[1], uv[5]);
-            float uMax = Math.max(uv[0], uv[4]);
-            float vMax = Math.max(uv[1], uv[5]);
-            uiShader.setUniform("uvOffset", uMin, vMin, 0.0f, 0.0f);
-            uiShader.setUniform("uvScale", uMax - uMin, vMax - vMin, 0.0f, 0.0f);
+            uiShader.setFloat("layerIndex", uv[2]);
+            uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+            uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
         } else {
+            uiShader.setInt("useArray", 0);
+            glActiveTexture(GL_TEXTURE0);
             String path = item.getTexturePath();
             if (path != null && !path.isEmpty()) {
                 Texture tex = itemTextures.get(item.getId());
@@ -664,8 +667,10 @@ public class UIRenderer {
         float scaleY = hotbarHeight / screenHeight;
         float posX = (2.0f * hotbarX / screenWidth) - 1.0f + scaleX;
         float posY = 1.0f - (2.0f * hotbarY / screenHeight) - scaleY;
+
         uiShader.use();
         uiShader.setInt("useTexture", 1);
+        uiShader.setInt("useArray", 0);
         uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
         uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
         uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
@@ -685,6 +690,7 @@ public class UIRenderer {
         float scaleY = selectionHeight / screenHeight;
         float posX = (2.0f * selectionX / screenWidth) - 1.0f + scaleX;
         float posY = 1.0f - (2.0f * selectionY / screenHeight) - scaleY;
+        uiShader.setInt("useArray", 0);
         uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
         uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
         uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
@@ -775,6 +781,7 @@ public class UIRenderer {
             tex.bind();
             uiShader.use();
             uiShader.setInt("useTexture", 1);
+            uiShader.setInt("useArray", 0);
             uiShader.setInt("isGrayscale", 0);
             
             float scaleX = (float)width / sw;

@@ -39,10 +39,9 @@ public class CarvingRenderer {
 
         shader.setBoolean("useMask", true);
         shader.setInt("faceMask", mask);
-        shader.setBoolean("previewPass", false); 
-        shader.setUniform("overlayUV", uv[0], uv[1], uv[4], uv[5]);
+        shader.setBoolean("previewPass", false);
+        shader.setFloat("overlayLayer", uv[2]);
         shader.setFloat("brightnessMultiplier", 1.25f);
-
         modelMatrix.identity().translate(pos.x(), pos.y() + 1.01f, pos.z());
         shader.setMatrix4f("model", modelMatrix);
         
@@ -61,10 +60,10 @@ public class CarvingRenderer {
         };
         float[] normals = { 0, 1, 0,  0, 1, 0,  0, 1, 0,  0, 1, 0 };
         float[] texCoords = { 
-            0, 1, // BL
-            1, 1, // BR
-            1, 0, // TR
-            0, 0  // TL
+            0, 1, 0, // BL
+            1, 1, 0, // BR
+            1, 0, 0, // TR
+            0, 0, 0  // TL
         };
         float[] blockTypes = { 150, 150, 150, 150 }; // Stump Top ID
         float[] neighborData = { 0, 0, 0, 0 };

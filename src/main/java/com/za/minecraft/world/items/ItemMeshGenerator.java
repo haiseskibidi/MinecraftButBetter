@@ -57,13 +57,15 @@ public class ItemMeshGenerator {
             return null;
         }
         
-        float u0 = uvs[0], v0 = uvs[1], u1 = uvs[4], v1 = uvs[5];
+        float layer = uvs[2];
+        float u0 = 0, v0 = 0, u1 = 1, v1 = 1; // Texture array layers are always 0..1
         float uSize = u1 - u0;
         float vSize = v1 - v0;
 
-        // Micro-padding to prevent texture bleeding
-        float uE = uSize / (width * 10.0f);
-        float vE = vSize / (height * 10.0f);
+        // In texture arrays, we don't need micro-padding as much, 
+        // but let's keep it for pixel-perfect sampling if needed.
+        float uE = 0.0f;
+        float vE = 0.0f;
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
@@ -74,7 +76,7 @@ public class ItemMeshGenerator {
                     float x1 = (float) (x + 1) / width - 0.5f;
                     float y1 = (float) (y + 1) / height;
                     
-                    // Texture coordinates (v0 is bottom, v1 is top due to flip)
+                    // Texture coordinates
                     float pu0 = u0 + (float) x / width * uSize + uE;
                     float pv0 = v0 + (float) y / height * vSize + vE; 
                     float pu1 = u0 + (float) (x + 1) / width * uSize - uE;
@@ -83,12 +85,12 @@ public class ItemMeshGenerator {
                     // 1. FRONT FACE (+Z)
                     addQuad(positions, texCoords, normals, indices,
                         x0, y0, h,  x1, y0, h,  x1, y1, h,  x0, y1, h,
-                        pu0, pv0, pu1, pv0, pu1, pv1, pu0, pv1, 0, 0, 1);
+                        pu0, pv0, layer, pu1, pv0, layer, pu1, pv1, layer, pu0, pv1, layer, 0, 0, 1);
 
                     // 2. BACK FACE (-Z) - CCW from outside
                     addQuad(positions, texCoords, normals, indices,
                         x0, y0, -h,  x0, y1, -h,  x1, y1, -h,  x1, y0, -h,
-                        pu0, pv0, pu0, pv1, pu1, pv1, pu1, pv0, 0, 0, -1);
+                        pu0, pv0, layer, pu0, pv1, layer, pu1, pv1, layer, pu1, pv0, layer, 0, 0, -1);
                     
                     // Sides sampling (pixel center)
                     float mu = (pu0 + pu1) * 0.5f;
@@ -98,25 +100,25 @@ public class ItemMeshGenerator {
                     if (!isOpaque(image, x, y + 1, width, height)) {
                         addQuad(positions, texCoords, normals, indices,
                             x0, y1, h,  x1, y1, h,  x1, y1, -h,  x0, y1, -h,
-                            mu, mv, mu, mv, mu, mv, mu, mv, 0, 1, 0);
+                            mu, mv, layer, mu, mv, layer, mu, mv, layer, mu, mv, layer, 0, 1, 0);
                     }
                     // 4. BOTTOM (-Y) - CCW from outside
                     if (!isOpaque(image, x, y - 1, width, height)) {
                         addQuad(positions, texCoords, normals, indices,
                             x0, y0, -h,  x1, y0, -h,  x1, y0, h,  x0, y0, h,
-                            mu, mv, mu, mv, mu, mv, mu, mv, 0, -1, 0);
+                            mu, mv, layer, mu, mv, layer, mu, mv, layer, mu, mv, layer, 0, -1, 0);
                     }
                     // 5. LEFT (-X) - CCW from outside
                     if (!isOpaque(image, x - 1, y, width, height)) {
                         addQuad(positions, texCoords, normals, indices,
                             x0, y0, -h,  x0, y0, h,  x0, y1, h,  x0, y1, -h,
-                            mu, mv, mu, mv, mu, mv, mu, mv, -1, 0, 0);
+                            mu, mv, layer, mu, mv, layer, mu, mv, layer, mu, mv, layer, -1, 0, 0);
                     }
                     // 6. RIGHT (+X) - CCW from outside
                     if (!isOpaque(image, x + 1, y, width, height)) {
                         addQuad(positions, texCoords, normals, indices,
                             x1, y0, h,  x1, y0, -h,  x1, y1, -h,  x1, y1, h,
-                            mu, mv, mu, mv, mu, mv, mu, mv, 1, 0, 0);
+                            mu, mv, layer, mu, mv, layer, mu, mv, layer, mu, mv, layer, 1, 0, 0);
                     }
                 }
             }
@@ -150,17 +152,20 @@ public class ItemMeshGenerator {
                                float x1, float y1, float z1,
                                float x2, float y2, float z2,
                                float x3, float y3, float z3,
-                               float u0, float v0, float u1, float v1, float u2, float v2, float u3, float v3,
+                               float u0, float v0, float w0, 
+                               float u1, float v1, float w1,
+                               float u2, float v2, float w2,
+                               float u3, float v3, float w3,
                                float nx, float ny, float nz) {
         int start = pos.size() / 3;
         pos.add(x0); pos.add(y0); pos.add(z0);
         pos.add(x1); pos.add(y1); pos.add(z1);
         pos.add(x2); pos.add(y2); pos.add(z2);
         pos.add(x3); pos.add(y3); pos.add(z3);
-        tex.add(u0); tex.add(v0);
-        tex.add(u1); tex.add(v1);
-        tex.add(u2); tex.add(v2);
-        tex.add(u3); tex.add(v3);
+        tex.add(u0); tex.add(v0); tex.add(w0);
+        tex.add(u1); tex.add(v1); tex.add(w1);
+        tex.add(u2); tex.add(v2); tex.add(w2);
+        tex.add(u3); tex.add(v3); tex.add(w3);
         for (int i = 0; i < 4; i++) {
             norm.add(nx); norm.add(ny); norm.add(nz);
         }

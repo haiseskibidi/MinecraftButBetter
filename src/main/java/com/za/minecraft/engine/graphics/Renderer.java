@@ -119,13 +119,12 @@ public class Renderer {
         blockShader.setVector3f("lightColor", new Vector3f(0.3f, 0.3f, 0.25f)); // Слабый directional свет
         blockShader.setVector3f("ambientLight", new Vector3f(0.85f, 0.85f, 0.9f)); // Яркий ambient как в Minecraft
         blockShader.setInt("textureSampler", 0);
-        
-        // Connected Glass UVs
+
+        // Connected Glass Layer
         float[] glassUV = atlas.uvFor("minecraft/textures/block/glass.png");
-        blockShader.setUniform("glassUV", glassUV[0], glassUV[1], glassUV[2], glassUV[5]);
-        
-        framebuffer = new Framebuffer(windowWidth, windowHeight);
-        postProcessor = new PostProcessor();
+        blockShader.setFloat("glassLayer", glassUV[2]);
+
+        framebuffer = new Framebuffer(windowWidth, windowHeight);        postProcessor = new PostProcessor();
         postProcessor.init();
         
         uiRenderer = new UIRenderer();

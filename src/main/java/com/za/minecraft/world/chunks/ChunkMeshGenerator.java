@@ -67,12 +67,18 @@ public class ChunkMeshGenerator {
                     case 4: lu = vx; lv = 1.0f - vz; break;
                     case 5: lu = vx; lv = vz; break;
                 }
-                float topU = fullUv[0] * (1 - lu) + fullUv[2] * lu;
-                float topV = fullUv[1] * (1 - lu) + fullUv[3] * lu;
-                float botU = fullUv[6] * (1 - lu) + fullUv[4] * lu;
-                float botV = fullUv[7] * (1 - lu) + fullUv[5] * lu;
+                // fullUv now contains 12 values: U, V, W for 4 vertices
+                // index: 0,1,2 (V0), 3,4,5 (V1), 6,7,8 (V2), 9,10,11 (V3)
+                float topU = fullUv[0] * (1 - lu) + fullUv[3] * lu;
+                float topV = fullUv[1] * (1 - lu) + fullUv[4] * lu;
+                float botU = fullUv[9] * (1 - lu) + fullUv[6] * lu;
+                float botV = fullUv[10] * (1 - lu) + fullUv[7] * lu;
+                
+                float layer = fullUv[2]; // Layer is constant for all vertices of one face
+
                 texCoords.add(topU * (1 - lv) + botU * lv);
                 texCoords.add(topV * (1 - lv) + botV * lv);
+                texCoords.add(layer);
             }
             for (int idx : FACE_INDICES) indices.add(vertexIndex + idx);
             vertexIndex += 4;
@@ -86,8 +92,10 @@ public class ChunkMeshGenerator {
                 normals.add(fn[v*3]);
                 normals.add(fn[v*3+1]);
                 normals.add(fn[v*3+2]);
-                texCoords.add(uv[v*2]);
-                texCoords.add(uv[v*2+1]);
+                // uv is now 12 values (UVW per vertex)
+                texCoords.add(uv[v*3]);
+                texCoords.add(uv[v*3+1]);
+                texCoords.add(uv[v*3+2]);
                 blockTypes.add(blockTypeId);
                 neighborData.add(0.0f);
             }
@@ -120,9 +128,8 @@ public class ChunkMeshGenerator {
 
         if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
             float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
-            float u0 = uvs[0], v0 = uvs[1], u1 = uvs[4], v1 = uvs[5];
-            addCrossPlane(data, 0, 0, 0, 0, 0, 1, 1, u0, v0, u1, v1, finalBlockType);
-            addCrossPlane(data, 0, 0, 0, 0, 1, 1, 0, u0, v0, u1, v1, finalBlockType);
+            addCrossPlane(data, 0, 0, 0, 0, 0, 1, 1, uvs, finalBlockType);
+            addCrossPlane(data, 0, 0, 0, 0, 1, 1, 0, uvs, finalBlockType);
             return data.build();
         }
 
@@ -194,10 +201,8 @@ public class ChunkMeshGenerator {
 
                     if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
                         float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
-                        float u0 = uvs[0], v0 = uvs[1], u1 = uvs[4], v1 = uvs[5];
-                        
-                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 0, 1, 1, u0, v0, u1, v1, finalBlockType);
-                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 1, 1, 0, u0, v0, u1, v1, finalBlockType);
+                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 0, 1, 1, uvs, finalBlockType);
+                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 1, 1, 0, uvs, finalBlockType);
                         continue;
                     }
 
@@ -272,16 +277,27 @@ public class ChunkMeshGenerator {
         return new ChunkMeshResult(opaque.build(), translucent.build());
     }
 
-    private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float z0, float x1, float z1, float u0, float v0, float u1, float v1, float blockTypeId) {
+    private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float z0, float x1, float z1, float[] uvs, float blockTypeId) {
+        float l = uvs[2];
         data.addRawQuad(
             new float[]{ox+x0, oy, oz+z0,  ox+x1, oy, oz+z1,  ox+x1, oy+1.0f, oz+z1,  ox+x0, oy+1.0f, oz+z0},
-            new float[]{u0, v0, u1, v0, u1, v1, u0, v1},
+            new float[]{
+                uvs[0], uvs[1], l,
+                uvs[3], uvs[4], l,
+                uvs[3], uvs[7], l,
+                uvs[0], uvs[10], l
+            },
             new float[]{0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0},
             blockTypeId
         );
         data.addRawQuad(
             new float[]{ox+x0, oy+1.0f, oz+z0,  ox+x1, oy+1.0f, oz+z1,  ox+x1, oy, oz+z1,  ox+x0, oy, oz+z0},
-            new float[]{u0, v1, u1, v1, u1, v0, u0, v0},
+            new float[]{
+                uvs[0], uvs[10], l,
+                uvs[3], uvs[7], l,
+                uvs[3], uvs[4], l,
+                uvs[0], uvs[1], l
+            },
             new float[]{0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0},
             blockTypeId
         );

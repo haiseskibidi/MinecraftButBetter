@@ -12,17 +12,18 @@ import java.util.Map;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL12.*;
 import static org.lwjgl.opengl.GL14.GL_TEXTURE_LOD_BIAS;
-import static org.lwjgl.opengl.GL30.glGenerateMipmap;
+import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryStack.stackPush;
 
 public class DynamicTextureAtlas {
     private final int tileSize;
     private final Map<String, String> keyToPath = new LinkedHashMap<>();
-    private final Map<String, int[]> keyToTile = new LinkedHashMap<>();
+    private final Map<String, Integer> keyToLayer = new LinkedHashMap<>();
     private int textureId;
     private int width;
     private int height;
+    private int layers;
 
     public DynamicTextureAtlas(int tileSize) {
         this.tileSize = tileSize;
@@ -38,12 +39,17 @@ public class DynamicTextureAtlas {
             createWhiteTexture();
             return;
         }
-        int tilesPerRow = (int) Math.ceil(Math.sqrt(count));
-        width = tilesPerRow * tileSize;
-        int rows = (int) Math.ceil((double) count / tilesPerRow);
-        height = rows * tileSize;
+        
+        layers = count;
+        width = tileSize;
+        height = tileSize;
 
-        ByteBuffer atlas = ByteBuffer.allocateDirect(width * height * 4);
+        textureId = glGenTextures();
+        glBindTexture(GL_TEXTURE_2D_ARRAY, textureId);
+        
+        // Use glTexImage3D to allocate the base level. 
+        // Subsequent levels will be generated via glGenerateMipmap.
+        glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, width, height, layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer)null);
 
         int index = 0;
         stbi_set_flip_vertically_on_load(true);
@@ -65,7 +71,7 @@ public class DynamicTextureAtlas {
                     isStbAllocated = false;
                 }
                 
-                // Resize if needed (simple nearest neighbor if not 16x16)
+                // Resize if needed
                 int iw = w.get(0), ih = h.get(0);
                 if (iw != tileSize || ih != tileSize) {
                     ByteBuffer resized = ByteBuffer.allocateDirect(tileSize * tileSize * 4);
@@ -85,68 +91,49 @@ public class DynamicTextureAtlas {
                         stbi_image_free(img);
                     }
                     img = resized;
-                    iw = ih = tileSize;
                     isStbAllocated = false;
                 }
 
-                int tileX = index % tilesPerRow;
-                int tileY = index / tilesPerRow;
-                keyToTile.put(key, new int[]{tileX, tileY});
-
-                for (int y = 0; y < tileSize; y++) {
-                    int destRow = (tileY * tileSize + y) * width * 4;
-                    int srcRow = y * tileSize * 4;
-                    for (int x = 0; x < tileSize; x++) {
-                        int di = destRow + (tileX * tileSize + x) * 4;
-                        int si = srcRow + x * 4;
-                        atlas.put(di, img.get(si));
-                        atlas.put(di + 1, img.get(si + 1));
-                        atlas.put(di + 2, img.get(si + 2));
-                        atlas.put(di + 3, img.get(si + 3));
-                    }
-                }
+                keyToLayer.put(key, index);
+                glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, index, tileSize, tileSize, 1, GL_RGBA, GL_UNSIGNED_BYTE, img);
+                
                 if (isStbAllocated) stbi_image_free(img);
             }
             index++;
         }
 
-        textureId = glGenTextures();
-        glBindTexture(GL_TEXTURE_2D, textureId);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR); // Minecraft-style mipmaps for distance simplification
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, atlas);
-        glGenerateMipmap(GL_TEXTURE_2D); // Essential for Minecraft-style distance simplification
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         
-        // Set LOD bias for Minecraft-style distance transitions
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_LOD_BIAS, -0.5f); // Earlier mipmap activation
+        glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
         
-        // Anisotropic filtering not needed with proper mipmaps
-        // try {
-        //     if (org.lwjgl.opengl.GL.getCapabilities().GL_EXT_texture_filter_anisotropic) {
-        //         float max = org.lwjgl.opengl.GL11.glGetFloat(
-        //             org.lwjgl.opengl.EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT
-        //         );
-        //         org.lwjgl.opengl.GL11.glTexParameterf(
-        //             GL_TEXTURE_2D,
-        //             org.lwjgl.opengl.EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT,
-        //             Math.min(2.0f, Math.max(1.0f, max))
-        //         );
-        //     }
-        // } catch (Throwable ignored) {}
+        // Negative LOD bias keeps higher-res mipmaps longer, fixing darkening in distance
+        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_LOD_BIAS, -0.5f); 
 
-        Logger.info("Built dynamic atlas %dx%d with %d tiles", width, height, count);
+        // Enable Anisotropic Filtering for better distance quality
+        try {
+            if (org.lwjgl.opengl.GL.getCapabilities().GL_EXT_texture_filter_anisotropic) {
+                float max = glGetFloat(org.lwjgl.opengl.EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
+                glTexParameterf(GL_TEXTURE_2D_ARRAY, org.lwjgl.opengl.EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, Math.min(4.0f, max));
+            }
+        } catch (Exception ignored) {}
+
+        Logger.info("Built dynamic texture array %dx%dx%d", width, height, layers);
     }
 
     private void createWhiteTexture() {
-        ByteBuffer buffer = createSolidImage(tileSize, tileSize, (byte) 255, (byte) 255, (byte) 255, (byte) 255);
-        width = tileSize; height = tileSize;
+        width = tileSize; height = tileSize; layers = 1;
         textureId = glGenTextures();
-        glBindTexture(GL_TEXTURE_2D, textureId);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, textureId);
+        glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA8, width, height, layers, 0, GL_RGBA, GL_UNSIGNED_BYTE, (ByteBuffer)null);
+        
+        ByteBuffer buffer = createSolidImage(tileSize, tileSize, (byte) 255, (byte) 255, (byte) 255, (byte) 255);
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
+        
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     }
 
     private ByteBuffer createSolidImage(int w, int h, byte r, byte g, byte b, byte a) {
@@ -162,7 +149,7 @@ public class DynamicTextureAtlas {
     }
 
     public void bind() {
-        glBindTexture(GL_TEXTURE_2D, textureId);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, textureId);
     }
 
     public void cleanup() {
@@ -171,10 +158,7 @@ public class DynamicTextureAtlas {
 
     private ByteBuffer loadImageFromPath(MemoryStack stack, String path, IntBuffer w, IntBuffer h, IntBuffer c) {
         try {
-            // Убираем "src/main/resources/" из пути для ClassLoader
             String resourcePath = path.replace("src/main/resources/", "");
-            
-            // Пробуем загрузить как ресурс из ClassPath (для JAR)
             var inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath);
             if (inputStream != null) {
                 byte[] imageData = inputStream.readAllBytes();
@@ -184,8 +168,6 @@ public class DynamicTextureAtlas {
                 inputStream.close();
                 return stbi_load_from_memory(imageBuffer, w, h, c, 4);
             }
-            
-            // Fallback: загружаем как файл (для разработки)
             return stbi_load(path, w, h, c, 4);
         } catch (IOException e) {
             Logger.error("IOException while loading texture: %s", e, path);
@@ -194,15 +176,15 @@ public class DynamicTextureAtlas {
     }
 
     public float[] uvFor(String key) {
-        int[] tile = keyToTile.get(key);
-        if (tile == null) return new float[]{0,0, 1,0, 1,1, 0,1};
-        float u0 = (float) (tile[0] * tileSize) / width;
-        float v0 = (float) (tile[1] * tileSize) / height;
-        float u1 = (float) ((tile[0] + 1) * tileSize) / width;
-        float v1 = (float) ((tile[1] + 1) * tileSize) / height;
-        
-        
-        return new float[]{u0, v0, u1, v0, u1, v1, u0, v1};
+        Integer layer = keyToLayer.get(key);
+        float l = (layer != null) ? (float) layer : 0.0f;
+        // Returns 12 values: U, V, W for 4 vertices
+        return new float[]{
+            0, 0, l,
+            1, 0, l,
+            1, 1, l,
+            0, 1, l
+        };
     }
 }
 

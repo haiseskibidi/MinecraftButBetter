@@ -170,8 +170,10 @@ public class FontRenderer {
 
         shader.use();
         shader.setInt("useTexture", 1);
+        shader.setInt("useArray", 0);
         shader.setUniform("tintColor", r, g, b, a);
 
+        glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(vao);
 
         int drawX = x;

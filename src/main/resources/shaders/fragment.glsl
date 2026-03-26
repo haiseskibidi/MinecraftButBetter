@@ -1,6 +1,6 @@
 #version 330 core
 
-in vec2 fragTexCoord;
+in vec3 fragTexCoord;
 in vec3 fragNormal;
 in vec3 fragPos;
 in float blockType;
@@ -9,11 +9,11 @@ in vec3 vLocalPos;
 
 out vec4 fragColor;
 
-uniform sampler2D textureSampler;
+uniform sampler2DArray textureSampler;
 uniform vec3 lightDirection;
 uniform vec3 lightColor;
 uniform vec3 ambientLight;
-uniform vec4 glassUV;    // UV координаты glass.png
+uniform float glassLayer;   
 uniform int highlightPass; // 1 = solid color mode, 0 = texture mode
 uniform vec3 highlightColor;
 uniform bool previewPass; 
@@ -22,7 +22,7 @@ uniform bool viewModelPass;
 uniform float brightnessMultiplier = 1.0;
 uniform int faceMask = 0; // 16-bit mask for 4x4 grid
 uniform bool useMask = false;
-uniform vec4 overlayUV; // minU, minV, maxU, maxV
+uniform float overlayLayer; 
 
 void main() {
     vec4 textureColor = vec4(1.0);
@@ -33,10 +33,10 @@ void main() {
         baseColor = highlightColor;
         alpha = 1.0;
     } else {
-        vec2 finalTexCoord = fragTexCoord;
+        vec3 finalTexCoord = fragTexCoord;
 
         if (useMask) {
-            vec2 localUV = finalTexCoord;
+            vec2 localUV = finalTexCoord.xy;
             int x = int(clamp(localUV.x * 4.0, 0.0, 3.99));
             int z = int(clamp(localUV.y * 4.0, 0.0, 3.99));
             int bit = z * 4 + x;
@@ -45,17 +45,13 @@ void main() {
                 discard;
             }
 
-            float eps = 0.0001;
-            vec2 safeMin = overlayUV.xy + eps;
-            vec2 safeMax = overlayUV.zw - eps;
-            vec2 atlasUV = mix(safeMin, safeMax, localUV);
-
-            textureColor = texture(textureSampler, atlasUV);
+            // In texture array, we don't need epsilons or safeMin/safeMax for single layers
+            textureColor = texture(textureSampler, vec3(localUV, overlayLayer));
         } else {
             textureColor = texture(textureSampler, finalTexCoord);
         }
 
-        if (textureColor.a < 0.1) discard;
+        if (textureColor.a < 0.5) discard;
         baseColor = textureColor.rgb;
         alpha = textureColor.a;
     }
@@ -74,7 +70,7 @@ void main() {
 
     // Connected Textures for Glass (Type 19)
     if (highlightPass == 0 && abs(actualBlockType - 19.0) < 0.1) {
-        vec2 localUV = (fragTexCoord - glassUV.xy) / (glassUV.zw - glassUV.xy); 
+        vec2 localUV = fragTexCoord.xy; // Texture coordinates are always 0..1 per layer
         float t = 0.0625; 
 
         int nMask = int(neighborData + 0.5);
@@ -110,9 +106,8 @@ void main() {
 
         if (shouldHide) {
             vec2 sampledLocalUV = vec2(0.5, 0.5);
-            vec2 finalUV = glassUV.xy + sampledLocalUV * (glassUV.zw - glassUV.xy);
-            textureColor = texture(textureSampler, finalUV);
-            if (textureColor.a < 0.1) discard;
+            textureColor = texture(textureSampler, vec3(sampledLocalUV, glassLayer));
+            if (textureColor.a < 0.5) discard;
             baseColor = textureColor.rgb;
             alpha = textureColor.a;
         }

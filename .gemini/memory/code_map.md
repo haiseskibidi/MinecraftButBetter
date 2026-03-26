@@ -178,9 +178,13 @@
 Функции: setSelectedSlot(int slot), getStackInSlot(int slot), getSelectedItemStack()
 Зависимости: Player, Inventory, ItemStack
 
-### com.za.minecraft.engine.graphics.TextureAtlas / DynamicTextureAtlas
-Назначение: Управление набором текстур блоков в одном объекте.
-Функции: getUVs(String key), bind(), addTexture(String key, BufferedImage image)
+### com.za.minecraft.engine.graphics.DynamicTextureAtlas / DynamicTextureArray
+Назначение: Управление массивом текстур блоков (GL_TEXTURE_2D_ARRAY).
+Функции: 
+- Автоматическая сборка слоев (layers) из всех зарегистрированных блоков (16x16).
+- Поддержка анизотропной фильтрации (4x) и настройки LOD_BIAS (-0.5).
+- Устранение артефактов мерцания (shimmering) и наложения краев (edge bleeding).
+- Предоставление индекса слоя (W-компонента) через `BlockTextureMapper`.
 
 ## World & Blocks
 ### com.za.minecraft.world.World (UPDATED)

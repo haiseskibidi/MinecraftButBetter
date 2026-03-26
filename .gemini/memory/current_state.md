@@ -1,6 +1,14 @@
 # Текущий статус проекта "MinecraftButBetter"
 
 ## Реализованные фичи
+- **Texture Array Graphics Engine (v4.0) (NEW)**:
+  - **GL_TEXTURE_2D_ARRAY Migration**: Completely eliminated texture shimmering and edge bleeding by switching from a 2D atlas to a layered Texture Array.
+  - **3D Texture Coordinates (UVW)**: Updated all mesh generators (Chunk, Item, Carving) to use 3rd component for layer indexing.
+  - **Smart UI Rendering**: Implemented dual-sampler logic in `UIRenderer` to support both standalone `sampler2D` (GUI, Text) and `sampler2DArray` (Block icons).
+  - **Distance Quality Fixes**: 
+    - Re-tuned `LOD_BIAS` to `-0.5` for sharper distance textures.
+    - Implemented **4x Anisotropic Filtering** for clear surfaces at oblique angles.
+    - Increased **Alpha Discard threshold to 0.5** in shaders to fix darkening of foliage/grass at a distance.
 - **Modular Animation Engine (v3.0)**:
   - **File-per-Animation Architecture**: Externalized animations into individual JSON files in `minecraft/animations/`.
   - **Animation Groups & Randomization**: Supported groups (e.g., `run_1`, `run_2`) with automatic random selection in `AnimationRegistry`.
