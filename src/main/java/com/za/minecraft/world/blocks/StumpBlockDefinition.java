@@ -60,6 +60,9 @@ public class StumpBlockDefinition extends BlockDefinition {
         }
 
         // --- Обычная логика крафта ---
+        // Разрешаем взаимодействие только с верхней ("рабочей") частью пня
+        if (hitY <= 0.8f) return false;
+
         ICraftingSurface surface = stump;
         int slot = CraftingLayoutEngine.getSlotIndex(hitX, hitZ);
         ItemStack inSlot = surface.getStackInSlot(slot);
