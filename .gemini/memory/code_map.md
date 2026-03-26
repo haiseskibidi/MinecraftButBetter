@@ -15,12 +15,22 @@
 ### src/main/resources/minecraft/animations/
 Назначение: Директория со всеми профилями анимаций (JSON).
 
+### com.za.minecraft.entities.parkour.ParkourHandler
+Назначение: Машина состояний паркура и расчет траекторий.
+Логика: Использует JSON-параметры из AnimationProfile.
+
 ### com.za.minecraft.entities.parkour.animation.AnimationRegistry
 Назначение: Оркестратор анимаций. Поддерживает группы и рандомизацию.
 
 ### com.za.minecraft.entities.parkour.animation.AnimationProfile
 Назначение: Универсальный профиль движения (заменяет `ParkourAnimation`).
 Функции: evaluate() с поддержкой looping и mirrored.
+
+### com.za.minecraft.entities.parkour.animation.AnimationTrack
+Назначение: Поток данных для одного параметра. Поддерживает флаг `mirrored`.
+
+### com.za.minecraft.entities.parkour.animation.Keyframe
+Назначение: Точка анимации (время, значение, тип интерполяции).
 
 ## Inventory System (v3) (NEW)
 ### com.za.minecraft.world.inventory.IInventory
