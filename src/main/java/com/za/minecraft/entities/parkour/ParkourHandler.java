@@ -30,8 +30,8 @@ public class ParkourHandler {
 
     public void update(Player player, float deltaTime, World world) {
         PhysicsSettings settings = PhysicsSettings.getInstance();
-        com.za.minecraft.entities.parkour.animation.ParkourAnimation grabAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("grabbing");
-        com.za.minecraft.entities.parkour.animation.ParkourAnimation climbAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("climbing");
+        com.za.minecraft.entities.parkour.animation.AnimationProfile grabAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("grabbing");
+        com.za.minecraft.entities.parkour.animation.AnimationProfile climbAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("climbing");
 
         if (state == ParkourState.GRABBING) {
             transitionTimer += deltaTime;
@@ -214,8 +214,8 @@ public class ParkourHandler {
     }
 
     public float getProgress() {
-        com.za.minecraft.entities.parkour.animation.ParkourAnimation grabAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("grabbing");
-        com.za.minecraft.entities.parkour.animation.ParkourAnimation climbAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("climbing");
+        com.za.minecraft.entities.parkour.animation.AnimationProfile grabAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("grabbing");
+        com.za.minecraft.entities.parkour.animation.AnimationProfile climbAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("climbing");
 
         if (state == ParkourState.GRABBING) {
             float duration = (grabAnim != null) ? grabAnim.getDuration() : GRAB_TRANSITION_TIME;

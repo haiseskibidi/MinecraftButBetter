@@ -1,0 +1,16 @@
+{
+  "looping": true,
+  "duration": 5.0,
+  "tracks": {
+    "camera_tilt": [
+      [0.0, 0.0, "smoothstep"],
+      [0.5, 0.015, "smoothstep"],
+      [1.0, 0.0, "smoothstep"]
+    ],
+    "camera_roll": [
+      [0.0, 0.0, "smoothstep"],
+      [0.5, 0.002, "smoothstep"],
+      [1.0, 0.0, "smoothstep"]
+    ]
+  }
+}

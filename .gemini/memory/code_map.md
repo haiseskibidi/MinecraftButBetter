@@ -11,22 +11,16 @@
 ### src/main/resources/minecraft/registry
 - **physics.json**: Конфигурация физических констант (гравитация, скорость паркура).
 
-## Parkour System (UPDATED)
-### com.za.minecraft.entities.parkour.ParkourHandler
-Назначение: Машина состояний паркура и расчет траекторий.
-Логика: Использует JSON-параметры для кривой Безье.
+## Animation & Locomotion System (v3.0)
+### src/main/resources/minecraft/animations/
+Назначение: Директория со всеми профилями анимаций (JSON).
 
 ### com.za.minecraft.entities.parkour.animation.AnimationRegistry
-Назначение: Хранилище загруженных из JSON анимаций.
+Назначение: Оркестратор анимаций. Поддерживает группы и рандомизацию.
 
-### com.za.minecraft.entities.parkour.animation.ParkourAnimation
-Назначение: Модель анимации, объединяющая треки, параметры пути и дрожания.
-
-### com.za.minecraft.entities.parkour.animation.AnimationTrack
-Назначение: Поток данных для одного параметра. Поддерживает флаг `mirrored`.
-
-### com.za.minecraft.entities.parkour.animation.Keyframe
-Назначение: Точка анимации (время, значение, тип интерполяции).
+### com.za.minecraft.entities.parkour.animation.AnimationProfile
+Назначение: Универсальный профиль движения (заменяет `ParkourAnimation`).
+Функции: evaluate() с поддержкой looping и mirrored.
 
 ## Inventory System (v3) (NEW)
 ### com.za.minecraft.world.inventory.IInventory

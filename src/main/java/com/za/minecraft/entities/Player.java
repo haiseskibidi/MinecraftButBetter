@@ -132,66 +132,65 @@ public class Player extends LivingEntity {
         return currentEyeHeight;
     }
 
+    private float idleTimer = 0.0f;
+    private float walkTimer = 0.0f;
+
     private void updateAnimations(float deltaTime) {
-        // Walk bobbing
-        boolean isWalking = onGround && moving && velocity.lengthSquared() > 0.01f;
+        // Dynamic Animation System (DDD)
+        com.za.minecraft.entities.parkour.animation.AnimationRegistry registry = new com.za.minecraft.entities.parkour.animation.AnimationRegistry();
         
-        if (isWalking) {
-            float speedMult = sprinting ? 1.5f : (sneaking ? 0.5f : 1.0f);
-            walkBobTimer += 10.0f * speedMult * deltaTime;
-            bobIntensity = Math.min(1.0f, bobIntensity + 5.0f * deltaTime);
-        } else {
-            bobIntensity = Math.max(0.0f, bobIntensity - 5.0f * deltaTime);
-            if (bobIntensity > 0) {
-                walkBobTimer += 5.0f * deltaTime; // Keep timer moving while intensity fades
-            } else {
-                walkBobTimer = 0;
-            }
-        }
-
-        // Swing animation
-        if (swinging) {
-            swingProgress += 5.0f * deltaTime; // Quick swing
-            if (swingProgress >= 1.0f) {
-                swingProgress = 0;
-                swinging = false;
-            }
-        }
-
-        // Physically-Based Parkour Camera Logic
         float targetTilt = 0.0f;
         float targetRoll = 0.0f;
         float targetFovOffset = 0.0f;
+        
         com.za.minecraft.entities.parkour.ParkourHandler.ParkourState pState = parkourHandler.getState();
         float pProgress = parkourHandler.getProgress();
-        
-        com.za.minecraft.entities.parkour.animation.ParkourAnimation currentAnim = null;
-        if (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.CLIMBING) {
-            currentAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("climbing");
-        } else if (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.GRABBING) {
-            currentAnim = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get("grabbing");
+        float side = parkourHandler.getClimbSide();
+
+        if (pState != com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.NONE) {
+            // Parkour animations (Grabbing/Climbing)
+            String animName = (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.CLIMBING) ? "climbing" : "grabbing";
+            com.za.minecraft.entities.parkour.animation.AnimationProfile anim = registry.get(animName);
+            if (anim != null) {
+                targetTilt = anim.evaluate("camera_tilt", pProgress, side);
+                targetRoll = anim.evaluate("camera_roll", pProgress, side);
+                targetFovOffset = anim.evaluate("fov_offset", pProgress, side);
+
+                if (anim.isJitterEnabled() && pProgress > anim.getJitterStart() && pProgress < anim.getJitterEnd()) {
+                    float intensityMult = (float) Math.sin((pProgress - anim.getJitterStart()) / (anim.getJitterEnd() - anim.getJitterStart()) * Math.PI);
+                    float intensity = anim.getJitterIntensity() * intensityMult;
+                    targetTilt += (float) (Math.sin(System.currentTimeMillis() / 15.0) * intensity);
+                    targetRoll += (float) (Math.cos(System.currentTimeMillis() / 12.0) * intensity);
+                }
+            }
+        } else {
+            // Locomotion animations (Idle/Walk)
+            boolean isMoving = onGround && moving && velocity.lengthSquared() > 0.01f;
+            if (isMoving) {
+                float speedMult = sprinting ? 1.5f : (sneaking ? 0.6f : 1.0f);
+                com.za.minecraft.entities.parkour.animation.AnimationProfile walkAnim = registry.get("walk");
+                if (walkAnim != null) {
+                    walkTimer += deltaTime * speedMult / walkAnim.getDuration();
+                    targetTilt = walkAnim.evaluate("camera_tilt", walkTimer, 1.0f);
+                    targetRoll = walkAnim.evaluate("camera_roll", walkTimer, 1.0f);
+                }
+                idleTimer = 0;
+            } else {
+                com.za.minecraft.entities.parkour.animation.AnimationProfile idleAnim = registry.get("idle");
+                if (idleAnim != null) {
+                    idleTimer += deltaTime / idleAnim.getDuration();
+                    targetTilt = idleAnim.evaluate("camera_tilt", idleTimer, 1.0f);
+                    targetRoll = idleAnim.evaluate("camera_roll", idleTimer, 1.0f);
+                }
+                walkTimer = 0;
+            }
         }
 
-        if (currentAnim != null) {
-            float t = pProgress;
-            float side = parkourHandler.getClimbSide();
-            
-            targetTilt = currentAnim.evaluate("camera_tilt", t, side);
-            targetRoll = currentAnim.evaluate("camera_roll", t, side);
-            targetFovOffset = currentAnim.evaluate("fov_offset", t, side);
-            
-            // Effort-based Jitter (Shaking) from JSON
-            if (currentAnim.isJitterEnabled() && t > currentAnim.getJitterStart() && t < currentAnim.getJitterEnd()) {
-                float intensityMult = (float) Math.sin((t - currentAnim.getJitterStart()) / (currentAnim.getJitterEnd() - currentAnim.getJitterStart()) * Math.PI);
-                float intensity = currentAnim.getJitterIntensity() * intensityMult;
-                targetTilt += (float) (Math.sin(System.currentTimeMillis() / 15.0) * intensity);
-                targetRoll += (float) (Math.cos(System.currentTimeMillis() / 12.0) * intensity);
-            }
-        } else if (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.HANGING) {
+        if (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.HANGING) {
             targetTilt = 0.04f;
             targetRoll = (float) (Math.sin(System.currentTimeMillis() / 800.0) * 0.012f);
         }
-        
+
         // Multi-rate Lerp for organic feel
         float tiltLerp = (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.NONE) ? 4.0f : 12.0f;
         float rollLerp = (pState == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.NONE) ? 3.0f : 10.0f;
@@ -200,6 +199,25 @@ public class Player extends LivingEntity {
         parkourCameraTilt += (targetTilt - parkourCameraTilt) * tiltLerp * deltaTime;
         parkourCameraRoll += (targetRoll - parkourCameraRoll) * rollLerp * deltaTime;
         fovOffset += (targetFovOffset - fovOffset) * fovLerp * deltaTime;
+
+        // --- Original View Model Bobbing Logic (Keep for now or refactor later) ---
+        if (onGround && moving && velocity.lengthSquared() > 0.01f) {
+            float speedMult = sprinting ? 1.5f : (sneaking ? 0.5f : 1.0f);
+            walkBobTimer += 10.0f * speedMult * deltaTime;
+            bobIntensity = Math.min(1.0f, bobIntensity + 5.0f * deltaTime);
+        } else {
+            bobIntensity = Math.max(0.0f, bobIntensity - 5.0f * deltaTime);
+            if (bobIntensity > 0) walkBobTimer += 5.0f * deltaTime;
+            else walkBobTimer = 0;
+        }
+
+        if (swinging) {
+            swingProgress += 5.0f * deltaTime;
+            if (swingProgress >= 1.0f) {
+                swingProgress = 0;
+                swinging = false;
+            }
+        }
     }
 
     public float getCameraPitchOffset() {

@@ -1,0 +1,23 @@
+{
+  "looping": true,
+  "duration": 1.0,
+  "tracks": {
+    "camera_tilt": [
+      [0.0, 0.0, "sine"],
+      [0.25, 0.05, "sine"],
+      [0.5, 0.0, "sine"],
+      [0.75, 0.05, "sine"],
+      [1.0, 0.0, "linear"]
+    ],
+    "camera_roll": {
+      "mirrored": true,
+      "keyframes": [
+        [0.0, 0.0, "sine"],
+        [0.25, 0.02, "sine"],
+        [0.5, 0.0, "sine"],
+        [0.75, -0.02, "sine"],
+        [1.0, 0.0, "linear"]
+      ]
+    }
+  }
+}

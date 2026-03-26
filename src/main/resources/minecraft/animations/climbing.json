@@ -1,0 +1,35 @@
+{
+  "duration_key": "climbDuration",
+  "path": {
+    "type": "bezier_quadratic",
+    "apex_y_offset": 0.25,
+    "interpolation": "smootherstep"
+  },
+  "tracks": {
+    "camera_tilt": [
+      [0.0, 0.0, "sine"],
+      [0.5, 0.22, "sine"],
+      [1.0, 0.0, "linear"]
+    ],
+    "camera_roll": {
+      "mirrored": true,
+      "keyframes": [
+        [0.0, 0.0, "sine"],
+        [0.33, 0.08, "sine"],
+        [0.66, 0.0, "sine"],
+        [1.0, -0.08, "linear"]
+      ]
+    },
+    "fov_offset": [
+      [0.0, 0.0, "sine"],
+      [0.5, 0.09, "sine"],
+      [1.0, 0.0, "linear"]
+    ]
+  },
+  "jitter": {
+    "enabled": true,
+    "start": 0.15,
+    "end": 0.6,
+    "intensity": 0.008
+  }
+}

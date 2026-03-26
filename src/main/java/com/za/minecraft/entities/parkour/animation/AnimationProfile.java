@@ -3,10 +3,11 @@ package com.za.minecraft.entities.parkour.animation;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ParkourAnimation {
+public class AnimationProfile {
     private final String name;
     private float duration = 0.5f;
     private String durationKey = null;
+    private boolean looping = false;
     private final Map<String, AnimationTrack> tracks = new HashMap<>();
     
     // Path settings
@@ -20,7 +21,7 @@ public class ParkourAnimation {
     private float jitterEnd = 1.0f;
     private float jitterIntensity = 0.0f;
 
-    public ParkourAnimation(String name) {
+    public AnimationProfile(String name) {
         this.name = name;
     }
 
@@ -31,7 +32,9 @@ public class ParkourAnimation {
     public float evaluate(String param, float t, float multiplier) {
         AnimationTrack track = tracks.get(param);
         if (track == null) return 0.0f;
-        float val = track.evaluate(t);
+        
+        float finalT = looping ? t % 1.0f : t;
+        float val = track.evaluate(finalT);
         return track.isMirrored() ? val * multiplier : val;
     }
 
@@ -40,6 +43,8 @@ public class ParkourAnimation {
     public void setDuration(float duration) { this.duration = duration; }
     public String getDurationKey() { return durationKey; }
     public void setDurationKey(String durationKey) { this.durationKey = durationKey; }
+    public boolean isLooping() { return looping; }
+    public void setLooping(boolean looping) { this.looping = looping; }
     public String getPathType() { return pathType; }
     public void setPathType(String pathType) { this.pathType = pathType; }
     public String getPathInterpolation() { return pathInterpolation; }

@@ -1,11 +1,11 @@
 # Текущий статус проекта "MinecraftButBetter"
 
 ## Реализованные фичи
-- **Modular Physics & Parkour (v2.0)**:
-  - **Data-Driven Animations**: All movement parameters (curves, keyframes, durations) externalized to `parkour_animations.json`.
-  - **Keyframe System**: Implemented a flexible animation engine supporting multiple interpolation types (`sine`, `smoothstep`, `linear`).
-  - **Mirrored Tracks**: Added support for automatic coordinate flipping based on a multiplier (e.g., `climbSide`), enabling procedural hand-alternation logic without hardcode.
-  - **Bezier 3D Path**: Refactored to use JSON-defined apex offsets and interpolation modes.
+- **Modular Animation Engine (v3.0)**:
+  - **File-per-Animation Architecture**: Externalized animations into individual JSON files in `minecraft/animations/`.
+  - **Animation Groups & Randomization**: Supported groups (e.g., `run_1`, `run_2`) with automatic random selection in `AnimationRegistry`.
+  - **Looping Support**: Added `looping` flag for continuous animations (Idle, Walk).
+  - **Procedural Mirroring**: Retained and improved the `mirrored` track logic for organic hand-alternation.
 - **Survivor's Tablet (Дневник выжившего)**:
   - Полностью реализована модульная система обучения.
   - Современный карточный UI (50% ширины, 65% высоты экрана) с поддержкой прокрутки контента.
@@ -131,6 +131,11 @@
   - Локализация (I18n) и Unicode-шрифты.
 
 ## Последние изменения
+- **Modular Animation Engine (v3.0) (NEW)**:
+  - Refactored `ParkourAnimation` into `AnimationProfile` (general locomotion support).
+  - Implemented multi-file loading from `animations/` directory using resource indexing.
+  - Added `Idle` (breathing) and `Walk` (head bobbing) animations via JSON.
+  - Automatic randomization of animations within the same prefix group.
 - **Modular Physics & Parkour (v1.0)**:
   - **Data-Driven Physics**: Physical constants (climb duration, grab distance, jump velocity) externalized to `physics.json`.
   - **Clamber & Roll (Cinematic Parkour)**:

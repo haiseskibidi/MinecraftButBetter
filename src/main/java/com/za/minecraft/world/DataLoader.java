@@ -85,15 +85,17 @@ public class DataLoader {
     }
 
     private static void loadParkourAnimations() {
-        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("minecraft/registry/parkour_animations.json")) {
-            if (is == null) return;
-            JsonObject root = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonObject.class);
-            for (String key : root.keySet()) {
-                JsonObject animObj = root.getAsJsonObject(key);
-                com.za.minecraft.entities.parkour.animation.ParkourAnimation anim = new com.za.minecraft.entities.parkour.animation.ParkourAnimation(key);
+        List<String> files = listResources("minecraft/animations");
+        for (String fileName : files) {
+            String path = "minecraft/animations/" + fileName + ".json";
+            try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path)) {
+                if (is == null) continue;
+                JsonObject animObj = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonObject.class);
+                com.za.minecraft.entities.parkour.animation.AnimationProfile anim = new com.za.minecraft.entities.parkour.animation.AnimationProfile(fileName);
                 
                 if (animObj.has("duration")) anim.setDuration(animObj.get("duration").getAsFloat());
                 if (animObj.has("duration_key")) anim.setDurationKey(animObj.get("duration_key").getAsString());
+                if (animObj.has("looping")) anim.setLooping(animObj.get("looping").getAsBoolean());
                 
                 if (animObj.has("path")) {
                     JsonObject p = animObj.getAsJsonObject("path");
@@ -135,12 +137,12 @@ public class DataLoader {
                         anim.addTrack(trackKey, track);
                     }
                 }
-                com.za.minecraft.entities.parkour.animation.AnimationRegistry.register(key, anim);
+                com.za.minecraft.entities.parkour.animation.AnimationRegistry.register(fileName, anim);
+            } catch (Exception e) {
+                Logger.error("Failed to load animation " + fileName + ": " + e.getMessage());
             }
-            Logger.info("Loaded parkour animations");
-        } catch (Exception e) {
-            Logger.error("Failed to load parkour animations: " + e.getMessage());
         }
+        Logger.info("Loaded " + files.size() + " animation profiles");
     }
 
     private static void loadPhysicsSettings() {
