@@ -121,17 +121,25 @@ public class ParkourHandler {
                     hangingPosition.set(playerPos.x, (float) by - 1.35f, playerPos.z);
                     float blockCenterX = bx + 0.5f;
                     float blockCenterZ = bz + 0.5f;
-                    hangingPosition.x = blockCenterX - horizontalDir.x * offsetFromCenter;
-                    hangingPosition.z = blockCenterZ - horizontalDir.z * offsetFromCenter;
+                    
+                    // NEW: Snap to the closest face to prevent clipping when looking diagonally
+                    if (Math.abs(horizontalDir.x) > Math.abs(horizontalDir.z)) {
+                        // Snapping to East/West face
+                        float sign = Math.signum(horizontalDir.x);
+                        hangingPosition.x = blockCenterX - sign * offsetFromCenter;
+                        hangingPosition.z = blockCenterZ; // Center on the block face
+                        baseYaw = (sign > 0) ? (float)-Math.PI/2 : (float)Math.PI/2;
+                    } else {
+                        // Snapping to North/South face
+                        float sign = Math.signum(horizontalDir.z);
+                        hangingPosition.z = blockCenterZ - sign * offsetFromCenter;
+                        hangingPosition.x = blockCenterX; // Center on the block face
+                        baseYaw = (sign > 0) ? (float)-Math.PI : 0.0f;
+                    }
 
                     startTransitionPosition.set(playerPos);
                     transitionTimer = 0;
                     state = ParkourState.GRABBING;
-                    
-                    // TOGGLE SIDE ONLY ONCE PER FULL SEQUENCE
-                    climbSide = -climbSide;
-                    
-                    baseYaw = (float) -Math.atan2(horizontalDir.x, -horizontalDir.z);
                     return;
                 }
             }

@@ -709,6 +709,15 @@ public class DataLoader {
                         e.has("strict") && e.get("strict").getAsBoolean()
                     ));
                 }
+
+                if (comps.has("minecraft:animations") || comps.has("animations")) {
+                    JsonObject anims = comps.has("minecraft:animations") ? comps.getAsJsonObject("minecraft:animations") : comps.getAsJsonObject("animations");
+                    java.util.Map<String, String> overrides = new java.util.HashMap<>();
+                    for (String key : anims.keySet()) {
+                        overrides.put(key, anims.get(key).getAsString());
+                    }
+                    item.addComponent(com.za.minecraft.world.items.component.AnimationComponent.class, new com.za.minecraft.world.items.component.AnimationComponent(overrides));
+                }
             }
             
             // Legacy поддержка или заполнение из корневых полей, если секции components нет

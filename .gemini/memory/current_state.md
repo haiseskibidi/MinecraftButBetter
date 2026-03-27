@@ -1,6 +1,17 @@
 # Текущий статус проекта "MinecraftButBetter"
 
 ## Реализованные фичи
+- **AAA Locomotion & Impulse Engine (v4.5) (NEW)**:
+  - **Item-Specific Animation System**:
+    - **Data-Driven Lookup**: Replaced hardcoded animation names with a dynamic system. Items can now have unique walk, idle, and swing animations.
+    - **AnimationComponent**: Added support for explicit animation overrides in item JSON files.
+    - **Smart Fallback**: Implemented automatic fallback to type-specific animations (e.g., `axe_swing`, `block_walk`) based on `ToolType` or `isBlock()` status.
+  - **Parkour Stability & Polish**:
+    - **Ledge Grab Snapping**: Implemented automatic snapping to block faces and precise `baseYaw` alignment in `ParkourHandler` to eliminate wall clipping and jitter during diagonal grabs.
+    - **Weighted Blending (Restored)**: Re-implemented smooth interpolation between locomotion and parkour states via `parkourWeight`.
+  - **New Animation Assets**:
+    - Added heavy-weight animations for blocks (`block_walk`, `block_idle`, `block_swing`).
+    - Added aggressive swing animation for axes (`axe_swing`).
 - **Texture Array Graphics Engine (v4.0) (NEW)**:
   - **GL_TEXTURE_2D_ARRAY Migration**: Completely eliminated texture shimmering and edge bleeding by switching from a 2D atlas to a layered Texture Array.
   - **3D Texture Coordinates (UVW)**: Updated all mesh generators (Chunk, Item, Carving) to use 3rd component for layer indexing.

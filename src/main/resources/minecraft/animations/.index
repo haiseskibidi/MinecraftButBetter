@@ -13,3 +13,7 @@ item_sneak_idle
 item_swing
 landing
 falling
+axe_swing
+block_swing
+block_walk
+block_idle

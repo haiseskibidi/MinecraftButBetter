@@ -1,0 +1,11 @@
+{
+  "looping": true,
+  "duration": 4.0,
+  "tracks": {
+    "item_y": [
+      [0.0, -0.05, "sine"],
+      [0.5, -0.04, "sine"],
+      [1.0, -0.05, "linear"]
+    ]
+  }
+}

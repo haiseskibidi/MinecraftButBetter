@@ -148,10 +148,15 @@ public class Player extends LivingEntity {
         wasOnGround = onGround;
 
         // Profiles
+        com.za.minecraft.world.items.Item heldItem = inventory.getSelectedItem();
+        
         String cN = sneaking ? "sneak" : (sprinting ? "sprint" : "walk");
         String iN = sneaking ? "item_sneak" : (sprinting ? "item_sprint" : "item_walk");
+        if (heldItem != null) iN = heldItem.getAnimation(iN);
+        
         String ciN = sneaking ? "sneak_idle" : "idle"; 
         String iiN = sneaking ? "item_sneak" : "item_idle"; 
+        if (heldItem != null) iiN = heldItem.getAnimation(iiN);
 
         AnimationProfile cp = animationRegistry.get(cN);
         AnimationProfile ip = animationRegistry.get(iN);
@@ -218,6 +223,46 @@ public class Player extends LivingEntity {
             tItR = iItR + (wItR - iItR) * movementAlpha;
         }
 
+        // --- 4.5 PARKOUR BLENDING ---
+        float parkourTarget = parkourHandler.isInParkour() ? 1.0f : 0.0f;
+        parkourWeight += (parkourTarget - parkourWeight) * 18.0f * deltaTime;
+
+        if (parkourWeight > 0.001f) {
+            String pN = (parkourHandler.getState() == com.za.minecraft.entities.parkour.ParkourHandler.ParkourState.CLIMBING) ? "climbing" : "grabbing";
+            AnimationProfile pp = animationRegistry.get(pN);
+            if (pp != null) {
+                float pT = parkourHandler.getProgress();
+                float pSide = parkourHandler.getClimbSide();
+
+                float pTilt = pp.evaluate("camera_tilt", pT, pSide);
+                float pRoll = pp.evaluate("camera_roll", pT, pSide);
+                float pCamY = pp.evaluate("camera_y", pT, pSide);
+                float pCamX = pp.evaluate("camera_x", pT, pSide);
+                float pFov = pp.evaluate("fov_offset", pT, pSide);
+
+                float pItX = pp.evaluate("item_x", pT, pSide);
+                float pItY = pp.evaluate("item_y", pT, pSide);
+                float pItZ = pp.evaluate("item_z", pT, pSide);
+                float pItP = pp.evaluate("item_pitch", pT, pSide);
+                float pItYw = pp.evaluate("item_yaw", pT, pSide);
+                float pItR = pp.evaluate("item_roll", pT, pSide);
+
+                // Blend locomotion with parkour
+                targetTilt = targetTilt + (pTilt - targetTilt) * parkourWeight;
+                targetRoll = targetRoll + (pRoll - targetRoll) * parkourWeight;
+                tCamY = tCamY + (pCamY - tCamY) * parkourWeight;
+                tCamX = tCamX + (pCamX - tCamX) * parkourWeight;
+                targetFov = targetFov + (pFov - targetFov) * parkourWeight;
+
+                tItX = tItX + (pItX - tItX) * parkourWeight;
+                tItY = tItY + (pItY - tItY) * parkourWeight;
+                tItZ = tItZ + (pItZ - tItZ) * parkourWeight;
+                tItP = tItP + (pItP - tItP) * parkourWeight;
+                tItYw = tItYw + (pItYw - tItYw) * parkourWeight;
+                tItR = tItR + (pItR - tItR) * parkourWeight;
+            }
+        }
+
         // 5. Landing Impulse Apply
         if (landingTimer < 1.0f) {
             AnimationProfile lp = animationRegistry.get("landing");
@@ -257,7 +302,9 @@ public class Player extends LivingEntity {
 
         // 5.2 Item Swing (Mining/Punching)
         if (swinging) {
-            AnimationProfile swingAnim = animationRegistry.get("item_swing");
+            String sN = "item_swing";
+            if (heldItem != null) sN = heldItem.getAnimation(sN);
+            AnimationProfile swingAnim = animationRegistry.get(sN);
             if (swingAnim != null) {
                 itemSwingTimer += deltaTime / swingAnim.getDuration();
                 if (itemSwingTimer >= 1.0f) {

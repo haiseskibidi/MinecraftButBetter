@@ -67,9 +67,21 @@
 Назначение: Модели данных для структуры контента планшета.
 
 ## Item System (UPDATED)
+### com.za.minecraft.world.items.component.AnimationComponent (NEW)
+Назначение: Компонент для хранения переопределений анимаций предмета.
+Поля: `Map<String, String> overrides` (например, "swing" -> "axe_swing").
+
 ### com.za.minecraft.world.items.Item (UPDATED)
 Назначение: Базовый класс предмета.
-Логика: Добавлена поддержка `miningSpeed` и `maxStackSize` напрямую в класс для Data-Driven настройки эффективности и вместимости стаков.
+Логика: Добавлена поддержка `getAnimation(baseKey)` для динамического поиска профиля с учетом компонентов и типа предмета.
+
+### com.za.minecraft.entities.Player (UPDATED)
+Назначение: Основная сущность игрока.
+Логика: Обновлена система `updateAnimations` для поддержки динамических ключей профилей и восстановлено смешивание `parkourWeight`.
+
+### com.za.minecraft.entities.parkour.ParkourHandler (UPDATED)
+Назначение: Логика паркура.
+Функции: `tryLedgeGrab` теперь выполняет "примагничивание" к грани блока (face snapping) и выравнивание Yaw.
 
 ### com.za.minecraft.world.DataLoader (UPDATED)
 Назначение: Загрузчик ресурсов.

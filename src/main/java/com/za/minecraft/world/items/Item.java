@@ -111,6 +111,42 @@ public class Item {
         return 16;
     }
 
+    /**
+     * Returns the name of the animation profile to use for this item.
+     * @param baseKey The base animation name (e.g. "item_walk", "item_swing").
+     * @return The specific animation profile name to use.
+     */
+    public String getAnimation(String baseKey) {
+        // 1. Check for explicit overrides in AnimationComponent
+        com.za.minecraft.world.items.component.AnimationComponent animComp = getComponent(com.za.minecraft.world.items.component.AnimationComponent.class);
+        if (animComp != null) {
+            String override = animComp.getOverride(baseKey);
+            if (override != null) return override;
+        }
+
+        // 2. Logic for tools: try <tool_type>_<suffix> (e.g. axe_swing)
+        ToolComponent tool = getComponent(ToolComponent.class);
+        if (tool != null && baseKey.startsWith("item_")) {
+            String typeName = tool.type().name().toLowerCase();
+            String suffix = baseKey.substring(5); // skip "item_"
+            String custom = typeName + "_" + suffix;
+            if (com.za.minecraft.entities.parkour.animation.AnimationRegistry.exists(custom)) {
+                return custom;
+            }
+        }
+
+        // 3. Logic for blocks: try block_<suffix>
+        if (isBlock() && baseKey.startsWith("item_")) {
+            String suffix = baseKey.substring(5);
+            String custom = "block_" + suffix;
+            if (com.za.minecraft.entities.parkour.animation.AnimationRegistry.exists(custom)) {
+                return custom;
+            }
+        }
+
+        return baseKey;
+    }
+
     public static class ViewmodelTransform {
         public float px, py, pz;
         public float rx, ry, rz;

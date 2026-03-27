@@ -28,4 +28,8 @@ public class AnimationRegistry {
         if (list.size() == 1) return list.get(0);
         return list.get(random.nextInt(list.size()));
     }
+
+    public static boolean exists(String groupName) {
+        return groups.containsKey(groupName);
+    }
 }
