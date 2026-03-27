@@ -6,19 +6,19 @@ import java.util.List;
 
 public class AnimationTrack {
     private final List<Keyframe> keyframes = new ArrayList<>();
-    private boolean mirrored = false;
+    private boolean mirror = false;
 
     public void addKeyframe(Keyframe keyframe) {
         keyframes.add(keyframe);
         keyframes.sort(Comparator.comparingDouble(Keyframe::time));
     }
 
-    public boolean isMirrored() {
-        return mirrored;
+    public boolean isMirror() {
+        return mirror;
     }
 
-    public void setMirrored(boolean mirrored) {
-        this.mirrored = mirrored;
+    public void setMirror(boolean mirror) {
+        this.mirror = mirror;
     }
 
     public float evaluate(float t) {

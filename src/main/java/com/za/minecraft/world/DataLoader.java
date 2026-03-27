@@ -120,7 +120,7 @@ public class DataLoader {
                         
                         if (tracks.get(trackKey).isJsonObject()) {
                             JsonObject tObj = tracks.getAsJsonObject(trackKey);
-                            if (tObj.has("mirrored")) track.setMirrored(tObj.get("mirrored").getAsBoolean());
+                            if (tObj.has("mirror")) track.setMirror(tObj.get("mirror").getAsBoolean());
                             keys = tObj.getAsJsonArray("keyframes");
                         } else {
                             keys = tracks.getAsJsonArray(trackKey);

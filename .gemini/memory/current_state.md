@@ -146,12 +146,22 @@
   - Базовый игровой цикл, OpenGL рендеринг, View Model.
   - Локализация (I18n) и Unicode-шрифты.
 
-## Последние изменения
-- **Modular Animation Engine (v3.0) (NEW)**:
-  - Refactored `ParkourAnimation` into `AnimationProfile` (general locomotion support).
-  - Implemented multi-file loading from `animations/` directory using resource indexing.
-  - Added `Idle` (breathing) and `Walk` (head bobbing) animations via JSON.
-  - Automatic randomization of animations within the same prefix group.
+- **AAA Locomotion & Impulse Engine (v4.0) (NEW)**:
+  - **Fixed-Rate Locomotion (170Hz)**: Decoupled physical locomotion timer (170Hz) from rendering FPS to eliminate micro-jitter and ensure consistent head-bobbing speed.
+  - **Cinematic Sneak System**:
+    - "Heavy Survival Breath": Synchronized vertical breathing for camera and items in sneak mode, active even when standing still.
+    - Velocity-Weighted Blending: Smoothly transitions from vertical-only breathing to horizontal walking wobble based on physical movement intensity.
+  - **Dynamic Landing Impulse**: 
+    - Quadratic scaling of landing impact based on vertical velocity (V^2).
+    - Randomized `mirror` logic: landing shock can tilt the camera left or right randomly for visceral variety.
+    - Fast impact recovery (lerp at 12.0f) vs. slow FOV stabilization (lerp at 4.0f).
+  - **Atmospheric Fall Tension**:
+    - Procedural high-frequency jitter (50Hz) for items during high-altitude falls to simulate wind resistance.
+    - Wind drag displacement: items automatically lift (`item_y`) and retract (`item_z`) during terminal velocity descent.
+  - **Stability & Precision Fixes**:
+    - **Spawn Settle**: Guarded the first animation frame to prevent camera "jumping" or fake landing kicks when joining the world.
+    - **Swing Math Fix**: Prevented item "fly-away" bug by applying swing offsets to target variables instead of accumulating directly.
+    - **Terminology Standard**: Consolidated all mirroring logic under the `mirror` key across all JSONs and Java classes.
 - **Modular Physics & Parkour (v1.0)**:
   - **Data-Driven Physics**: Physical constants (climb duration, grab distance, jump velocity) externalized to `physics.json`.
   - **Clamber & Roll (Cinematic Parkour)**:

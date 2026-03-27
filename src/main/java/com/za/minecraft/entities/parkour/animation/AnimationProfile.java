@@ -35,7 +35,7 @@ public class AnimationProfile {
         
         float finalT = looping ? t % 1.0f : t;
         float val = track.evaluate(finalT);
-        return track.isMirrored() ? val * multiplier : val;
+        return track.isMirror() ? val * multiplier : val;
     }
 
     public String getName() { return name; }

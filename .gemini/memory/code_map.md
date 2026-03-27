@@ -11,23 +11,24 @@
 ### src/main/resources/minecraft/registry
 - **physics.json**: Конфигурация физических констант (гравитация, скорость паркура).
 
-## Animation & Locomotion System (v3.0)
+## Animation & Locomotion System (v4.0 UPDATED)
 ### src/main/resources/minecraft/animations/
-Назначение: Директория со всеми профилями анимаций (JSON).
+Назначение: Директория со всеми профилями анимаций (JSON). Новые профили: `landing.json` (импульсы приземления), `falling.json` (напряжение при падении).
 
-### com.za.minecraft.entities.parkour.ParkourHandler
-Назначение: Машина состояний паркура и расчет траекторий.
-Логика: Использует JSON-параметры из AnimationProfile.
-
-### com.za.minecraft.entities.parkour.animation.AnimationRegistry
-Назначение: Оркестратор анимаций. Поддерживает группы и рандомизацию.
+### com.za.minecraft.entities.Player (UPDATED)
+Назначение: Основная сущность игрока с AAA-системой локомоции.
+Функции:
+- `update()`: Обновляет физические таймеры локомоции на частоте 170Hz для стабильности.
+- `updateAnimations()`: Визуальный проход (на частоте кадров). Рассчитывает оффсеты, применяет импульсы приземления (`landingScale`, `landingSide`), эффект падения (`fallingTimer`) и наклон камеры (lean).
+- `isFirstFrame`: Флаг для механизма Spawn Settle (предотвращение глитчей при спавне).
 
 ### com.za.minecraft.entities.parkour.animation.AnimationProfile
-Назначение: Универсальный профиль движения (заменяет `ParkourAnimation`).
-Функции: evaluate() с поддержкой looping и mirrored.
+Назначение: Универсальный профиль движения.
+Функции: `evaluate(trackName, t, multiplier)` — рассчитывает значение с учетом `mirror` свойства трека и переданного множителя.
 
 ### com.za.minecraft.entities.parkour.animation.AnimationTrack
-Назначение: Поток данных для одного параметра. Поддерживает флаг `mirrored`.
+Назначение: Поток данных для одного параметра.
+Поля: `mirror` (вместо `mirrored`) — флаг инвертирования оси при зеркалировании.
 
 ### com.za.minecraft.entities.parkour.animation.Keyframe
 Назначение: Точка анимации (время, значение, тип интерполяции).

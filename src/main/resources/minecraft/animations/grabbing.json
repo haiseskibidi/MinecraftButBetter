@@ -7,7 +7,7 @@
       [1.0, 0.0, "linear"]
     ],
     "camera_roll": {
-      "mirrored": true,
+      "mirror": true,
       "keyframes": [
         [0.0, 0.0, "sine"],
         [0.4, 0.15, "sine"],
@@ -20,7 +20,7 @@
       [1.0, 0.0, "linear"]
     ],
     "item_x": {
-      "mirrored": true,
+      "mirror": true,
       "keyframes": [
         [0.0, 0.0, "sine"],
         [0.4, 0.35, "sine"],

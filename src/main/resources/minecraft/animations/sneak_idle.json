@@ -1,15 +1,18 @@
 {
   "looping": true,
-  "duration": 3.0,
+  "duration": 5.0,
   "tracks": {
     "camera_y": [
-      [0.0, 0.0, "sine"],
-      [0.5, -0.015, "sine"],
-      [1.0, 0.0, "linear"]
+      [0.0, 0.0, "smoothstep"],
+      [0.4, -0.04, "smoothstep"],
+      [0.6, -0.04, "linear"],
+      [1.0, 0.0, "smoothstep"]
     ],
     "camera_tilt": [
-      [0.0, 0.01, "linear"],
-      [1.0, 0.01, "linear"]
+      [0.0, 0.0, "smoothstep"],
+      [0.4, 0.015, "smoothstep"],
+      [0.6, 0.015, "linear"],
+      [1.0, 0.0, "smoothstep"]
     ]
   }
 }

@@ -1,11 +1,34 @@
 {
   "looping": true,
-  "duration": 1.2,
+  "duration": 2.5,
   "tracks": {
-    "item_x": [[0.0, -0.05, "sine"], [0.25, -0.1, "sine"], [0.5, -0.05, "sine"], [0.75, 0.0, "sine"], [1.0, -0.05, "linear"]],
-    "item_y": [[0.0, -0.25, "sine"], [0.5, -0.2, "sine"], [1.0, -0.25, "linear"]],
-    "item_z": [[0.0, -0.1, "linear"], [1.0, -0.1, "linear"]],
-    "item_pitch": [[0.0, 0.5, "sine"], [0.25, 0.45, "sine"], [0.5, 0.5, "sine"], [0.75, 0.55, "sine"], [1.0, 0.5, "linear"]],
-    "item_roll": [[0.0, -0.15, "sine"], [0.25, -0.1, "sine"], [0.5, -0.15, "sine"], [0.75, -0.2, "sine"], [1.0, -0.15, "linear"]]
+    "item_x": [
+      [0.0, 0.0, "sine"],
+      [0.25, 0.03, "sine"],
+      [0.5, 0.0, "sine"],
+      [0.75, -0.03, "sine"],
+      [1.0, 0.0, "linear"]
+    ],
+    "item_y": [
+      [0.0, -0.15, "smoothstep"],
+      [0.5, -0.18, "smoothstep"],
+      [1.0, -0.15, "smoothstep"]
+    ],
+    "item_z": [
+      [0.0, 0.05, "smoothstep"],
+      [0.5, 0.08, "smoothstep"],
+      [1.0, 0.05, "smoothstep"]
+    ],
+    "item_pitch": [
+      [0.0, 0.0, "sine"],
+      [0.5, 0.04, "sine"],
+      [1.0, 0.0, "linear"]
+    ],
+    "item_roll": [
+      [0.0, 0.0, "sine"],
+      [0.25, 0.02, "sine"],
+      [0.75, -0.02, "sine"],
+      [1.0, 0.0, "linear"]
+    ]
   }
 }
