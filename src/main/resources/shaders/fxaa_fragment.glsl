@@ -110,28 +110,31 @@ void main() {
         float diff = d - averageDepth;
         
         if (diff > 0.05) {
-            float ao = smoothstep(0.05, 0.5, diff);
-            blended *= mix(1.0, 0.6, ao);
+            float ao = smoothstep(0.05, 0.4, diff);
+            blended *= mix(1.0, 0.65, ao);
         }
         
         // 2. Atmospheric Fog
-        vec3 skyColor = vec3(0.6, 0.8, 1.0); 
-        float fogFactor = smoothstep(50.0, 250.0, d);
+        vec3 skyColor = vec3(0.55, 0.65, 0.75); 
+        float fogFactor = smoothstep(40.0, 200.0, d);
         blended = mix(blended, skyColor, fogFactor);
     }
     
-    // 3. Vibrance
+    // 3. Filmic Contrast
+    blended = pow(blended, vec3(1.15));
+    
+    // 4. Balanced Vibrance
     float luma = dot(blended, vec3(0.299, 0.587, 0.114));
     float maxColor = max(blended.r, max(blended.g, blended.b));
     float minColor = min(blended.r, min(blended.g, blended.b));
     float sat = maxColor - minColor;
-    blended = mix(vec3(luma), blended, 1.0 + (0.4 * (1.0 - sat)));
+    blended = mix(vec3(luma), blended, 1.0 + (0.35 * (1.0 - sat)));
 
-    // 4. Vignette
+    // 5. Cinematic Vignette
     vec2 uv = fragTexCoord * (1.0 - fragTexCoord.yx);
     float vig = uv.x * uv.y * 15.0; 
-    vig = pow(vig, 0.15); 
-    blended *= vig;
+    vig = pow(vig, 0.2); 
+    blended *= mix(0.7, 1.0, vig);
     
     fragColor = vec4(blended, 1.0);
 }

@@ -1,12 +1,12 @@
 # Текущий статус проекта "MinecraftButBetter"
 
 ## Реализованные фичи
-- **Stylized AAA Rendering Engine (NEW)**:
-  - **Soft Toon Shading**: Replaced hard lighting with 3-band smoothstepped quantization for a "painted" look.
-  - **Crease AO (SSAO-lite)**: Implemented depth-based ambient occlusion to emphasize corners and block edges without noisy outlines.
-  - **Atmospheric Stack**: Added depth-faded fog, intelligent Vibrance (saturation), and cinematic Vignette.
-  - **Viewmodel Polish**: Enhanced lighting and contrast for held items.
-  - **Foliage Filtering**: Smart masking to prevent visual noise on grass and leaves.
+- **Stylized AAA Rendering Engine (Cinematic Survival Edition)**:
+  - **Moody Lighting**: Switched to 2-band sharp toon shading with cool, atmospheric ambient light for a serious survival tone.
+  - **Heavy Crease AO**: Deepened depth-based occlusion to emphasize world weight and geometry.
+  - **Filmic Post-Stack**: Implemented 1.15 gamma contrast, subdued natural vibrance, and cinematic vignette.
+  - **Atmospheric Fog**: Dense blue-grey fog for grounded horizon blending.
+  - **Viewmodel Polish**: Balanced hand lighting to fit the moody atmosphere.
 - **AAA Locomotion & Impulse Engine (v4.5)**:
   - **Item-Specific Animation System**:
     - **Data-Driven Lookup**: Replaced hardcoded animation names with a dynamic system. Items can now have unique walk, idle, and swing animations.
