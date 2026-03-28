@@ -24,26 +24,29 @@ void main() {
         baseColor *= tintColor;
     }
 
-    // 1. Базовая яркость (чуть выше, чтобы не было черных зон)
-    float ambient = 0.65;
+    // 1. Базовая яркость (теплый ambient)
+    float ambient = 0.6; 
     
-    // 2. Основной "Верхний" свет (самый яркий)
-    float top = max(dot(fragNormal, TOP_LIGHT_DIR), 0.0) * 0.35;
+    // 2. Основной "Верхний" свет
+    float top = max(dot(fragNormal, TOP_LIGHT_DIR), 0.0);
+    // Мягкое квантование
+    top = smoothstep(0.2, 0.8, top) * 0.45;
     
-    // 3. Мягкий "Боковой" свет (для объема)
-    float side = max(dot(fragNormal, SIDE_LIGHT_DIR), 0.0) * 0.15;
+    // 3. Мягкий "Боковой" свет
+    float side = max(dot(fragNormal, SIDE_LIGHT_DIR), 0.0);
+    side = smoothstep(0.1, 0.9, side) * 0.25;
     
     // Итоговое освещение
     float lighting = ambient + top + side;
     
-    // Убираем пересвет на боковых гранях
+    // Убираем пересвет
     lighting = clamp(lighting, 0.0, 1.0);
 
-    vec3 color = baseColor * lighting * (brightnessMultiplier * 0.95);
+    vec3 color = baseColor * lighting * (brightnessMultiplier * 1.05);
     
-    // Небольшое усиление насыщенности (Vibrance)
+    // Усиление насыщенности (Vibrance)
     float luma = dot(color, vec3(0.299, 0.587, 0.114));
-    color = mix(vec3(luma), color, 1.1);
+    color = mix(vec3(luma), color, 1.2);
 
     fragColor = vec4(color, textureColor.a);
 }

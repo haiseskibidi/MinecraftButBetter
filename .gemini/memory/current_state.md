@@ -1,7 +1,13 @@
 # Текущий статус проекта "MinecraftButBetter"
 
 ## Реализованные фичи
-- **AAA Locomotion & Impulse Engine (v4.5) (NEW)**:
+- **Stylized AAA Rendering Engine (NEW)**:
+  - **Soft Toon Shading**: Replaced hard lighting with 3-band smoothstepped quantization for a "painted" look.
+  - **Crease AO (SSAO-lite)**: Implemented depth-based ambient occlusion to emphasize corners and block edges without noisy outlines.
+  - **Atmospheric Stack**: Added depth-faded fog, intelligent Vibrance (saturation), and cinematic Vignette.
+  - **Viewmodel Polish**: Enhanced lighting and contrast for held items.
+  - **Foliage Filtering**: Smart masking to prevent visual noise on grass and leaves.
+- **AAA Locomotion & Impulse Engine (v4.5)**:
   - **Item-Specific Animation System**:
     - **Data-Driven Lookup**: Replaced hardcoded animation names with a dynamic system. Items can now have unique walk, idle, and swing animations.
     - **AnimationComponent**: Added support for explicit animation overrides in item JSON files.

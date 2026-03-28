@@ -49,6 +49,7 @@ public class PostProcessor {
         
         passthroughShader.use();
         passthroughShader.setInt("screenTexture", 0);
+        passthroughShader.setInt("depthTexture", 1);
         
         Logger.info("PostProcessor initialized with FXAA and passthrough shaders");
     }
@@ -84,36 +85,49 @@ public class PostProcessor {
         memFree(indexBuffer);
     }
     
-    public void processFXAA(int colorTexture, int screenWidth, int screenHeight) {
+    public void processFXAA(int colorTexture, int depthTexture, int screenWidth, int screenHeight) {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
         
         fxaaShader.use();
         fxaaShader.setVector2f("screenSize", new Vector2f(screenWidth, screenHeight));
+        fxaaShader.setInt("depthTexture", 1);
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, colorTexture);
         
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, depthTexture);
+        
         glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+        
+        glActiveTexture(GL_TEXTURE0);
         
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
     }
     
-    public void processPassthrough(int colorTexture) {
+    public void processPassthrough(int colorTexture, int depthTexture, int screenWidth, int screenHeight) {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_CULL_FACE);
         
         passthroughShader.use();
+        passthroughShader.setVector2f("screenSize", new Vector2f(screenWidth, screenHeight));
         
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, colorTexture);
         
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, depthTexture);
+        
         glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+        
+        // Reset active texture
+        glActiveTexture(GL_TEXTURE0);
         
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);

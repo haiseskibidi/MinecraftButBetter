@@ -1,5 +1,14 @@
  # Архитектура проекта "MinecraftButBetter"
 
+### Rendering Pipeline (v5.0 UPDATED)
+1. **RGBA Framebuffer**: Supports alpha-channel masking for post-processing effects.
+2. **Depth-Sampling Architecture**:
+    - **Depth Texture**: `Framebuffer` now provides a full depth texture for screen-space effects.
+    - **Crease AO**: Post-processor analyzes depth derivatives to darken crevices.
+3. **Stylized AAA Post-Stack**:
+    - **FXAA + Stylized effects**: Combined anti-aliasing with Vignette, Fog, and Vibrance in a single pass.
+    - **Viewmodel Depth Mapping**: Uses `glDepthRange` to overlay hands into the depth-aware post-stack without clearing buffer.
+
 ### Locomotion & Animation Engine (v4.0 UPDATED)
 1. **Hybrid Update Architecture**:
     - **Fixed Physical Locomotion (170Hz)**: Физические таймеры анимаций и `movementAlpha` обновляются на фиксированной частоте в `Player.update()`. Это гарантирует консистентную скорость покачивания головы и рук независимо от FPS.

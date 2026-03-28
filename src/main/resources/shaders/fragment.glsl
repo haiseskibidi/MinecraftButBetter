@@ -119,10 +119,21 @@ void main() {
         baseColor *= tint;
     }
 
+    // Stylized AAA: Soft Lighting Quantization
     float diffuse = max(dot(fragNormal, -lightDirection), 0.0);
-    vec3 lighting = ambientLight + lightColor * diffuse;
+    
+    // 3 smooth bands for a "painted" look
+    float band1 = smoothstep(0.2, 0.25, diffuse) * 0.4;
+    float band2 = smoothstep(0.5, 0.55, diffuse) * 0.3;
+    float band3 = smoothstep(0.8, 0.85, diffuse) * 0.3;
+    float toonDiffuse = band1 + band2 + band3;
 
-    fragColor = vec4(lighting * baseColor * brightnessMultiplier, alpha);       
+    // Warm, stylized ambient
+    vec3 toonAmbient = ambientLight * vec3(0.8, 0.82, 0.9);
+    vec3 lighting = toonAmbient + lightColor * toonDiffuse;
+
+    // Output final color with full alpha (no mask needed)
+    fragColor = vec4(lighting * baseColor * brightnessMultiplier, 1.0);       
 
     if (previewPass) {
         fragColor.rgb = mix(fragColor.rgb, vec3(1.0, 1.0, 1.0), 0.3);

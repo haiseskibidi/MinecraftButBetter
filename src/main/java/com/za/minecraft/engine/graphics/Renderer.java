@@ -119,13 +119,13 @@ public class Renderer {
         if (previewPos != null && previewMesh != null) renderPreviewBlock(camera, alpha);
 
         renderViewModel(camera, world.getPlayer());
-        
+
         framebuffer.unbind();
         glViewport(0, 0, window.getWidth(), window.getHeight());
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
-        if (fxaaEnabled) postProcessor.processFXAA(framebuffer.getColorTextureId(), window.getWidth(), window.getHeight());
-        else postProcessor.processPassthrough(framebuffer.getColorTextureId());
+        if (fxaaEnabled) postProcessor.processFXAA(framebuffer.getColorTextureId(), framebuffer.getDepthTextureId(), window.getWidth(), window.getHeight());
+        else postProcessor.processPassthrough(framebuffer.getColorTextureId(), framebuffer.getDepthTextureId(), window.getWidth(), window.getHeight());
         
         uiRenderer.renderCrosshair(window.getWidth(), window.getHeight());
         uiRenderer.renderHotbar(window.getWidth(), window.getHeight(), atlas);
@@ -135,7 +135,9 @@ public class Renderer {
     private void renderViewModel(Camera camera, com.za.minecraft.entities.Player player) {
         if (player == null) return;
         glDisable(GL_CULL_FACE);
-        glClear(GL_DEPTH_BUFFER_BIT);
+        // Render in the extreme foreground to overlay the world without clearing depth!
+        glDepthRange(0.0, 0.05);
+        
         blockShader.use();
         atlas.bind();
         Matrix4f viewModelProjection = new Matrix4f().setPerspective((float)Math.toRadians(70.0f), camera.getAspectRatio(), 0.01f, 1000.0f);
@@ -173,6 +175,8 @@ public class Renderer {
         blockShader.setInt("highlightPass", 0);
         blockShader.setBoolean("viewModelPass", false);
         blockShader.setVector3f("lightDirection", lightDirection);
+        
+        glDepthRange(0.0, 1.0); // Restore depth range
         glEnable(GL_CULL_FACE);
     }
     
