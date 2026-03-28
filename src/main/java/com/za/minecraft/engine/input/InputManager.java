@@ -244,9 +244,9 @@ public class InputManager {
         if (shift && button == GLFW_MOUSE_BUTTON_1) {
             if (player.getInventory() instanceof Inventory inv) {
                 if (doubleClick) {
-                    inv.collectAllTo(slot.getIndex());
+                    inv.collectAllTo(slot);
                 } else {
-                    inv.quickMove(slot.getIndex());
+                    inv.quickMove(slot);
                 }
             }
             return;
@@ -446,7 +446,7 @@ public class InputManager {
                 boolean pressed = window.isKeyPressed(GLFW_KEY_1 + i);
                 if (pressed && !numKeysPressed[i]) {
                     if (hoveredSlot != null) {
-                        player.getInventory().swapWithHotbar(hoveredSlot.getIndex(), i);
+                        player.getInventory().swapWithHotbar(hoveredSlot, i);
                     } else if (player.getMode() == PlayerMode.DEVELOPER) {
                         Item devItem = getDevItemAt(currentPos.x, currentPos.y);
                         if (devItem != null) {
@@ -501,7 +501,7 @@ public class InputManager {
                     if (window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1) && (window.isKeyPressed(GLFW_KEY_LEFT_SHIFT) || window.isKeyPressed(GLFW_KEY_RIGHT_SHIFT))) {
                         if (hoveredSlot != null && hoveredSlot.getIndex() != lastQuickMovedSlot && heldStack == null) {
                             if (player.getInventory() instanceof Inventory inv) {
-                                inv.quickMove(hoveredSlot.getIndex());
+                                inv.quickMove(hoveredSlot);
                                 lastQuickMovedSlot = hoveredSlot.getIndex();
                             }
                         } else if (hoveredSlot == null && player.getMode() == PlayerMode.DEVELOPER) {

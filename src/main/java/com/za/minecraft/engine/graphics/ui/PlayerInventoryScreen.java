@@ -29,9 +29,11 @@ public class PlayerInventoryScreen extends InventoryScreen {
         key.append(sw).append("x").append(sh).append("|");
         key.append(player.getMode().name()).append("|");
         
-        // Add activity status of all groups
+        // Add activity status and size of all groups
         for (SlotGroup group : player.getInventory().getGroups()) {
-            key.append(group.getId()).append(":").append(group.isActive()).append(",");
+            key.append(group.getId()).append(":")
+               .append(group.isActive()).append(":")
+               .append(group.getSlots().size()).append(",");
         }
         return key.toString();
     }

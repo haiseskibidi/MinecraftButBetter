@@ -19,13 +19,11 @@ public class Inventory implements IInventory {
     public static final int HOTBAR_SIZE = 9;
     public static final int POCKETS_SIZE = 8;
     public static final int EQUIPMENT_SIZE = 8; // Reserved space for equipment
-    public static final int POUCH_SIZE = 8;
-    public static final int TOTAL_SIZE = 33; // 9 (hotbar) + 8 (pockets) + 8 (equipment) + 8 (pouch)
+    public static final int TOTAL_SIZE = 25; // 9 (hotbar) + 8 (pockets) + 8 (equipment)
 
     public static final int START_HOTBAR = 0;
     public static final int START_POCKETS = 9;
     public static final int START_EQUIPMENT = 17;
-    public static final int START_POUCH = 25;
     
     public static final int SLOT_HELMET = 17;
     public static final int SLOT_CHEST = 18;
@@ -37,6 +35,7 @@ public class Inventory implements IInventory {
     private ItemStack[] slots;
     private int selectedSlot; 
     private final List<SlotGroup> groups;
+    private ItemStack lastAccessory;
     
     public Inventory() {
         this.slots = new ItemStack[TOTAL_SIZE];
@@ -89,9 +88,6 @@ public class Inventory implements IInventory {
                 ItemStack acc = slots[SLOT_ACCESSORY];
                 return acc != null && acc.getItem().hasComponent(BagComponent.class);
             });
-        for (int i = 0; i < POUCH_SIZE; i++) {
-            pouch.addSlot(new Slot(this, START_POUCH + i, "any"));
-        }
         groups.add(pouch);
     }
 
@@ -128,7 +124,7 @@ public class Inventory implements IInventory {
     public boolean isSlotActive(int slotIndex) {
         for (SlotGroup group : groups) {
             for (Slot slot : group.getSlots()) {
-                if (slot.getIndex() == slotIndex) {
+                if (slot.getIndex() == slotIndex && slot.getInventory() == this) {
                     return group.isActive();
                 }
             }
@@ -222,11 +218,11 @@ public class Inventory implements IInventory {
         }
     }
 
-    public void swapWithHotbar(int slotIndex, int hotbarIndex) {
-        if (slotIndex < 0 || slotIndex >= TOTAL_SIZE || hotbarIndex < 0 || hotbarIndex >= HOTBAR_SIZE) return;
+    public void swapWithHotbar(Slot slot, int hotbarIndex) {
+        if (slot == null || hotbarIndex < 0 || hotbarIndex >= HOTBAR_SIZE) return;
         
-        ItemStack temp = slots[slotIndex];
-        slots[slotIndex] = slots[hotbarIndex];
+        ItemStack temp = slot.getStack();
+        slot.setStack(slots[hotbarIndex]);
         slots[hotbarIndex] = temp;
     }
 
@@ -235,8 +231,9 @@ public class Inventory implements IInventory {
         slots[hotbarIndex] = new ItemStack(item, item.getMaxStackSize());
     }
 
-    public void collectAllTo(int targetSlotIndex) {
-        ItemStack targetStack = getStackInSlot(targetSlotIndex);
+    public void collectAllTo(Slot targetSlot) {
+        if (targetSlot == null) return;
+        ItemStack targetStack = targetSlot.getStack();
         if (targetStack == null || targetStack.isFull()) return;
 
         Item itemType = targetStack.getItem();
@@ -246,7 +243,7 @@ public class Inventory implements IInventory {
             if (!group.isActive() || group.getId().equals("equipment")) continue;
 
             for (com.za.minecraft.entities.inventory.Slot slot : group.getSlots()) {
-                if (slot.getIndex() == targetSlotIndex) continue;
+                if (slot == targetSlot) continue;
 
                 ItemStack otherStack = slot.getStack();
                 if (otherStack != null && otherStack.getItem().getId() == itemType.getId()) {
@@ -266,13 +263,46 @@ public class Inventory implements IInventory {
         }
     }
 
-    public void quickMove(int slotIndex) {
-        ItemStack stack = getStackInSlot(slotIndex);
+    public void quickMove(Slot originSlot) {
+        if (originSlot == null) return;
+        ItemStack stack = originSlot.getStack();
         if (stack == null) return;
 
-        // Определяем целевые группы для квик-мува
+        com.za.minecraft.world.items.component.EquipmentComponent eq = stack.getItem().getComponent(com.za.minecraft.world.items.component.EquipmentComponent.class);
+        if (eq != null) {
+            boolean alreadyInStrictSlot = false;
+            for (SlotGroup group : groups) {
+                if (!group.isActive()) continue;
+                for (com.za.minecraft.entities.inventory.Slot slot : group.getSlots()) {
+                    if (slot == originSlot && !slot.getType().equals("any")) {
+                        alreadyInStrictSlot = true;
+                        break;
+                    }
+                }
+            }
+            
+            if (!alreadyInStrictSlot) {
+                for (SlotGroup group : groups) {
+                    if (!group.isActive()) continue;
+                    for (com.za.minecraft.entities.inventory.Slot slot : group.getSlots()) {
+                        if (slot.getType().equals(eq.getSlotType()) && slot.getStack() == null) {
+                            slot.setStack(stack);
+                            originSlot.setStack(null);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Определяем целевые группы для квик-мува. Если предмет в хотбаре - кидаем в карманы/рюкзак, иначе в хотбар.
         List<String> targetGroups = new ArrayList<>();
-        if (slotIndex < HOTBAR_SIZE) {
+        boolean isFromHotbar = false;
+        for (Slot slot : getGroup("hotbar").getSlots()) {
+             if (slot == originSlot) isFromHotbar = true;
+        }
+
+        if (isFromHotbar) {
             targetGroups.add("pockets");
             targetGroups.add("pouch");
         } else {
@@ -294,7 +324,7 @@ public class Inventory implements IInventory {
                     stack.setCount(stack.getCount() - toMove);
                     
                     if (stack.getCount() <= 0) {
-                        setStackInSlot(slotIndex, null);
+                        originSlot.setStack(null);
                         return;
                     }
                 }
@@ -309,7 +339,7 @@ public class Inventory implements IInventory {
             for (com.za.minecraft.entities.inventory.Slot slot : group.getSlots()) {
                 if (slot.getStack() == null && slot.isItemValid(stack)) {
                     slot.setStack(stack);
-                    setStackInSlot(slotIndex, null);
+                    originSlot.setStack(null);
                     return;
                 }
             }
@@ -364,17 +394,43 @@ public class Inventory implements IInventory {
     }
     
     public void update(World world, Player player, Camera camera) {
-        // Проверяем каждую группу. Если она неактивна, но в её слотах есть предметы - выбрасываем их.
-        for (SlotGroup group : groups) {
-            if (!group.isActive()) {
-                for (Slot slot : group.getSlots()) {
-                    ItemStack stack = slots[slot.getIndex()];
-                    if (stack != null) {
-                        dropStack(stack, player, world, camera, true);
-                        slots[slot.getIndex()] = null;
+        ItemStack currentAcc = slots[SLOT_ACCESSORY];
+
+        // Did the accessory change?
+        if (lastAccessory != currentAcc) {
+            SlotGroup pouch = getGroup("pouch");
+            
+            // Handle removal/change of the previous accessory
+            if (lastAccessory != null && lastAccessory.getItem().hasComponent(BagComponent.class)) {
+                BagComponent bag = lastAccessory.getItem().getComponent(BagComponent.class);
+                com.za.minecraft.world.inventory.ItemInventory itemInv = lastAccessory.getItemInventory();
+                
+                // If the bag specifies it should drop items when unequipped, drop them
+                if (bag.isDropOnUnequip() && itemInv != null) {
+                    for (int i = 0; i < itemInv.size(); i++) {
+                        ItemStack innerStack = itemInv.getStack(i);
+                        if (innerStack != null) {
+                            dropStack(innerStack, player, world, camera, true);
+                            itemInv.setStack(i, null);
+                        }
                     }
                 }
             }
+
+            pouch.getSlots().clear();
+
+            // Handle the new accessory
+            if (currentAcc != null && currentAcc.getItem().hasComponent(BagComponent.class)) {
+                com.za.minecraft.world.inventory.ItemInventory itemInv = currentAcc.getItemInventory();
+                if (itemInv != null) {
+                    for (int i = 0; i < itemInv.size(); i++) {
+                        // Create slots wrapping the ItemInventory instead of Player Inventory
+                        pouch.addSlot(new Slot(itemInv, i, "any"));
+                    }
+                }
+            }
+
+            lastAccessory = currentAcc;
         }
     }
 

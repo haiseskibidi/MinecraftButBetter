@@ -31,6 +31,7 @@ public class Items {
     public static Item FIRE_STARTER;
     public static Item HAND;
     public static Item POUCH;
+    public static Item OFFHAND_DUMMY;
 
     public static void init() {        for (java.lang.reflect.Field field : Items.class.getFields()) {
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
