@@ -57,6 +57,7 @@ public class GameLoop {
     public Player getPlayer() { return player; }
     public World getWorld() { return world; }
     public Camera getCamera() { return camera; }
+    public Timer getTimer() { return timer; }
     public InputManager getInputManager() { return inputManager; }
     public Renderer getRenderer() { return renderer; }
     public void setInventoryOpen(boolean open) { this.inventoryOpen = open; }

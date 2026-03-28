@@ -23,9 +23,15 @@ public abstract class InventoryScreen implements Screen {
 
     @Override
     public void render(UIRenderer renderer, int sw, int sh, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
+        float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
+        float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
+        int size = getSlotSize();
+
         for (SlotUI slotUI : slots) {
             if (slotUI.getSlot().getInventory().isSlotActive(slotUI.getSlot().getIndex())) {
-                renderer.renderSlot(slotUI.getX(), slotUI.getY(), getSlotSize(), slotUI.getSlot().getStack(), slotUI.getPlaceholderTexture(), sw, sh, atlas);
+                boolean isHovered = slotUI.isMouseOver(mx, my, size);
+                String animId = "slot_" + slotUI.getSlot().getIndex();
+                renderer.renderSlot(slotUI.getX(), slotUI.getY(), size, slotUI.getSlot().getStack(), slotUI.getPlaceholderTexture(), sw, sh, atlas, isHovered, animId);
             }
         }
     }

@@ -31,7 +31,7 @@ public class InventoryBlockRenderer {
         );
     }
 
-    public void renderBlock(Item item, float x, float y, float size, int screenWidth, int screenHeight, DynamicTextureAtlas atlas) {
+    public void renderBlock(Item item, float x, float y, float size, int screenWidth, int screenHeight, DynamicTextureAtlas atlas, float rotation) {
         if (item == null || !item.isBlock() || atlas == null) return;
 
         // 1. Получаем или создаем меш блока
@@ -61,7 +61,7 @@ public class InventoryBlockRenderer {
             
             float visualScale = size * 0.65f * item.getVisualScale();
             modelMatrix.rotateX((float) Math.toRadians(-30))
-                       .rotateY((float) Math.toRadians(45))
+                       .rotateY((float) Math.toRadians(45 + rotation))
                        .scale(visualScale, -visualScale, visualScale)
                        .translate(-0.5f, -0.5f, -0.5f);
 

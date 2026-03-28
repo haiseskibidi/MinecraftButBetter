@@ -126,6 +126,7 @@ public class UIRenderer {
         uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
         uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
         uiShader.setInt("isGrayscale", 0);
+        uiShader.setInt("isSlot", 0);
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -139,6 +140,7 @@ public class UIRenderer {
         uiShader.use();
         uiShader.setInt("useTexture", 1);
         uiShader.setInt("useArray", 0);
+        uiShader.setInt("isSlot", 0);
         uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
         
         float crosshairSize = 16.0f;
@@ -179,13 +181,18 @@ public class UIRenderer {
         List<SlotUI> slots = InventoryLayout.generateLayout(screenWidth, screenHeight, slotSize, spacing, hotbar.getPlayer(), config);
         
         int selectedSlot = hotbar.getSelectedSlot();
-        
+        float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
+        float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
+
         for (int i = 0; i < slots.size(); i++) {
             SlotUI ui = slots.get(i);
             ItemStack stack = ui.getSlot().getStack();
             
+            boolean isHovered = mx >= ui.getX() && mx <= ui.getX() + slotSize && my >= ui.getY() && my <= ui.getY() + slotSize;
+            String animId = "hotbar_" + i;
+            
             // Render slot background and item
-            renderSlot(ui.getX(), ui.getY(), slotSize, stack, null, screenWidth, screenHeight, atlas);
+            renderSlot(ui.getX(), ui.getY(), slotSize, stack, null, screenWidth, screenHeight, atlas, isHovered, animId);
             
             // Render selection frame for active slot
             if (i == selectedSlot) {
@@ -207,6 +214,146 @@ public class UIRenderer {
 
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
+    }
+
+    public void renderSlot(int x, int y, int size, ItemStack stack, String placeholder, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
+        renderSlot(x, y, size, stack, placeholder, screenWidth, screenHeight, atlas, false, "static_slot_" + x + "_" + y);
+    }
+
+    public void renderSlot(int x, int y, int size, ItemStack stack, String placeholder, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas, boolean isHovered, String animId) {
+        float delta = GameLoop.getInstance().getTimer().getDeltaF();
+        float hoverProgress = UIAnimationManager.getHoverProgress(animId, isHovered, delta);
+
+        // Slot background with SDF Shape
+        uiShader.use();
+        uiShader.setInt("useTexture", 0);
+        uiShader.setInt("isSlot", 1); // Enable SDF Octagon
+        
+        float scaleX = (float)size / screenWidth;
+        float scaleY = (float)size / screenHeight;
+        float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
+        float posY = 1.0f - (2.0f * y / screenHeight) - scaleY;
+        
+        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        
+        // Dynamic background color based on hover
+        float bgBrightness = 0.45f + hoverProgress * 0.15f;
+        uiShader.setUniform("tintColor", bgBrightness, bgBrightness, bgBrightness, 0.9f);
+        
+        glBindVertexArray(quadVAO);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        
+        uiShader.setInt("isSlot", 0); // Disable SDF for items
+
+        if (stack != null) {
+            float itemRotation = hoverProgress * 360.0f; // Full rotation speed on hover
+            float itemScaleMod = 1.0f + (float)Math.sin(System.currentTimeMillis() * 0.005f) * 0.05f * hoverProgress;
+            
+            renderItemIcon(stack.getItem(), x + 2, y + 2, (size - 4) * itemScaleMod, screenWidth, screenHeight, atlas, itemRotation, hoverProgress);
+            
+            if (stack.getCount() > 1) {
+                String count = String.valueOf(stack.getCount());
+                fontRenderer.drawString(count, x + size - fontRenderer.getStringWidth(count, 14), y + size - 14, 14, screenWidth, screenHeight);
+            }
+            
+            // Draw durability bar
+            if (stack.getItem().isTool()) {
+                com.za.minecraft.world.items.component.ToolComponent tool = stack.getItem().getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
+                float dur = (float)stack.getDurability() / tool.maxDurability();
+                if (dur < 1.0f) {
+                    renderDurabilityBar(x + 2, y + size - 4, size - 4, dur, screenWidth, screenHeight);
+                }
+            }
+        } else if (placeholder != null && !placeholder.isEmpty()) {
+            renderPlaceholder(x, y, size, placeholder, screenWidth, screenHeight);
+        }
+        glBindVertexArray(0);
+    }
+
+    private void renderItemIcon(Item item, float x, float y, float size, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas, float rotation, float hoverProgress) {
+        if (item.isBlock()) {
+            blockRenderer.renderBlock(item, x, y, size, screenWidth, screenHeight, atlas, rotation);
+            return;
+        }
+
+        // 2D Item Sway and Breath
+        float scaleX = size / screenWidth;
+        float scaleY = size / screenHeight;
+        float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
+        float posY = 1.0f - (2.0f * y / screenHeight) - scaleY;
+        
+        uiShader.use();
+        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+        uiShader.setInt("useArray", 0);
+        
+        glActiveTexture(GL_TEXTURE0);
+        String path = item.getTexturePath();
+        if (path != null && !path.isEmpty()) {
+            Texture tex = itemTextures.get(item.getId());
+            if (tex == null) {
+                try {
+                    tex = new Texture("src/main/resources/" + path, false, false);
+                    itemTextures.put(item.getId(), tex);
+                } catch (Exception e) {
+                    Logger.error("Failed to load item texture: " + path);
+                }
+            }
+            
+            if (tex != null) {
+                tex.bind();
+                uiShader.setInt("useTexture", 1);
+                uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+                uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
+            } else {
+                drawFallbackIcon(item);
+            }
+        } else {
+            drawFallbackIcon(item);
+        }
+        
+        glBindVertexArray(quadVAO);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+    }
+
+    private void renderPlaceholder(float x, float y, float size, String placeholder, int screenWidth, int screenHeight) {
+        float ghostSize = (size - 4) * 0.7f;
+        float gX = x + (size - ghostSize) / 2.0f;
+        float gY = y + (size - ghostSize) / 2.0f;
+        
+        Texture tex = null;
+        try {
+            String path = placeholder.contains("/") ? placeholder : "minecraft/textures/item/" + placeholder + ".png";
+            if (!path.startsWith("src/")) path = "src/main/resources/" + path;
+            int placeholderId = path.hashCode();
+            tex = itemTextures.get(placeholderId);
+            if (tex == null) {
+                tex = new Texture(path, false, false);
+                itemTextures.put(placeholderId, tex);
+            }
+        } catch (Exception e) {}
+
+        if (tex != null) {
+            float gsX = ghostSize / screenWidth;
+            float gsY = ghostSize / screenHeight;
+            float gpX = (2.0f * gX / screenWidth) - 1.0f + gsX;
+            float gpY = 1.0f - (2.0f * gY / screenHeight) - gsY;
+
+            uiShader.use();
+            glActiveTexture(GL_TEXTURE0);
+            tex.bind();
+            uiShader.setInt("useTexture", 1);
+            uiShader.setInt("isGrayscale", 1);
+            uiShader.setUniform("scale", gsX, gsY, 0.0f, 0.0f);
+            uiShader.setUniform("position_offset", gpX, gpY, 0.0f, 0.0f);
+            uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 0.4f); 
+            glBindVertexArray(quadVAO);
+            glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+            uiShader.setInt("isGrayscale", 0);
+        }
     }
 
     public void renderMiningProgress(int screenWidth, int screenHeight, float progress) {
@@ -289,53 +436,6 @@ public class UIRenderer {
         glDisable(GL_BLEND);
     }
 
-    private void renderItemIcon(Item item, int x, int y, float size, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
-        if (item.isBlock()) {
-            blockRenderer.renderBlock(item, x, y, size, screenWidth, screenHeight, atlas);
-            return;
-        }
-
-        float scaleX = size / screenWidth;
-        float scaleY = size / screenHeight;
-        float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
-        float posY = 1.0f - (2.0f * y / screenHeight) - scaleY;
-        
-        uiShader.use();
-        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
-        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
-        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
-
-        uiShader.setInt("useArray", 0);
-        glActiveTexture(GL_TEXTURE0);
-        String path = item.getTexturePath();
-        if (path != null && !path.isEmpty()) {
-            Texture tex = itemTextures.get(item.getId());
-            if (tex == null) {
-                try {
-                    tex = new Texture("src/main/resources/" + path, false, false);
-                    itemTextures.put(item.getId(), tex);
-                } catch (Exception e) {
-                    Logger.error("Failed to load item texture: " + path);
-                }
-            }
-            
-            if (tex != null) {
-                tex.bind();
-                uiShader.setInt("useTexture", 1);
-                uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
-                uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-            } else {
-                drawFallbackIcon(item);
-            }
-        } else {
-            drawFallbackIcon(item);
-        }
-        
-        glBindVertexArray(quadVAO);
-        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
-    }
-
     private void drawFallbackIcon(Item item) {
         uiShader.setInt("useTexture", 0);
         // Рисуем ярко-пурпурный квадрат для визуализации отсутствующей текстуры (Missing Texture)
@@ -404,7 +504,8 @@ public class UIRenderer {
             if (held != null) {
                 float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
                 float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
-                renderItemIcon(held.getItem(), (int)mx - slotSize/2, (int)my - slotSize/2, slotSize, screenWidth, screenHeight, atlas);
+                String animId = "held_stack";
+                renderSlot((int)mx - slotSize/2, (int)my - slotSize/2, slotSize, held, null, screenWidth, screenHeight, atlas, false, animId);
                 if (held.getCount() > 1) {
                     String count = String.valueOf(held.getCount());
                     fontRenderer.drawString(count, (int)mx + 8, (int)my + 8, 14, screenWidth, screenHeight);
@@ -422,6 +523,7 @@ public class UIRenderer {
     public void renderRect(int x, int y, int width, int height, int sw, int sh, float r, float g, float b, float a) {
         uiShader.use();
         uiShader.setInt("useTexture", 0);
+        uiShader.setInt("isSlot", 0);
         
         float scaleX = (float)width / sw;
         float scaleY = (float)height / sh;
@@ -440,6 +542,7 @@ public class UIRenderer {
     public void renderHighlight(int x, int y, int size, int sw, int sh, float r, float g, float b, float a) {
         uiShader.use();
         uiShader.setInt("useTexture", 0);
+        uiShader.setInt("isSlot", 1); // Use SDF for highlights too!
         uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
         uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
         
@@ -456,6 +559,7 @@ public class UIRenderer {
         glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+        uiShader.setInt("isSlot", 0);
     }
 
     private void renderDeveloperPanel(int devX, int startY, int slotSize, int spacing, int sw, int sh, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
@@ -482,6 +586,8 @@ public class UIRenderer {
         // 3. Render Content with Scissor
         devScroller.begin(sw, sh);
         float offset = devScroller.getOffset();
+        float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
+        float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
 
         for (int i = 0; i < allItems.size(); i++) {
             int col = i % cols;
@@ -490,10 +596,11 @@ public class UIRenderer {
             int x = devX + col * (slotSize + spacing);
             int y = startY + row * (slotSize + spacing) - (int)offset;
             
-            // Culling check (optional but good for performance)
+            // Culling check
             if (y + slotSize < startY || y > startY + devHeight) continue;
             
-            renderSlot(x, y, slotSize, new ItemStack(allItems.get(i)), null, sw, sh, atlas);
+            boolean isHovered = mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize;
+            renderSlot(x, y, slotSize, new ItemStack(allItems.get(i)), null, sw, sh, atlas, isHovered, "dev_" + i);
         }
         devScroller.end();
 
@@ -501,8 +608,6 @@ public class UIRenderer {
         devScroller.renderScrollbar(this, sw, sh);
 
         // 5. Tooltip
-        float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
-        float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
         if (devScroller.isMouseOver(mx, my)) {
             for (int i = 0; i < allItems.size(); i++) {
                 int col = i % cols;
@@ -547,95 +652,10 @@ public class UIRenderer {
         }
     }
 
-    public void renderSlot(int x, int y, int size, ItemStack stack, String placeholder, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
-        // Slot background
-        uiShader.use();
-        uiShader.setInt("useTexture", 0);
-        float scaleX = (float)size / screenWidth;
-        float scaleY = (float)size / screenHeight;
-        float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
-        float posY = 1.0f - (2.0f * y / screenHeight) - scaleY;
-        
-        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
-        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
-        uiShader.setUniform("tintColor", 0.55f, 0.55f, 0.55f, 1.0f); // Minecraft grey
-        
-        glBindVertexArray(quadVAO);
-        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
-        
-        // Slot border (inner shadow effect)
-        uiShader.setUniform("scale", scaleX * 0.95f, scaleY * 0.95f, 0.0f, 0.0f);
-        uiShader.setUniform("tintColor", 0.44f, 0.44f, 0.44f, 1.0f);
-        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
-        
-        if (stack != null) {
-            renderItemIcon(stack.getItem(), x + 2, y + 2, size - 4, screenWidth, screenHeight, atlas);
-            
-            if (stack.getCount() > 1) {
-                String count = String.valueOf(stack.getCount());
-                fontRenderer.drawString(count, x + size - fontRenderer.getStringWidth(count, 14), y + size - 14, 14, screenWidth, screenHeight);
-            }
-            
-            // Draw durability bar for tools
-            if (stack.getItem().isTool()) {
-                com.za.minecraft.world.items.component.ToolComponent tool = stack.getItem().getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
-                float dur = (float)stack.getDurability() / tool.maxDurability();
-                if (dur < 1.0f) {
-                    renderDurabilityBar(x + 2, y + size - 4, size - 4, dur, screenWidth, screenHeight);
-                }
-            }
-        } else if (placeholder != null && !placeholder.isEmpty()) {
-            // Render Ghost Icon (Placeholder)
-            float ghostSize = (size - 4) * 0.7f;
-            float gX = x + (size - ghostSize) / 2.0f;
-            float gY = y + (size - ghostSize) / 2.0f;
-            
-            Texture tex = null;
-            try {
-                // Fix: Must include src/main/resources prefix for standalone texture loading
-                String path = placeholder.contains("/") ? placeholder : "minecraft/textures/item/" + placeholder + ".png";
-                if (!path.startsWith("src/")) path = "src/main/resources/" + path;
-                
-                int placeholderId = path.hashCode();
-                tex = itemTextures.get(placeholderId);
-                if (tex == null) {
-                    tex = new Texture(path, false, false);
-                    itemTextures.put(placeholderId, tex);
-                }
-            } catch (Exception e) {
-                // Silent fail
-            }
-
-            if (tex != null) {
-                float gsX = ghostSize / screenWidth;
-                float gsY = ghostSize / screenHeight;
-                float gpX = (2.0f * gX / screenWidth) - 1.0f + gsX;
-                float gpY = 1.0f - (2.0f * gY / screenHeight) - gsY;
-
-                uiShader.use();
-                glActiveTexture(GL_TEXTURE0);
-                tex.bind();
-                
-                uiShader.setInt("useTexture", 1);
-                uiShader.setInt("useArray", 0);
-                uiShader.setInt("isGrayscale", 1);
-                uiShader.setUniform("scale", gsX, gsY, 0.0f, 0.0f);
-                uiShader.setUniform("position_offset", gpX, gpY, 0.0f, 0.0f);
-                uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
-                uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-                uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 0.4f); 
-                
-                glBindVertexArray(quadVAO);
-                glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
-                uiShader.setInt("isGrayscale", 0);
-            }
-        }
-        glBindVertexArray(0);
-    }
-
     private void renderDurabilityBar(int x, int y, int width, float progress, int screenWidth, int screenHeight) {
         uiShader.use();
         uiShader.setInt("useTexture", 0);
+        uiShader.setInt("isSlot", 0);
         float scaleX = (float)width / screenWidth;
         float scaleY = 2.0f / screenHeight;
         float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
@@ -658,6 +678,7 @@ public class UIRenderer {
     private void renderDarkenedBackground() {
         uiShader.use();
         uiShader.setInt("useTexture", 0);
+        uiShader.setInt("isSlot", 0);
         uiShader.setUniform("scale", 1.0f, 1.0f, 0.0f, 0.0f);
         uiShader.setUniform("position_offset", 0.0f, 0.0f, 0.0f, 0.0f);
         uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
@@ -697,6 +718,7 @@ public class UIRenderer {
     private void renderButton(int x, int y, int width, int height, int screenWidth, int screenHeight, String text, float r, float g, float b) {
         uiShader.use();
         uiShader.setInt("useTexture", 0);
+        uiShader.setInt("isSlot", 1); // Use SDF for buttons too
         float scaleX = (float)width / screenWidth;
         float scaleY = (float)height / screenHeight;
         float posX = (2.0f * x / screenWidth) - 1.0f;
@@ -710,6 +732,7 @@ public class UIRenderer {
         glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+        uiShader.setInt("isSlot", 0);
         
         if (text != null && !text.isEmpty()) {
             int textSize = 16;
@@ -738,11 +761,12 @@ public class UIRenderer {
             uiShader.setInt("useTexture", 1);
             uiShader.setInt("useArray", 0);
             uiShader.setInt("isGrayscale", 0);
+            uiShader.setInt("isSlot", 0);
             
             float scaleX = (float)width / sw;
             float scaleY = (float)height / sh;
             float posX = (2.0f * x / sw) - 1.0f + scaleX;
-            float posY = 1.0f - (2.0f * y / sh) - scaleY;
+            float posY = 1.0f - (2.0f * y / sw) - scaleY;
             
             uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
             uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
