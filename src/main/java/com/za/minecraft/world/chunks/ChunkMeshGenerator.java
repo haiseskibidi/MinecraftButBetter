@@ -147,8 +147,11 @@ public class ChunkMeshGenerator {
             };
             for (int face = 0; face < 6; face++) {
                 float faceBlockType = (float)block.getType();
-                if (def != null && def.isTinted() && face == 4) {
-                    faceBlockType = -(faceBlockType + 1.0f);
+                if (def != null && def.isTinted()) {
+                    boolean isGrassBlock = def.getIdentifier().getPath().contains("grass_block");
+                    if (!isGrassBlock || face == 4) {
+                        faceBlockType = -(faceBlockType + 1.0f);
+                    }
                 }
                 data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0);
             }

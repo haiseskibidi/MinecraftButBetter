@@ -50,6 +50,13 @@
 Функции: isActive(), addSlot(Slot), withActiveSupplier(Supplier)
 
 ## UI System (UPDATED)
+### com.za.minecraft.engine.graphics.ui.InventoryBlockRenderer (NEW)
+Назначение: Специализированный рендерер для 3D моделей блоков в GUI.
+Функции: 
+- `renderBlock(...)`: Рендеринг блока в изометрии с использованием `inventory_block` шейдера.
+- Управляет собственным циклом жизни шейдера и кешем мешей блоков.
+- Использует `glScissor` и `glClear(GL_DEPTH_BUFFER_BIT)` для изоляции слотов.
+
 ### com.za.minecraft.engine.graphics.ui.Screen
 Назначение: Базовый интерфейс для всех игровых экранов (`init`, `render`, `handleMouseClick`, `handleScroll`).
 
@@ -169,12 +176,26 @@
 Назначение: Управление OpenGL текстурами.
 Функции: Загрузка через STB, генерация мипмапов. Добавлен fallback `generateMissingTexture` (пурпурно-черная шахматка).
 
-## Graphics
+## Graphics (UPDATED)
+### src/main/resources/shaders/inventory_block_vertex.glsl (NEW)
+### src/main/resources/shaders/inventory_block_fragment.glsl (NEW)
+Назначение: Шейдеры для 3D иконок блоков в инвентаре.
+Особенности: 
+- **Three-Point Lighting**: Реализована модель освещения с Key, Fill и Top источниками для объема.
+- **Normal Matrix**: Корректный расчет нормалей при отрицательном масштабе по Y (GUI flip).
+- **Vibrance & Contrast**: Пост-обработка цвета для более насыщенного вида иконок.
+
+### com.za.minecraft.world.chunks.ChunkMeshGenerator (UPDATED)
+Назначение: Генератор мешей чанков и блоков.
+Функции: `generateSingleBlockMesh(block, atlas)` — создает 3D меш одиночного блока.
+Логика: Исправлено наложение тинта — теперь для всех `tinted` блоков (кроме травы) окрашиваются все 6 граней.
+
 ### com.za.minecraft.engine.graphics.Renderer (UPDATED)
 Назначение: Координация всех процессов отрисовки.
-Логика: Реализует **интерполяцию кадров** (Alpha Lerp) между `prevPosition` и текущей позицией для устранения дрожания при движении. Обновляет анимации в `render` проходе для субфреймовой плавности.
+Логика: Реализует **интерполяцию кадров** (Alpha Lerp) между `prevPosition` и текущей позицией для устранения дрожания при движении. Обновляет анимации в `render` проход для субфреймовой плавности. Удалена зависимость `UIRenderer` от мирового шейдера.
 Функции: render(alpha), renderViewModel(alpha)
 Зависимости: Shader, Mesh, TextureAtlas, Framebuffer, PostProcessor, UIRenderer, DebugRenderer
+
 
 ### com.za.minecraft.engine.graphics.Camera (UPDATED)
 Назначение: Управление вектором взгляда.
@@ -183,9 +204,9 @@
 
 ### com.za.minecraft.engine.graphics.ui.UIRenderer (UPDATED)
 Назначение: Отрисовка 2D элементов (прицел, хотбар, инвентарь, меню паузы).
-Логика: Поддержка 32-битных ID предметов в кэше текстур. Гарантирует правильный Z-order (Held Stack и Tooltips рисуются последними).
+Логика: Делегирует отрисовку иконок блоков в `InventoryBlockRenderer`. Гарантирует правильный Z-order (Held Stack и Tooltips рисуются последними).
 Функции: init(), renderCrosshair(int sw, int sh), renderHotbar(int sw, int sh, DynamicTextureAtlas atlas), renderInventory(int sw, int sh, DynamicTextureAtlas atlas), renderItemIcon(Item item, int x, int y, float size, int sw, int sh, DynamicTextureAtlas atlas), renderDeveloperPanel(...)
-Зависимости: Shader, Texture, FontRenderer, ItemRegistry, BlockTextureMapper
+Зависимости: Shader, Texture, FontRenderer, ItemRegistry, BlockTextureMapper, InventoryBlockRenderer
 
 ### com.za.minecraft.engine.graphics.ui.Hotbar
 Назначение: Логика выбора слотов в хотбаре и их позиционирования на экране.

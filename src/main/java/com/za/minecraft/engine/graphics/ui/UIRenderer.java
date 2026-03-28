@@ -28,6 +28,7 @@ import static org.lwjgl.opengl.GL30.*;
 
 public class UIRenderer {
     private Shader uiShader;
+    private Shader blockShader;
     private Texture crosshairTexture;
     private Texture hotbarTexture;
     private Texture hotbarSelectionTexture;
@@ -41,6 +42,7 @@ public class UIRenderer {
     private PauseMenu pauseMenu;
     private FontRenderer fontRenderer;
     private final ScrollPanel devScroller = new ScrollPanel();
+    private final InventoryBlockRenderer blockRenderer = new InventoryBlockRenderer();
     private int lastSw = 0, lastSh = 0;
     private com.za.minecraft.engine.core.PlayerMode lastMode = null;
     
@@ -79,7 +81,7 @@ public class UIRenderer {
 
         Logger.info("UI Renderer initialized");
     }
-    
+
     public void setHotbar(Hotbar hotbar) {
         this.hotbar = hotbar;
     }
@@ -290,6 +292,11 @@ public class UIRenderer {
     }
 
     private void renderItemIcon(Item item, int x, int y, float size, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
+        if (item.isBlock()) {
+            blockRenderer.renderBlock(item, x, y, size, screenWidth, screenHeight, atlas);
+            return;
+        }
+
         float scaleX = size / screenWidth;
         float scaleY = size / screenHeight;
         float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
@@ -300,41 +307,30 @@ public class UIRenderer {
         uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
         uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
 
-        if (item.isBlock()) {
-            glActiveTexture(GL_TEXTURE1);
-            atlas.bind();
-            uiShader.setInt("useTexture", 1);
-            uiShader.setInt("useArray", 1);
-            float[] uv = BlockTextureMapper.uvFor(new Block(item.getId()), 0, atlas);
-            uiShader.setFloat("layerIndex", uv[2]);
-            uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
-            uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-        } else {
-            uiShader.setInt("useArray", 0);
-            glActiveTexture(GL_TEXTURE0);
-            String path = item.getTexturePath();
-            if (path != null && !path.isEmpty()) {
-                Texture tex = itemTextures.get(item.getId());
-                if (tex == null) {
-                    try {
-                        tex = new Texture("src/main/resources/" + path, false, false);
-                        itemTextures.put(item.getId(), tex);
-                    } catch (Exception e) {
-                        Logger.error("Failed to load item texture: " + path);
-                    }
+        uiShader.setInt("useArray", 0);
+        glActiveTexture(GL_TEXTURE0);
+        String path = item.getTexturePath();
+        if (path != null && !path.isEmpty()) {
+            Texture tex = itemTextures.get(item.getId());
+            if (tex == null) {
+                try {
+                    tex = new Texture("src/main/resources/" + path, false, false);
+                    itemTextures.put(item.getId(), tex);
+                } catch (Exception e) {
+                    Logger.error("Failed to load item texture: " + path);
                 }
-                
-                if (tex != null) {
-                    tex.bind();
-                    uiShader.setInt("useTexture", 1);
-                    uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
-                    uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-                } else {
-                    drawFallbackIcon(item);
-                }
+            }
+            
+            if (tex != null) {
+                tex.bind();
+                uiShader.setInt("useTexture", 1);
+                uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+                uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
             } else {
                 drawFallbackIcon(item);
             }
+        } else {
+            drawFallbackIcon(item);
         }
         
         glBindVertexArray(quadVAO);
@@ -815,6 +811,7 @@ public class UIRenderer {
         if (hotbarTexture != null) hotbarTexture.cleanup();
         if (hotbarSelectionTexture != null) hotbarSelectionTexture.cleanup();
         if (fontRenderer != null) fontRenderer.cleanup();
+        blockRenderer.cleanup();
         glDeleteVertexArrays(quadVAO);
         glDeleteBuffers(quadVBO);
         glDeleteBuffers(quadEBO);
