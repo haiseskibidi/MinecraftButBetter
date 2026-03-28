@@ -41,7 +41,7 @@ public class CarvingRenderer {
         shader.setInt("faceMask", mask);
         shader.setBoolean("previewPass", false);
         shader.setFloat("overlayLayer", uv[2]);
-        shader.setFloat("brightnessMultiplier", 1.25f);
+        shader.setFloat("brightnessMultiplier", 1.1f);
         modelMatrix.identity().translate(pos.x(), pos.y() + 1.01f, pos.z());
         shader.setMatrix4f("model", modelMatrix);
         

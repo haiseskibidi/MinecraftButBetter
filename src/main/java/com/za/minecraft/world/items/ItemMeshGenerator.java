@@ -62,10 +62,11 @@ public class ItemMeshGenerator {
         float uSize = u1 - u0;
         float vSize = v1 - v0;
 
-        // In texture arrays, we don't need micro-padding as much, 
-        // but let's keep it for pixel-perfect sampling if needed.
-        float uE = 0.0f;
-        float vE = 0.0f;
+        // In texture arrays, we need a tiny epsilon to prevent sampling artifacts
+        // on the very edges of the layer, especially when scaled down.
+        float uE = 0.0005f;
+        float vE = 0.0005f;
+
 
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {

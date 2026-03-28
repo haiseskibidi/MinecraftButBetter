@@ -65,7 +65,7 @@ void main() {
     }
 
     if (highlightPass == 0 && abs(actualBlockType - 150.0) < 0.1 && fragNormal.y > 0.9) {
-        baseColor *= 1.25;
+        baseColor *= 1.1;
     }
 
     // Connected Textures for Glass (Type 19)

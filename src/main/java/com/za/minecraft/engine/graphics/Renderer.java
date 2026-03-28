@@ -375,8 +375,55 @@ public class Renderer {
     }
 
     private void renderBlockEntities(Camera camera, World world, float alpha) {
+        if (world.getBlockEntities().isEmpty()) return;
+
+        blockShader.use();
         for (com.za.minecraft.world.blocks.entity.BlockEntity be : world.getBlockEntities().values()) {
             carvingRenderer.render(be, atlas, blockShader, modelMatrix, this);
+
+            if (be instanceof com.za.minecraft.world.blocks.entity.StumpBlockEntity stump) {
+                int totalItems = stump.getActiveSlotsCount();
+                if (totalItems == 0) continue;
+
+                for (int i = 0; i < 9; i++) {
+                    com.za.minecraft.world.items.ItemStack stack = stump.getStackInSlot(i);
+                    if (stack == null) continue;
+
+                    com.za.minecraft.world.items.Item item = stack.getItem();
+                    Mesh mesh = itemMeshCache.get(item);
+                    if (mesh == null) {
+                        if (item.isBlock()) {
+                            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new com.za.minecraft.world.blocks.Block(item.getId()), atlas);
+                        } else {
+                            mesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
+                        }
+                        if (mesh != null) itemMeshCache.put(item, mesh);
+                    }
+
+                    if (mesh != null) {
+                        org.joml.Vector3f transform = com.za.minecraft.world.blocks.CraftingLayoutEngine.getSlotTransform(i, totalItems);
+                        float scale = item.isBlock() ? 0.4f : item.getVisualScale() * 0.6f;
+                        float finalScale = scale * transform.y; 
+
+                        BlockPos pos = be.getPos();
+                        modelMatrix.identity()
+                            .translate(pos.x() + 0.5f + transform.x, pos.y() + 1.02f, pos.z() + 0.5f + transform.z);
+
+                        if (item.isBlock()) {
+                            modelMatrix.scale(finalScale)
+                                       .translate(-0.5f, 0, -0.5f);
+                        } else {
+                            modelMatrix.rotateX(1.5708f) // Exactly 90 degrees
+                                       .scale(finalScale)
+                                       .translate(0, -0.5f, 0);
+                        }
+
+                        blockShader.setMatrix4f("model", modelMatrix);
+                        blockShader.setInt("highlightPass", 0);
+                        mesh.render();
+                    }
+                }
+            }
         }
     }
 
