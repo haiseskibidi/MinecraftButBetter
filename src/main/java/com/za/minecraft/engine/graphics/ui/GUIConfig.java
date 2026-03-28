@@ -8,7 +8,17 @@ import java.util.List;
 public class GUIConfig {
     public String id;
     public String title;
+    public boolean hudVisible = false; // If true, this GUI can be rendered as part of the HUD
     public List<GroupConfig> groups;
+    public SelectionStyle selection = new SelectionStyle();
+
+    public static class SelectionStyle {
+        public String type = "brackets"; // border, brackets, glow, none
+        public float[] color = {1.0f, 1.0f, 1.0f, 0.8f};
+        public int padding = 2;
+        public float thickness = 2.0f; // In pixels
+        public boolean pulse = true;   // Subtle glow animation
+    }
 
     public static class GroupConfig {
         public String id;          // Group identifier (hotbar, pockets, etc)

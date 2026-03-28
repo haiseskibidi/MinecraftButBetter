@@ -1,5 +1,6 @@
 package com.za.minecraft.engine.graphics.ui;
 
+import com.za.minecraft.utils.Identifier;
 import com.za.minecraft.engine.graphics.Shader;
 import com.za.minecraft.engine.graphics.Texture;
 import com.za.minecraft.utils.Logger;
@@ -30,8 +31,6 @@ public class UIRenderer {
     private Shader uiShader;
     private Shader blockShader;
     private Texture crosshairTexture;
-    private Texture hotbarTexture;
-    private Texture hotbarSelectionTexture;
     private Map<Integer, Texture> itemTextures = new HashMap<>();
     private Map<String, Texture> externalTextures = new HashMap<>();
     
@@ -65,8 +64,6 @@ public class UIRenderer {
         );
         
         crosshairTexture = new Texture("src/main/resources/textures/crosshair.png", false, false);
-        hotbarTexture = new Texture("src/main/resources/textures/gui/hotbar_slots.png", false, false);
-        hotbarSelectionTexture = new Texture("src/main/resources/textures/gui/hotbar_selection.png", false, false);
         
         createQuad();
         
@@ -166,28 +163,52 @@ public class UIRenderer {
     public void renderHotbar(int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
         if (hotbar == null) return;
         
+        // Hide HUD Hotbar if any screen is open (to avoid double hotbar)
+        if (ScreenManager.getInstance().isAnyScreenOpen()) return;
+
+        GUIConfig config = GUIRegistry.get(com.za.minecraft.utils.Identifier.of("minecraft:hotbar"));
+        if (config == null || !config.hudVisible) return;
+
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
-        renderHotbarBackground(screenWidth, screenHeight);
-        renderHotbarSelection(screenWidth, screenHeight);
-        renderHotbarItems(screenWidth, screenHeight, atlas);
+        // Use standard layout system for hotbar
+        int slotSize = (int)(20 * Hotbar.HOTBAR_SCALE);
+        int spacing = (int)(2 * Hotbar.HOTBAR_SCALE);
+        List<SlotUI> slots = InventoryLayout.generateLayout(screenWidth, screenHeight, slotSize, spacing, hotbar.getPlayer(), config);
+        
+        int selectedSlot = hotbar.getSelectedSlot();
+        
+        for (int i = 0; i < slots.size(); i++) {
+            SlotUI ui = slots.get(i);
+            ItemStack stack = ui.getSlot().getStack();
+            
+            // Render slot background and item
+            renderSlot(ui.getX(), ui.getY(), slotSize, stack, null, screenWidth, screenHeight, atlas);
+            
+            // Render selection frame for active slot
+            if (i == selectedSlot) {
+                UIEffectsRenderer.renderSelection(this, uiShader, quadVAO, ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, config.selection);
+            }
+        }
         
         ItemStack selected = hotbar.getSelectedItemStack();
-        if (selected != null) {
+        if (selected != null && !slots.isEmpty()) {
             String name = com.za.minecraft.utils.I18n.get(selected.getItem().getName());
             int nameSize = 20;
             int textWidth = fontRenderer.getStringWidth(name, nameSize);
             int x = (screenWidth - textWidth) / 2;
-            int y = hotbar.getScreenY(screenHeight) - 30;
+            
+            // Text is above the first slot
+            int y = slots.get(0).getY() - 35;
             fontRenderer.drawString(name, x, y, nameSize, screenWidth, screenHeight);
         }
 
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
     }
-    
+
     public void renderMiningProgress(int screenWidth, int screenHeight, float progress) {
         if (progress <= 0.0f) return;
 
@@ -266,29 +287,6 @@ public class UIRenderer {
 
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
-    }
-    
-    private void renderHotbarItems(int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
-        float slotSizePx = 16.0f * Hotbar.HOTBAR_SCALE;
-        int slotSize = (int)(18 * Hotbar.HOTBAR_SCALE);
-        
-        for (int i = 0; i < Hotbar.HOTBAR_SLOTS; i++) {
-            ItemStack stack = hotbar.getStackInSlot(i);
-            if (stack == null) continue;
-            
-            Item item = stack.getItem();
-            int slotX = hotbar.getSlotScreenX(screenWidth, i);
-            int slotY = hotbar.getSlotScreenY(screenHeight);
-            
-            renderItemIcon(item, slotX, slotY, slotSizePx, screenWidth, screenHeight, atlas);
-            
-            if (stack.getCount() > 1) {
-                String count = String.valueOf(stack.getCount());
-                int textX = slotX + slotSize - fontRenderer.getStringWidth(count, 14) - 2;
-                int textY = slotY + slotSize - 14 - 2;
-                fontRenderer.drawString(count, textX, textY, 14, screenWidth, screenHeight);
-            }
-        }
     }
 
     private void renderItemIcon(Item item, int x, int y, float size, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
@@ -657,49 +655,6 @@ public class UIRenderer {
         glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
     }
 
-    private void renderHotbarBackground(int screenWidth, int screenHeight) {
-        hotbarTexture.bind();
-        int hotbarX = hotbar.getScreenX(screenWidth);
-        int hotbarY = hotbar.getScreenY(screenHeight);
-        float hotbarWidth = Hotbar.HOTBAR_WIDTH * Hotbar.HOTBAR_SCALE;
-        float hotbarHeight = Hotbar.HOTBAR_HEIGHT * Hotbar.HOTBAR_SCALE;
-        float scaleX = hotbarWidth / screenWidth;
-        float scaleY = hotbarHeight / screenHeight;
-        float posX = (2.0f * hotbarX / screenWidth) - 1.0f + scaleX;
-        float posY = 1.0f - (2.0f * hotbarY / screenHeight) - scaleY;
-
-        uiShader.use();
-        uiShader.setInt("useTexture", 1);
-        uiShader.setInt("useArray", 0);
-        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
-        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
-        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
-        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-        glBindVertexArray(quadVAO);
-        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
-    }
-    
-    private void renderHotbarSelection(int screenWidth, int screenHeight) {
-        hotbarSelectionTexture.bind();
-        int selectionX = hotbar.getSelectionScreenX(screenWidth);
-        int selectionY = hotbar.getSelectionScreenY(screenHeight);
-        float selectionWidth = Hotbar.HOTBAR_SELECTION_WIDTH * Hotbar.HOTBAR_SCALE;
-        float selectionHeight = Hotbar.HOTBAR_SELECTION_HEIGHT * Hotbar.HOTBAR_SCALE;
-        float scaleX = selectionWidth / screenWidth;
-        float scaleY = selectionHeight / screenHeight;
-        float posX = (2.0f * selectionX / screenWidth) - 1.0f + scaleX;
-        float posY = 1.0f - (2.0f * selectionY / screenHeight) - scaleY;
-        uiShader.setInt("useArray", 0);
-        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
-        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
-        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
-        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-        glBindVertexArray(quadVAO);
-        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
-    }
-
     private void renderDarkenedBackground() {
         uiShader.use();
         uiShader.setInt("useTexture", 0);
@@ -808,8 +763,6 @@ public class UIRenderer {
     public void cleanup() {
         if (uiShader != null) uiShader.cleanup();
         if (crosshairTexture != null) crosshairTexture.cleanup();
-        if (hotbarTexture != null) hotbarTexture.cleanup();
-        if (hotbarSelectionTexture != null) hotbarSelectionTexture.cleanup();
         if (fontRenderer != null) fontRenderer.cleanup();
         blockRenderer.cleanup();
         glDeleteVertexArrays(quadVAO);

@@ -204,9 +204,13 @@
 
 ### com.za.minecraft.engine.graphics.ui.UIRenderer (UPDATED)
 Назначение: Отрисовка 2D элементов (прицел, хотбар, инвентарь, меню паузы).
-Логика: Делегирует отрисовку иконок блоков в `InventoryBlockRenderer`. Гарантирует правильный Z-order (Held Stack и Tooltips рисуются последними).
+Логика: 
+- `renderHotbar(...)`: Использует `hotbar.json` и `InventoryLayout` для динамической отрисовки слотов. Скрывает хотбар, если открыт экран.
+- Делегирует отрисовку спецэффектов в `UIEffectsRenderer`.
+- Делегирует отрисовку иконок блоков в `InventoryBlockRenderer`. 
+- Гарантирует правильный Z-order (Held Stack и Tooltips рисуются последними).
 Функции: init(), renderCrosshair(int sw, int sh), renderHotbar(int sw, int sh, DynamicTextureAtlas atlas), renderInventory(int sw, int sh, DynamicTextureAtlas atlas), renderItemIcon(Item item, int x, int y, float size, int sw, int sh, DynamicTextureAtlas atlas), renderDeveloperPanel(...)
-Зависимости: Shader, Texture, FontRenderer, ItemRegistry, BlockTextureMapper, InventoryBlockRenderer
+Зависимости: Shader, Texture, FontRenderer, ItemRegistry, BlockTextureMapper, InventoryBlockRenderer, UIEffectsRenderer, GUIRegistry
 
 ### com.za.minecraft.engine.graphics.ui.Hotbar
 Назначение: Логика выбора слотов в хотбаре и их позиционирования на экране.
