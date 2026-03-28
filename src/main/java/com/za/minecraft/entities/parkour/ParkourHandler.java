@@ -21,6 +21,7 @@ public class ParkourHandler {
     private float transitionTimer = 0.0f;
     private float baseYaw = 0.0f;
     private float climbSide = 1.0f; // 1.0 = right, -1.0 = left
+    private boolean wasFlyingBeforeParkour = false;
     
     private final Vector3f startTransitionPosition = new Vector3f();
     private final Vector3f hangingPosition = new Vector3f();
@@ -139,6 +140,7 @@ public class ParkourHandler {
 
                     startTransitionPosition.set(playerPos);
                     transitionTimer = 0;
+                    wasFlyingBeforeParkour = player.isFlying(); // REMEMBER STATE
                     state = ParkourState.GRABBING;
                     return;
                 }
@@ -238,7 +240,7 @@ public class ParkourHandler {
     public void setState(Player player, ParkourState newState) {
         this.state = newState;
         if (newState == ParkourState.NONE) {
-            player.setFlying(player.getMode() == com.za.minecraft.engine.core.PlayerMode.DEVELOPER);
+            player.setFlying(wasFlyingBeforeParkour);
         }
     }
 }
