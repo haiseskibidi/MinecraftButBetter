@@ -224,10 +224,10 @@ public class UIRenderer {
         float delta = GameLoop.getInstance().getTimer().getDeltaF();
         float hoverProgress = UIAnimationManager.getHoverProgress(animId, isHovered, delta);
 
-        // Slot background with SDF Shape
+        // Slot background with SDF Shape (TEMPORARILY DISABLED)
         uiShader.use();
         uiShader.setInt("useTexture", 0);
-        uiShader.setInt("isSlot", 1); // Enable SDF Octagon
+        uiShader.setInt("isSlot", 0); // Disable SDF Octagon for now
         
         float scaleX = (float)size / screenWidth;
         float scaleY = (float)size / screenHeight;
@@ -236,9 +236,10 @@ public class UIRenderer {
         
         uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
         uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setFloat("hoverProgress", hoverProgress);
         
-        // Dynamic background color based on hover
-        float bgBrightness = 0.45f + hoverProgress * 0.15f;
+        // Dynamic background color (slightly darker base for better glow pop)
+        float bgBrightness = 0.35f; 
         uiShader.setUniform("tintColor", bgBrightness, bgBrightness, bgBrightness, 0.9f);
         
         glBindVertexArray(quadVAO);

@@ -11,9 +11,10 @@ uniform int useArray = 0;
 uniform float layerIndex = 0.0;
 uniform int isGrayscale = 0;
 
-// Slot Shape parameters
-uniform int isSlot = 0; // 1 if we are rendering a slot background
-uniform float cornerRadius = 0.15; // Chamfer size
+// Slot Shape & Light parameters
+uniform int isSlot = 0; 
+uniform float cornerRadius = 0.15;
+uniform float hoverProgress = 0.0; // 0.0 to 1.0
 
 // SDF for a chamfered rectangle
 float sdChamferedRect(vec2 p, vec2 b, float r) {
@@ -23,24 +24,34 @@ float sdChamferedRect(vec2 p, vec2 b, float r) {
 
 void main() {
     if (isSlot == 1) {
-        // Transform UV to -1..1 range
         vec2 p = fragTexCoord * 2.0 - 1.0;
         
-        // Calculate SDF for industrial octagon
+        // 1. Calculate Shape Mask
         float d = sdChamferedRect(p, vec2(0.85), cornerRadius);
-        
-        // Hard edge for the shape
         float mask = smoothstep(0.01, 0.0, d);
+        if (mask < 0.01) discard;
+
+        // 2. Base Color (Dark industrial grey)
+        vec3 baseColor = tintColor.rgb;
         
-        // Subtle inner glow/border
+        // 3. Central Ambient Light (Inner Glow)
+        // Makes center brighter so dark items pop
+        float distFromCenter = length(p);
+        float innerGlow = exp(-distFromCenter * 1.5) * 0.25;
+        
+        // 4. Edge Highlight (Bevel effect)
         float border = smoothstep(0.05, 0.0, abs(d));
         
-        vec3 finalColor = tintColor.rgb;
-        finalColor += border * 0.15; // Light highlight on edges
+        // 5. Dynamic Hover Glow
+        // When hovered, the slot "wakes up" with a subtle cyan/blue tint or just more light
+        float interactionLight = hoverProgress * 0.1;
+        
+        vec3 finalColor = baseColor;
+        finalColor += innerGlow; // Light behind the item
+        finalColor += border * (0.1 + hoverProgress * 0.2); // Brighter edges on hover
+        finalColor += interactionLight;
         
         fragColor = vec4(finalColor, tintColor.a * mask);
-        
-        if (fragColor.a < 0.01) discard;
         return;
     }
 
