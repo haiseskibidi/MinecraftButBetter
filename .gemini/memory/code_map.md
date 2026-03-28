@@ -56,3 +56,8 @@
 ## Core Engine
 ### com.za.minecraft.engine.core.GameLoop (UPDATED)
 Назначение: Главный цикл. Добавлен геттер для `Timer`.
+
+## Inventory System (NEW)
+### com.za.minecraft.world.inventory.ItemInventory
+Назначение: Реализация `IInventory` для предметов-контейнеров (рюкзаки, мешочки).
+Функции: Позволяет предмету (`ItemStack`) хранить внутри себя другие предметы, поддерживает динамический размер из `BagComponent`, запрещает вложенность рюкзаков.
