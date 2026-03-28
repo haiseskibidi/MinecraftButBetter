@@ -77,14 +77,45 @@ public class World {
             }
         }
         
-        // Spawn some initial scouts
-        for (int i = 0; i < 10; i++) {
-            float rx = (float) (Math.random() - 0.5) * 100;
-            float rz = (float) (Math.random() - 0.5) * 100;
-            spawnEntity(new ScoutEntity(new Vector3f(rx, 80, rz)));
+        // Spawn initial scouts on surface
+        for (int i = 0; i < 15; i++) {
+            int rx = (int) ((Math.random() - 0.5) * 160);
+            int rz = (int) ((Math.random() - 0.5) * 160);
+            int ry = getSurfaceHeight(rx, rz);
+            if (ry > 0) {
+                spawnEntity(new ScoutEntity(new Vector3f(rx + 0.5f, ry + 1.0f, rz + 0.5f)));
+            }
+        }
+
+        // Spawn initial resources on surface
+        for (int i = 0; i < 40; i++) {
+            int rx = (int) ((Math.random() - 0.5) * 200);
+            int rz = (int) ((Math.random() - 0.5) * 200);
+            int ry = getSurfaceHeight(rx, rz);
+            if (ry > 0) {
+                com.za.minecraft.world.items.Item item = Math.random() > 0.5 ? 
+                    com.za.minecraft.world.items.Items.ROCK : 
+                    (Math.random() > 0.5 ? com.za.minecraft.world.items.Items.STICK : com.za.minecraft.world.items.Items.FLINT);
+                float randomRot = (float) (Math.random() * Math.PI * 2);
+                spawnEntity(new com.za.minecraft.entities.ResourceEntity(
+                    new Vector3f(rx + 0.5f, ry + 1.0f, rz + 0.5f), 
+                    new com.za.minecraft.world.items.ItemStack(item),
+                    randomRot
+                ));
+            }
         }
         
         com.za.minecraft.utils.Logger.info("World generation completed!");
+    }
+
+    private int getSurfaceHeight(int x, int z) {
+        for (int y = 255; y > 0; y--) {
+            Block b = getBlock(x, y, z);
+            if (!b.isAir() && com.za.minecraft.world.blocks.BlockRegistry.getBlock(b.getType()).isSolid()) {
+                return y;
+            }
+        }
+        return -1;
     }
 
     public void update(float deltaTime) {

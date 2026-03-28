@@ -155,7 +155,7 @@ public class Player extends LivingEntity {
         if (heldItem != null) iN = heldItem.getAnimation(iN);
         
         String ciN = sneaking ? "sneak_idle" : "idle"; 
-        String iiN = sneaking ? "item_sneak" : "item_idle"; 
+        String iiN = "item_idle"; // Fix: Always use item_idle as base for breathing/sway blending
         if (heldItem != null) iiN = heldItem.getAnimation(iiN);
 
         AnimationProfile cp = animationRegistry.get(cN);

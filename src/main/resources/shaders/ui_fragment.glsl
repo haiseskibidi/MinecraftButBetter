@@ -30,7 +30,7 @@ void main() {
         fragColor = textureColor * tintColor;
     }
     
-    if (fragColor.a < 0.5) {
+    if (fragColor.a < 0.1) {
         discard;
     }
 }

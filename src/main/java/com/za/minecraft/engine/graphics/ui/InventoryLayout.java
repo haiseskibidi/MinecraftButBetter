@@ -150,10 +150,13 @@ public class InventoryLayout {
                 Slot slot = targetSlots.get(i);
                 SlotUI slotUI = new SlotUI(slot, x, y);
                 
-                if (groupCfg.placeholders != null && groupCfg.placeholders.containsKey(i)) {
+                // FIXED: Use loop index 'i' as Integer to match GUIConfig.GroupConfig.placeholders Map type
+                if (groupCfg.placeholders != null) {
                     String placeholder = groupCfg.placeholders.get(i);
-                    slot.withPlaceholder(placeholder);
-                    slotUI.withPlaceholder(placeholder);
+                    if (placeholder != null) {
+                        slot.withPlaceholder(placeholder);
+                        slotUI.withPlaceholder(placeholder);
+                    }
                 }
                 
                 slots.add(slotUI);

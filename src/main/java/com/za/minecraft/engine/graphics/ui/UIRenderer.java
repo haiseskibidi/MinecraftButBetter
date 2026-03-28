@@ -596,19 +596,20 @@ public class UIRenderer {
             float gX = x + (size - ghostSize) / 2.0f;
             float gY = y + (size - ghostSize) / 2.0f;
             
-            // We use itemTextures cache for placeholders too
             Texture tex = null;
             try {
-                // Check if it's a full path or just a name
+                // Fix: Must include src/main/resources prefix for standalone texture loading
                 String path = placeholder.contains("/") ? placeholder : "minecraft/textures/item/" + placeholder + ".png";
-                int placeholderId = placeholder.hashCode();
+                if (!path.startsWith("src/")) path = "src/main/resources/" + path;
+                
+                int placeholderId = path.hashCode();
                 tex = itemTextures.get(placeholderId);
                 if (tex == null) {
-                    tex = new Texture("src/main/resources/" + path, false, false);
+                    tex = new Texture(path, false, false);
                     itemTextures.put(placeholderId, tex);
                 }
             } catch (Exception e) {
-                // Silent fail for placeholders
+                // Silent fail
             }
 
             if (tex != null) {
@@ -617,15 +618,18 @@ public class UIRenderer {
                 float gpX = (2.0f * gX / screenWidth) - 1.0f + gsX;
                 float gpY = 1.0f - (2.0f * gY / screenHeight) - gsY;
 
-                tex.bind();
                 uiShader.use();
+                glActiveTexture(GL_TEXTURE0);
+                tex.bind();
+                
                 uiShader.setInt("useTexture", 1);
+                uiShader.setInt("useArray", 0);
                 uiShader.setInt("isGrayscale", 1);
                 uiShader.setUniform("scale", gsX, gsY, 0.0f, 0.0f);
                 uiShader.setUniform("position_offset", gpX, gpY, 0.0f, 0.0f);
                 uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
                 uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-                uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 0.4f); // Pure white + alpha, grayscale handles the rest
+                uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 0.4f); 
                 
                 glBindVertexArray(quadVAO);
                 glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);

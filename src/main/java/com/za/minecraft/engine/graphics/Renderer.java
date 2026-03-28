@@ -85,6 +85,7 @@ public class Renderer {
             String tex = item.getTexturePath();
             if (tex != null && !tex.isEmpty()) atlas.add(tex, "src/main/resources/" + tex);
         }
+
         for (com.za.minecraft.entities.EntityDefinition def : com.za.minecraft.entities.EntityRegistry.getAll().values()) {
             if ("item".equals(def.modelType())) {
                 String tex = def.texture();
@@ -246,13 +247,131 @@ public class Renderer {
     }
 
     private void renderEntities(Camera camera, World world, float alpha) {
+        if (world.getEntities().isEmpty()) return;
+
         blockShader.use();
         for (com.za.minecraft.entities.Entity entity : world.getEntities()) {
-            modelMatrix.identity().translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z()).rotateY(entity.getRotation().y);
-            blockShader.setMatrix4f("model", modelMatrix);
-            // ... остальная логика рендеринга сущностей ...
-            // (Для краткости пропускаю детализацию, но принцип тот же - использование modelMatrix с учетом позиции)
+            if (entity instanceof com.za.minecraft.entities.ScoutEntity scout) {
+                if (playerMesh == null) createPlayerMesh();
+                modelMatrix.identity()
+                    .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z())
+                    .rotateY(entity.getRotation().y);
+
+                blockShader.setMatrix4f("model", modelMatrix);
+                blockShader.setInt("highlightPass", 1);
+                switch (scout.getCurrentState()) {
+                    case CHASE: blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 0.0f, 0.0f)); break;
+                    case SEARCH: blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 0.5f, 0.0f)); break;
+                    default: blockShader.setVector3f("highlightColor", new Vector3f(0.5f, 0.5f, 0.5f)); break;
+                }
+                playerMesh.render();
+            } else if (entity instanceof com.za.minecraft.entities.ItemEntity itemEntity) {
+                com.za.minecraft.world.items.Item item = itemEntity.getStack().getItem();
+                Mesh mesh = itemMeshCache.get(item);
+
+                if (mesh == null) {
+                    if (item.isBlock()) {
+                        mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas);
+                    } else {
+                        mesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
+                    }
+                    if (mesh != null) itemMeshCache.put(item, mesh);
+                }
+
+                if (mesh != null) {
+                    float age = itemEntity.getAge();
+                    float bob = (float) Math.sin(age * 2.5f) * 0.05f;
+                    float scale = item.isBlock() ? 0.25f : item.getVisualScale() * 0.45f;
+
+                    modelMatrix.identity()
+                        .translate(entity.getPosition().x(), entity.getPosition().y() + 0.2f + bob, entity.getPosition().z());
+                    if (item.isBlock()) {
+                        modelMatrix.rotateY(itemEntity.getRotation().y)
+                                   .rotateX(0.2f) // Slight tilt
+                                   .scale(scale)
+                                   .translate(-0.5f, -0.5f, -0.5f); // Center the block mesh
+                    } else {
+                        // Billboard: face the camera but also spin around own Y axis
+                        modelMatrix.rotateY(-camera.getRotation().y)
+                                   .rotateX(camera.getRotation().x)
+                                   .rotateY(itemEntity.getRotation().y) // Spin effect
+                                   .scale(scale)
+                                   .translate(0, -0.5f, 0); // Center sprite mesh vertically
+                    }
+
+                    blockShader.setMatrix4f("model", modelMatrix);
+                    blockShader.setInt("highlightPass", 0);
+                    mesh.render();
+                }
+            } else if (entity instanceof com.za.minecraft.entities.ResourceEntity resource) {
+                com.za.minecraft.world.items.Item item = resource.getStack().getItem();
+                Mesh mesh = itemMeshCache.get(item);
+
+                if (mesh == null) {
+                    mesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
+                    if (mesh != null) itemMeshCache.put(item, mesh);
+                }
+
+                if (mesh != null) {
+                    float scale = item.getVisualScale();
+                    modelMatrix.identity()
+                        .translate(entity.getPosition().x(), entity.getPosition().y() + 0.05f, entity.getPosition().z())
+                        .rotateY(resource.getRotation().y)
+                        .rotateX(1.5708f) // 90 degrees
+                        .scale(scale)
+                        .translate(0, -0.5f, 0); // Center sprite mesh
+
+                    blockShader.setMatrix4f("model", modelMatrix);
+                    blockShader.setInt("highlightPass", 0);
+                    mesh.render();
+                }
+            } else if (entity instanceof com.za.minecraft.entities.DecorationEntity decoration) {
+                com.za.minecraft.entities.EntityDefinition def = decoration.getDefinition();
+                if (def == null) continue;
+
+                Mesh mesh = entityDefMeshCache.get(def);
+                if (mesh == null) {
+                    if ("item".equals(def.modelType())) {
+                        mesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(def.texture(), atlas, 0);
+                    } else if ("block".equals(def.modelType())) {
+                        com.za.minecraft.utils.Identifier blockId = com.za.minecraft.utils.Identifier.of(def.texture());
+                        com.za.minecraft.world.blocks.BlockDefinition blockDef = com.za.minecraft.world.blocks.BlockRegistry.getBlock(blockId);
+                        if (blockDef != null) {
+                            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(blockDef.getId()), atlas);
+                        }
+                    }
+                    if (mesh != null) entityDefMeshCache.put(def, mesh);
+                }
+
+                if (mesh != null) {
+                    org.joml.Vector3f scale = def.visualScale();
+                    modelMatrix.identity()
+                        .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z())
+                        .rotateY(entity.getRotation().y);
+
+                    if ("block".equals(def.modelType())) {
+                        modelMatrix.scale(scale.x, scale.y, scale.z)
+                                   .translate(-0.5f, 0, -0.5f);
+                    } else {
+                        modelMatrix.scale(scale.x, scale.y, scale.z);
+                    }
+
+                    blockShader.setMatrix4f("model", modelMatrix);
+                    blockShader.setInt("highlightPass", 0);
+                    mesh.render();
+                }
+            } else {
+                if (playerMesh == null) createPlayerMesh();
+                modelMatrix.identity()
+                    .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z())
+                    .rotateY(entity.getRotation().y);
+
+                blockShader.setMatrix4f("model", modelMatrix);
+                blockShader.setInt("highlightPass", 0);
+                playerMesh.render();
+            }
         }
+        blockShader.setInt("highlightPass", 0);
     }
 
     private void renderBlockEntities(Camera camera, World world, float alpha) {

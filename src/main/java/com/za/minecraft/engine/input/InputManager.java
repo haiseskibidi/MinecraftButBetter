@@ -848,7 +848,25 @@ public class InputManager {
             
             if (rm) {
                 boolean actionConsumed = false;
-                if (raycast.isHit() && isNewRightClick) {
+
+                // Entity Interaction (RMB Pickup)
+                if (isNewRightClick) {
+                    if (hitEntity instanceof com.za.minecraft.entities.ResourceEntity resource) {
+                        if (player.getInventory().addItem(resource.getStack())) {
+                            resource.setRemoved();
+                            com.za.minecraft.utils.Logger.info("Picked up %s (RMB)", resource.getStack().getItem().getName());
+                            actionConsumed = true;
+                        }
+                    } else if (hitEntity instanceof com.za.minecraft.entities.ItemEntity itemEntity) {
+                        if (player.getInventory().addItem(itemEntity.getStack())) {
+                            itemEntity.setRemoved();
+                            com.za.minecraft.utils.Logger.info("Picked up %s (RMB)", itemEntity.getStack().getItem().getName());
+                            actionConsumed = true;
+                        }
+                    }
+                }
+
+                if (!actionConsumed && raycast.isHit() && isNewRightClick) {
                     BlockPos hitPos = raycast.getBlockPos();
                     int hitBlockType = world.getBlock(hitPos).getType();
                     BlockDefinition blockDef = BlockRegistry.getBlock(hitBlockType);

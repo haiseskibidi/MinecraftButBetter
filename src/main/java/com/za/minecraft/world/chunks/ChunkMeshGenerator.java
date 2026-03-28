@@ -146,7 +146,11 @@ public class ChunkMeshGenerator {
                 {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
             };
             for (int face = 0; face < 6; face++) {
-                data.addFace(facePositions[face], FACE_NORMALS[face], finalBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0);
+                float faceBlockType = (float)block.getType();
+                if (def != null && def.isTinted() && face == 4) {
+                    faceBlockType = -(faceBlockType + 1.0f);
+                }
+                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0);
             }
         }
         return data.build();
@@ -227,49 +231,59 @@ public class ChunkMeshGenerator {
                             {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
                         };
                         
-                        for (int face = 0; face < 6; face++) {
-                            Direction dir = Direction.values()[face];
-                            BlockPos nPos = new BlockPos(worldX + dir.getDx(), worldY + dir.getDy(), worldZ + dir.getDz());
-                            Block neighbor = world.getBlock(nPos);
-                            
-                            boolean drawFace = true;
-                            com.za.minecraft.world.blocks.BlockDefinition neighborDef = com.za.minecraft.world.blocks.BlockRegistry.getBlock(neighbor.getType());
+                    for (int face = 0; face < 6; face++) {
+                        Direction dir = Direction.values()[face];
+                        BlockPos nPos = new BlockPos(worldX + dir.getDx(), worldY + dir.getDy(), worldZ + dir.getDz());
+                        Block neighbor = world.getBlock(nPos);
+                        
+                        boolean drawFace = true;
+                        com.za.minecraft.world.blocks.BlockDefinition neighborDef = com.za.minecraft.world.blocks.BlockRegistry.getBlock(neighbor.getType());
 
-                            boolean onBoundary = false;
-                            switch (face) {
-                                case 0: onBoundary = (box.getMax().z == 1.0f); break; 
-                                case 1: onBoundary = (box.getMin().z == 0.0f); break; 
-                                case 2: onBoundary = (box.getMax().x == 1.0f); break; 
-                                case 3: onBoundary = (box.getMin().x == 0.0f); break; 
-                                case 4: onBoundary = (box.getMax().y == 1.0f); break; 
-                                case 5: onBoundary = (box.getMin().y == 0.0f); break; 
-                            }
+                        boolean onBoundary = false;
+                        switch (face) {
+                            case 0: onBoundary = (box.getMax().z == 1.0f); break; 
+                            case 1: onBoundary = (box.getMin().z == 0.0f); break; 
+                            case 2: onBoundary = (box.getMax().x == 1.0f); break; 
+                            case 3: onBoundary = (box.getMin().x == 0.0f); break; 
+                            case 4: onBoundary = (box.getMax().y == 1.0f); break; 
+                            case 5: onBoundary = (box.getMin().y == 0.0f); break; 
+                        }
 
-                            if (def.isAlwaysRender() || !onBoundary) {
-                                drawFace = true;
-                            } else if (neighbor.isAir() || (neighborDef != null && neighborDef.hasTag("treecapitator"))) {
-                                drawFace = true;
-                            } else if (neighbor.isFullCube() && !neighbor.isTransparent() && !neighborDef.isAlwaysRender()) {
-                                drawFace = false;
-                            } else if (isTranslucent && neighbor.getType() == block.getType()) {
-                                drawFace = false;
-                            } else {
-                                drawFace = true;
-                            }
+                        if (def.isAlwaysRender() || !onBoundary) {
+                            drawFace = true;
+                        } else if (neighbor.isAir() || (neighborDef != null && neighborDef.hasTag("treecapitator"))) {
+                            drawFace = true;
+                        } else if (neighbor.isFullCube() && !neighbor.isTransparent() && !neighborDef.isAlwaysRender()) {
+                            drawFace = false;
+                        } else if (isTranslucent && neighbor.getType() == block.getType()) {
+                            drawFace = false;
+                        } else {
+                            drawFace = true;
+                        }
 
-                            if (drawFace) {
-                                float neighborMask = 0;
-                                if (isTranslucent) {
-                                    for (int i = 0; i < 4; i++) {
-                                        Block n = world.getBlock(worldX + faceNeighbors[face][i][0], worldY + faceNeighbors[face][i][1], worldZ + faceNeighbors[face][i][2]);
-                                        if (n.getType() == block.getType()) {
-                                            neighborMask += (float)Math.pow(2, i);
-                                        }
+                        if (drawFace) {
+                            float neighborMask = 0;
+                            if (isTranslucent) {
+                                for (int i = 0; i < 4; i++) {
+                                    Block n = world.getBlock(worldX + faceNeighbors[face][i][0], worldY + faceNeighbors[face][i][1], worldZ + faceNeighbors[face][i][2]);
+                                    if (n.getType() == block.getType()) {
+                                        neighborMask += (float)Math.pow(2, i);
                                     }
                                 }
-                                current.addFace(facePositions[face], FACE_NORMALS[face], finalBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask);
                             }
+                            
+                            // APPLY TINT: Only top face for grass blocks, all faces for others (like leaves)
+                            float faceBlockType = (float)block.getType();
+                            if (def != null && def.isTinted()) {
+                                boolean isGrassBlock = def.getIdentifier().getPath().contains("grass_block");
+                                if (!isGrassBlock || face == 4) {
+                                    faceBlockType = -(faceBlockType + 1.0f);
+                                }
+                            }
+                            
+                            current.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask);
                         }
+                    }
                     }
                 }
             }
