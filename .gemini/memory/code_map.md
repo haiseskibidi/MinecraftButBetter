@@ -22,24 +22,25 @@
 - `update()`: Обновляет физические таймеры локомоции на частоте 170Hz.
 - `updateAnimations()`: Визуальный проход. Рассчитывает оффсеты, применяет импульсы приземления и эффекты падения.
 
-## UI System (UPDATED)
-### com.za.minecraft.engine.graphics.ui.UIAnimationManager (NEW)
-Назначение: Менеджер состояний анимации UI элементов.
-Функции: Рассчитывает плавный прогресс наведения (hover) для слотов.
-
-### com.za.minecraft.engine.graphics.ui.UIEffectsRenderer (NEW)
-Назначение: Специализированный статический рендерер для визуальных эффектов (уголки, рамки).
-
-### com.za.minecraft.engine.graphics.ui.InventoryBlockRenderer (UPDATED)
-Назначение: Специализированный рендерер для 3D моделей блоков в GUI.
-Функции: Отрисовка блоков с поддержкой ротации.
-
-### com.za.minecraft.engine.graphics.ui.UIRenderer (UPDATED)
-Назначение: Отрисовка 2D элементов (прицел, хотбар, инвентарь, меню паузы).
-Логика: Реализует SDF-октагоны для слотов и кинетическую анимацию предметов. Скрывает хотбар в HUD при открытых экранах.
+## UI System (v4.2 UPDATED)
+### com.za.minecraft.engine.graphics.ui.InventoryLayout (UPDATED)
+Назначение: Универсальный двигатель верстки.
+Функции: Рекурсивный расчет позиций групп, поддержка юнитов `"s"` (слоты), автоматическое центрирование сложных блоков (`centerCombined`) и расчет границ для адаптивных фонов.
 
 ### com.za.minecraft.engine.graphics.ui.GUIConfig (UPDATED)
-Назначение: Конфиг GUI с поддержкой `hudVisible` и `SelectionStyle`.
+Назначение: POJO-конфигурация GUI. Добавлена поддержка корневого объекта `background` и гибридных типов координат (`Object`).
+
+### com.za.minecraft.engine.graphics.ui.GroupUI (NEW)
+Назначение: Контейнер вычисленных экранных координат и размеров для группы слотов.
+
+### com.za.minecraft.engine.graphics.ui.LayoutResult (NEW)
+Назначение: Результирующий набор данных верстки (списки слотов, групп и общий фон).
+
+### com.za.minecraft.engine.graphics.ui.PlayerInventoryScreen (UPDATED)
+Назначение: Экран инвентаря игрока. Реализует реактивность через `layoutKey`.
+
+### com.za.minecraft.engine.graphics.ui.UIRenderer (UPDATED)
+Назначение: Отрисовка 2D элементов. Добавлен метод `renderGroupBackground` для рендеринга адаптивных подложек.
 
 ## Graphics (UPDATED)
 ### src/main/resources/shaders/ui_fragment.glsl (UPDATED)

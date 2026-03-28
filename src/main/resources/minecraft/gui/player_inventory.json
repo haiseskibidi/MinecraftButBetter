@@ -1,6 +1,12 @@
 {
   "id": "minecraft:player_inventory",
   "title": "container.inventory",
+  "background": {
+    "type": "solid",
+    "color": [0.05, 0.05, 0.05, 0.8],
+    "padding": 8,
+    "includeGroups": ["equipment", "offhand", "pockets", "pouch"]
+  },
   "groups": [
     {
       "id": "equipment",
@@ -8,10 +14,11 @@
       "relativeTo": "pockets",
       "relativeAlign": "left",
       "relativeAlignY": "bottom",
-      "fixedOffsetX": -10,
+      "snapToGrid": true,
       "y": "-5%",
       "rows": 4,
       "spacing": 4,
+      "condition": "is_armor",
       "placeholders": {
         "0": "empty_armor_slot_helmet",
         "1": "empty_armor_slot_chestplate",
@@ -26,10 +33,11 @@
       "relativeTo": "pockets",
       "relativeAlign": "left",
       "relativeAlignY": "top",
-      "fixedOffsetX": -10,
+      "snapToGrid": true,
       "y": "-4%",
       "cols": 1,
       "rows": 1,
+      "condition": "is_offhand",
       "placeholders": {
         "0": "empty_armor_slot_shield"
       }
@@ -38,11 +46,11 @@
       "id": "pockets",
       "type": "grid",
       "relativeTo": "hotbar",
+      "relativeAlign": "top",
       "relativeAlignX": "center",
-      "alignY": "bottom",
-      "fixedOffsetX": 20,
-      "y": "-5%",
-      "fixedOffsetY": 60,
+      "fixedOffsetX": 0,
+      "fixedOffsetY": "-1s",
+      "centerCombined": true,
       "cols": 4,
       "rows": 2,
       "spacing": 4
@@ -53,7 +61,7 @@
       "relativeTo": "pockets",
       "relativeAlign": "right",
       "relativeAlignY": "bottom",
-      "fixedOffsetX": 10,
+      "snapToGrid": true,
       "y": "-5%",
       "cols": 2,
       "rows": 4,
@@ -67,7 +75,12 @@
       "x": "0%",
       "y": "15%",
       "cols": 9,
-      "spacing": 4
+      "spacing": 4,
+      "background": {
+        "type": "solid",
+        "color": [0.05, 0.05, 0.05, 0.8],
+        "padding": 6
+      }
     },
     {
       "id": "developer_panel",

@@ -178,8 +178,21 @@ public class UIRenderer {
         // Use standard layout system for hotbar
         int slotSize = (int)(20 * Hotbar.HOTBAR_SCALE);
         int spacing = (int)(2 * Hotbar.HOTBAR_SCALE);
-        List<SlotUI> slots = InventoryLayout.generateLayout(screenWidth, screenHeight, slotSize, spacing, hotbar.getPlayer(), config);
-        
+        LayoutResult layout = InventoryLayout.generateLayout(screenWidth, screenHeight, slotSize, spacing, hotbar.getPlayer(), config);
+        List<SlotUI> slots = layout.slots;
+
+        // Render backgrounds if NOT part of a global background (usually hotbar is separate)
+        if (layout.globalBackground != null) {
+            renderGroupBackground(layout.globalBackground.getX(), layout.globalBackground.getY(), layout.globalBackground.getWidth(), layout.globalBackground.getHeight(), config.background);
+        } else {
+            // Fallback for single group if no includeGroups defined
+            if ("solid".equals(config.background.type)) {
+                for (GroupUI group : layout.groups) {
+                    renderGroupBackground(group.getX(), group.getY(), group.getWidth(), group.getHeight(), config.background);
+                }
+            }
+        }
+
         int selectedSlot = hotbar.getSelectedSlot();
         float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
         float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
@@ -192,7 +205,7 @@ public class UIRenderer {
             String animId = "hotbar_" + i;
             
             // Render slot background and item
-            renderSlot(ui.getX(), ui.getY(), slotSize, stack, null, screenWidth, screenHeight, atlas, isHovered, animId);
+            renderSlot(ui.getX(), ui.getY(), slotSize, stack, null, screenWidth, screenHeight, atlas, isHovered, animId, true);
             
             // Render selection frame for active slot
             if (i == selectedSlot) {
@@ -217,33 +230,35 @@ public class UIRenderer {
     }
 
     public void renderSlot(int x, int y, int size, ItemStack stack, String placeholder, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
-        renderSlot(x, y, size, stack, placeholder, screenWidth, screenHeight, atlas, false, "static_slot_" + x + "_" + y);
+        renderSlot(x, y, size, stack, placeholder, screenWidth, screenHeight, atlas, false, "static_slot_" + x + "_" + y, true);
     }
 
-    public void renderSlot(int x, int y, int size, ItemStack stack, String placeholder, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas, boolean isHovered, String animId) {
+    public void renderSlot(int x, int y, int size, ItemStack stack, String placeholder, int screenWidth, int screenHeight, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas, boolean isHovered, String animId, boolean drawBackground) {
         float delta = GameLoop.getInstance().getTimer().getDeltaF();
         float hoverProgress = UIAnimationManager.getHoverProgress(animId, isHovered, delta);
 
-        // Slot background with SDF Shape (TEMPORARILY DISABLED)
-        uiShader.use();
-        uiShader.setInt("useTexture", 0);
-        uiShader.setInt("isSlot", 0); // Disable SDF Octagon for now
-        
-        float scaleX = (float)size / screenWidth;
-        float scaleY = (float)size / screenHeight;
-        float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
-        float posY = 1.0f - (2.0f * y / screenHeight) - scaleY;
-        
-        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
-        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
-        uiShader.setFloat("hoverProgress", hoverProgress);
-        
-        // Dynamic background color (slightly darker base for better glow pop)
-        float bgBrightness = 0.35f; 
-        uiShader.setUniform("tintColor", bgBrightness, bgBrightness, bgBrightness, 0.9f);
-        
-        glBindVertexArray(quadVAO);
-        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        if (drawBackground) {
+            // Slot background with SDF Shape (TEMPORARILY DISABLED)
+            uiShader.use();
+            uiShader.setInt("useTexture", 0);
+            uiShader.setInt("isSlot", 0); // Disable SDF Octagon for now
+            
+            float scaleX = (float)size / screenWidth;
+            float scaleY = (float)size / screenHeight;
+            float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
+            float posY = 1.0f - (2.0f * y / screenHeight) - scaleY;
+            
+            uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+            uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+            uiShader.setFloat("hoverProgress", hoverProgress);
+            
+            // Dynamic background color (slightly darker base for better glow pop)
+            float bgBrightness = 0.35f; 
+            uiShader.setUniform("tintColor", bgBrightness, bgBrightness, bgBrightness, 0.9f);
+            
+            glBindVertexArray(quadVAO);
+            glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        }
         
         uiShader.setInt("isSlot", 0); // Disable SDF for items
 
@@ -506,11 +521,8 @@ public class UIRenderer {
                 float mx = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
                 float my = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
                 String animId = "held_stack";
-                renderSlot((int)mx - slotSize/2, (int)my - slotSize/2, slotSize, held, null, screenWidth, screenHeight, atlas, false, animId);
-                if (held.getCount() > 1) {
-                    String count = String.valueOf(held.getCount());
-                    fontRenderer.drawString(count, (int)mx + 8, (int)my + 8, 14, screenWidth, screenHeight);
-                }
+                // FIXED: drawBackground = false for held stack to avoid grey background
+                renderSlot((int)mx - slotSize/2, (int)my - slotSize/2, slotSize, held, null, screenWidth, screenHeight, atlas, false, animId, false);
             }
             
             // Draw Tooltip for hovered slot
@@ -538,6 +550,13 @@ public class UIRenderer {
         glBindVertexArray(quadVAO);
         glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+    }
+
+    public void renderGroupBackground(int x, int y, int width, int height, GUIConfig.BackgroundConfig bg) {
+        int sw = GameLoop.getInstance().getWindow().getWidth();
+        int sh = GameLoop.getInstance().getWindow().getHeight();
+        int p = bg.padding;
+        renderRect(x - p, y - p, width + p * 2, height + p * 2, sw, sh, bg.color[0], bg.color[1], bg.color[2], bg.color[3]);
     }
 
     public void renderHighlight(int x, int y, int size, int sw, int sh, float r, float g, float b, float a) {
@@ -601,7 +620,7 @@ public class UIRenderer {
             if (y + slotSize < startY || y > startY + devHeight) continue;
             
             boolean isHovered = mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize;
-            renderSlot(x, y, slotSize, new ItemStack(allItems.get(i)), null, sw, sh, atlas, isHovered, "dev_" + i);
+            renderSlot(x, y, slotSize, new ItemStack(allItems.get(i)), null, sw, sh, atlas, isHovered, "dev_" + i, true);
         }
         devScroller.end();
 

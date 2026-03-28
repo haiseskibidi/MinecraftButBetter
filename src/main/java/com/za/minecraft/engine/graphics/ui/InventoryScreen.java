@@ -31,7 +31,7 @@ public abstract class InventoryScreen implements Screen {
             if (slotUI.getSlot().getInventory().isSlotActive(slotUI.getSlot().getIndex())) {
                 boolean isHovered = slotUI.isMouseOver(mx, my, size);
                 String animId = "slot_" + slotUI.getSlot().getIndex();
-                renderer.renderSlot(slotUI.getX(), slotUI.getY(), size, slotUI.getSlot().getStack(), slotUI.getPlaceholderTexture(), sw, sh, atlas, isHovered, animId);
+                renderer.renderSlot(slotUI.getX(), slotUI.getY(), size, slotUI.getSlot().getStack(), slotUI.getPlaceholderTexture(), sw, sh, atlas, isHovered, animId, true);
             }
         }
     }

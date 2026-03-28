@@ -8,6 +8,12 @@
     "thickness": 2.0,
     "pulse": true
   },
+  "background": {
+    "type": "solid",
+    "color": [0.05, 0.05, 0.05, 0.8],
+    "padding": 6,
+    "includeGroups": ["hotbar"]
+  },
   "groups": [
     {
       "id": "hotbar",

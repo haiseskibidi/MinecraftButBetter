@@ -1,6 +1,11 @@
 # Текущий статус проекта "MinecraftButBetter"
 
 ## Реализованные фичи
+- **Modular & Adaptive GUI System**:
+  - **Flex Backgrounds**: Single background entities that automatically encompass multiple slot groups, adjusting size dynamically (e.g., when a pouch is equipped).
+  - **Smart Layout Units**: Support for slot-based units (`"1s"`, `"0.5s"`) in JSON configs for pixel-perfect alignment.
+  - **Smart Block Alignment**: New `centerCombined` property to center complex blocks of multiple groups relative to their anchors.
+  - **Recursive Dependency Resolver**: GUI groups can now reliably position themselves relative to each other regardless of JSON order.
 - **Stylized AAA Rendering Engine (Cinematic Survival Edition)**:
   - **Moody Lighting**: Switched to 2-band sharp toon shading with cool, atmospheric ambient light for a serious survival tone.
   - **Heavy Crease AO**: Deepened depth-based occlusion to emphasize world weight and geometry.
