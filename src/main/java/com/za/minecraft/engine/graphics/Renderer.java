@@ -10,6 +10,9 @@ import com.za.minecraft.world.chunks.Chunk;
 import com.za.minecraft.world.chunks.ChunkMeshGenerator;
 import com.za.minecraft.world.physics.RaycastResult;
 import com.za.minecraft.world.items.ItemStack;
+import com.za.minecraft.engine.graphics.model.ViewmodelRenderer;
+import com.za.minecraft.engine.graphics.model.Viewmodel;
+import com.za.minecraft.engine.graphics.model.ModelNode;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -34,6 +37,9 @@ public class Renderer {
     private Mesh previewMesh;
     private final Map<Integer, Mesh> blockMeshCache = new java.util.HashMap<>();
     private final Vector3f lightDirection;
+    
+    // Viewmodel
+    private final ViewmodelRenderer viewmodelRenderer = new ViewmodelRenderer();
     
     // View Model caching
     private Mesh heldItemMesh;
@@ -84,6 +90,11 @@ public class Renderer {
         for (com.za.minecraft.world.items.Item item : com.za.minecraft.world.items.ItemRegistry.getAllItems().values()) {
             String tex = item.getTexturePath();
             if (tex != null && !tex.isEmpty()) atlas.add(tex, "src/main/resources/" + tex);
+        }
+        
+        // Add all viewmodels to atlas
+        for (com.za.minecraft.engine.graphics.model.ViewmodelDefinition vmDef : com.za.minecraft.engine.graphics.model.ModelRegistry.getAllViewmodels()) {
+            if (vmDef.texture != null) atlas.add(vmDef.texture, "src/main/resources/" + vmDef.texture);
         }
 
         for (com.za.minecraft.entities.EntityDefinition def : com.za.minecraft.entities.EntityRegistry.getAll().values()) {
@@ -145,33 +156,48 @@ public class Renderer {
         blockShader.setMatrix4f("view", new Matrix4f().identity());
         blockShader.setBoolean("viewModelPass", true);
         blockShader.setVector3f("lightDirection", new Vector3f(0.4f, -0.8f, 0.4f).normalize());
-        Matrix4f viewModelMatrix = new Matrix4f().identity();
-        ItemStack stack = player.getInventory().getSelectedItemStack();
-        if (stack != null) {
-            com.za.minecraft.world.items.Item item = stack.getItem();
-            if (lastHeldTypeId != item.getId() || lastHeldIsBlock != item.isBlock()) {
-                if (heldItemMesh != null) heldItemMesh.cleanup();
-                if (item.isBlock()) heldItemMesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas);
-                else heldItemMesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
-                lastHeldTypeId = item.getId();
-                lastHeldIsBlock = item.isBlock();
+
+        Viewmodel vm = player.getViewmodel();
+        if (vm != null) {
+            // Lazy mesh init
+            if (!vm.root.children.isEmpty() && vm.root.children.get(0).mesh == null) {
+                vm.initMeshes(atlas);
             }
-            if (heldItemMesh != null) {
-                com.za.minecraft.world.items.Item.ViewmodelTransform t = item.getViewmodelTransform();
-                viewModelMatrix.identity()
-                    .translate(t.px + player.getItemOffsetX(), t.py + player.getItemOffsetY(), t.pz + player.getItemOffsetZ())
-                    .rotateX((float)Math.toRadians(t.rx) + player.getItemPitchOffset())
-                    .rotateY((float)Math.toRadians(t.ry) + player.getItemYawOffset())
-                    .rotateZ((float)Math.toRadians(t.rz) + player.getItemRollOffset())
-                    .scale(t.scale);
-                blockShader.setMatrix4f("model", viewModelMatrix);
-                blockShader.setInt("highlightPass", 0);
-                heldItemMesh.render();
-            }
+            
+            ItemStack mainHand = player.getInventory().getSelectedItemStack();
+            ItemStack offHand = player.getInventory().getStack(com.za.minecraft.entities.Inventory.SLOT_OFFHAND);
+            viewmodelRenderer.render(vm, blockShader, atlas, mainHand, offHand);
         } else {
-            lastHeldTypeId = -1;
-            if (heldItemMesh != null) { heldItemMesh.cleanup(); heldItemMesh = null; }
+            // Legacy fallback
+            Matrix4f viewModelMatrix = new Matrix4f().identity();
+            ItemStack stack = player.getInventory().getSelectedItemStack();
+            if (stack != null) {
+                com.za.minecraft.world.items.Item item = stack.getItem();
+                if (lastHeldTypeId != item.getId() || lastHeldIsBlock != item.isBlock()) {
+                    if (heldItemMesh != null) heldItemMesh.cleanup();
+                    if (item.isBlock()) heldItemMesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas);
+                    else heldItemMesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
+                    lastHeldTypeId = item.getId();
+                    lastHeldIsBlock = item.isBlock();
+                }
+                if (heldItemMesh != null) {
+                    com.za.minecraft.world.items.Item.ViewmodelTransform t = item.getViewmodelTransform();
+                    viewModelMatrix.identity()
+                        .translate(t.px + player.getItemOffsetX(), t.py + player.getItemOffsetY(), t.pz + player.getItemOffsetZ())
+                        .rotateX((float)Math.toRadians(t.rx) + player.getItemPitchOffset())
+                        .rotateY((float)Math.toRadians(t.ry) + player.getItemYawOffset())
+                        .rotateZ((float)Math.toRadians(t.rz) + player.getItemRollOffset())
+                        .scale(t.scale);
+                    blockShader.setMatrix4f("model", viewModelMatrix);
+                    blockShader.setInt("highlightPass", 0);
+                    heldItemMesh.render();
+                }
+            } else {
+                lastHeldTypeId = -1;
+                if (heldItemMesh != null) { heldItemMesh.cleanup(); heldItemMesh = null; }
+            }
         }
+
         blockShader.setInt("highlightPass", 0);
         blockShader.setBoolean("viewModelPass", false);
         blockShader.setVector3f("lightDirection", lightDirection);

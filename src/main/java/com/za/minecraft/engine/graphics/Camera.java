@@ -82,5 +82,12 @@ public class Camera {
     public Vector3f getPosition() { return position; }
     public Vector3f getRotation() { return rotation; }
     public float getFov() { return fov; }
+    public Vector3f getDirection() {
+        Vector3f dir = new Vector3f(0, 0, -1);
+        dir.rotateX(rotation.x + pitchOffset);
+        dir.rotateY(rotation.y);
+        return dir;
+    }
+    
     public void setFov(float fov) { this.fov = fov; }
 }

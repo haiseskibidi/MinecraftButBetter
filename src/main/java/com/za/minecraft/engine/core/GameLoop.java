@@ -250,7 +250,7 @@ public class GameLoop {
     private void render(float alpha) {
         // High-Frequency Animation Update (Right before render)
         if (!paused) {
-            player.updateAnimations(timer.getDeltaF());
+            player.updateAnimations(timer.getDeltaF(), world);
             
             // Sync animated offsets to camera (High-frequency)
             camera.setPitchOffset(player.getCameraPitchOffset());

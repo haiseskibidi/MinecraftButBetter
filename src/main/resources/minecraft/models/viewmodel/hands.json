@@ -1,0 +1,33 @@
+{
+  "texture": "minecraft/textures/default.png",
+  "bones": [
+    {
+      "name": "shoulder_r",
+      "pivot": [5.0, -3.0, -2.0],
+      "cubes": [
+        { "origin": [3.5, -5.0, -10.0], "size": [3.0, 3.5, 10.0], "uv": [0, 0] }
+      ]
+    },
+    {
+      "name": "forearm_r",
+      "parent": "shoulder_r",
+      "pivot": [5.0, -4.0, -9.0],
+      "cubes": [
+        { "origin": [4.0, -5.5, -16.0], "size": [2.5, 3.0, 9.0], "uv": [0, 0] }
+      ]
+    },
+    {
+      "name": "hand_r",
+      "parent": "forearm_r",
+      "pivot": [5.0, -4.0, -15.0],
+      "cubes": [
+        { "origin": [3.5, -6.5, -19.5], "size": [3.5, 4.5, 5.0], "uv": [0, 0] }
+      ]
+    },
+    {
+      "name": "item_attachment_r",
+      "parent": "hand_r",
+      "pivot": [5.0, -4.0, -17.5]
+    }
+  ]
+}

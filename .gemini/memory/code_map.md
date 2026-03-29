@@ -57,6 +57,27 @@
 ### com.za.minecraft.engine.core.GameLoop (UPDATED)
 Назначение: Главный цикл. Добавлен геттер для `Timer`.
 
+## Physical Viewmodel System (v5.0 NEW)
+### com.za.minecraft.engine.graphics.model.ViewmodelPhysics
+Назначение: Физический симулятор для рук и предметов.
+Функции: Решает дифференциальные уравнения 2-го порядка (пружина-масса-демпфер) для расчета инерции и веса.
+
+### com.za.minecraft.engine.graphics.model.ViewmodelController
+Назначение: Менеджер скелетных анимаций.
+Функции: Применяет AnimationProfile к костям скелета, поддерживает наслоение (blending) нескольких анимаций.
+
+### com.za.minecraft.engine.graphics.model.ViewmodelMeshGenerator
+Назначение: Генератор воксельных мешей для костей.
+Функции: Создает оптимизированную геометрию на основе кубов, описанных в JSON.
+
+### com.za.minecraft.engine.graphics.model.TwoBoneIK
+Назначение: Алгоритм инверсной кинематики для рук.
+Функции: Рассчитывает изгиб локтя и плеча для достижения целевой точки кистью.
+
+### com.za.minecraft.engine.graphics.model.ModelRegistry
+Назначение: Реестр скелетных моделей.
+Функции: Загружает и хранит ViewmodelDefinition из ресурсов.
+
 ## Inventory System (NEW)
 ### com.za.minecraft.world.inventory.ItemInventory
 Назначение: Реализация `IInventory` для предметов-контейнеров (рюкзаки, мешочки).

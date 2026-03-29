@@ -79,6 +79,10 @@ public class DataLoader {
             loadJournal(ns);
         }
 
+        for (String ns : namespaces) {
+            loadModels(ns);
+        }
+
         loadParkourAnimations();
         loadScavengeSettings();
         loadPhysicsSettings();
@@ -268,6 +272,29 @@ public class DataLoader {
             com.za.minecraft.engine.graphics.ui.GUIRegistry.register(Identifier.of(config.id), config);
         } catch (Exception e) {
             Logger.error("Failed to parse GUI: " + e.getMessage());
+        }
+    }
+
+    private static void loadModels(String namespace) {
+        String path = namespace + "/models/viewmodel";
+        List<String> files = listResources(path);
+        if (!files.isEmpty()) {
+            for (String file : files) {
+                try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path + "/" + file)) {
+                    if (is == null) continue;
+                    com.za.minecraft.engine.graphics.model.ViewmodelDefinition def = GSON.fromJson(
+                        new InputStreamReader(is, StandardCharsets.UTF_8), 
+                        com.za.minecraft.engine.graphics.model.ViewmodelDefinition.class
+                    );
+                    if (def != null) {
+                        Identifier id = Identifier.of(namespace, file.replace(".json", ""));
+                        com.za.minecraft.engine.graphics.model.ModelRegistry.registerViewmodel(id, def);
+                        Logger.info("Loaded viewmodel: " + id);
+                    }
+                } catch (Exception e) {
+                    Logger.error("Failed to load viewmodel " + file + ": " + e.getMessage());
+                }
+            }
         }
     }
 

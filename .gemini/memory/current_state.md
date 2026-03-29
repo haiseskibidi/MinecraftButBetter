@@ -1,6 +1,18 @@
 # Текущий статус проекта "MinecraftButBetter"
 
 ## Реализованные фичи
+- **Physical Viewmodel System (v5.0) (NEW)**:
+  - **Skeletal Viewmodel Engine**: Переход от простой отрисовки предметов к иерархической скелетной системе (Shoulder -> Forearm -> Hand).
+  - **Data-Driven Model Definitions**: Все структуры рук описаны в JSON (`minecraft/models/viewmodel/`), что позволяет настраивать анатомию конечностей.
+  - **Procedural Flex & Bend**: Реализовано распределение вращения по костям (10% плечо, 20% предплечье, 70% кисть), создающее эффект гибкой органической руки без сложных шейдеров.
+  - **Spring-Mass-Damper Physics**: 
+    - Внедрен симулятор физики 2-го порядка для расчета инерции рук и предметов.
+    - Предметы имеют реальный вес, влияющий на частоту колебаний и задержку (lag) за камерой.
+    - Плавные переходы при смене предметов (без телепортации) через сброс состояния пружины.
+  - **Tarkov-style World Collisions**:
+    - Реализована механика "Tactical Tuck": предметы реалистично реагируют на препятствия.
+    - Резкий наклон дула вверх (-75 градусов) и поджатие к плечу при упоре в блоки.
+    - Гибридная система обнаружения: точный Raycast + Voxel Probe для 100% надежности коллизий.
 - **Modular & Adaptive GUI System**:
   - **Flex Backgrounds**: Single background entities that automatically encompass multiple slot groups, adjusting size dynamically (e.g., when a pouch is equipped).
   - **Smart Layout Units**: Support for slot-based units (`"1s"`, `"0.5s"`) in JSON configs for pixel-perfect alignment.
