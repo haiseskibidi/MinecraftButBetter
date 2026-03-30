@@ -137,6 +137,21 @@ public class ItemMeshGenerator {
         float fgx = (float) gx / width;
         float fgy = (float) gy / height;
 
+        // --- AAA Polish: Центрирование меша ---
+        // Чтобы предметы в мире (ItemEntity) лежали ровно по центру хитбокса,
+        // мы должны генерировать вершины относительно геометрического центра текстуры,
+        // а не точки хвата.
+        float minX = width, minY = height, maxX = 0, maxY = 0;
+        for (int[] p : pixels) {
+            minX = Math.min(minX, p[0]); minY = Math.min(minY, p[1]);
+            maxX = Math.max(maxX, p[0]); maxY = Math.max(maxY, p[1]);
+        }
+        float centerX = (minX + maxX + 1) * 0.5f / width;
+        float centerY = (minY + maxY + 1) * 0.5f / height;
+
+        // Смещение точки хвата относительно центра меша
+        org.joml.Vector3f graspOffset = new org.joml.Vector3f(fgx - centerX, fgy - centerY, 0);
+
         // --- Генерация меша ---
         List<Float> positions = new ArrayList<>();
         List<Float> texCoords = new ArrayList<>();
@@ -162,13 +177,13 @@ public class ItemMeshGenerator {
             float mu = (pu0 + pu1) * 0.5f;
             float mv = (pv0 + pv1) * 0.5f;
 
-            // Координаты относительно точки хвата
-            float bx0 = (float) x / width - fgx;
-            float by0 = (float) y / height - fgy;
-            float bx1 = (float) (x + 1) / width - fgx;
-            float by1 = (float) (y + 1) / height - fgy;
+            // Координаты относительно геометрического центра
+            float bx0 = (float) x / width - centerX;
+            float by0 = (float) y / height - centerY;
+            float bx1 = (float) (x + 1) / width - centerX;
+            float by1 = (float) (y + 1) / height - centerY;
 
-            // Поворот вершин в меше (чтобы предмет был вертикальным)
+            // Поворот вершин в меше (вокруг центра)
             float px00 = bx0 * cosR - by0 * sinR; float py00 = bx0 * sinR + by0 * cosR;
             float px10 = bx1 * cosR - by0 * sinR; float py10 = bx1 * sinR + by0 * cosR;
             float px11 = bx1 * cosR - by1 * sinR; float py11 = bx1 * sinR + by1 * cosR;
@@ -212,7 +227,9 @@ public class ItemMeshGenerator {
         float[] blockTypes = new float[posArr.length / 3];
         for (int i = 0; i < blockTypes.length; i++) blockTypes[i] = itemId;
 
-        return new Mesh(posArr, texArr, normArr, blockTypes, indArr);
+        Mesh finalMesh = new Mesh(posArr, texArr, normArr, blockTypes, indArr);
+        finalMesh.setGraspOffset(graspOffset);
+        return finalMesh;
     }
 
     private static boolean isOpaque(ByteBuffer image, int x, int y, int width, int height) {

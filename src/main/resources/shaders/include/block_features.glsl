@@ -1,0 +1,51 @@
+// Specialized block-specific logic (connected textures, brightening, etc.)
+
+// Brighten top face of specific blocks (like stumps)
+vec3 brightenTopFace(vec3 color, float type, vec3 normal) {
+    if (abs(type - 150.0) < 0.1 && normal.y > 0.9) {
+        return color * 1.1;
+    }
+    return color;
+}
+
+// Connected textures logic for Glass
+vec4 applyGlassConnections(vec4 texColor, vec2 uv, float neighborData, float glassLayer, sampler2DArray texSampler) {
+    float t = 0.0625; 
+    int nMask = int(neighborData + 0.5);
+    bool hasLeft  = (nMask & 1) != 0;
+    bool hasRight = (nMask & 2) != 0;
+    bool hasDown  = (nMask & 4) != 0;
+    bool hasUp    = (nMask & 8) != 0;
+
+    bool onLeft   = uv.x < t;
+    bool onRight  = uv.x > (1.0 - t);
+    bool onDown   = uv.y < t;
+    bool onUp     = uv.y > (1.0 - t);
+
+    bool shouldHide = false;
+
+    if ((onLeft && hasLeft) || (onRight && hasRight)) {
+        if (!onDown && !onUp) {
+            shouldHide = true;
+        } else {
+            bool hasVerticalNeighbor = (onDown && hasDown) || (onUp && hasUp);
+            if (hasVerticalNeighbor) shouldHide = true;
+        }
+    }
+
+    if (!shouldHide && ((onDown && hasDown) || (onUp && hasUp))) {
+        if (!onLeft && !onRight) {
+            shouldHide = true;
+        } else {
+            bool hasHorizontalNeighbor = (onLeft && hasLeft) || (onRight && hasRight);
+            if (hasHorizontalNeighbor) shouldHide = true;
+        }
+    }
+
+    if (shouldHide) {
+        vec4 sampledCenter = texture(texSampler, vec3(0.5, 0.5, glassLayer));
+        // Мы возвращаем цвет центрального пикселя (прозрачный)
+        return sampledCenter;
+    }
+    return texColor;
+}

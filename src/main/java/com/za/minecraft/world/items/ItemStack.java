@@ -7,6 +7,7 @@ public class ItemStack {
     private int count;
     private int durability;
     private ItemInventory itemInventory;
+    private float temperature;
 
     public ItemStack(Item item) {
         this(item, 1);
@@ -16,16 +17,44 @@ public class ItemStack {
         this.item = item;
         this.count = count;
         
-        // Инициализация прочности из компонентов (для новых предметов Tier 1)
+        // Инициализация прочности из компонентов
         com.za.minecraft.world.items.component.ToolComponent toolComp = item.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
         if (toolComp != null) {
             this.durability = toolComp.maxDurability();
+        }
+
+        // Инициализация температуры
+        com.za.minecraft.world.items.component.ThermalComponent thermal = item.getComponent(com.za.minecraft.world.items.component.ThermalComponent.class);
+        if (thermal != null) {
+            this.temperature = thermal.initialTemperature();
+        } else {
+            this.temperature = 20.0f; // Default ambient
         }
 
         com.za.minecraft.world.items.component.BagComponent bagComp = item.getComponent(com.za.minecraft.world.items.component.BagComponent.class);
         if (bagComp != null) {
             this.itemInventory = new ItemInventory(bagComp.getSlots());
         }
+    }
+
+    public float getTemperature() {
+        return temperature;
+    }
+
+    public void setTemperature(float temperature) {
+        this.temperature = temperature;
+    }
+
+    /**
+     * Updates item temperature based on ambient temperature.
+     */
+    public void updateTemperature(float ambientTemp, float deltaTime) {
+        com.za.minecraft.world.items.component.ThermalComponent thermal = item.getComponent(com.za.minecraft.world.items.component.ThermalComponent.class);
+        float k = (thermal != null) ? thermal.specificHeatCapacity() : 0.05f;
+        
+        // Simple Newton's Law of Cooling
+        float delta = ambientTemp - temperature;
+        this.temperature += delta * k * deltaTime;
     }
 
     public Item getItem() {

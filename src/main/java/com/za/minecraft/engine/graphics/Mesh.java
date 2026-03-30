@@ -19,6 +19,10 @@ public class Mesh {
     private final int eboId;
     private final int vertexCount;
     private final float[] positions;
+    private org.joml.Vector3f graspOffset = new org.joml.Vector3f(0);
+    
+    public void setGraspOffset(org.joml.Vector3f offset) { this.graspOffset = offset; }
+    public org.joml.Vector3f getGraspOffset() { return graspOffset; }
     
     public Mesh(float[] positions, float[] texCoords, float[] normals, int[] indices) {
         this(positions, texCoords, normals, new float[positions.length / 3], new float[positions.length / 3], indices);
@@ -131,6 +135,19 @@ public class Mesh {
             max.z = Math.max(max.z, positions[i+2]);
         }
         return max;
+    }
+
+    /**
+     * Возвращает смещение центра меша по горизонтали (X, Z) относительно его локального нуля.
+     */
+    public org.joml.Vector3f getHorizontalCenterOffset() {
+        org.joml.Vector3f min = getMin();
+        org.joml.Vector3f max = getMax();
+        return new org.joml.Vector3f(
+            (min.x + max.x) * 0.5f,
+            0, // Высоту не трогаем, так как предметы должны стоять на земле
+            (min.z + max.z) * 0.5f
+        );
     }
 
     public void cleanup() {

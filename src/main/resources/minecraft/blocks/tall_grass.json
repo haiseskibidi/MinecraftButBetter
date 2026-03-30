@@ -7,6 +7,7 @@
   "placement": "DOUBLE_PLANT",
   "replaceable": true,
   "hardness": 0.0,
+  "cleaningAmount": 0.25,
   "upperTexture": "tall_grass_top.png",
   "textures": {
     "all": "tall_grass_bottom.png"

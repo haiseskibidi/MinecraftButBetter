@@ -24,116 +24,67 @@ uniform int faceMask = 0; // 16-bit mask for 4x4 grid
 uniform bool useMask = false;
 uniform float overlayLayer; 
 
+uniform vec3 uCondition; // x=dirt, y=blood, z=wetness
+uniform bool isHand = false;
+uniform float uHandPartWeight = 0.0; // 1.0=hand, 0.6=forearm, 0.3=shoulder
+
+// Modular Includes
+#include "include/noise.glsl"
+#include "include/hand_conditions.glsl"
+#include "include/block_features.glsl"
+#include "include/lighting.glsl"
+
 void main() {
-    vec4 textureColor = vec4(1.0);
     vec3 baseColor;
-    float alpha;
+    float alpha = 1.0;
 
     if (highlightPass != 0) {
         baseColor = highlightColor;
-        alpha = 1.0;
     } else {
-        vec3 finalTexCoord = fragTexCoord;
-
+        vec4 textureColor;
         if (useMask) {
-            vec2 localUV = finalTexCoord.xy;
-            int x = int(clamp(localUV.x * 4.0, 0.0, 3.99));
-            int z = int(clamp(localUV.y * 4.0, 0.0, 3.99));
-            int bit = z * 4 + x;
-
-            if (((faceMask >> bit) & 1) == 0) {
-                discard;
-            }
-
-            // In texture array, we don't need epsilons or safeMin/safeMax for single layers
+            vec2 localUV = fragTexCoord.xy;
+            int bit = int(clamp(localUV.y * 4.0, 0.0, 3.99)) * 4 + int(clamp(localUV.x * 4.0, 0.0, 3.99));
+            if (((faceMask >> bit) & 1) == 0) discard;
             textureColor = texture(textureSampler, vec3(localUV, overlayLayer));
         } else {
-            textureColor = texture(textureSampler, finalTexCoord);
+            textureColor = texture(textureSampler, fragTexCoord);
+        }
+
+        // Handle specific block logic
+        float actualBlockType = (blockType < -0.5) ? abs(blockType) - 1.0 : blockType;
+        
+        // Glass connectivity
+        if (abs(actualBlockType - 19.0) < 0.1) {
+            textureColor = applyGlassConnections(textureColor, fragTexCoord.xy, neighborData, glassLayer, textureSampler);
         }
 
         if (textureColor.a < 0.5) discard;
+
         baseColor = textureColor.rgb;
         alpha = textureColor.a;
-    }
 
-    // Brighten Stump Top Face (ID 150)
-    float actualBlockType = blockType;
-    bool isTinted = false;
-    if (blockType < -0.5) {
-        actualBlockType = abs(blockType) - 1.0;
-        isTinted = true;
-    }
-
-    if (highlightPass == 0 && abs(actualBlockType - 150.0) < 0.1 && fragNormal.y > 0.9) {
-        baseColor *= 1.1;
-    }
-
-    // Connected Textures for Glass (Type 19)
-    if (highlightPass == 0 && abs(actualBlockType - 19.0) < 0.1) {
-        vec2 localUV = fragTexCoord.xy; // Texture coordinates are always 0..1 per layer
-        float t = 0.0625; 
-
-        int nMask = int(neighborData + 0.5);
-        bool hasLeft  = (nMask & 1) != 0;
-        bool hasRight = (nMask & 2) != 0;
-        bool hasDown  = (nMask & 4) != 0;
-        bool hasUp    = (nMask & 8) != 0;
-
-        bool onLeft   = localUV.x < t;
-        bool onRight  = localUV.x > (1.0 - t);
-        bool onDown   = localUV.y < t;
-        bool onUp     = localUV.y > (1.0 - t);
-
-        bool shouldHide = false;
-
-        if ((onLeft && hasLeft) || (onRight && hasRight)) {
-            if (!onDown && !onUp) {
-                shouldHide = true;
-            } else {
-                bool hasVerticalNeighbor = (onDown && hasDown) || (onUp && hasUp);
-                if (hasVerticalNeighbor) shouldHide = true;
-            }
+        // Apply hand overlays (dirt, blood)
+        if (isHand) {
+            baseColor = applyHandConditions(baseColor, vLocalPos, uCondition, uHandPartWeight);
         }
 
-        if (!shouldHide && ((onDown && hasDown) || (onUp && hasUp))) {
-            if (!onLeft && !onRight) {
-                shouldHide = true;
-            } else {
-                bool hasHorizontalNeighbor = (onLeft && hasLeft) || (onRight && hasRight);
-                if (hasHorizontalNeighbor) shouldHide = true;
-            }
+        // Tinting (Leaves/Grass)
+        if (blockType < -0.5) {
+            baseColor *= vec3(0.486, 0.784, 0.314);
         }
 
-        if (shouldHide) {
-            vec2 sampledLocalUV = vec2(0.5, 0.5);
-            textureColor = texture(textureSampler, vec3(sampledLocalUV, glassLayer));
-            if (textureColor.a < 0.5) discard;
-            baseColor = textureColor.rgb;
-            alpha = textureColor.a;
-        }
+        // Feature: Brighten Stump tops
+        baseColor = brightenTopFace(baseColor, actualBlockType, fragNormal);
     }
 
-    // Universal Tinting
-    if (highlightPass == 0 && isTinted) {
-        vec3 tint = vec3(0.486, 0.784, 0.314);
-        baseColor *= tint;
-    }
-
-    // Stylized AAA: Cinematic Survival Lighting
-    float diffuse = max(dot(fragNormal, -lightDirection), 0.0);
+    // Apply Lighting
+    vec3 lighting = calculateLighting(fragNormal, lightDirection, lightColor, ambientLight);
     
-    // 2 sharp steps for a "weighted", serious look
-    float toonDiffuse = smoothstep(0.15, 0.25, diffuse) * 0.6 + smoothstep(0.6, 0.7, diffuse) * 0.4;
-
-    // Moody, cool ambient (bluish-grey)
-    vec3 toonAmbient = ambientLight * vec3(0.85, 0.88, 0.95);
-    vec3 lighting = toonAmbient + lightColor * toonDiffuse;
-
-    // Final color without the extra boost
-    fragColor = vec4(lighting * baseColor * brightnessMultiplier, 1.0);       
+    fragColor = vec4(lighting * baseColor * brightnessMultiplier, alpha);       
 
     if (previewPass) {
-        fragColor.rgb = mix(fragColor.rgb, vec3(1.0, 1.0, 1.0), 0.3);
+        fragColor.rgb = mix(fragColor.rgb, vec3(1.0), 0.3);
         fragColor.a *= previewAlpha;
     }
 }

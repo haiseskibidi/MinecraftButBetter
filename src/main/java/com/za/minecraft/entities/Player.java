@@ -4,6 +4,7 @@ import com.za.minecraft.engine.core.PlayerMode;
 import com.za.minecraft.world.World;
 import com.za.minecraft.entities.parkour.animation.AnimationRegistry;
 import com.za.minecraft.entities.parkour.animation.AnimationProfile;
+import com.za.minecraft.world.items.ItemStack;
 import org.joml.Vector3f;
 
 /**
@@ -25,6 +26,13 @@ public class Player extends LivingEntity {
     private boolean sneaking = false;
     private boolean moving = false;
     private boolean sprinting = false;
+
+    // Body Condition (Hand State)
+    private float dirt = 0.0f;
+    private float blood = 0.0f;
+    private float wetness = 0.0f;
+    private boolean hasParasites = false;
+    private float parasitesTimer = 0.0f;
     
     // Animation State
     private float currentEyeHeight;
@@ -99,6 +107,7 @@ public class Player extends LivingEntity {
         updateNoise(deltaTime);
         updateSneakState(world, deltaTime);
         parkourHandler.update(this, deltaTime, world);
+        updateThermalAndConditions(deltaTime, world);
         
         boolean isMovingPhysically = onGround && moving && velocity.lengthSquared() > 0.0001f;
         if (isMovingPhysically) moveLatchTimer = LATCH_DURATION;
@@ -415,6 +424,17 @@ public class Player extends LivingEntity {
     public void swing() { if (!swinging) { swinging = true; itemSwingTimer = 0; } }
     public boolean isMoving() { return moving; }
 
+    public boolean isInWater() {
+        // Проверка на нахождение в воде
+        com.za.minecraft.world.blocks.Block b = com.za.minecraft.engine.core.GameLoop.getInstance().getWorld().getBlock((int)Math.floor(position.x), (int)Math.floor(position.y + 0.5f), (int)Math.floor(position.z));
+        return com.za.minecraft.world.blocks.BlockRegistry.getBlock(b.getType()).getIdentifier().getPath().contains("water");
+    }
+
+    public boolean isInRain() {
+        // TODO: Implement when weather system is added
+        return false;
+    }
+
     private void updateNoise(float deltaTime) {
         float floorNoise = 0.0f;
         if (!flying && moving) {
@@ -435,16 +455,70 @@ public class Player extends LivingEntity {
     public void setSprinting(boolean sprinting) { this.sprinting = sprinting; }
     public float getStamina() { return stamina; }
     public void setStamina(float stamina) { this.stamina = stamina; }
-    private void updateHunger(float deltaTime) {
+    private void updateThermalAndConditions(float deltaTime, World world) {
+        // 1. Thermal Update for held item
+        ItemStack held = inventory.getSelectedItemStack();
+        if (held != null) {
+            float ambient = 20.0f; 
+            if (isInWater()) ambient = 15.0f;
+            
+            held.updateTemperature(ambient, deltaTime);
+            
+            com.za.minecraft.world.items.component.ThermalComponent thermal = held.getItem().getComponent(com.za.minecraft.world.items.component.ThermalComponent.class);
+            float threshold = (thermal != null) ? thermal.burnThreshold() : 55.0f;
+            
+            if (held.getTemperature() > threshold) {
+                // Apply burn damage
+                takeDamage(0.5f * deltaTime);
+                // Randomly drop hot item
+                if (Math.random() < 0.05f * deltaTime) {
+                    inventory.dropSelected(this, world, com.za.minecraft.engine.core.GameLoop.getInstance().getCamera(), true);
+                    com.za.minecraft.utils.Logger.info("Ouch! Dropped a hot %s", held.getItem().getName());
+                }
+            }
+        }
+
+        // 2. Condition Decay/Cleaning
+        if (isInWater()) {
+            wetness = 1.0f;
+            dirt = Math.max(0, dirt - 2.0f * deltaTime);
+            blood = Math.max(0, blood - 1.0f * deltaTime);
+        } else {
+            wetness = Math.max(0, wetness - 0.1f * deltaTime);
+        }
+
+        if (parasitesTimer > 0) {
+            parasitesTimer -= deltaTime;
+            if (parasitesTimer <= 0) hasParasites = false;
+        }
+    }
+
+    public void addDirt(float amount) { this.dirt = Math.min(1.0f, this.dirt + amount); }
+    public void addBlood(float amount) { this.blood = Math.min(1.0f, this.blood + amount); }
+    public void washHands() { this.dirt = 0; this.blood = 0; this.wetness = 1.0f; }
+    public float getDirt() { return dirt; }
+    public float getBlood() { return blood; }
+    public float getWetness() { return wetness; }
+    public float getScentLevel() { return blood * 2.0f; }
+
+    public void updateHunger(float deltaTime) {
         float mult = sprinting ? 3.0f : (!onGround && !flying ? 2.0f : 1.0f);
+        if (hasParasites) mult *= 2.0f;
         if (saturation > 0) saturation -= 0.1f * mult * deltaTime;
         else hunger = Math.max(0, hunger - 0.1f * mult * deltaTime);
     }
+
     public void eat(com.za.minecraft.world.items.Item item) {
         com.za.minecraft.world.items.component.FoodComponent food = item.getComponent(com.za.minecraft.world.items.component.FoodComponent.class);
         if (food != null && hunger < 20.0f) {
             hunger = Math.min(20.0f, hunger + food.nutrition());
             saturation = Math.min(20.0f, saturation + food.saturationBonus());
+
+            if (dirt > 0.5f && Math.random() < 0.3f) {
+                hasParasites = true;
+                parasitesTimer = 600.0f; // 10 minutes
+                com.za.minecraft.utils.Logger.info("You've contracted parasites from dirty hands!");
+            }
         }
     }
     public float getHunger() { return hunger; }

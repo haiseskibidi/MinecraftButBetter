@@ -61,6 +61,13 @@ public class HeldItemRenderer {
                        .rotateZ((float)Math.toRadians(t.rz))
                        .scale(t.scale);
             
+            // Если у меша есть офсет точки хвата (для предметов), применяем его
+            if (!item.isBlock()) {
+                org.joml.Vector3f go = mesh.getGraspOffset();
+                // Офсет применяется ПЕРЕД масштабированием (в локальных координатах 0..1)
+                modelMatrix.translate(-go.x, -go.y, -go.z);
+            }
+
             shader.setMatrix4f("model", modelMatrix);
             mesh.render();
         }

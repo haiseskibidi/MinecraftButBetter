@@ -5,6 +5,7 @@
   "solid": true,
   "transparent": false,
   "hardness": 0.6,
+  "soilingAmount": 0.2,
   "requiredTool": "shovel",
   "dropItem": "minecraft:clay_ball",
   "textures": {

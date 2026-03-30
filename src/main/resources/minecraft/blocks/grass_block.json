@@ -5,6 +5,7 @@
     "solid":  true,
     "transparent":  false,
     "hardness":  0.6,
+    "soilingAmount": 0.1,
     "textures":  {
                      "top":  "grass_block_top.png",                                                                                                                        
                      "bottom":  "dirt.png", 

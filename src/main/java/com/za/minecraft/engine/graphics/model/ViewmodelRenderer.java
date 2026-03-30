@@ -12,7 +12,12 @@ import org.joml.Matrix4f;
 public class ViewmodelRenderer {
     private final HeldItemRenderer heldItemRenderer = new HeldItemRenderer();
 
-    public void render(Viewmodel viewmodel, Shader shader, DynamicTextureAtlas atlas, ItemStack mainHand, ItemStack offHand) {
+    public void render(Viewmodel viewmodel, Shader shader, DynamicTextureAtlas atlas, com.za.minecraft.entities.Player player, ItemStack mainHand, ItemStack offHand) {
+        // Set hand condition uniforms for the procedural overlays
+        if (player != null) {
+            shader.setVector3f("uCondition", new org.joml.Vector3f(player.getDirt(), player.getBlood(), player.getWetness()));
+        }
+
         renderNode(viewmodel.root, shader);
         
         // Main hand attachment
@@ -31,7 +36,21 @@ public class ViewmodelRenderer {
     private void renderNode(ModelNode node, Shader shader) {
         if (node.mesh != null) {
             shader.setMatrix4f("model", node.globalMatrix);
+            
+            float partWeight = 0.0f;
+            if (node.name.contains("hand") || node.name.contains("finger")) {
+                partWeight = 1.0f;
+            } else if (node.name.contains("forearm")) {
+                partWeight = 0.6f;
+            } else if (node.name.contains("shoulder")) {
+                partWeight = 0.3f;
+            }
+
+            shader.setBoolean("isHand", partWeight > 0.01f);
+            shader.setFloat("uHandPartWeight", partWeight);
+            
             node.mesh.render();
+            shader.setBoolean("isHand", false);
         }
         for (ModelNode child : node.children) {
             renderNode(child, shader);

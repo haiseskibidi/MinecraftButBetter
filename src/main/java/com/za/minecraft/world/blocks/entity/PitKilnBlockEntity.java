@@ -34,9 +34,21 @@ public class PitKilnBlockEntity extends BlockEntity implements ITickable {
 
     private void finishFiring() {
         if (world != null) {
-            // Превращаем в обожженный сосуд
-            // В будущем здесь будет проверка рецепта, пока хардкодим fired_vessel
-            world.setBlock(pos.x(), pos.y(), pos.z(), Blocks.FIRED_VESSEL.getId());
+            // Get firing temperature from the block definition
+            com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(world.getBlock(pos).getType());
+            float temp = (def != null) ? def.getFiringTemperature() : 900.0f;
+
+            // Drop item directly
+            com.za.minecraft.world.items.ItemStack hotVessel = new com.za.minecraft.world.items.ItemStack(com.za.minecraft.world.items.Items.FIRED_VESSEL);
+            hotVessel.setTemperature(temp);
+            
+            com.za.minecraft.entities.ItemEntity entity = new com.za.minecraft.entities.ItemEntity(
+                new org.joml.Vector3f(pos.x() + 0.5f, pos.y() + 0.2f, pos.z() + 0.5f),
+                hotVessel
+            );
+            world.spawnEntity(entity);
+            
+            world.setBlock(pos.x(), pos.y(), pos.z(), Blocks.AIR.getId());
             world.removeBlockEntity(pos);
         }
     }

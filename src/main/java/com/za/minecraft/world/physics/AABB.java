@@ -81,6 +81,13 @@ public class AABB {
     public Vector3f getMax() {
         return new Vector3f(max);
     }
+
+    public float minX() { return min.x; }
+    public float minY() { return min.y; }
+    public float minZ() { return min.z; }
+    public float maxX() { return max.x; }
+    public float maxY() { return max.y; }
+    public float maxZ() { return max.z; }
     
     @Override
     public String toString() {

@@ -10,6 +10,11 @@
       "type": "axe",
       "efficiency": 1.5,
       "durability": 120
+    },
+    "minecraft:thermal": {
+      "initialTemperature": 20.0,
+      "specificHeatCapacity": 0.05,
+      "burnThreshold": 60.0
     }
   }
 }

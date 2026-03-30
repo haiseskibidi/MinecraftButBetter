@@ -62,6 +62,7 @@ public class Blocks {
     public static BlockDefinition UNFIRED_VESSEL;
     public static BlockDefinition FIRED_VESSEL;
     public static BlockDefinition CLAY;
+    public static BlockDefinition WATER;
     public static BlockDefinition SHORT_GRASS;
     public static BlockDefinition TALL_GRASS;
     public static BlockDefinition DIAMOND_ORE;
@@ -82,6 +83,8 @@ public class Blocks {
                     BlockDefinition def = BlockRegistry.getRegistry().get(id);
                     if (def != null) {
                         field.set(null, def);
+                    } else {
+                        com.za.minecraft.utils.Logger.error("Blocks.init: Could not find block in registry for field %s (id: %s)", field.getName(), id.toString());
                     }
                 } catch (Exception e) {
                     com.za.minecraft.utils.Logger.error("Failed to auto-init block field: " + field.getName());

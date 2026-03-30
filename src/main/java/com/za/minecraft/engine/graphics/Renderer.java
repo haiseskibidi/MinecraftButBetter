@@ -155,6 +155,9 @@ public class Renderer {
         blockShader.setMatrix4f("view", new Matrix4f().identity());
         blockShader.setBoolean("viewModelPass", true);
         blockShader.setVector3f("lightDirection", new Vector3f(0.4f, -0.8f, 0.4f).normalize());
+        
+        // Состояние рук
+        blockShader.setVector3f("uCondition", new Vector3f(player.getDirt(), player.getBlood(), player.getWetness()));
 
         Viewmodel vm = player.getViewmodel();
         if (vm != null) {
@@ -164,7 +167,7 @@ public class Renderer {
             
             ItemStack mainHand = player.getInventory().getSelectedItemStack();
             ItemStack offHand = player.getInventory().getStack(com.za.minecraft.entities.Inventory.SLOT_OFFHAND);
-            viewmodelRenderer.render(vm, blockShader, atlas, mainHand, offHand);
+            viewmodelRenderer.render(vm, blockShader, atlas, player, mainHand, offHand);
         }
 
         blockShader.setInt("highlightPass", 0);
@@ -283,12 +286,16 @@ public class Renderer {
                     float scale = item.isBlock() ? 0.25f : item.getVisualScale() * 0.45f;
 
                     modelMatrix.identity()
-                        .translate(entity.getPosition().x(), entity.getPosition().y() + 0.2f + bob, entity.getPosition().z());
+                        .translate(entity.getPosition().x(), entity.getPosition().y() + 0.1f + bob, entity.getPosition().z());
                     
                     modelMatrix.rotateX(itemEntity.getRotation().x)
                                .rotateY(itemEntity.getRotation().y)
                                .rotateZ(itemEntity.getRotation().z)
                                .scale(scale);
+
+                    if (item.isBlock()) {
+                        modelMatrix.translate(-0.5f, 0, -0.5f);
+                    }
 
                     blockShader.setMatrix4f("model", modelMatrix);
                     blockShader.setInt("highlightPass", 0);

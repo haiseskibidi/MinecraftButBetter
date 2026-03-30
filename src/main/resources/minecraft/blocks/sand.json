@@ -5,6 +5,7 @@
     "solid":  true,
     "transparent":  false,
     "hardness":  0.5,
+    "soilingAmount": 0.1,
     "textures":  {
                      "all":  "sand.png"
                  },

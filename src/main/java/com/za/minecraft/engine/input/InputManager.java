@@ -6,6 +6,7 @@ import com.za.minecraft.engine.core.PlayerMode;
 import com.za.minecraft.engine.core.Window;
 import com.za.minecraft.engine.graphics.Camera;
 import com.za.minecraft.entities.Player;
+import com.za.minecraft.entities.LivingEntity;
 import com.za.minecraft.entities.Inventory;
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.BlockPos;
@@ -741,7 +742,11 @@ public class InputManager {
 
             if (lm) {
                 player.swing();
-                if (isNewLeftClick && hitEntity instanceof com.za.minecraft.entities.ResourceEntity resource) {
+                if (isNewLeftClick && hitEntity instanceof LivingEntity living) {
+                    living.takeDamage(2.0f);
+                    player.addBlood(0.15f);
+                    com.za.minecraft.utils.Logger.info("Attacked %s, hands are now bloody", living.getClass().getSimpleName());
+                } else if (isNewLeftClick && hitEntity instanceof com.za.minecraft.entities.ResourceEntity resource) {
                     player.getInventory().addItem(resource.getStack());
                     resource.setRemoved();
                     com.za.minecraft.utils.Logger.info("Picked up %s", resource.getStack().getItem().getName());
@@ -786,6 +791,11 @@ public class InputManager {
 
                         if (breakingProgress >= 1.0f) {
                             if (hitPos != null) {
+                                if (currentItem == null) {
+                                    if (blockDef.getSoilingAmount() > 0) {
+                                        player.addDirt(blockDef.getSoilingAmount());
+                                    }
+                                }
                                 if (world.onBlockBreak(hitPos, player)) {
                                     // Обычное разрушение с дропом
                                     java.util.List<com.za.minecraft.world.blocks.DropRule> rules = blockDef.getDropRules();
@@ -908,7 +918,18 @@ public class InputManager {
                     float rz = raycast.getHitPoint().z - hitPos.z();
 
                     if (blockDef != null) {
-                        if (blockDef.onUse(world, hitPos, player, currentStack, rx, ry, rz)) {
+                        if (blockDef.getCleaningAmount() > 0) {
+                            if (blockDef.getCleaningAmount() >= 1.0f) {
+                                player.washHands();
+                                com.za.minecraft.utils.Logger.info("Washed hands");
+                            } else {
+                                player.addDirt(-blockDef.getCleaningAmount());
+                                com.za.minecraft.utils.Logger.info("Cleaned hands slightly");
+                            }
+                            actionConsumed = true;
+                        }
+
+                        if (!actionConsumed && blockDef.onUse(world, hitPos, player, currentStack, rx, ry, rz)) {
                             actionConsumed = true;
                         }
                     }

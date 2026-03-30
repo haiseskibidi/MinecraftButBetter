@@ -589,8 +589,10 @@ public class DataLoader {
             if (obj.has("fellingStages")) def.setFellingStages(obj.get("fellingStages").getAsInt());
             if (obj.has("nextStage")) def.setNextStage(Identifier.of(obj.get("nextStage").getAsString()));
             if (obj.has("next_stage")) def.setNextStage(Identifier.of(obj.get("next_stage").getAsString()));
-            if (obj.has("requiredTool")) def.setRequiredTool(obj.get("requiredTool").getAsString());
-            if (obj.has("dropItem")) def.setDropItem(obj.get("dropItem").getAsString());
+            if (obj.has("soilingAmount")) def.setSoilingAmount(obj.get("soilingAmount").getAsFloat());
+            if (obj.has("cleaningAmount")) def.setCleaningAmount(obj.get("cleaningAmount").getAsFloat());
+            if (obj.has("firingTemperature")) def.setFiringTemperature(obj.get("firingTemperature").getAsFloat());
+            if (obj.has("requiredTool")) def.setRequiredTool(obj.get("requiredTool").getAsString());            if (obj.has("dropItem")) def.setDropItem(obj.get("dropItem").getAsString());
             if (obj.has("dropChance")) def.setDropChance(obj.get("dropChance").getAsFloat());
             
             // Расширенная система дропа (DropRule)
@@ -756,6 +758,15 @@ public class DataLoader {
                         overrides.put(key, anims.get(key).getAsString());
                     }
                     item.addComponent(com.za.minecraft.world.items.component.AnimationComponent.class, new com.za.minecraft.world.items.component.AnimationComponent(overrides));
+                }
+
+                if (comps.has("minecraft:thermal") || comps.has("thermal")) {
+                    JsonObject t = comps.has("minecraft:thermal") ? comps.getAsJsonObject("minecraft:thermal") : comps.getAsJsonObject("thermal");
+                    item.addComponent(com.za.minecraft.world.items.component.ThermalComponent.class, new com.za.minecraft.world.items.component.ThermalComponent(
+                        t.has("initialTemperature") ? t.get("initialTemperature").getAsFloat() : 20.0f,
+                        t.has("specificHeatCapacity") ? t.get("specificHeatCapacity").getAsFloat() : 0.05f,
+                        t.has("burnThreshold") ? t.get("burnThreshold").getAsFloat() : 55.0f
+                    ));
                 }
             }
             

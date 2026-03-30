@@ -18,8 +18,8 @@ public class Shader {
     private final int programId;
     
     public Shader(String vertexPath, String fragmentPath) {
-        String vertexSource = loadShaderSource(vertexPath);
-        String fragmentSource = loadShaderSource(fragmentPath);
+        String vertexSource = resolveIncludes(loadShaderSource(vertexPath), vertexPath);
+        String fragmentSource = resolveIncludes(loadShaderSource(fragmentPath), fragmentPath);
         
         int vertexShader = compileShader(vertexSource, GL_VERTEX_SHADER);
         int fragmentShader = compileShader(fragmentSource, GL_FRAGMENT_SHADER);
@@ -38,6 +38,23 @@ public class Shader {
         glDeleteShader(fragmentShader);
         
         Logger.info("Shader program created successfully");
+    }
+
+    private String resolveIncludes(String source, String currentPath) {
+        StringBuilder sb = new StringBuilder();
+        String[] lines = source.split("\n");
+        
+        for (String line : lines) {
+            if (line.trim().startsWith("#include")) {
+                String includePath = line.substring(line.indexOf("\"") + 1, line.lastIndexOf("\""));
+                // Путь считается относительно src/main/resources/shaders/
+                String fullPath = "src/main/resources/shaders/" + includePath;
+                sb.append(resolveIncludes(loadShaderSource(fullPath), fullPath)).append("\n");
+            } else {
+                sb.append(line).append("\n");
+            }
+        }
+        return sb.toString();
     }
     
     private String loadShaderSource(String path) {

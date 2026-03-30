@@ -434,6 +434,14 @@ public class Inventory implements IInventory {
         }
     }
 
+    public void dropSelected(Player player, World world, Camera camera, boolean fullStack) {
+        ItemStack stack = getSelectedItemStack();
+        if (stack != null) {
+            dropStack(stack, player, world, camera, fullStack);
+            if (stack.getCount() <= 0) setStack(selectedSlot, null);
+        }
+    }
+
     private void dropStack(ItemStack stack, Player player, World world, Camera camera, boolean fullStack) {
         Vector3f lookDir = new Vector3f(0, 0, -1).rotateX(camera.getRotation().x).rotateY(camera.getRotation().y).normalize();
         Vector3f pos = new Vector3f(player.getPosition()).add(0, 1.5f, 0).add(new Vector3f(lookDir).mul(0.5f));

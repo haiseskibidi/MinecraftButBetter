@@ -6,6 +6,7 @@
     "transparent": true,
     "alwaysRender": true,
     "hardness": -1.0,
+    "firingTemperature": 900.0,
     "textures": {
         "all": "campfire_log_lit.png"
     },

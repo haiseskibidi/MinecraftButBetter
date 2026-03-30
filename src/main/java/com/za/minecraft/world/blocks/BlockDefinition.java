@@ -37,6 +37,9 @@ public class BlockDefinition {
     private PlacementType placementType = PlacementType.DEFAULT;
     private BlockTextures textures;
     private boolean fullCube = true;
+    private float soilingAmount = 0.0f;
+    private float cleaningAmount = 0.0f;
+    private float firingTemperature = 0.0f;
 
     // ... в методе getTextures() или аналогичном ...
     public void setUpperTexture(String upperTexture) {
@@ -45,6 +48,30 @@ public class BlockDefinition {
 
     public String getUpperTexture() {
         return upperTexture;
+    }
+
+    public float getFiringTemperature() {
+        return firingTemperature;
+    }
+
+    public void setFiringTemperature(float firingTemperature) {
+        this.firingTemperature = firingTemperature;
+    }
+
+    public float getSoilingAmount() {
+        return soilingAmount;
+    }
+
+    public void setSoilingAmount(float soilingAmount) {
+        this.soilingAmount = soilingAmount;
+    }
+
+    public float getCleaningAmount() {
+        return cleaningAmount;
+    }
+
+    public void setCleaningAmount(float cleaningAmount) {
+        this.cleaningAmount = cleaningAmount;
     }
 
     // Default shape is a full cube. Subclasses can override.
@@ -109,7 +136,13 @@ public class BlockDefinition {
         com.za.minecraft.world.physics.AABB texAABB = com.za.minecraft.utils.TextureAABBGenerator.generateAABB(texPath);
         
         if (texAABB != null) {
-            this.shape = new VoxelShape(texAABB);
+            // AAA Polish: Добавляем небольшой padding (0.05 блока), чтобы по мелким предметам было легче попасть.
+            // Иначе хитбокс палки — это линия шириной в 2 пикселя.
+            float padding = 0.05f;
+            this.shape = new VoxelShape(new com.za.minecraft.world.physics.AABB(
+                Math.max(0.0f, texAABB.minX() - padding), Math.max(0.0f, texAABB.minY() - padding), Math.max(0.0f, texAABB.minZ() - padding),
+                Math.min(1.0f, texAABB.maxX() + padding), Math.min(1.0f, texAABB.maxY() + padding), Math.min(1.0f, texAABB.maxZ() + padding)
+            ));
             this.fullCube = false;
         }
     }
