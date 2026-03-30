@@ -153,7 +153,7 @@ public class ChunkMeshGenerator {
                         faceBlockType = -(faceBlockType + 1.0f);
                     }
                 }
-                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0);
+                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0);
             }
         }
         return data.build();

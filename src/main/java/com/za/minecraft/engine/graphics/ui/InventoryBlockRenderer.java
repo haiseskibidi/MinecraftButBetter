@@ -63,7 +63,7 @@ public class InventoryBlockRenderer {
             modelMatrix.rotateX((float) Math.toRadians(-30))
                        .rotateY((float) Math.toRadians(45 + rotation))
                        .scale(visualScale, -visualScale, visualScale)
-                       .translate(-0.5f, -0.5f, -0.5f);
+                       .translate(0, -0.5f, 0);
 
             inventoryShader.setMatrix4f("model", modelMatrix);
 

@@ -18,6 +18,7 @@ public class Mesh {
     private final int neighborDataVboId;
     private final int eboId;
     private final int vertexCount;
+    private final float[] positions;
     
     public Mesh(float[] positions, float[] texCoords, float[] normals, int[] indices) {
         this(positions, texCoords, normals, new float[positions.length / 3], new float[positions.length / 3], indices);
@@ -28,6 +29,7 @@ public class Mesh {
     }
 
     public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, int[] indices) {
+        this.positions = positions;
         if (indices.length == 0 || positions.length == 0) {
             this.vertexCount = 0;
             this.vaoId = -1;
@@ -111,6 +113,26 @@ public class Mesh {
         glBindVertexArray(0);
     }
     
+    public org.joml.Vector3f getMin() {
+        org.joml.Vector3f min = new org.joml.Vector3f(Float.MAX_VALUE);
+        for (int i = 0; i < positions.length; i += 3) {
+            min.x = Math.min(min.x, positions[i]);
+            min.y = Math.min(min.y, positions[i+1]);
+            min.z = Math.min(min.z, positions[i+2]);
+        }
+        return min;
+    }
+
+    public org.joml.Vector3f getMax() {
+        org.joml.Vector3f max = new org.joml.Vector3f(-Float.MAX_VALUE);
+        for (int i = 0; i < positions.length; i += 3) {
+            max.x = Math.max(max.x, positions[i]);
+            max.y = Math.max(max.y, positions[i+1]);
+            max.z = Math.max(max.z, positions[i+2]);
+        }
+        return max;
+    }
+
     public void cleanup() {
         glDeleteBuffers(posVboId);
         glDeleteBuffers(texVboId);

@@ -5,7 +5,6 @@ import com.za.minecraft.engine.graphics.DynamicTextureAtlas;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
-import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,7 +29,6 @@ public class ItemMeshGenerator {
             int[] w = new int[1];
             int[] h = new int[1];
             int[] c = new int[1];
-            // Flip to match atlas logic
             stbi_set_flip_vertically_on_load(true);
             image = stbi_load_from_memory(buffer, w, h, c, 4);
             MemoryUtil.memFree(buffer);
@@ -43,85 +41,160 @@ public class ItemMeshGenerator {
             return null;
         }
 
+        // --- Анализ текстуры (PCA) для автоматической ориентации ---
+        List<int[]> pixels = new ArrayList<>();
+        double meanX = 0, meanY = 0;
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                if (isOpaque(image, x, y, width, height)) {
+                    pixels.add(new int[]{x, y});
+                    meanX += x;
+                    meanY += y;
+                }
+            }
+        }
+
+        if (pixels.isEmpty()) {
+            stbi_image_free(image);
+            return null;
+        }
+
+        int N = pixels.size();
+        meanX /= N;
+        meanY /= N;
+
+        double varX = 0, varY = 0, covXY = 0;
+        for (int[] p : pixels) {
+            double dx = p[0] - meanX;
+            double dy = p[1] - meanY;
+            varX += dx * dx;
+            varY += dy * dy;
+            covXY += dx * dy;
+        }
+        
+        // Угол главной оси (theta)
+        double theta = 0.5 * Math.atan2(2 * covXY, varX - varY);
+        
+        // Вычисляем собственные значения для определения "вытянутости" (eccentricity)
+        double trace = varX + varY;
+        double det = varX * varY - covXY * covXY;
+        double sqrtDisc = Math.sqrt(trace * trace / 4.0 - det);
+        double lambda1 = trace / 2.0 + sqrtDisc;
+        double lambda2 = trace / 2.0 - sqrtDisc;
+        double eccentricity = (lambda1 - lambda2) / (lambda1 + lambda2 + 1e-6);
+
+        // Нам нужно, чтобы предмет стоял ВЕРТИКАЛЬНО.
+        // rotationAngle: на сколько довернуть, чтобы главная ось стала вертикальной (PI/2).
+        float rotationAngle = (float) (Math.PI / 2.0 - theta);
+
+        // Эвристика: 
+        // 1. Если предмет почти квадратный (eccentricity < 0.3), не крутим его.
+        // 2. Если он уже почти вертикальный (rotationAngle очень мал), не крутим.
+        if (eccentricity < 0.3 || Math.abs(Math.sin(rotationAngle)) < 0.1) {
+            rotationAngle = 0;
+        }
+        
+        float cosR = (float) Math.cos(rotationAngle);
+        float sinR = (float) Math.sin(rotationAngle);
+
+        // Определяем "нижнюю" точку (точку хвата)
+        // Для повернутых предметов это экстремум вдоль оси.
+        // Для не повернутых - просто самый низ текстуры.
+        double minVal = Double.MAX_VALUE;
+        double gx = meanX, gy = meanY; // Дефолт в центр масс
+        
+        if (rotationAngle != 0) {
+            double cosT = Math.cos(theta);
+            double sinT = Math.sin(theta);
+            for (int[] p : pixels) {
+                double val = p[0] * cosT + p[1] * sinT;
+                if (val < minVal) {
+                    minVal = val;
+                    gx = p[0]; gy = p[1];
+                }
+            }
+        } else {
+            // Предмет не вращаем - хват в центре нижней границы
+            double minY = Double.MAX_VALUE;
+            for (int[] p : pixels) {
+                if (p[1] < minY) {
+                    minY = p[1];
+                    gx = p[0]; // Будет уточнено средним ниже
+                }
+            }
+            // Уточняем gx как среднее всех пикселей на нижней линии
+            double sumX = 0; int countX = 0;
+            for (int[] p : pixels) {
+                if (Math.abs(p[1] - minY) < 1.0) {
+                    sumX += p[0]; countX++;
+                }
+            }
+            gx = sumX / countX;
+            gy = minY;
+        }
+
+        // gx, gy теперь координаты пикселя "хвата" (в единицах 0..width)
+        float fgx = (float) gx / width;
+        float fgy = (float) gy / height;
+
+        // --- Генерация меша ---
         List<Float> positions = new ArrayList<>();
         List<Float> texCoords = new ArrayList<>();
         List<Float> normals = new ArrayList<>();
         List<Integer> indices = new ArrayList<>();
 
         float thickness = 0.0625f; 
-        float h = thickness / 2.0f; // half thickness
+        float h = thickness / 2.0f;
         
         float[] uvs = atlas.uvFor(texturePath);
-        if (uvs == null) {
-            stbi_image_free(image);
-            return null;
-        }
-        
         float layer = uvs[2];
-        float u0 = 0, v0 = 0, u1 = 1, v1 = 1; // Texture array layers are always 0..1
-        float uSize = u1 - u0;
-        float vSize = v1 - v0;
+        float u0 = 0, v0 = 0, u1 = 1, v1 = 1;
+        float uSize = u1 - u0, vSize = v1 - v0;
+        float uE = 0.0005f, vE = 0.0005f;
 
-        // In texture arrays, we need a tiny epsilon to prevent sampling artifacts
-        // on the very edges of the layer, especially when scaled down.
-        float uE = 0.0005f;
-        float vE = 0.0005f;
+        for (int[] p : pixels) {
+            int x = p[0], y = p[1];
+            float pu0 = u0 + (float) x / width * uSize + uE;
+            float pv0 = v0 + (float) y / height * vSize + vE; 
+            float pu1 = u0 + (float) (x + 1) / width * uSize - uE;
+            float pv1 = v0 + (float) (y + 1) / height * vSize - vE;
 
+            float mu = (pu0 + pu1) * 0.5f;
+            float mv = (pv0 + pv1) * 0.5f;
 
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                if (isOpaque(image, x, y, width, height)) {
-                    // Mesh coords: x centered, y from 0 to 1
-                    float x0 = (float) x / width - 0.5f;
-                    float y0 = (float) y / height;
-                    float x1 = (float) (x + 1) / width - 0.5f;
-                    float y1 = (float) (y + 1) / height;
-                    
-                    // Texture coordinates
-                    float pu0 = u0 + (float) x / width * uSize + uE;
-                    float pv0 = v0 + (float) y / height * vSize + vE; 
-                    float pu1 = u0 + (float) (x + 1) / width * uSize - uE;
-                    float pv1 = v0 + (float) (y + 1) / height * vSize - vE;
+            // Координаты относительно точки хвата
+            float bx0 = (float) x / width - fgx;
+            float by0 = (float) y / height - fgy;
+            float bx1 = (float) (x + 1) / width - fgx;
+            float by1 = (float) (y + 1) / height - fgy;
 
-                    // 1. FRONT FACE (+Z)
-                    addQuad(positions, texCoords, normals, indices,
-                        x0, y0, h,  x1, y0, h,  x1, y1, h,  x0, y1, h,
-                        pu0, pv0, layer, pu1, pv0, layer, pu1, pv1, layer, pu0, pv1, layer, 0, 0, 1);
+            // Поворот вершин в меше (чтобы предмет был вертикальным)
+            float px00 = bx0 * cosR - by0 * sinR; float py00 = bx0 * sinR + by0 * cosR;
+            float px10 = bx1 * cosR - by0 * sinR; float py10 = bx1 * sinR + by0 * cosR;
+            float px11 = bx1 * cosR - by1 * sinR; float py11 = bx1 * sinR + by1 * cosR;
+            float px01 = bx0 * cosR - by1 * sinR; float py01 = bx0 * sinR + by1 * cosR;
 
-                    // 2. BACK FACE (-Z) - CCW from outside
-                    addQuad(positions, texCoords, normals, indices,
-                        x0, y0, -h,  x0, y1, -h,  x1, y1, -h,  x1, y0, -h,
-                        pu0, pv0, layer, pu0, pv1, layer, pu1, pv1, layer, pu1, pv0, layer, 0, 0, -1);
-                    
-                    // Sides sampling (pixel center)
-                    float mu = (pu0 + pu1) * 0.5f;
-                    float mv = (pv0 + pv1) * 0.5f;
-
-                    // 3. TOP (+Y) - CCW from outside
-                    if (!isOpaque(image, x, y + 1, width, height)) {
-                        addQuad(positions, texCoords, normals, indices,
-                            x0, y1, h,  x1, y1, h,  x1, y1, -h,  x0, y1, -h,
-                            mu, mv, layer, mu, mv, layer, mu, mv, layer, mu, mv, layer, 0, 1, 0);
-                    }
-                    // 4. BOTTOM (-Y) - CCW from outside
-                    if (!isOpaque(image, x, y - 1, width, height)) {
-                        addQuad(positions, texCoords, normals, indices,
-                            x0, y0, -h,  x1, y0, -h,  x1, y0, h,  x0, y0, h,
-                            mu, mv, layer, mu, mv, layer, mu, mv, layer, mu, mv, layer, 0, -1, 0);
-                    }
-                    // 5. LEFT (-X) - CCW from outside
-                    if (!isOpaque(image, x - 1, y, width, height)) {
-                        addQuad(positions, texCoords, normals, indices,
-                            x0, y0, -h,  x0, y0, h,  x0, y1, h,  x0, y1, -h,
-                            mu, mv, layer, mu, mv, layer, mu, mv, layer, mu, mv, layer, -1, 0, 0);
-                    }
-                    // 6. RIGHT (+X) - CCW from outside
-                    if (!isOpaque(image, x + 1, y, width, height)) {
-                        addQuad(positions, texCoords, normals, indices,
-                            x1, y0, h,  x1, y0, -h,  x1, y1, -h,  x1, y1, h,
-                            mu, mv, layer, mu, mv, layer, mu, mv, layer, mu, mv, layer, 1, 0, 0);
-                    }
-                }
+            // FRONT (+Z)
+            addQuad(positions, texCoords, normals, indices,
+                px00, py00, h,  px10, py10, h,  px11, py11, h,  px01, py01, h,
+                pu0, pv0, layer, pu1, pv0, layer, pu1, pv1, layer, pu0, pv1, layer, 0, 0, 1);
+            // BACK (-Z)
+            addQuad(positions, texCoords, normals, indices,
+                px00, py00, -h,  px01, py01, -h,  px11, py11, -h,  px10, py10, -h,
+                pu0, pv0, layer, pu0, pv1, layer, pu1, pv1, layer, pu1, pv0, layer, 0, 0, -1);
+            
+            // Торцы (sides)
+            if (!isOpaque(image, x, y + 1, width, height)) {
+                addQuad(positions, texCoords, normals, indices, px01, py01, h, px11, py11, h, px11, py11, -h, px01, py01, -h, mu, mv, layer, mu, mv, layer, mu, mv, layer, mu, mv, layer, 0, 1, 0);
+            }
+            if (!isOpaque(image, x, y - 1, width, height)) {
+                addQuad(positions, texCoords, normals, indices, px00, py00, -h, px10, py10, -h, px10, py10, h, px00, py00, h, mu, mv, layer, mu, mv, layer, mu, mv, layer, mu, mv, layer, 0, -1, 0);
+            }
+            if (!isOpaque(image, x - 1, y, width, height)) {
+                addQuad(positions, texCoords, normals, indices, px00, py00, -h, px00, py00, h, px01, py01, h, px01, py01, -h, mu, mv, layer, mu, mv, layer, mu, mv, layer, mu, mv, layer, -1, 0, 0);
+            }
+            if (!isOpaque(image, x + 1, y, width, height)) {
+                addQuad(positions, texCoords, normals, indices, px10, py10, h, px10, py10, -h, px11, py11, -h, px11, py11, h, mu, mv, layer, mu, mv, layer, mu, mv, layer, mu, mv, layer, 1, 0, 0);
             }
         }
 

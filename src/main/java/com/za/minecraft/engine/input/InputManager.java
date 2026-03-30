@@ -178,16 +178,38 @@ public class InputManager {
             .rotateX(camera.getRotation().x)
             .rotateY(camera.getRotation().y)
             .normalize();
-        
-        Vector3f spawnPos = new Vector3f(camera.getPosition()).add(new Vector3f(lookDirV).mul(0.5f));
+
+        Vector3f rightDir = new Vector3f(1, 0, 0)
+            .rotateX(camera.getRotation().x)
+            .rotateY(camera.getRotation().y)
+            .normalize();
+
+        Vector3f downDir = new Vector3f(0, -1, 0)
+            .rotateX(camera.getRotation().x)
+            .rotateY(camera.getRotation().y)
+            .normalize();
+
+        // Offset spawn position slightly to the right and down to simulate throwing from hand
+        Vector3f spawnPos = new Vector3f(camera.getPosition())
+            .add(new Vector3f(lookDirV).mul(0.5f))
+            .add(rightDir.mul(0.3f))
+            .add(downDir.mul(0.2f));
+
         com.za.minecraft.entities.ItemEntity itemEntity = new com.za.minecraft.entities.ItemEntity(spawnPos, toDrop);
-        
+
         float throwStrength = 6.0f / toDrop.getItem().getWeight();
         itemEntity.getVelocity().set(lookDirV).mul(throwStrength);
         itemEntity.getVelocity().y += 1.5f / toDrop.getItem().getWeight();
-        
-        world.spawnEntity(itemEntity);
-        com.za.minecraft.utils.Logger.info("Dropped stack: %s (x%d)", toDrop.getItem().getName(), toDrop.getCount());
+
+        // Add random tumbling angular velocity
+        Vector3f angVel = new Vector3f(
+            (float) (Math.random() - 0.5) * 15f, 
+            (float) (Math.random() - 0.5) * 15f, 
+            (float) (Math.random() - 0.5) * 15f
+        );
+        itemEntity.setAngularVelocity(angVel);
+
+        world.spawnEntity(itemEntity);        com.za.minecraft.utils.Logger.info("Dropped stack: %s (x%d)", toDrop.getItem().getName(), toDrop.getCount());
     }
     
     private void finishDrag() {
@@ -783,6 +805,11 @@ public class InputManager {
                                                         Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
                                                         com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
                                                         drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
+                                                        drop.setAngularVelocity(new Vector3f(
+                                                            (float)(Math.random() - 0.5) * 10f,
+                                                            (float)(Math.random() - 0.5) * 10f,
+                                                            (float)(Math.random() - 0.5) * 10f
+                                                        ));
                                                         world.spawnEntity(drop);
                                                     }
                                                 }
@@ -797,6 +824,11 @@ public class InputManager {
                                                 Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
                                                 com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
                                                 drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
+                                                drop.setAngularVelocity(new Vector3f(
+                                                    (float)(Math.random() - 0.5) * 10f,
+                                                    (float)(Math.random() - 0.5) * 10f,
+                                                    (float)(Math.random() - 0.5) * 10f
+                                                ));
                                                 world.spawnEntity(drop);
                                             }
                                         }

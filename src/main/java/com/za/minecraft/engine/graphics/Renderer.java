@@ -146,7 +146,6 @@ public class Renderer {
     private void renderViewModel(Camera camera, com.za.minecraft.entities.Player player) {
         if (player == null) return;
         glDisable(GL_CULL_FACE);
-        // Render in the extreme foreground to overlay the world without clearing depth!
         glDepthRange(0.0, 0.05);
         
         blockShader.use();
@@ -159,7 +158,6 @@ public class Renderer {
 
         Viewmodel vm = player.getViewmodel();
         if (vm != null) {
-            // Lazy mesh init
             if (!vm.root.children.isEmpty() && vm.root.children.get(0).mesh == null) {
                 vm.initMeshes(atlas);
             }
@@ -167,42 +165,13 @@ public class Renderer {
             ItemStack mainHand = player.getInventory().getSelectedItemStack();
             ItemStack offHand = player.getInventory().getStack(com.za.minecraft.entities.Inventory.SLOT_OFFHAND);
             viewmodelRenderer.render(vm, blockShader, atlas, mainHand, offHand);
-        } else {
-            // Legacy fallback
-            Matrix4f viewModelMatrix = new Matrix4f().identity();
-            ItemStack stack = player.getInventory().getSelectedItemStack();
-            if (stack != null) {
-                com.za.minecraft.world.items.Item item = stack.getItem();
-                if (lastHeldTypeId != item.getId() || lastHeldIsBlock != item.isBlock()) {
-                    if (heldItemMesh != null) heldItemMesh.cleanup();
-                    if (item.isBlock()) heldItemMesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas);
-                    else heldItemMesh = com.za.minecraft.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
-                    lastHeldTypeId = item.getId();
-                    lastHeldIsBlock = item.isBlock();
-                }
-                if (heldItemMesh != null) {
-                    com.za.minecraft.world.items.Item.ViewmodelTransform t = item.getViewmodelTransform();
-                    viewModelMatrix.identity()
-                        .translate(t.px + player.getItemOffsetX(), t.py + player.getItemOffsetY(), t.pz + player.getItemOffsetZ())
-                        .rotateX((float)Math.toRadians(t.rx) + player.getItemPitchOffset())
-                        .rotateY((float)Math.toRadians(t.ry) + player.getItemYawOffset())
-                        .rotateZ((float)Math.toRadians(t.rz) + player.getItemRollOffset())
-                        .scale(t.scale);
-                    blockShader.setMatrix4f("model", viewModelMatrix);
-                    blockShader.setInt("highlightPass", 0);
-                    heldItemMesh.render();
-                }
-            } else {
-                lastHeldTypeId = -1;
-                if (heldItemMesh != null) { heldItemMesh.cleanup(); heldItemMesh = null; }
-            }
         }
 
         blockShader.setInt("highlightPass", 0);
         blockShader.setBoolean("viewModelPass", false);
         blockShader.setVector3f("lightDirection", lightDirection);
         
-        glDepthRange(0.0, 1.0); // Restore depth range
+        glDepthRange(0.0, 1.0); 
         glEnable(GL_CULL_FACE);
     }
     
@@ -315,19 +284,11 @@ public class Renderer {
 
                     modelMatrix.identity()
                         .translate(entity.getPosition().x(), entity.getPosition().y() + 0.2f + bob, entity.getPosition().z());
-                    if (item.isBlock()) {
-                        modelMatrix.rotateY(itemEntity.getRotation().y)
-                                   .rotateX(0.2f) // Slight tilt
-                                   .scale(scale)
-                                   .translate(-0.5f, -0.5f, -0.5f); // Center the block mesh
-                    } else {
-                        // Billboard: face the camera but also spin around own Y axis
-                        modelMatrix.rotateY(-camera.getRotation().y)
-                                   .rotateX(camera.getRotation().x)
-                                   .rotateY(itemEntity.getRotation().y) // Spin effect
-                                   .scale(scale)
-                                   .translate(0, -0.5f, 0); // Center sprite mesh vertically
-                    }
+                    
+                    modelMatrix.rotateX(itemEntity.getRotation().x)
+                               .rotateY(itemEntity.getRotation().y)
+                               .rotateZ(itemEntity.getRotation().z)
+                               .scale(scale);
 
                     blockShader.setMatrix4f("model", modelMatrix);
                     blockShader.setInt("highlightPass", 0);
@@ -347,9 +308,8 @@ public class Renderer {
                     modelMatrix.identity()
                         .translate(entity.getPosition().x(), entity.getPosition().y() + 0.05f, entity.getPosition().z())
                         .rotateY(resource.getRotation().y)
-                        .rotateX(1.5708f) // 90 degrees
-                        .scale(scale)
-                        .translate(0, -0.5f, 0); // Center sprite mesh
+                        .rotateX(1.5708f) 
+                        .scale(scale);
 
                     blockShader.setMatrix4f("model", modelMatrix);
                     blockShader.setInt("highlightPass", 0);
@@ -440,12 +400,10 @@ public class Renderer {
                             .translate(pos.x() + 0.5f + transform.x, pos.y() + 1.02f, pos.z() + 0.5f + transform.z);
 
                         if (item.isBlock()) {
-                            modelMatrix.scale(finalScale)
-                                       .translate(-0.5f, 0, -0.5f);
+                            modelMatrix.scale(finalScale);
                         } else {
-                            modelMatrix.rotateX(1.5708f) // Exactly 90 degrees
-                                       .scale(finalScale)
-                                       .translate(0, -0.5f, 0);
+                            modelMatrix.rotateX(1.5708f) 
+                                       .scale(finalScale);
                         }
 
                         blockShader.setMatrix4f("model", modelMatrix);
@@ -470,7 +428,6 @@ public class Renderer {
         blockShader.setInt("highlightPass", 0);
     }
 
-    // Вспомогательные методы создания мешей остаются без изменений...
     private void createHighlightMesh() {
         float[] positions = {0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1};
         float[] tc = new float[16]; float[] n = new float[24]; float[] bt = new float[8];

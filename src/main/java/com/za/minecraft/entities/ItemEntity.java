@@ -11,11 +11,16 @@ public class ItemEntity extends Entity {
     private final ItemStack stack;
     private float age;
     private float pickupDelay = 1.0f; // 1 second before it can be picked up
+    private final Vector3f angularVelocity = new Vector3f();
     
     public ItemEntity(Vector3f position, ItemStack stack) {
         super(position, 0.25f, 0.25f);
         this.stack = stack;
         this.age = 0;
+    }
+    
+    public void setAngularVelocity(Vector3f angVel) {
+        this.angularVelocity.set(angVel);
     }
     
     @Override
@@ -45,6 +50,9 @@ public class ItemEntity extends Entity {
             
             // Защита: трение не может быть меньше 0.1 (мгновенный стоп) и больше 0.98 (вечный полет)
             friction = Math.max(0.1f, Math.min(0.98f, friction));
+            
+            // Замедляем вращение на земле
+            angularVelocity.mul(0.9f);
         } else {
             // В воздухе трение почти отсутствует
             friction = 0.98f;
@@ -53,8 +61,12 @@ public class ItemEntity extends Entity {
         velocity.x *= friction;
         velocity.z *= friction;
         
-        // Rotation for visual effect
-        rotation.y += (4.0f / stack.getItem().getWeight()) * deltaTime; // Heavier = rotates slower
+        // Rotation for visual tumbling effect
+        rotation.add(
+            angularVelocity.x * deltaTime,
+            angularVelocity.y * deltaTime,
+            angularVelocity.z * deltaTime
+        );
     }
     
     public ItemStack getStack() {

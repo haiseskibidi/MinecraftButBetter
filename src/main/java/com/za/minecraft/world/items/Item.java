@@ -159,11 +159,17 @@ public class Item {
         }
     }
 
-    private static final ViewmodelTransform DEFAULT_TRANSFORM = new ViewmodelTransform(0.55f, -0.65f, -0.75f, 0.0f, 90.0f, 0.0f, 0.85f);
+    public static final ViewmodelTransform DEFAULT_TRANSFORM_MARKER = new ViewmodelTransform(0,0,0,0,0,0,1);
 
+    private ViewmodelTransform customTransform = null;
+
+    public void setViewmodelTransform(ViewmodelTransform transform) {
+        this.customTransform = transform;
+    }
 
     public ViewmodelTransform getViewmodelTransform() {
-        return DEFAULT_TRANSFORM;
+        if (customTransform != null) return customTransform;
+        return DEFAULT_TRANSFORM_MARKER;
     }
 
     public float getMiningSpeed(int blockType) {

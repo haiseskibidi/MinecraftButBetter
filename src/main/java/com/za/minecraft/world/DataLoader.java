@@ -715,6 +715,18 @@ public class DataLoader {
                     ));
                 }
 
+                if (comps.has("minecraft:viewmodel") || comps.has("viewmodel")) {
+                    JsonObject v = comps.has("minecraft:viewmodel") ? comps.getAsJsonObject("minecraft:viewmodel") : comps.getAsJsonObject("viewmodel");
+                    JsonArray pos = v.getAsJsonArray("translation");
+                    JsonArray rot = v.getAsJsonArray("rotation");
+                    float scale = v.get("scale").getAsFloat();
+                    item.setViewmodelTransform(new Item.ViewmodelTransform(
+                        pos.get(0).getAsFloat(), pos.get(1).getAsFloat(), pos.get(2).getAsFloat(),
+                        rot.get(0).getAsFloat(), rot.get(1).getAsFloat(), rot.get(2).getAsFloat(),
+                        scale
+                    ));
+                }
+
                 if (comps.has("minecraft:fuel") || comps.has("fuel")) {
                     JsonObject f = comps.has("minecraft:fuel") ? comps.getAsJsonObject("minecraft:fuel") : comps.getAsJsonObject("fuel");
                     item.addComponent(com.za.minecraft.world.items.component.FuelComponent.class, new com.za.minecraft.world.items.component.FuelComponent(
