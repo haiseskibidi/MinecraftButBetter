@@ -287,7 +287,6 @@ public class Renderer {
 
     private void renderBreakingProxyBlock(Camera camera, float alpha) {
         blockShader.use();
-        blockShader.setBoolean("uIsProxy", true);
         
         // Evaluate Animation Profile
         com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(currentBreakingBlock.getType());
@@ -316,19 +315,20 @@ public class Renderer {
         blockShader.setFloat("uWobbleTime", wobbleTimer);
         blockShader.setFloat("uBreakingProgress", breakingProgress);
         
-        // Add 0.5f to x and z to center the mesh which is offset by -0.5f in ChunkMeshGenerator
-        modelMatrix.identity().translate(breakingPos.x() + 0.5f, breakingPos.y(), breakingPos.z() + 0.5f);
-        blockShader.setMatrix4f("model", modelMatrix);
-        
-        breakingMesh.render();
-        
-        blockShader.setBoolean("uIsProxy", false);
+        if (breakingMesh != null) {
+            blockShader.setBoolean("uIsProxy", true);
+            // Add 0.5f to x and z to center the mesh which is offset by -0.5f in ChunkMeshGenerator
+            modelMatrix.identity().translate(breakingPos.x() + 0.5f, breakingPos.y(), breakingPos.z() + 0.5f);
+            blockShader.setMatrix4f("model", modelMatrix);
+            breakingMesh.render();
+            blockShader.setBoolean("uIsProxy", false);
+        }
     }
 
     
     private void renderBlockHighlight(Camera camera, World world, RaycastResult highlightedBlock, float alpha) {
         if (highlightRenderer != null) {
-            highlightRenderer.render(camera, world, highlightedBlock, blockShader, modelMatrix, alpha);
+            highlightRenderer.render(camera, world, highlightedBlock, blockShader, modelMatrix, alpha, breakingPos, currentBreakingBlock, wobbleTimer);
         }
     }
 
@@ -460,7 +460,7 @@ public class Renderer {
 
         blockShader.use();
         for (com.za.minecraft.world.blocks.entity.BlockEntity be : world.getBlockEntities().values()) {
-            carvingRenderer.render(be, atlas, blockShader, modelMatrix, this);
+            carvingRenderer.render(be, atlas, blockShader, modelMatrix, this, breakingPos, wobbleTimer);
 
             if (be instanceof com.za.minecraft.world.blocks.entity.StumpBlockEntity stump) {
                 int totalItems = stump.getActiveSlotsCount();

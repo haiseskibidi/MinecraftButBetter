@@ -15,13 +15,13 @@ import com.za.minecraft.world.blocks.Block;
 public class CarvingRenderer {
     private Mesh fullFaceMesh;
 
-    public void render(BlockEntity be, DynamicTextureAtlas atlas, Shader shader, Matrix4f modelMatrix, Renderer renderer) {
+    public void render(BlockEntity be, DynamicTextureAtlas atlas, Shader shader, Matrix4f modelMatrix, Renderer renderer, BlockPos breakingPos, float wobbleTimer) {
         if (be instanceof StumpBlockEntity stump) {
-            renderStump(stump, atlas, shader, modelMatrix);
+            renderStump(stump, atlas, shader, modelMatrix, breakingPos, wobbleTimer);
         }
     }
 
-    private void renderStump(StumpBlockEntity stump, DynamicTextureAtlas atlas, Shader shader, Matrix4f modelMatrix) {
+    private void renderStump(StumpBlockEntity stump, DynamicTextureAtlas atlas, Shader shader, Matrix4f modelMatrix, BlockPos breakingPos, float wobbleTimer) {
         int mask = stump.getCarvingMask();
         BlockPos pos = stump.getPos();
         
@@ -42,21 +42,35 @@ public class CarvingRenderer {
         shader.setBoolean("previewPass", false);
         shader.setFloat("overlayLayer", uv[2]);
         shader.setFloat("brightnessMultiplier", 1.1f);
-        modelMatrix.identity().translate(pos.x(), pos.y() + 1.01f, pos.z());
+
+        boolean isProxy = pos.equals(breakingPos);
+        if (isProxy) {
+            shader.setBoolean("uIsProxy", true);
+        }
+
+        // Use the exact same model matrix setup as the breaking proxy block
+        // Centered at XZ=0, base at Y=0
+        modelMatrix.identity().translate(pos.x() + 0.5f, pos.y(), pos.z() + 0.5f);
         shader.setMatrix4f("model", modelMatrix);
         
         fullFaceMesh.render();
+
+        if (isProxy) {
+            shader.setBoolean("uIsProxy", false);
+        }
 
         shader.setBoolean("useMask", false);
         shader.setFloat("brightnessMultiplier", 1.0f);
     }
 
     private void createFullFaceMesh() {
+        // Defined at Y=1.001 relative to block base (Y=0)
+        // Center is at XZ=0
         float[] positions = { 
-            0, 0, 1, // Bottom-Left (Z=1)
-            1, 0, 1, // Bottom-Right (Z=1)
-            1, 0, 0, // Top-Right (Z=0)
-            0, 0, 0  // Top-Left (Z=0)
+            -0.5f, 1.001f,  0.5f, // Bottom-Left
+             0.5f, 1.001f,  0.5f, // Bottom-Right
+             0.5f, 1.001f, -0.5f, // Top-Right
+            -0.5f, 1.001f, -0.5f  // Top-Left
         };
         float[] normals = { 0, 1, 0,  0, 1, 0,  0, 1, 0,  0, 1, 0 };
         float[] texCoords = { 
@@ -65,7 +79,7 @@ public class CarvingRenderer {
             1, 0, 0, // TR
             0, 0, 0  // TL
         };
-        float[] blockTypes = { 150, 150, 150, 150 }; // Stump Top ID
+        float[] blockTypes = { 150, 150, 150, 150 }; 
         float[] neighborData = { 0, 0, 0, 0 };
         int[] indices = { 0, 1, 2, 2, 3, 0 };
 

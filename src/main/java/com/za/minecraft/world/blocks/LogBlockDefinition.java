@@ -39,6 +39,12 @@ public class LogBlockDefinition extends BlockDefinition {
                     toolMatch, heldId, recipe.getTool(), sneaking, hitY);
             }
 
+            // Пень можно сделать только если бревно стоит вертикально (DIR_UP / Y-axis)
+            Block currentBlock = world.getBlock(pos);
+            if (currentBlock.getDirection() != Block.DIR_UP) {
+                continue; 
+            }
+
             if (blockMatch && toolMatch && sneaking && hitY > 0.8f) {
                 int intermediateId = BlockRegistry.getRegistry().getId(recipe.getIntermediateBlock());
                 world.setBlock(pos, new Block(intermediateId));
@@ -58,8 +64,11 @@ public class LogBlockDefinition extends BlockDefinition {
 
         // 1. Старая логика топора (оставляем как быстрый вариант, если нет рецепта)
         if (heldId.getPath().contains("axe")) {
-            world.setBlock(pos, new Block(Blocks.STUMP.getId()));
-            return true;
+            Block currentBlock = world.getBlock(pos);
+            if (currentBlock.getDirection() == Block.DIR_UP) {
+                world.setBlock(pos, new Block(Blocks.STUMP.getId()));
+                return true;
+            }
         }
 
         return false;

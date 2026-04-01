@@ -1037,7 +1037,7 @@ public class InputManager {
             rightMousePressed = rm;
         }
 
-        if (!inventoryOpen && !paused && !nappingOpen && raycast.isHit() && currentItem != null && currentItem.isBlock() && !isSpecialInteracting(player, raycast, currentStack)) {
+        if (!inventoryOpen && !paused && !nappingOpen && player.isSneaking() && raycast.isHit() && currentItem != null && currentItem.isBlock() && !isSpecialInteracting(player, raycast, currentStack)) {
             int blockType = currentItem.getId();
             Vector3f normal = raycast.getNormal();
             BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);

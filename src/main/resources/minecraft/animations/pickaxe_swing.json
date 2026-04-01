@@ -4,29 +4,24 @@
   "tracks": {
     "item_pitch": [
       [0.0, 0.0, "linear"],
-      [0.05, -1.8, "smootherstep"],
-      [0.15, -1.8, "linear"],
-      [0.4, 0.2, "smootherstep"],
-      [1.0, 0.0, "smootherstep"]
-    ],
-    "item_x": [
-      [0.0, 0.0, "linear"],
-      [0.05, -0.8, "smootherstep"],
+      [0.05, -1.6, "smootherstep"],
+      [0.2, -1.5, "linear"],
+      [0.6, 0.1, "smootherstep"],
       [1.0, 0.0, "smootherstep"]
     ],
     "item_y": [
       [0.0, 0.0, "linear"],
-      [0.05, -0.6, "smootherstep"],
+      [0.05, -0.4, "smootherstep"],
       [1.0, 0.0, "smootherstep"]
     ],
-    "item_yaw": [
+    "item_z": [
       [0.0, 0.0, "linear"],
-      [0.05, 0.6, "smootherstep"],
+      [0.05, -0.5, "smootherstep"],
       [1.0, 0.0, "smootherstep"]
     ],
     "item_roll": [
       [0.0, 0.0, "linear"],
-      [0.05, -0.4, "smootherstep"],
+      [0.05, 0.2, "smootherstep"],
       [1.0, 0.0, "smootherstep"]
     ]
   }

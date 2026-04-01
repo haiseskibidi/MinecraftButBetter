@@ -1,26 +1,27 @@
 {
   "looping": false,
-  "duration": 0.25,
+  "duration": 0.35,
   "tracks": {
     "item_pitch": [
-      [0.0, 0.0, "sine"],
-      [0.3, -1.2, "sine"],
-      [1.0, 0.0, "linear"]
+      [0.0, 0.0, "linear"],
+      [0.1, -1.2, "smootherstep"],
+      [0.3, -1.0, "smootherstep"],
+      [1.0, 0.0, "smootherstep"]
     ],
     "item_x": [
-      [0.0, 0.0, "sine"],
-      [0.3, -0.4, "sine"],
-      [1.0, 0.0, "linear"]
+      [0.0, 0.0, "linear"],
+      [0.1, -0.4, "smootherstep"],
+      [1.0, 0.0, "smootherstep"]
     ],
     "item_y": [
-      [0.0, 0.0, "sine"],
-      [0.3, -0.3, "sine"],
-      [1.0, 0.0, "linear"]
+      [0.0, 0.0, "linear"],
+      [0.1, -0.3, "smootherstep"],
+      [1.0, 0.0, "smootherstep"]
     ],
     "item_yaw": [
-      [0.0, 0.0, "sine"],
-      [0.3, 0.2, "sine"],
-      [1.0, 0.0, "linear"]
+      [0.0, 0.0, "linear"],
+      [0.1, 0.2, "smootherstep"],
+      [1.0, 0.0, "smootherstep"]
     ]
   }
 }
