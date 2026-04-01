@@ -6,6 +6,7 @@ in vec3 fragPos;
 in float blockType;
 in float neighborData;
 in vec3 vLocalPos;
+in float vBreakingIntensity;
 
 out vec4 fragColor;
 
@@ -23,6 +24,7 @@ uniform float brightnessMultiplier = 1.0;
 uniform int faceMask = 0; // 16-bit mask for 4x4 grid
 uniform bool useMask = false;
 uniform float overlayLayer; 
+uniform float uBreakingProgress;
 
 uniform vec3 uCondition; // x=dirt, y=blood, z=wetness
 uniform bool isHand = false;

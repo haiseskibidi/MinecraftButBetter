@@ -40,8 +40,17 @@ public class BlockDefinition {
     private float soilingAmount = 0.0f;
     private float cleaningAmount = 0.0f;
     private float firingTemperature = 0.0f;
+    private String wobbleAnimation = "block_wobble";
 
     // ... в методе getTextures() или аналогичном ...
+    public String getWobbleAnimation() {
+        return wobbleAnimation;
+    }
+
+    public void setWobbleAnimation(String wobbleAnimation) {
+        this.wobbleAnimation = wobbleAnimation;
+    }
+
     public void setUpperTexture(String upperTexture) {
         this.upperTexture = upperTexture;
     }

@@ -43,6 +43,16 @@
 Назначение: Отрисовка 2D элементов. Добавлен метод `renderGroupBackground` для рендеринга адаптивных подложек.
 
 ## Graphics (UPDATED)
+### com.za.minecraft.engine.graphics.Renderer (UPDATED)
+Назначение: Главный рендерер игрового мира.
+Функции:
+- `render()`: Основной проход отрисовки. Добавлен вызов `renderBreakingProxyBlock()`.
+- `setBreakingBlock()`: Принимает данные о ломаемом блоке и запускает генерацию `breakingMesh`.
+- `renderBreakingProxyBlock()`: Отрисовывает анимированный прокси-меш блока поверх оригинального.
+
+### src/main/resources/shaders/vertex.glsl (UPDATED)
+Назначение: Вершинный шейдер. Добавлена логика `uIsProxy` для деформации блоков при ударе.
+
 ### src/main/resources/shaders/ui_fragment.glsl (UPDATED)
 Назначение: Пиксельный шейдер для UI.
 Логика: Поддержка SDF-форм (октагонов) и эффектов Grayscale.
@@ -54,6 +64,12 @@
 Назначение: Генератор мешей. Исправлен тинтинг листвы в инвентаре.
 
 ## Core Engine
+### com.za.minecraft.engine.input.InputManager (UPDATED)
+Назначение: Обработка ввода и игровая логика.
+Функции:
+- `input()`: Реализует дискретные удары по блокам и рейкаст.
+- Управляет кулдаунами `hitCooldownTimer` и сохранением прогресса ломания.
+
 ### com.za.minecraft.engine.core.GameLoop (UPDATED)
 Назначение: Главный цикл. Добавлен геттер для `Timer`.
 

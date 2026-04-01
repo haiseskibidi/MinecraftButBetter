@@ -62,10 +62,13 @@ public class InputManager {
     // Breaking block state
     private BlockPos breakingBlockPos = null;
     private float breakingProgress = 0.0f;
+    private float blockAccumulatedDamage = 0.0f;
+    private float hitCooldownTimer = 0.0f;
+    private float wobbleTimer = 0.0f;
     private float breakDelayTimer = 0.0f;
     private float placeDelayTimer = 0.0f;
-    private static final float BREAK_COOLDOWN = 1.0f / 20.0f; // 20 bps (1 tick)
-    private static final float PLACE_COOLDOWN = 0.25f;        // 4 bps (5 ticks)
+    private static final float BREAK_COOLDOWN = 0.25f; // 4 bps (5 ticks)
+    private static final float PLACE_COOLDOWN = 0.25f; // 4 bps (5 ticks)
     
     public InputManager() {
         previousPos = new Vector2f();
@@ -563,6 +566,8 @@ public class InputManager {
 
         placeDelayTimer = Math.max(0, placeDelayTimer - deltaTime);
         breakDelayTimer = Math.max(0, breakDelayTimer - deltaTime);
+        hitCooldownTimer = Math.max(0, hitCooldownTimer - deltaTime);
+        wobbleTimer += deltaTime;
 
         Vector2f rotVec = new Vector2f();
         if (firstMouse) {
@@ -740,13 +745,31 @@ public class InputManager {
             boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1);
             boolean isNewLeftClick = lm && !leftMousePressed;
 
+            if (raycast.isHit()) {
+                BlockPos hitPos = raycast.getBlockPos();
+                if (breakingBlockPos != null && !hitPos.equals(breakingBlockPos)) {
+                    breakingBlockPos = null;
+                    breakingProgress = 0.0f;
+                    blockAccumulatedDamage = 0.0f;
+                    renderer.setBreakingBlock(null, null, 0.0f, 0.0f);
+                }
+            } else {
+                if (breakingBlockPos != null) {
+                    breakingBlockPos = null;
+                    breakingProgress = 0.0f;
+                    blockAccumulatedDamage = 0.0f;
+                    renderer.setBreakingBlock(null, null, 0.0f, 0.0f);
+                }
+            }
+
             if (lm) {
-                player.swing();
                 if (isNewLeftClick && hitEntity instanceof LivingEntity living) {
+                    player.swing();
                     living.takeDamage(2.0f);
                     player.addBlood(0.15f);
                     com.za.minecraft.utils.Logger.info("Attacked %s, hands are now bloody", living.getClass().getSimpleName());
                 } else if (isNewLeftClick && hitEntity instanceof com.za.minecraft.entities.ResourceEntity resource) {
+                    player.swing();
                     player.getInventory().addItem(resource.getStack());
                     resource.setRemoved();
                     com.za.minecraft.utils.Logger.info("Picked up %s", resource.getStack().getItem().getName());
@@ -759,35 +782,51 @@ public class InputManager {
                     float ry = raycast.getHitPoint().y - hitPos.y();
                     float rz = raycast.getHitPoint().z - hitPos.z();
 
-                    // Сначала проверяем кастомный клик (для крафта и т.д.)
                     if (blockDef.onLeftClick(world, hitPos, player, currentStack, rx, ry, rz, isNewLeftClick)) {
                         leftMousePressed = true;
                         return null; 
                     }
 
+                    if (breakingBlockPos == null) {
+                        breakingBlockPos = hitPos;
+                        breakingProgress = 0.0f;
+                        blockAccumulatedDamage = 0.0f;
+                    }
+
                     float hardness = blockDef.getHardness();
-
                     if (hardness >= 0) {
-                        if (hardness == 0.0f) {
-                            breakingProgress = 1.0f;
-                        } else {
-                            if (!hitPos.equals(breakingBlockPos)) {
-                                breakingBlockPos = hitPos;
-                                breakingProgress = 0.0f;
-                            }
-                            
-                            // Get mining speed from current item or HAND fallback
-                            float miningSpeed = (currentItem != null) ? 
-                                currentItem.getMiningSpeed(blockType) : 
-                                Items.HAND.getMiningSpeed(blockType);
+                        float maxHealth = hardness * 10.0f;
+                        boolean shouldHit = false;
 
-                            if (breakDelayTimer <= 0) {
-                                float breakSpeed = miningSpeed / hardness;
-                                breakingProgress += breakSpeed * deltaTime;
+                        if (maxHealth <= 0.0f) {
+                            if (isNewLeftClick || breakDelayTimer <= 0.0f) {
+                                breakingProgress = 1.0f;
+                                blockAccumulatedDamage = maxHealth;
+                                shouldHit = true;
+                            }
+                        } else {
+                            if (hitCooldownTimer <= 0.0f) {
+                                float miningDamage = (currentItem != null) ? 
+                                    currentItem.getMiningSpeed(blockType) : 
+                                    Items.HAND.getMiningSpeed(blockType);
+                                
+                                blockAccumulatedDamage += miningDamage;
+                                breakingProgress = Math.min(1.0f, blockAccumulatedDamage / maxHealth);
+                                
+                                hitCooldownTimer = 0.35f;
+                                wobbleTimer = 0.0f;
+                                shouldHit = true;
+                                
                                 player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
-                                player.addNoise(hardness * 0.05f * deltaTime);
+                                player.addNoise(hardness * 0.05f);
                             }
                         }
+
+                        if (shouldHit) {
+                            player.swing();
+                        }
+                        
+                        renderer.setBreakingBlock(hitPos, new Block(blockType), breakingProgress, wobbleTimer);
 
                         if (breakingProgress >= 1.0f) {
                             if (hitPos != null) {
@@ -797,7 +836,6 @@ public class InputManager {
                                     }
                                 }
                                 if (world.onBlockBreak(hitPos, player)) {
-                                    // Обычное разрушение с дропом
                                     java.util.List<com.za.minecraft.world.blocks.DropRule> rules = blockDef.getDropRules();
                                     
                                     if (!rules.isEmpty()) {
@@ -815,11 +853,7 @@ public class InputManager {
                                                         Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
                                                         com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
                                                         drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
-                                                        drop.setAngularVelocity(new Vector3f(
-                                                            (float)(Math.random() - 0.5) * 10f,
-                                                            (float)(Math.random() - 0.5) * 10f,
-                                                            (float)(Math.random() - 0.5) * 10f
-                                                        ));
+                                                        drop.setAngularVelocity(new Vector3f((float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f));
                                                         world.spawnEntity(drop);
                                                     }
                                                 }
@@ -834,17 +868,12 @@ public class InputManager {
                                                 Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
                                                 com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
                                                 drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
-                                                drop.setAngularVelocity(new Vector3f(
-                                                    (float)(Math.random() - 0.5) * 10f,
-                                                    (float)(Math.random() - 0.5) * 10f,
-                                                    (float)(Math.random() - 0.5) * 10f
-                                                ));
+                                                drop.setAngularVelocity(new Vector3f((float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f));
                                                 world.spawnEntity(drop);
                                             }
                                         }
                                     }
 
-                                    // Если это двойное растение - ломаем и соседа
                                     if (blockDef.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
                                         int meta = world.getBlock(hitPos).getMetadata();
                                         BlockPos otherPos = (meta == 0) ? hitPos.up() : hitPos.down();
@@ -861,13 +890,14 @@ public class InputManager {
                                         networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), Blocks.AIR.getId());
                                     }
                                 } else {
-                                    // Block wasn't destroyed (multi-stage), reset progress
                                     breakingProgress = 0;
                                 }
                             }
 
                             breakingBlockPos = null;
                             breakingProgress = 0.0f;
+                            blockAccumulatedDamage = 0.0f;
+                            renderer.setBreakingBlock(null, null, 0.0f, 0.0f);
                             breakDelayTimer = BREAK_COOLDOWN;
                             if (currentStack != null && currentItem.isTool()) {
                                 com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
@@ -880,8 +910,10 @@ public class InputManager {
                     }
                 }
             } else {
-                breakingBlockPos = null;
-                breakingProgress = 0.0f;
+                if (breakingBlockPos != null && raycast.isHit()) {
+                    int blockType = world.getBlock(raycast.getBlockPos()).getType();
+                    renderer.setBreakingBlock(raycast.getBlockPos(), new Block(blockType), breakingProgress, wobbleTimer);
+                }
             }
             leftMousePressed = lm;
             

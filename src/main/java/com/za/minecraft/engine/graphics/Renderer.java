@@ -48,15 +48,42 @@ public class Renderer {
     
     private Block currentPreviewBlock;
     private com.za.minecraft.world.BlockPos previewPos;
+    
+    // Impact Wobble
+    private Block currentBreakingBlock;
+    private com.za.minecraft.world.BlockPos breakingPos;
+    private Mesh breakingMesh;
+    private float breakingProgress = 0.0f;
+    private float wobbleTimer = 0.0f;
+
     private final Map<com.za.minecraft.world.items.Item, Mesh> itemMeshCache = new java.util.HashMap<>();
     private final Map<com.za.minecraft.entities.EntityDefinition, Mesh> entityDefMeshCache = new java.util.HashMap<>();
-    
+
     public Renderer() {
         this.chunkMeshes = new ConcurrentHashMap<>();
         this.modelMatrix = new Matrix4f();
         this.lightDirection = new Vector3f(0.2f, -1.0f, 0.2f).normalize();
     }
-    
+
+    public void setBreakingBlock(com.za.minecraft.world.BlockPos pos, Block block, float progress, float timer) {
+        if (block == null) {
+            this.breakingPos = null;
+            this.currentBreakingBlock = null;
+            this.breakingProgress = 0.0f;
+            this.wobbleTimer = 0.0f;
+            return;
+        }
+        
+        if (currentBreakingBlock == null || !pos.equals(this.breakingPos) || currentBreakingBlock.getType() != block.getType() || currentBreakingBlock.getMetadata() != block.getMetadata()) {
+            if (breakingMesh != null) breakingMesh.cleanup();
+            breakingMesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas);
+            currentBreakingBlock = block;
+        }
+        this.breakingPos = pos;
+        this.breakingProgress = progress;
+        this.wobbleTimer = timer;
+    }
+
     public void setPreviewBlock(com.za.minecraft.world.BlockPos pos, Block block) {
         if (block == null) {
             this.previewPos = null;
@@ -183,7 +210,8 @@ public class Renderer {
         blockShader.use();
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
         blockShader.setMatrix4f("view", camera.getViewMatrix(alpha));
-        modelMatrix.identity().translate(previewPos.x(), previewPos.y(), previewPos.z());
+        // Add 0.5f to x and z to center the mesh which is offset by -0.5f in ChunkMeshGenerator
+        modelMatrix.identity().translate(previewPos.x() + 0.5f, previewPos.y(), previewPos.z() + 0.5f);
         blockShader.setMatrix4f("model", modelMatrix);
         blockShader.setInt("previewPass", 1);
         blockShader.setFloat("previewAlpha", 0.35f);
@@ -201,6 +229,13 @@ public class Renderer {
         blockShader.setBoolean("previewPass", false);
         blockShader.setFloat("brightnessMultiplier", 1.0f);
         blockShader.setInt("highlightPass", 0);
+        
+        if (breakingPos != null) {
+            blockShader.setVector3f("uHiddenBlockPos", new Vector3f(breakingPos.x(), breakingPos.y(), breakingPos.z()));
+        } else {
+            blockShader.setVector3f("uHiddenBlockPos", new Vector3f(0, -100, 0)); // Hide logic disabled
+        }
+
         for (Chunk chunk : world.getLoadedChunks()) {
             if (chunk.needsMeshUpdate() || !chunkMeshes.containsKey(chunk)) updateChunkMesh(chunk, world);
             ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.get(chunk);
@@ -220,10 +255,55 @@ public class Renderer {
             }
         }
         glDepthMask(true);
+        
+        if (breakingPos != null && breakingMesh != null && currentBreakingBlock != null) {
+            renderBreakingProxyBlock(camera, alpha);
+        }
+        
         renderEntities(camera, world, alpha);
         renderBlockEntities(camera, world, alpha);
         renderPlayers(camera, networkClient, alpha);
     }
+
+    private void renderBreakingProxyBlock(Camera camera, float alpha) {
+        blockShader.use();
+        blockShader.setBoolean("uIsProxy", true);
+        
+        // Evaluate Animation Profile
+        com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(currentBreakingBlock.getType());
+        String animName = (def != null && def.getWobbleAnimation() != null) ? def.getWobbleAnimation() : "block_wobble";
+        
+        com.za.minecraft.entities.parkour.animation.AnimationProfile profile = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get(animName);
+        
+        float scaleX = 1.0f, scaleY = 1.0f, scaleZ = 1.0f;
+        float offsetX = 0.0f, offsetY = 0.0f, offsetZ = 0.0f;
+        float shake = 0.0f;
+        
+        if (profile != null) {
+            float normTimer = wobbleTimer / Math.max(0.001f, profile.getDuration());
+            scaleX = profile.evaluate("scale_x", normTimer, 1.0f);
+            scaleY = profile.evaluate("scale_y", normTimer, 1.0f);
+            scaleZ = profile.evaluate("scale_z", normTimer, 1.0f);
+            offsetX = profile.evaluate("offset_x", normTimer, 1.0f);
+            offsetY = profile.evaluate("offset_y", normTimer, 1.0f);
+            offsetZ = profile.evaluate("offset_z", normTimer, 1.0f);
+            shake = profile.evaluate("shake", normTimer, 1.0f);
+        }
+        
+        blockShader.setVector3f("uWobbleScale", new Vector3f(scaleX, scaleY, scaleZ));
+        blockShader.setVector3f("uWobbleOffset", new Vector3f(offsetX, offsetY, offsetZ));
+        blockShader.setFloat("uWobbleShake", shake);
+        blockShader.setFloat("uBreakingProgress", breakingProgress);
+        
+        // Add 0.5f to x and z to center the mesh which is offset by -0.5f in ChunkMeshGenerator
+        modelMatrix.identity().translate(breakingPos.x() + 0.5f, breakingPos.y(), breakingPos.z() + 0.5f);
+        blockShader.setMatrix4f("model", modelMatrix);
+        
+        breakingMesh.render();
+        
+        blockShader.setBoolean("uIsProxy", false);
+    }
+
     
     private void renderBlockHighlight(Camera camera, RaycastResult highlightedBlock, float alpha) {
         glDepthMask(false);
