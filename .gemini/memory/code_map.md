@@ -56,6 +56,17 @@
 - `setBreakingBlock()`: Принимает данные о ломаемом блоке и запускает генерацию `breakingMesh`.
 - `renderBreakingProxyBlock()`: Отрисовывает анимированный прокси-меш блока поверх оригинального.
 
+### com.za.minecraft.engine.graphics.CarvingRenderer (UPDATED)
+Назначение: Рендеринг динамических масок на блоках (например, обтёсывание пней).
+Функции:
+- `render()`: Отрисовывает маску поверх блока. Теперь синхронизирован с Impact Wobble (поддерживает `uIsProxy` и общую систему координат).
+
+### src/main/resources/minecraft/animations
+Назначение: JSON-конфигурации анимаций.
+- `block_wobble.json`: Физический отклик блока на удар (только сжатие и тряска).
+- `pickaxe_swing.json`: (NEW) Уникальная анимация вертикального взмаха для кирки.
+- `axe_swing.json`: Широкий силовой взмах для топора.
+
 ### src/main/resources/shaders/vertex.glsl (UPDATED)
 Назначение: Вершинный шейдер. Добавлена логика `uIsProxy` для деформации блоков при ударе.
 
