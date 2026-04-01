@@ -46,8 +46,8 @@
 ### com.za.minecraft.engine.graphics.BlockHighlightRenderer (NEW)
 Назначение: Динамический рендеринг контура выделенного блока.
 Функции:
-- `render()`: Рисует линии поверх выделенного блока.
-- `createMeshForShape()`: Вычисляет идеальный Wireframe контур на основе `VoxelShape`, удаляя внутренние швы (Quadrant-Sampling Algorithm). Кэширует меши.
+- `render()`: Рисует линии поверх выделенного блока. Синхронизирует отрисовку с анимацией удара (передает `wobbleTimer`, `shake`, `scale` в шейдер).
+- `createMeshForShape()`: Вычисляет идеальный Wireframe контур на основе `VoxelShape`, удаляя внутренние швы (Quadrant-Sampling Algorithm) и центрируя вершины для корректного математического вращения. Кэширует меши.
 
 ### com.za.minecraft.engine.graphics.Renderer (UPDATED)
 Назначение: Главный рендерер игрового мира.
