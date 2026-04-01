@@ -791,6 +791,7 @@ public class InputManager {
                         breakingBlockPos = hitPos;
                         breakingProgress = 0.0f;
                         blockAccumulatedDamage = 0.0f;
+                        wobbleTimer = 1.0f; // Prevent animation leaking to new blocks
                     }
 
                     float hardness = blockDef.getHardness();

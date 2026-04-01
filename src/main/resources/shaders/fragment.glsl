@@ -23,8 +23,10 @@ uniform bool viewModelPass;
 uniform float brightnessMultiplier = 1.0;
 uniform int faceMask = 0; // 16-bit mask for 4x4 grid
 uniform bool useMask = false;
-uniform float overlayLayer; 
+uniform float overlayLayer;
 uniform float uBreakingProgress;
+uniform vec3 uHiddenBlockPos;
+uniform bool uIsProxy;
 
 uniform vec3 uCondition; // x=dirt, y=blood, z=wetness
 uniform bool isHand = false;
@@ -37,8 +39,18 @@ uniform float uHandPartWeight = 0.0; // 1.0=hand, 0.6=forearm, 0.3=shoulder
 #include "include/lighting.glsl"
 
 void main() {
-    vec3 baseColor;
-    float alpha = 1.0;
+    if (!uIsProxy && uHiddenBlockPos.y >= 0.0) {
+        vec3 push = fragNormal * 0.01;
+        if (length(fragNormal) < 0.1) {
+            push = vec3(0.0);
+        }
+        vec3 blockPos = floor(fragPos - push);
+        if (distance(blockPos, uHiddenBlockPos) < 0.1) {
+            discard;
+        }
+    }
+
+    vec3 baseColor;    float alpha = 1.0;
 
     if (highlightPass != 0) {
         baseColor = highlightColor;

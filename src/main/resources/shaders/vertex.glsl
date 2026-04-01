@@ -16,6 +16,7 @@ uniform vec3 uHiddenBlockPos;
 uniform vec3 uWobbleScale;
 uniform vec3 uWobbleOffset;
 uniform float uWobbleShake;
+uniform float uWobbleTime;
 
 out vec3 fragTexCoord;
 out vec3 fragNormal;
@@ -34,21 +35,32 @@ void main() {
 
     if (uIsProxy) {
         vec3 localCenter = vec3(0.0, 0.5, 0.0);
-        float jitter = uWobbleShake * 0.015;
 
         vec3 dir = position - localCenter;
         vec3 localDeformed = localCenter + (dir * uWobbleScale) + uWobbleOffset;
         
-        float r1 = fract(sin(dot(position.xyz, vec3(12.9898, 78.233, 45.164))) * 43758.5453);
-        localDeformed += (vec3(r1) * 2.0 - 1.0) * jitter;
+        // Hytale-style smooth rotational wobble
+        if (uWobbleShake > 0.0) {
+            float time = uWobbleTime * 35.0; // Speed of the wobble
+            float angleZ = sin(time) * 0.06 * uWobbleShake;
+            float angleX = cos(time * 0.8) * 0.06 * uWobbleShake;
+            
+            mat3 rotZ = mat3(
+                cos(angleZ), -sin(angleZ), 0.0,
+                sin(angleZ),  cos(angleZ), 0.0,
+                0.0,          0.0,         1.0
+            );
+            mat3 rotX = mat3(
+                1.0, 0.0,         0.0,
+                0.0, cos(angleX), -sin(angleX),
+                0.0, sin(angleX),  cos(angleX)
+            );
+            
+            localDeformed = localCenter + rotZ * rotX * (localDeformed - localCenter);
+        }
 
         worldPos = vec3(model * vec4(localDeformed, 1.0));
         vBreakingIntensity = 1.0;
-    } else if (uHiddenBlockPos.y >= 0.0) {
-        vec3 blockCenterPos = vec3(model[3][0], model[3][1], model[3][2]);
-        if (distance(blockCenterPos, uHiddenBlockPos) < 0.1) {
-            worldPos = vec3(9999.0); // Hide original block
-        }
     }
     
     fragPos = worldPos;

@@ -1,35 +1,30 @@
 {
-  "duration": 0.2,
+  "duration": 0.35,
   "looping": false,
   "tracks": {
     "scale_x": [
       [0.0, 1.0, "linear"],
-      [0.3, 0.95, "smoothstep"],
-      [0.6, 1.03, "smoothstep"],
-      [1.0, 1.0, "smoothstep"]
+      [0.1, 0.90, "smootherstep"],
+      [0.3, 0.98, "smootherstep"],
+      [0.55, 1.0, "smootherstep"]
     ],
     "scale_y": [
       [0.0, 1.0, "linear"],
-      [0.3, 0.9, "smoothstep"],
-      [0.6, 1.05, "smoothstep"],
-      [1.0, 1.0, "smoothstep"]
+      [0.1, 0.85, "smootherstep"],
+      [0.3, 0.96, "smootherstep"],
+      [0.55, 1.0, "smootherstep"]
     ],
     "scale_z": [
       [0.0, 1.0, "linear"],
-      [0.3, 0.95, "smoothstep"],
-      [0.6, 1.03, "smoothstep"],
-      [1.0, 1.0, "smoothstep"]
-    ],
-    "offset_y": [
-      [0.0, 0.0, "linear"],
-      [0.3, 0.0, "smoothstep"],
-      [0.6, 0.0, "smoothstep"],
-      [1.0, 0.0, "smoothstep"]
+      [0.1, 0.90, "smootherstep"],
+      [0.3, 0.98, "smootherstep"],
+      [0.55, 1.0, "smootherstep"]
     ],
     "shake": [
       [0.0, 0.0, "linear"],
-      [0.5, 1.0, "linear"],
-      [1.0, 0.0, "linear"]
+      [0.05, 1.5, "smootherstep"],
+      [0.4, 0.3, "smootherstep"],
+      [0.7, 0.0, "smootherstep"]
     ]
   }
 }

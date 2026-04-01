@@ -53,6 +53,8 @@ public class Renderer {
     private Block currentBreakingBlock;
     private com.za.minecraft.world.BlockPos breakingPos;
     private Mesh breakingMesh;
+    private Mesh holeMesh;
+    private com.za.minecraft.world.BlockPos holePos;
     private float breakingProgress = 0.0f;
     private float wobbleTimer = 0.0f;
 
@@ -231,8 +233,18 @@ public class Renderer {
         blockShader.setInt("highlightPass", 0);
         
         if (breakingPos != null) {
+            if (holeMesh == null || !breakingPos.equals(holePos)) {
+                if (holeMesh != null) holeMesh.cleanup();
+                holeMesh = ChunkMeshGenerator.generateHoleMesh(breakingPos, world, atlas);
+                holePos = breakingPos;
+            }
             blockShader.setVector3f("uHiddenBlockPos", new Vector3f(breakingPos.x(), breakingPos.y(), breakingPos.z()));
         } else {
+            if (holeMesh != null) {
+                holeMesh.cleanup();
+                holeMesh = null;
+                holePos = null;
+            }
             blockShader.setVector3f("uHiddenBlockPos", new Vector3f(0, -100, 0)); // Hide logic disabled
         }
 
@@ -255,6 +267,13 @@ public class Renderer {
             }
         }
         glDepthMask(true);
+        
+        if (holeMesh != null) {
+            blockShader.setVector3f("uHiddenBlockPos", new Vector3f(0, -100, 0)); // Stop discarding for hole
+            modelMatrix.identity().translate(breakingPos.x(), breakingPos.y(), breakingPos.z());
+            blockShader.setMatrix4f("model", modelMatrix);
+            holeMesh.render();
+        }
         
         if (breakingPos != null && breakingMesh != null && currentBreakingBlock != null) {
             renderBreakingProxyBlock(camera, alpha);
@@ -284,15 +303,16 @@ public class Renderer {
             scaleX = profile.evaluate("scale_x", normTimer, 1.0f);
             scaleY = profile.evaluate("scale_y", normTimer, 1.0f);
             scaleZ = profile.evaluate("scale_z", normTimer, 1.0f);
-            offsetX = profile.evaluate("offset_x", normTimer, 1.0f);
-            offsetY = profile.evaluate("offset_y", normTimer, 1.0f);
-            offsetZ = profile.evaluate("offset_z", normTimer, 1.0f);
-            shake = profile.evaluate("shake", normTimer, 1.0f);
+            offsetX = profile.evaluate("offset_x", normTimer, 0.0f);
+            offsetY = profile.evaluate("offset_y", normTimer, 0.0f);
+            offsetZ = profile.evaluate("offset_z", normTimer, 0.0f);
+            shake = profile.evaluate("shake", normTimer, 0.0f);
         }
         
         blockShader.setVector3f("uWobbleScale", new Vector3f(scaleX, scaleY, scaleZ));
         blockShader.setVector3f("uWobbleOffset", new Vector3f(offsetX, offsetY, offsetZ));
         blockShader.setFloat("uWobbleShake", shake);
+        blockShader.setFloat("uWobbleTime", wobbleTimer);
         blockShader.setFloat("uBreakingProgress", breakingProgress);
         
         // Add 0.5f to x and z to center the mesh which is offset by -0.5f in ChunkMeshGenerator
