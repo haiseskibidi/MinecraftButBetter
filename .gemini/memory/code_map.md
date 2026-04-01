@@ -43,10 +43,16 @@
 Назначение: Отрисовка 2D элементов. Добавлен метод `renderGroupBackground` для рендеринга адаптивных подложек.
 
 ## Graphics (UPDATED)
+### com.za.minecraft.engine.graphics.BlockHighlightRenderer (NEW)
+Назначение: Динамический рендеринг контура выделенного блока.
+Функции:
+- `render()`: Рисует линии поверх выделенного блока.
+- `createMeshForShape()`: Вычисляет идеальный Wireframe контур на основе `VoxelShape`, удаляя внутренние швы (Quadrant-Sampling Algorithm). Кэширует меши.
+
 ### com.za.minecraft.engine.graphics.Renderer (UPDATED)
 Назначение: Главный рендерер игрового мира.
 Функции:
-- `render()`: Основной проход отрисовки. Добавлен вызов `renderBreakingProxyBlock()`.
+- `render()`: Основной проход отрисовки. Делегирует отрисовку обводки в `BlockHighlightRenderer`.
 - `setBreakingBlock()`: Принимает данные о ломаемом блоке и запускает генерацию `breakingMesh`.
 - `renderBreakingProxyBlock()`: Отрисовывает анимированный прокси-меш блока поверх оригинального.
 

@@ -827,7 +827,7 @@ public class InputManager {
                             player.swing();
                         }
                         
-                        renderer.setBreakingBlock(hitPos, new Block(blockType), breakingProgress, wobbleTimer);
+                        renderer.setBreakingBlock(hitPos, world.getBlock(hitPos), breakingProgress, wobbleTimer);
 
                         if (breakingProgress >= 1.0f) {
                             if (hitPos != null) {
@@ -912,8 +912,8 @@ public class InputManager {
                 }
             } else {
                 if (breakingBlockPos != null && raycast.isHit()) {
-                    int blockType = world.getBlock(raycast.getBlockPos()).getType();
-                    renderer.setBreakingBlock(raycast.getBlockPos(), new Block(blockType), breakingProgress, wobbleTimer);
+                    Block block = world.getBlock(raycast.getBlockPos());
+                    renderer.setBreakingBlock(raycast.getBlockPos(), block, breakingProgress, wobbleTimer);
                 }
             }
             leftMousePressed = lm;

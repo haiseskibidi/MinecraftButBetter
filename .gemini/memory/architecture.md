@@ -1,11 +1,13 @@
  # Архитектура проекта "MinecraftButBetter"
 
-### Rendering Pipeline (v5.0 UPDATED)
+### Rendering Pipeline (v5.1 UPDATED)
 1. **RGBA Framebuffer**: Supports alpha-channel masking for post-processing effects.
 2. **Depth-Sampling Architecture**:
     - **Depth Texture**: `Framebuffer` now provides a full depth texture for screen-space effects.
     - **Crease AO**: Post-processor analyzes depth derivatives to darken crevices.
-3. **Stylized AAA Post-Stack**:
+3. **Dynamic VoxelShape Highlight (NEW)**:
+    - **Algorithmic Wireframes**: Выделение блока генерируется динамически на основе `AABB` боксов из `VoxelShape`. Алгоритм "сшивает" грани, удаляя внутренние линии на стыках (например, у ступенек), создавая идеальный цельный контур. Меши кэшируются.
+4. **Stylized AAA Post-Stack**:
     - **FXAA + Stylized effects**: Combined anti-aliasing with Vignette, Fog, and Vibrance in a single pass.
     - **Viewmodel Depth Mapping**: Uses `glDepthRange` to overlay hands into the depth-aware post-stack without clearing buffer.
 

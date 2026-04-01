@@ -31,8 +31,8 @@ public class Renderer {
     private PostProcessor postProcessor;
     private UIRenderer uiRenderer;
     private CarvingRenderer carvingRenderer;
+    private BlockHighlightRenderer highlightRenderer;
     private boolean fxaaEnabled = false;
-    private Mesh highlightMesh;
     private Mesh playerMesh;
     private Mesh previewMesh;
     private final Map<Integer, Mesh> blockMeshCache = new java.util.HashMap<>();
@@ -146,6 +146,7 @@ public class Renderer {
         uiRenderer = new UIRenderer();
         uiRenderer.init();
         carvingRenderer = new CarvingRenderer();
+        highlightRenderer = new BlockHighlightRenderer();
     }
     
     public void render(Window window, Camera camera, World world, RaycastResult highlightedBlock, com.za.minecraft.network.GameClient networkClient, float alpha) {
@@ -155,7 +156,7 @@ public class Renderer {
         
         renderScene(camera, world, networkClient, alpha);
         
-        if (highlightedBlock != null && highlightedBlock.isHit()) renderBlockHighlight(camera, highlightedBlock, alpha);
+        if (highlightedBlock != null && highlightedBlock.isHit()) renderBlockHighlight(camera, world, highlightedBlock, alpha);
         if (previewPos != null && previewMesh != null) renderPreviewBlock(camera, alpha);
 
         renderViewModel(camera, world.getPlayer());
@@ -325,27 +326,10 @@ public class Renderer {
     }
 
     
-    private void renderBlockHighlight(Camera camera, RaycastResult highlightedBlock, float alpha) {
-        glDepthMask(false);
-        glDisable(GL_CULL_FACE);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-        glLineWidth(3.0f);
-        blockShader.use();
-        blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
-        blockShader.setMatrix4f("view", camera.getViewMatrix(alpha));
-        modelMatrix.identity().translate(highlightedBlock.getBlockPos().x(), highlightedBlock.getBlockPos().y(), highlightedBlock.getBlockPos().z()).scale(1.002f);
-        blockShader.setMatrix4f("model", modelMatrix);
-        blockShader.setInt("highlightPass", 1);
-        blockShader.setVector3f("highlightColor", new Vector3f(0.2f, 0.2f, 0.2f));
-        if (highlightMesh == null) createHighlightMesh();
-        glEnable(GL_POLYGON_OFFSET_LINE);
-        glPolygonOffset(-1.0f, -1.0f);
-        highlightMesh.render(GL_LINES);
-        glDisable(GL_POLYGON_OFFSET_LINE);
-        blockShader.setInt("highlightPass", 0);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-        glEnable(GL_CULL_FACE);
-        glDepthMask(true);
+    private void renderBlockHighlight(Camera camera, World world, RaycastResult highlightedBlock, float alpha) {
+        if (highlightRenderer != null) {
+            highlightRenderer.render(camera, world, highlightedBlock, blockShader, modelMatrix, alpha);
+        }
     }
 
     private void renderEntities(Camera camera, World world, float alpha) {
@@ -535,13 +519,6 @@ public class Renderer {
         blockShader.setInt("highlightPass", 0);
     }
 
-    private void createHighlightMesh() {
-        float[] positions = {0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1};
-        float[] tc = new float[16]; float[] n = new float[24]; float[] bt = new float[8];
-        int[] indices = {0,1, 1,5, 5,4, 4,0, 3,2, 2,6, 6,7, 7,3, 0,3, 1,2, 5,6, 4,7};
-        highlightMesh = new Mesh(positions, tc, n, bt, indices);
-    }
-
     private void createPlayerMesh() {
         float[] p = {-0.5f,-1,0.5f, 0.5f,-1,0.5f, 0.5f,1,0.5f, -0.5f,1,0.5f, -0.5f,-1,-0.5f, -0.5f,1,-0.5f, 0.5f,1,-0.5f, 0.5f,-1,-0.5f, -0.5f,-1,-0.5f, -0.5f,-1,0.5f, -0.5f,1,0.5f, -0.5f,1,-0.5f, 0.5f,-1,0.5f, 0.5f,-1,-0.5f, 0.5f,1,-0.5f, 0.5f,1,0.5f, -0.5f,1,0.5f, 0.5f,1,0.5f, 0.5f,1,-0.5f, -0.5f,1,-0.5f, -0.5f,-1,-0.5f, 0.5f,-1,-0.5f, 0.5f,-1,0.5f, -0.5f,-1,0.5f};
         float[] n = {0,0,1, 0,0,1, 0,0,1, 0,0,1, 0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1, -1,0,0, -1,0,0, -1,0,0, -1,0,0, 1,0,0, 1,0,0, 1,0,0, 1,0,0, 0,1,0, 0,1,0, 0,1,0, 0,1,0, 0,-1,0, 0,-1,0, 0,-1,0, 0,-1,0};
@@ -568,7 +545,7 @@ public class Renderer {
         if (framebuffer != null) framebuffer.cleanup();
         if (postProcessor != null) postProcessor.cleanup();
         if (uiRenderer != null) uiRenderer.cleanup();
-        if (highlightMesh != null) highlightMesh.cleanup();
+        if (highlightRenderer != null) highlightRenderer.cleanup();
         if (playerMesh != null) playerMesh.cleanup();
         if (previewMesh != null) previewMesh.cleanup();
         if (heldItemMesh != null) heldItemMesh.cleanup();
