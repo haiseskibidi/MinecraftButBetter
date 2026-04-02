@@ -834,7 +834,13 @@ public class InputManager {
 
                                 breakingProgress = Math.min(1.0f, blockAccumulatedDamage / maxHealth);
                                 
-                                hitCooldownTimer = 0.35f;
+                                float interval = 0.35f;
+                                if (currentItem != null) {
+                                    com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
+                                    if (tool != null) interval = tool.attackInterval();
+                                }
+
+                                hitCooldownTimer = interval;
                                 wobbleTimer = 0.0f;
                                 shouldHit = true;
                                 
@@ -844,7 +850,12 @@ public class InputManager {
                         }
 
                         if (shouldHit) {
-                            player.swing();
+                            float interval = 0.35f;
+                            if (currentItem != null) {
+                                com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
+                                if (tool != null) interval = tool.attackInterval();
+                            }
+                            player.swing(interval);
                         }
                         
                         renderer.setBreakingBlock(hitPos, world.getBlock(hitPos), breakingProgress, wobbleTimer, localHit, currentWeakSpot, hitHistory);

@@ -54,6 +54,7 @@ public class Player extends LivingEntity {
     private float itemPitchOffset = 0.0f;
     private float itemYawOffset = 0.0f;
     private float itemRollOffset = 0.0f;
+    private float itemSwingDuration = 0.35f;
     
     // Viewmodel Physics
     private com.za.minecraft.engine.graphics.model.Viewmodel viewmodel;
@@ -279,19 +280,22 @@ public class Player extends LivingEntity {
             String sN = heldItem != null ? heldItem.getAnimation("item_swing") : "item_swing";
             AnimationProfile swingAnim = animationRegistry.get(sN);
             if (swingAnim != null) {
-                // scale the animation duration so it takes exactly hitCooldownTimer (0.35s) if we want perfectly matched animations.
-                // Or we can just use the json duration, but the user says it doesn't match the timing.
-                // Let's use exactly 0.35f as the swing duration to perfectly match the hit cooldown!
-                itemSwingTimer += deltaTime / 0.35f; 
+                itemSwingTimer += deltaTime / itemSwingDuration; 
                 if (itemSwingTimer >= 1.0f) { swinging = false; itemSwingTimer = 0; }
                 else {
-                    swingPosX = swingAnim.evaluate("item_x", itemSwingTimer, 1.0f);
-                    swingPosY = swingAnim.evaluate("item_y", itemSwingTimer, 1.0f);
-                    swingPosZ = swingAnim.evaluate("item_z", itemSwingTimer, 1.0f);
-                    swingPitch = swingAnim.evaluate("item_pitch", itemSwingTimer, 1.0f);
-                    swingYaw = swingAnim.evaluate("item_yaw", itemSwingTimer, 1.0f);
-                    // Also support roll for more cinematic swings
-                    swingRoll = swingAnim.evaluate("item_roll", itemSwingTimer, 1.0f);
+                    // Positions in JSON are in voxels (16 per block), convert to meters
+                    swingPosX = swingAnim.evaluate("item_x", itemSwingTimer, 1.0f) / 16.0f;
+                    swingPosY = swingAnim.evaluate("item_y", itemSwingTimer, 1.0f) / 16.0f;
+                    swingPosZ = swingAnim.evaluate("item_z", itemSwingTimer, 1.0f) / 16.0f;
+                    
+                    // Rotations in JSON are in degrees, convert to radians
+                    swingPitch = (float)Math.toRadians(swingAnim.evaluate("item_pitch", itemSwingTimer, 1.0f));
+                    swingYaw = (float)Math.toRadians(swingAnim.evaluate("item_yaw", itemSwingTimer, 1.0f));
+                    swingRoll = (float)Math.toRadians(swingAnim.evaluate("item_roll", itemSwingTimer, 1.0f));
+                    
+                    // Add camera impact from swing
+                    targetTilt += swingAnim.evaluate("camera_tilt", itemSwingTimer, 1.0f);
+                    targetRoll += swingAnim.evaluate("camera_roll", itemSwingTimer, 1.0f);
                 }
             } else swinging = false;
         }
@@ -383,10 +387,10 @@ public class Player extends LivingEntity {
                 hand.animRotation.set(a.x * 0.7f, a.y * 0.7f, a.z * 0.7f);
                 sh.animRotation.x += lerpedWeight * 0.05f;
 
-                // Apply swing rotations dynamically across the arm joints (snappy, ignores physics lag)
-                sh.animRotation.add(swingPitch * 0.1f, swingYaw * 0.1f, swingRoll * 0.1f);
-                fo.animRotation.add(swingPitch * 0.2f, swingYaw * 0.2f, swingRoll * 0.2f);
-                hand.animRotation.add(swingPitch * 0.7f, swingYaw * 0.7f, swingRoll * 0.7f);
+                // Apply swing rotations dynamically across the arm joints (more shoulder/forearm for weight)
+                sh.animRotation.add(swingPitch * 0.25f, swingYaw * 0.25f, swingRoll * 0.25f);
+                fo.animRotation.add(swingPitch * 0.35f, swingYaw * 0.35f, swingRoll * 0.35f);
+                hand.animRotation.add(swingPitch * 0.4f, swingYaw * 0.4f, swingRoll * 0.4f);
 
                 Vector3f finalPos = new Vector3f(mainHandPhys.currentPos).add(swingPosX, swingPosY, swingPosZ);
                 viewmodel.updateHierarchy(new org.joml.Matrix4f().identity().translate(finalPos));
@@ -428,24 +432,24 @@ public class Player extends LivingEntity {
     public float getFovOffset() { return fovOffset; }
     public float getCameraOffsetX() { return cameraOffsetX; }
     public float getCameraOffsetY() { return cameraOffsetY; }
-    public float getCameraOffsetZ() { return 0.0f; } // Maintained for API compatibility
+    public float getCameraOffsetZ() { return 0.0f; } 
     public float getItemOffsetX() { return itemOffsetX; }
     public float getItemOffsetY() { return itemOffsetY; }
     public float getItemOffsetZ() { return itemOffsetZ; }
     public float getItemPitchOffset() { return itemPitchOffset; }
     public float getItemYawOffset() { return itemYawOffset; }
     public float getItemRollOffset() { return itemRollOffset; }
-    public void swing() { if (!swinging) { swinging = true; itemSwingTimer = 0; } }
+    
+    public void swing() { swing(0.35f); }
+    public void swing(float duration) { if (!swinging) { swinging = true; itemSwingTimer = 0; itemSwingDuration = duration; } }
     public boolean isMoving() { return moving; }
 
     public boolean isInWater() {
-        // Проверка на нахождение в воде
         com.za.minecraft.world.blocks.Block b = com.za.minecraft.engine.core.GameLoop.getInstance().getWorld().getBlock((int)Math.floor(position.x), (int)Math.floor(position.y + 0.5f), (int)Math.floor(position.z));
         return com.za.minecraft.world.blocks.BlockRegistry.getBlock(b.getType()).getIdentifier().getPath().contains("water");
     }
 
     public boolean isInRain() {
-        // TODO: Implement when weather system is added
         return false;
     }
 
@@ -470,29 +474,20 @@ public class Player extends LivingEntity {
     public float getStamina() { return stamina; }
     public void setStamina(float stamina) { this.stamina = stamina; }
     private void updateThermalAndConditions(float deltaTime, World world) {
-        // 1. Thermal Update for held item
         ItemStack held = inventory.getSelectedItemStack();
         if (held != null) {
             float ambient = 20.0f; 
             if (isInWater()) ambient = 15.0f;
-            
             held.updateTemperature(ambient, deltaTime);
-            
             com.za.minecraft.world.items.component.ThermalComponent thermal = held.getItem().getComponent(com.za.minecraft.world.items.component.ThermalComponent.class);
             float threshold = (thermal != null) ? thermal.burnThreshold() : 55.0f;
-            
             if (held.getTemperature() > threshold) {
-                // Apply burn damage
                 takeDamage(0.5f * deltaTime);
-                // Randomly drop hot item
                 if (Math.random() < 0.05f * deltaTime) {
                     inventory.dropSelected(this, world, com.za.minecraft.engine.core.GameLoop.getInstance().getCamera(), true);
-                    com.za.minecraft.utils.Logger.info("Ouch! Dropped a hot %s", held.getItem().getName());
                 }
             }
         }
-
-        // 2. Condition Decay/Cleaning
         if (isInWater()) {
             wetness = 1.0f;
             dirt = Math.max(0, dirt - 2.0f * deltaTime);
@@ -500,7 +495,6 @@ public class Player extends LivingEntity {
         } else {
             wetness = Math.max(0, wetness - 0.1f * deltaTime);
         }
-
         if (parasitesTimer > 0) {
             parasitesTimer -= deltaTime;
             if (parasitesTimer <= 0) hasParasites = false;
@@ -527,11 +521,9 @@ public class Player extends LivingEntity {
         if (food != null && hunger < 20.0f) {
             hunger = Math.min(20.0f, hunger + food.nutrition());
             saturation = Math.min(20.0f, saturation + food.saturationBonus());
-
             if (dirt > 0.5f && Math.random() < 0.3f) {
                 hasParasites = true;
-                parasitesTimer = 600.0f; // 10 minutes
-                com.za.minecraft.utils.Logger.info("You've contracted parasites from dirty hands!");
+                parasitesTimer = 600.0f; 
             }
         }
     }
@@ -545,6 +537,6 @@ public class Player extends LivingEntity {
     }
     public void setHorizontalVelocity(float vx, float vz) { velocity.x = vx; velocity.z = vz; }
     public Inventory getInventory() { return inventory; }
-    public PlayerMode getMode() { return mode; }
-    public void setMode(PlayerMode mode) { this.mode = mode; }
+    public com.za.minecraft.engine.core.PlayerMode getMode() { return mode; }
+    public void setMode(com.za.minecraft.engine.core.PlayerMode mode) { this.mode = mode; }
 }

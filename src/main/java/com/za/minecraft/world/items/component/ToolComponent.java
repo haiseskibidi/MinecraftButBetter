@@ -2,8 +2,13 @@ package com.za.minecraft.world.items.component;
 
 import com.za.minecraft.world.items.ToolType;
 
-public record ToolComponent(ToolType type, float efficiency, int maxDurability, boolean isEffectiveAgainstAll) implements ItemComponent {
+public record ToolComponent(ToolType type, float efficiency, int maxDurability, boolean isEffectiveAgainstAll, float attackInterval) implements ItemComponent {
     public ToolComponent(ToolType type, float efficiency, int maxDurability) {
-        this(type, efficiency, maxDurability, false);
+        this(type, efficiency, maxDurability, false, 0.35f);
+    }
+    
+    // Compatibility constructor for DataLoader
+    public ToolComponent(ToolType type, float efficiency, int maxDurability, boolean isEffectiveAgainstAll) {
+        this(type, efficiency, maxDurability, isEffectiveAgainstAll, 0.35f);
     }
 }

@@ -150,7 +150,15 @@ public class ItemMeshGenerator {
         float centerY = (minY + maxY + 1) * 0.5f / height;
 
         // Смещение точки хвата относительно центра меша
-        org.joml.Vector3f graspOffset = new org.joml.Vector3f(fgx - centerX, fgy - centerY, 0);
+        float rawGraspX = fgx - centerX;
+        float rawGraspY = fgy - centerY;
+        
+        // ВАЖНО: Вектор точки хвата тоже должен быть повернут на rotationAngle,
+        // так как меш был повернут относительно центра.
+        float finalGraspX = rawGraspX * cosR - rawGraspY * sinR;
+        float finalGraspY = rawGraspX * sinR + rawGraspY * cosR;
+
+        org.joml.Vector3f graspOffset = new org.joml.Vector3f(finalGraspX, finalGraspY, 0);
 
         // --- Генерация меша ---
         List<Float> positions = new ArrayList<>();
