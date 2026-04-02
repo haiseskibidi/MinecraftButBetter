@@ -1,0 +1,59 @@
+{
+  "looping": false,
+  "duration": 1.0,
+  "tracks": {
+    "item_pitch": [
+      [0.0, 0.0, "linear"],
+      [0.15, 10.0, "quad_out"],
+      [0.35, -15.0, "smootherstep"],
+      [0.5, -10.0, "sine"],
+      [1.0, 0.0, "smootherstep"]
+    ],
+    "item_x": [
+      [0.0, 0.0, "linear"],
+      [0.15, 1.5, "quad_out"],
+      [0.35, -1.0, "smootherstep"],
+      [0.5, 0.0, "sine"],
+      [1.0, 0.0, "smootherstep"]
+    ],
+    "item_y": [
+      [0.0, 0.0, "linear"],
+      [0.15, -0.5, "quad_out"],
+      [0.35, -0.5, "smootherstep"],
+      [1.0, 0.0, "smootherstep"]
+    ],
+    "item_z": [
+      [0.0, 0.0, "linear"],
+      [0.15, -2.5, "quad_out"],
+      [0.35, 6.0, "smootherstep"],
+      [0.5, 2.0, "sine"],
+      [1.0, 0.0, "smootherstep"]
+    ],
+    "item_yaw": [
+      [0.0, 0.0, "linear"],
+      [0.15, -15.0, "quad_out"],
+      [0.35, 25.0, "smootherstep"],
+      [0.5, 10.0, "sine"],
+      [1.0, 0.0, "smootherstep"]
+    ],
+    "item_roll": [
+      [0.0, 0.0, "linear"],
+      [0.15, 10.0, "quad_out"],
+      [0.35, -15.0, "smootherstep"],
+      [1.0, 0.0, "smootherstep"]
+    ],
+    "camera_tilt": [
+      [0.0, 0.0, "linear"],
+      [0.15, 0.015, "quad_out"],
+      [0.35, -0.02, "smootherstep"],
+      [0.6, 0.0, "smootherstep"],
+      [1.0, 0.0, "linear"]
+    ],
+    "camera_roll": [
+      [0.0, 0.0, "linear"],
+      [0.15, 0.01, "quad_out"],
+      [0.35, -0.015, "smootherstep"],
+      [1.0, 0.0, "smootherstep"]
+    ]
+  }
+}

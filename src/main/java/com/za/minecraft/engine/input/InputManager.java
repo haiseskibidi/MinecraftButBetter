@@ -834,11 +834,12 @@ public class InputManager {
 
                                 breakingProgress = Math.min(1.0f, blockAccumulatedDamage / maxHealth);
                                 
-                                float interval = 0.35f;
+                                float interval = com.za.minecraft.world.physics.PhysicsSettings.getInstance().baseMiningCooldown;
                                 if (currentItem != null) {
                                     com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
                                     if (tool != null) interval = tool.attackInterval();
                                 }
+                                interval /= Math.max(0.1f, player.getMiningSpeedMultiplier());
 
                                 hitCooldownTimer = interval;
                                 wobbleTimer = 0.0f;
@@ -850,7 +851,7 @@ public class InputManager {
                         }
 
                         if (shouldHit) {
-                            float interval = 0.35f;
+                            float interval = 0.5f;
                             if (currentItem != null) {
                                 com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
                                 if (tool != null) interval = tool.attackInterval();

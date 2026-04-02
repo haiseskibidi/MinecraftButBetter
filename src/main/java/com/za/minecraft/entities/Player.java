@@ -54,7 +54,7 @@ public class Player extends LivingEntity {
     private float itemPitchOffset = 0.0f;
     private float itemYawOffset = 0.0f;
     private float itemRollOffset = 0.0f;
-    private float itemSwingDuration = 0.35f;
+    private float itemSwingDuration = 0.5f;
     
     // Viewmodel Physics
     private com.za.minecraft.engine.graphics.model.Viewmodel viewmodel;
@@ -277,7 +277,7 @@ public class Player extends LivingEntity {
         float swingPitch = 0f, swingYaw = 0f, swingRoll = 0f;
 
         if (swinging) {
-            String sN = heldItem != null ? heldItem.getAnimation("item_swing") : "item_swing";
+            String sN = heldItem != null ? heldItem.getAnimation("item_swing") : "hand_swing";
             AnimationProfile swingAnim = animationRegistry.get(sN);
             if (swingAnim != null) {
                 itemSwingTimer += deltaTime / itemSwingDuration; 
@@ -354,6 +354,7 @@ public class Player extends LivingEntity {
                 Vector3f extF = new Vector3f(-yawDelta * 60.0f, pDelta * 60.0f, 0);
 
                 Vector3f tPos = new Vector3f(itemOffsetX, itemOffsetY, itemOffsetZ);
+
                 org.joml.Quaternionf tRot = new org.joml.Quaternionf().rotateX(itemPitchOffset).rotateY(itemYawOffset).rotateZ(itemRollOffset);
 
                 // --- 7.1 WORLD COLLISIONS (Tarkov-style) ---
@@ -473,6 +474,7 @@ public class Player extends LivingEntity {
     public void setSprinting(boolean sprinting) { this.sprinting = sprinting; }
     public float getStamina() { return stamina; }
     public void setStamina(float stamina) { this.stamina = stamina; }
+    public float getMiningSpeedMultiplier() { return 1.0f; }
     private void updateThermalAndConditions(float deltaTime, World world) {
         ItemStack held = inventory.getSelectedItemStack();
         if (held != null) {

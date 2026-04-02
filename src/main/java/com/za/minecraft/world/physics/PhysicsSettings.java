@@ -29,6 +29,8 @@ public class PhysicsSettings {
     public float baseMoveSpeed = 2.4f;
     public float flySpeed = 10.0f;
     
+    public float baseMiningCooldown = 0.5f;
+
     // Input
     public float mouseSensitivity = 0.002f;
 
