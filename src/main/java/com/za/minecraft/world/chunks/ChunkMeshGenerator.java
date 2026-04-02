@@ -128,8 +128,8 @@ public class ChunkMeshGenerator {
 
         if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
             float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
-            addCrossPlane(data, 0, 0, 0, 0, 0, 1, 1, uvs, finalBlockType);
-            addCrossPlane(data, 0, 0, 0, 0, 1, 1, 0, uvs, finalBlockType);
+            addCrossPlane(data, -0.5f, 0, -0.5f, 0, 0, 1, 1, uvs, finalBlockType);
+            addCrossPlane(data, -0.5f, 0, -0.5f, 0, 1, 1, 0, uvs, finalBlockType);
             return data.build();
         }
 

@@ -13,14 +13,12 @@ import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.blocks.Blocks;
 import com.za.minecraft.world.blocks.BlockDefinition;
-import com.za.minecraft.world.blocks.MiningSettings;
 import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.blocks.PlacementType;
 import com.za.minecraft.world.items.Item;
 import com.za.minecraft.world.items.ItemRegistry;
 import com.za.minecraft.world.items.ItemStack;
 import com.za.minecraft.world.items.Items;
-import com.za.minecraft.world.items.component.FuelComponent;
 import com.za.minecraft.world.physics.Raycast;
 import com.za.minecraft.world.physics.RaycastResult;
 import org.joml.Vector2f;
@@ -56,26 +54,19 @@ public class InputManager {
     private int lastQuickCopiedDevItem = -1;
     
     // Drag-to-Distribute state
-    private java.util.Set<com.za.minecraft.entities.inventory.Slot> draggedSlots = new java.util.LinkedHashSet<>();
+    private final java.util.Set<com.za.minecraft.entities.inventory.Slot> draggedSlots = new java.util.LinkedHashSet<>();
     private int dragButton = -1;
     private boolean isDragging = false;
     
     // Breaking block state
-    private BlockPos breakingBlockPos = null;
-    private float breakingProgress = 0.0f;
-    private float blockAccumulatedDamage = 0.0f;
-    private float hitCooldownTimer = 0.0f;
-    private float wobbleTimer = 0.0f;
-    private Vector3f currentWeakSpot = new Vector3f(0.5f);
-    private final java.util.List<Vector3f> hitHistory = new java.util.ArrayList<>();
-    private float breakDelayTimer = 0.0f;
+    private final MiningController miningController;
     private float placeDelayTimer = 0.0f;
-    private static final float BREAK_COOLDOWN = 0.25f; // 4 bps (5 ticks)
     private static final float PLACE_COOLDOWN = 0.25f; // 4 bps (5 ticks)
     
     public InputManager() {
         previousPos = new Vector2f();
         currentPos = new Vector2f();
+        miningController = new MiningController();
     }
     
     public void init(Window window) {
@@ -216,7 +207,8 @@ public class InputManager {
         );
         itemEntity.setAngularVelocity(angVel);
 
-        world.spawnEntity(itemEntity);        com.za.minecraft.utils.Logger.info("Dropped stack: %s (x%d)", toDrop.getItem().getName(), toDrop.getCount());
+        world.spawnEntity(itemEntity);
+        com.za.minecraft.utils.Logger.info("Dropped stack: %s (x%d)", toDrop.getItem().getName(), toDrop.getCount());
     }
     
     private void finishDrag() {
@@ -446,10 +438,12 @@ public class InputManager {
     }
     
     public float getBreakingProgress() {
-        return breakingProgress;
+        return miningController.getBreakingProgress();
     }
 
     public RaycastResult input(Window window, Camera camera, Player player, float deltaTime, com.za.minecraft.engine.graphics.Renderer renderer, World world, com.za.minecraft.network.GameClient networkClient) {
+        miningController.setDependencies(renderer, networkClient);
+        
         boolean inventoryOpen = GameLoop.getInstance().isInventoryOpen();
         boolean nappingOpen = GameLoop.getInstance().isNappingOpen();
         boolean paused = GameLoop.getInstance().isPaused();
@@ -568,9 +562,7 @@ public class InputManager {
         }
 
         placeDelayTimer = Math.max(0, placeDelayTimer - deltaTime);
-        breakDelayTimer = Math.max(0, breakDelayTimer - deltaTime);
-        hitCooldownTimer = Math.max(0, hitCooldownTimer - deltaTime);
-        wobbleTimer += deltaTime;
+        miningController.update(deltaTime);
 
         Vector2f rotVec = new Vector2f();
         if (firstMouse) {
@@ -750,18 +742,12 @@ public class InputManager {
 
             if (raycast.isHit()) {
                 BlockPos hitPos = raycast.getBlockPos();
-                if (breakingBlockPos != null && !hitPos.equals(breakingBlockPos)) {
-                    breakingBlockPos = null;
-                    breakingProgress = 0.0f;
-                    blockAccumulatedDamage = 0.0f;
-                    renderer.setBreakingBlock(null, null, 0.0f, 0.0f, null, null, null);
+                if (miningController.getBreakingBlockPos() != null && !hitPos.equals(miningController.getBreakingBlockPos())) {
+                    miningController.stopMining();
                 }
             } else {
-                if (breakingBlockPos != null) {
-                    breakingBlockPos = null;
-                    breakingProgress = 0.0f;
-                    blockAccumulatedDamage = 0.0f;
-                    renderer.setBreakingBlock(null, null, 0.0f, 0.0f, null, null, null);
+                if (miningController.getBreakingBlockPos() != null) {
+                    miningController.stopMining();
                 }
             }
 
@@ -791,164 +777,19 @@ public class InputManager {
                         return null; 
                     }
 
-                    if (breakingBlockPos == null) {
-                        breakingBlockPos = hitPos;
-                        breakingProgress = 0.0f;
-                        blockAccumulatedDamage = 0.0f;
-                        wobbleTimer = 1.0f; // Prevent animation leaking to new blocks
-                        hitHistory.clear();
-                        currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), raycast.getNormal());
+                    if (miningController.getBreakingBlockPos() == null) {
+                        miningController.startMining(hitPos, blockDef, world, raycast.getNormal());
                     }
 
-                    float hardness = blockDef.getHardness();
-                    if (hardness >= 0) {
-                        float maxHealth = hardness * 10.0f;
-                        boolean shouldHit = false;
-
-                        if (maxHealth <= 0.0f) {
-                            if (isNewLeftClick || breakDelayTimer <= 0.0f) {
-                                breakingProgress = 1.0f;
-                                blockAccumulatedDamage = maxHealth;
-                                shouldHit = true;
-                            }
-                        } else {
-                            if (hitCooldownTimer <= 0.0f) {
-                                float miningDamage = (currentItem != null) ? 
-                                    currentItem.getMiningSpeed(blockType) : 
-                                    Items.HAND.getMiningSpeed(blockType);
-                                
-                                MiningSettings mSettings = blockDef.getMiningSettings();
-                                if (mSettings.strategy().equals("weak_spots")) {
-                                    float dist = localHit.distance(currentWeakSpot);
-                                    if (dist < mSettings.precision()) {
-                                        blockAccumulatedDamage += miningDamage;
-                                        hitHistory.add(new Vector3f(currentWeakSpot));
-                                        currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), raycast.getNormal());
-                                        com.za.minecraft.utils.Logger.info("Weak spot HIT!");
-                                    } else {
-                                        blockAccumulatedDamage += miningDamage * mSettings.missMultiplier();
-                                    }
-                                } else {
-                                    blockAccumulatedDamage += miningDamage;
-                                }
-
-                                breakingProgress = Math.min(1.0f, blockAccumulatedDamage / maxHealth);
-                                
-                                float interval = com.za.minecraft.world.physics.PhysicsSettings.getInstance().baseMiningCooldown;
-                                if (currentItem != null) {
-                                    com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
-                                    if (tool != null) interval = tool.attackInterval();
-                                }
-                                interval /= Math.max(0.1f, player.getMiningSpeedMultiplier());
-
-                                hitCooldownTimer = interval;
-                                wobbleTimer = 0.0f;
-                                shouldHit = true;
-                                
-                                player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
-                                player.addNoise(hardness * 0.05f);
-                            }
-                        }
-
-                        if (shouldHit) {
-                            float interval = 0.5f;
-                            if (currentItem != null) {
-                                com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
-                                if (tool != null) interval = tool.attackInterval();
-                            }
-                            player.swing(interval);
-                        }
-                        
-                        renderer.setBreakingBlock(hitPos, world.getBlock(hitPos), breakingProgress, wobbleTimer, localHit, currentWeakSpot, hitHistory);
-
-                        if (breakingProgress >= 1.0f) {
-                            if (hitPos != null) {
-                                if (currentItem == null) {
-                                    if (blockDef.getSoilingAmount() > 0) {
-                                        player.addDirt(blockDef.getSoilingAmount());
-                                    }
-                                }
-                                if (world.onBlockBreak(hitPos, player)) {
-                                    java.util.List<com.za.minecraft.world.blocks.DropRule> rules = blockDef.getDropRules();
-                                    
-                                    if (!rules.isEmpty()) {
-                                        String currentToolStr = "none";
-                                        if (currentItem != null && currentItem.isTool()) {
-                                            com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
-                                            if (tool != null) currentToolStr = tool.type().name().toLowerCase();
-                                        }
-                                        
-                                        for (com.za.minecraft.world.blocks.DropRule rule : rules) {
-                                            if (rule.requiredToolType().equalsIgnoreCase("none") || rule.requiredToolType().equalsIgnoreCase(currentToolStr)) {
-                                                if (Math.random() <= rule.chance()) {
-                                                    Item itemToGive = ItemRegistry.getItem(Identifier.of(rule.dropItemIdentifier()));
-                                                    if (itemToGive != null) {
-                                                        Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
-                                                        com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
-                                                        drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
-                                                        drop.setAngularVelocity(new Vector3f((float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f));
-                                                        world.spawnEntity(drop);
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    } else {
-                                        String dropId = blockDef.getDropItem();
-                                        float chance = blockDef.getDropChance();
-                                        if (Math.random() <= chance) {
-                                            Item itemToGive = (dropId != null) ? ItemRegistry.getItem(Identifier.of(dropId)) : ItemRegistry.getItem(blockDef.getIdentifier());
-                                            if (itemToGive != null) {
-                                                Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
-                                                com.za.minecraft.entities.ItemEntity drop = new com.za.minecraft.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
-                                                drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
-                                                drop.setAngularVelocity(new Vector3f((float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f));
-                                                world.spawnEntity(drop);
-                                            }
-                                        }
-                                    }
-
-                                    if (blockDef.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.DOUBLE_PLANT) {
-                                        int meta = world.getBlock(hitPos).getMetadata();
-                                        BlockPos otherPos = (meta == 0) ? hitPos.up() : hitPos.down();
-                                        if (world.getBlock(otherPos).getType() == blockType) {
-                                            world.setBlock(otherPos, new Block(com.za.minecraft.world.blocks.Blocks.AIR.getId()));
-                                            if (networkClient != null && networkClient.isConnected()) {
-                                                networkClient.sendBlockUpdate(otherPos.x(), otherPos.y(), otherPos.z(), com.za.minecraft.world.blocks.Blocks.AIR.getId());
-                                            }
-                                        }
-                                    }
-
-                                    world.destroyBlock(hitPos, player);
-                                    if (networkClient != null && networkClient.isConnected()) {
-                                        networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), Blocks.AIR.getId());
-                                    }
-                                } else {
-                                    breakingProgress = 0;
-                                }
-                            }
-
-                            breakingBlockPos = null;
-                            breakingProgress = 0.0f;
-                            blockAccumulatedDamage = 0.0f;
-                            renderer.setBreakingBlock(null, null, 0.0f, 0.0f, null, null, null);
-                            breakDelayTimer = BREAK_COOLDOWN;
-                            if (currentStack != null && currentItem.isTool()) {
-                                com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
-                                if (tool != null && (tool.isEffectiveAgainstAll() || tool.type().name().equalsIgnoreCase(blockDef.getRequiredTool()))) {
-                                    currentStack.setDurability(currentStack.getDurability() - 1);
-                                    if (currentStack.getDurability() <= 0) player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
-                                }
-                            }
-                        }
-                    }
+                    miningController.mine(world, player, hitPos, blockType, blockDef, currentStack, currentItem, isNewLeftClick, localHit);
                 }
             } else {
-                if (breakingBlockPos != null && raycast.isHit()) {
+                if (raycast.isHit()) {
                     Block block = world.getBlock(raycast.getBlockPos());
                     float rx = raycast.getHitPoint().x - raycast.getBlockPos().x();
                     float ry = raycast.getHitPoint().y - raycast.getBlockPos().y();
                     float rz = raycast.getHitPoint().z - raycast.getBlockPos().z();
-                    renderer.setBreakingBlock(raycast.getBlockPos(), block, breakingProgress, wobbleTimer, new Vector3f(rx, ry, rz), currentWeakSpot, hitHistory);
+                    miningController.renderVisuals(raycast.getBlockPos(), block, new Vector3f(rx, ry, rz));
                 }
             }
             leftMousePressed = lm;
@@ -1131,41 +972,5 @@ public class InputManager {
     private boolean isPlayerAt(Player player, BlockPos blockPos) {
         Vector3f p = player.getPosition();
         return !(p.x + 0.3f <= blockPos.x() || p.x - 0.3f >= blockPos.x() + 1 || p.y + 1.8f <= blockPos.y() || p.y >= blockPos.y() + 1 || p.z + 0.3f <= blockPos.z() || p.z - 0.3f >= blockPos.z() + 1);
-    }
-
-    private Vector3f generateRandomWeakSpot(com.za.minecraft.world.physics.VoxelShape shape, Vector3f normal) {
-        if (shape == null || shape.getBoxes().isEmpty()) return new Vector3f(0, 0.5f, 0);
-        
-        // Pick the first box
-        com.za.minecraft.world.physics.AABB box = shape.getBoxes().get(0);
-        Vector3f min = box.getMin();
-        Vector3f max = box.getMax();
-
-        // Add 15% padding to each axis to keep spots away from sharp edges
-        float padding = 0.15f;
-        
-        float randX = padding + (float)Math.random() * (1.0f - padding * 2.0f);
-        float randY = padding + (float)Math.random() * (1.0f - padding * 2.0f);
-        float randZ = padding + (float)Math.random() * (1.0f - padding * 2.0f);
-
-        // Calculate actual coordinates within the box using padded randoms
-        Vector3f spot = new Vector3f(
-            min.x + randX * (max.x - min.x),
-            min.y + randY * (max.y - min.y),
-            min.z + randZ * (max.z - min.z)
-        );
-
-        // Snap to the face based on normal
-        if (normal != null) {
-            if (Math.abs(normal.x) > 0.5f) spot.x = normal.x > 0 ? max.x : min.x;
-            else if (Math.abs(normal.y) > 0.5f) spot.y = normal.y > 0 ? max.y : min.y;
-            else if (Math.abs(normal.z) > 0.5f) spot.z = normal.z > 0 ? max.z : min.z;
-        }
-
-        // Apply -0.5 offset to X and Z to match proxy mesh coordinate space
-        spot.x -= 0.5f;
-        spot.z -= 0.5f;
-
-        return spot;
     }
 }
