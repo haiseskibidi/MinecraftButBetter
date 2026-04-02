@@ -25,22 +25,45 @@ public class FellingLogBlockDefinition extends BlockDefinition {
             return true; // Рукой ломаем по одному блоку
         }
 
+        // Считаем высоту дерева над нами
+        int logsAbove = TreecapitatorService.getInstance().countLogsAbove(world, pos);
+        String currentId = getIdentifier().getPath(); // e.g. "felling_stage_1"
+        
+        boolean shouldFell = false;
+        
+        if (logsAbove <= 3) {
+            // Маленькое дерево (до 3 блоков сверху) -> падает сразу после stage 1
+            if (currentId.contains("stage_1")) shouldFell = true;
+        } else if (logsAbove <= 6) {
+            // Среднее дерево (4-6 блоков сверху) -> падает после stage 2
+            if (currentId.contains("stage_2")) shouldFell = true;
+        } else if (logsAbove <= 9) {
+            // Крупное дерево (7-9 блоков сверху) -> падает после stage 3
+            if (currentId.contains("stage_3")) shouldFell = true;
+        }
+        // Огромные деревья (10+) падают только после stage 4 (дефолтная логика)
+
+        if (shouldFell) {
+            TreecapitatorService.getInstance().fellTree(world, pos, player);
+            return false;
+        }
+
         // Определяем следующую стадию
         Identifier nextStageId = getNextStage();
         
         if (nextStageId != null) {
             BlockDefinition nextDef = BlockRegistry.getBlock(nextStageId);
             if (nextDef != null) {
-                // Сохраняем метаданные (индекс дерева)
+                // Сохраняем метаданные (флаг натуральности и индекс дерева)
                 world.setBlock(pos, new Block(nextDef.getId(), block.getMetadata()));
-                com.za.minecraft.utils.Logger.info("Felling stage: %s -> %s, woodIndex: %d", 
-                    getIdentifier(), nextStageId, block.getMetadata());
+                com.za.minecraft.utils.Logger.info("Felling stage (Height: %d): %s -> %s", 
+                    logsAbove, getIdentifier(), nextStageId);
                 return false; // Блок заменен, не удаляем
             }
         }
 
         // Если следующей стадии нет — рубим всё дерево
         TreecapitatorService.getInstance().fellTree(world, pos, player);
-        return true; // Блок удаляется
+        return false; // Блок уже удален внутри fellTree, возвращаем false чтобы не было двойного дропа
     }
 }

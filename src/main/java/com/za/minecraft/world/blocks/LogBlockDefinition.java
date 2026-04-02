@@ -87,19 +87,22 @@ public class LogBlockDefinition extends BlockDefinition {
             return true; // Рукой ломаем по одному блоку
         }
 
-        // Переходим на первую стадию срубания (если она задана в JSON)
-        Identifier stage1Id = getNextStage();
-        if (stage1Id == null) {
-            return true; // Нет стадии срубания - ломаем сразу
-        }
+        // Всегда начинаем с первой стадии (minecraft:felling_stage_1)
+        Identifier stage1Id = Identifier.of("minecraft:felling_stage_1");
         
         int woodIndex = WoodTypeRegistry.getIndex(this.getIdentifier());
-        if (woodIndex < 0) woodIndex = 0; // fallback на дуб
+        if (woodIndex < 0) woodIndex = 0; 
         
-        world.setBlock(pos, new Block(BlockRegistry.getBlock(stage1Id).getId(), (byte)woodIndex));
-        
-        com.za.minecraft.utils.Logger.info("Log started felling: converted to %s, woodIndex: %d", stage1Id, woodIndex);
-        return false; // Блок не удаляется, а заменяется
+        BlockDefinition stageDef = BlockRegistry.getBlock(stage1Id);
+        if (stageDef != null) {
+            // Preserve BIT_NATURAL flag
+            byte metadata = (byte)((block.getMetadata() & Block.BIT_NATURAL) | (woodIndex & 0x7F));
+            world.setBlock(pos, new Block(stageDef.getId(), metadata));
+            com.za.minecraft.utils.Logger.info("Log started felling: converted to %s, woodIndex: %d", stage1Id, woodIndex);
+            return false;
+        }
+
+        return true;
     }
 
     @Override

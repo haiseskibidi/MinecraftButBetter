@@ -62,7 +62,7 @@ public class BlockTextureMapper {
         
         // --- Логика универсальных стадий срубания ---
         if (def instanceof FellingLogBlockDefinition) {
-            int woodIndex = block.getMetadata() & 0xFF;
+            int woodIndex = block.getMetadata() & 0x7F; // Игнорируем функциональные флаги (BIT_NATURAL)
             Identifier logId = WoodTypeRegistry.getLogId(woodIndex);
             
             // Ищем stripped версию блока в реестре

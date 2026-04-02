@@ -1,9 +1,11 @@
 package com.za.minecraft.world;
 
 import com.za.minecraft.entities.Player;
+import com.za.minecraft.utils.Identifier;
 import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.blocks.Blocks;
+import com.za.minecraft.world.blocks.WoodTypeRegistry;
 import com.za.minecraft.world.items.ItemStack;
 import com.za.minecraft.utils.Logger;
 
@@ -68,10 +70,19 @@ public class TreecapitatorService {
         for (BlockPos pos : toDestroy) {
             Block block = world.getBlock(pos);
             int type = block.getType();
+            int metadata = block.getMetadata();
             
-            // В будущем здесь можно вызывать честный расчет дропа из BlockDefinition
-            // Пока просто берем сам блок как предмет (упрощенно)
-            accumulatedDrop.put(type, accumulatedDrop.getOrDefault(type, 0) + 1);
+            // Resolve technical stages to actual logs
+            com.za.minecraft.world.blocks.BlockDefinition def = BlockRegistry.getBlock(type);
+            int finalType = type;
+            if (def instanceof com.za.minecraft.world.blocks.FellingLogBlockDefinition) {
+                Identifier logId = WoodTypeRegistry.getLogId(metadata & 0x7F); // Ignore BIT_NATURAL
+                if (logId != null) {
+                    finalType = BlockRegistry.getRegistry().getId(logId);
+                }
+            }
+
+            accumulatedDrop.put(finalType, accumulatedDrop.getOrDefault(finalType, 0) + 1);
             
             // Удаляем блок без вызова onDestroyed (чтобы избежать рекурсии)
             world.setBlock(pos, new Block(Blocks.AIR.getId()));
@@ -90,5 +101,23 @@ public class TreecapitatorService {
                 }
             }
         }
+    }
+
+    public int countLogsAbove(World world, BlockPos pos) {
+        int count = 0;
+        BlockPos current = pos.up();
+        while (count < 32) {
+            Block b = world.getBlock(current);
+            if (b.isAir()) break;
+            
+            com.za.minecraft.world.blocks.BlockDefinition def = BlockRegistry.getBlock(b.getType());
+            if (def != null && def.getIdentifier().getPath().contains("log")) {
+                count++;
+                current = current.up();
+            } else {
+                break;
+            }
+        }
+        return count;
     }
 }
