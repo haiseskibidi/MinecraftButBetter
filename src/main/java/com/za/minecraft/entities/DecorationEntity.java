@@ -30,6 +30,6 @@ public class DecorationEntity extends Entity {
 
     @Override
     public void update(float deltaTime, com.za.minecraft.world.World world) {
-        // Декоративные сущности обычно статичны
+        super.update(deltaTime, world);
     }
 }

@@ -38,9 +38,9 @@ public class ScavengeDecorationStep implements GenerationStep {
                 int worldX = chunkX * Chunk.CHUNK_SIZE + x;
                 int worldZ = chunkZ * Chunk.CHUNK_SIZE + z;
 
-                int surfaceY = findSurfaceY(world, worldX, worldZ);
-                if (surfaceY != -1) {
-                    Block ground = world.getBlock(worldX, surfaceY, worldZ);
+                float surfaceY = findSurfaceY(world, worldX, worldZ);
+                if (surfaceY > 0) {
+                    Block ground = world.getBlock(worldX, (int)Math.floor(surfaceY - 0.01f), worldZ);
                     BlockDefinition groundDef = BlockRegistry.getBlock(ground.getType());
                     
                     if (groundDef.canSupportScavenge()) {
@@ -49,9 +49,9 @@ public class ScavengeDecorationStep implements GenerationStep {
                         for (ScavengeSettings.Entry entry : ScavengeSettings.getEntries()) {
                             if (roll < entry.chance()) {
                                 // Создаем 3D сущность предмета вместо блока
-                                var item = ItemRegistry.getItem(entry.blockId()); // В настройках теперь ID предметов
+                                var item = ItemRegistry.getItem(entry.blockId()); 
                                 if (item != null) {
-                                    Vector3f pos = new Vector3f(worldX + 0.5f, surfaceY + 1.05f, worldZ + 0.5f);
+                                    Vector3f pos = new Vector3f(worldX + 0.5f, surfaceY, worldZ + 0.5f);
                                     float rot = random.nextFloat() * (float)Math.PI * 2;
                                     world.spawnEntity(new ResourceEntity(pos, new ItemStack(item), rot));
                                 }
@@ -65,13 +65,22 @@ public class ScavengeDecorationStep implements GenerationStep {
         }
     }
 
-    private int findSurfaceY(World world, int x, int z) {
+    private float findSurfaceY(World world, int x, int z) {
         for (int y = Chunk.CHUNK_HEIGHT - 1; y > 0; y--) {
             Block b = world.getBlock(x, y, z);
             if (!b.isAir()) {
                 BlockDefinition def = BlockRegistry.getBlock(b.getType());
                 if (def.isSolid()) {
-                    return y;
+                    float topY = (float)y;
+                    com.za.minecraft.world.physics.VoxelShape shape = def.getShape(b.getMetadata());
+                    if (shape != null && !shape.getBoxes().isEmpty()) {
+                        for (com.za.minecraft.world.physics.AABB box : shape.getBoxes()) {
+                            topY = Math.max(topY, y + box.maxY());
+                        }
+                    } else {
+                        topY += 1.0f;
+                    }
+                    return topY;
                 }
             }
         }

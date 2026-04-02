@@ -3,6 +3,7 @@ package com.za.minecraft.entities;
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.physics.AABB;
+import com.za.minecraft.world.physics.VoxelShape;
 import org.joml.Vector3f;
 
 /**
@@ -11,8 +12,10 @@ import org.joml.Vector3f;
  */
 public abstract class Entity {
     protected Vector3f position;
+    protected Vector3f prevPosition;
     protected final Vector3f velocity;
     protected final Vector3f rotation;
+    protected final Vector3f prevRotation;
     protected com.za.minecraft.world.physics.AABB boundingBox;
     
     protected boolean onGround = false;
@@ -24,8 +27,10 @@ public abstract class Entity {
 
     public Entity(Vector3f position, float width, float height) {
         this.position = new Vector3f(position);
+        this.prevPosition = new Vector3f(position);
         this.velocity = new Vector3f();
         this.rotation = new Vector3f();
+        this.prevRotation = new Vector3f();
         setBoundingBox(width, height);
     }
 
@@ -45,6 +50,10 @@ public abstract class Entity {
     }
 
     public void update(float deltaTime, World world) {
+        // Сохраняем состояние начала тика
+        prevPosition.set(position);
+        prevRotation.set(rotation);
+        
         if (!flying) {
             velocity.y = Math.max(velocity.y + GRAVITY * deltaTime, TERMINAL_VELOCITY);
         }
@@ -57,38 +66,59 @@ public abstract class Entity {
         if (onGround && Math.abs(velocity.y) < 0.005f) velocity.y = 0f;
     }
 
+    public Vector3f getInterpolatedPosition(float alpha) {
+        return new Vector3f(prevPosition).lerp(position, alpha);
+    }
+
+    public Vector3f getInterpolatedRotation(float alpha) {
+        // Линейная интерполяция углов (для кувыркания предметов достаточно)
+        return new Vector3f(prevRotation).lerp(rotation, alpha);
+    }
+
     protected void move(World world, float dx, float dy, float dz) {
+        float originalDx = dx;
         float originalDy = dy;
+        float originalDz = dz;
+        
+        // 1. UNSTUCK: Если сущность уже внутри блока (например, при спавне), 
+        // пытаемся мягко вытолкнуть её вверх
         AABB currentBox = boundingBox.offset(position);
+        if (isCollidingAt(world, currentBox)) {
+            for (int i = 0; i < 10; i++) { // Проверяем 10 ступеней по 0.1 блока
+                float lift = 0.1f * (i + 1);
+                if (!isCollidingAt(world, boundingBox.offset(position.x, position.y + lift, position.z))) {
+                    position.y += lift;
+                    currentBox = boundingBox.offset(position);
+                    break;
+                }
+            }
+        }
 
-        // --- Vertical movement with collision ---
+        // 2. VERTICAL COLLISION
         if (dy != 0) {
-            // Reset onGround only if we are moving significantly upwards (jump)
-            if (dy > 0.001f) onGround = false; 
+            if (dy > 0) onGround = false;
 
-            int minX = (int) Math.floor(currentBox.getMin().x);
-            int maxX = (int) Math.floor(currentBox.getMax().x);
-            int minZ = (int) Math.floor(currentBox.getMin().z);
-            int maxZ = (int) Math.floor(currentBox.getMax().z);
-            int minY = (int) Math.floor(currentBox.getMin().y + Math.min(0, dy));
-            int maxY = (int) Math.floor(currentBox.getMax().y + Math.max(0, dy));
+            int minX = (int) Math.floor(currentBox.minX());
+            int maxX = (int) Math.floor(currentBox.maxX());
+            int minZ = (int) Math.floor(currentBox.minZ());
+            int maxZ = (int) Math.floor(currentBox.maxZ());
+            int minY = (int) Math.floor(currentBox.minY() + Math.min(0, dy));
+            int maxY = (int) Math.floor(currentBox.maxY() + Math.max(0, dy));
 
             for (int x = minX; x <= maxX; x++) {
                 for (int z = minZ; z <= maxZ; z++) {
                     for (int y = minY; y <= maxY; y++) {
                         Block block = world.getBlock(x, y, z);
                         if (!block.isAir() && block.isSolid()) {
-                            com.za.minecraft.world.physics.VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
+                            VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
                             if (shape != null) {
                                 for (AABB box : shape.getBoxes()) {
                                     AABB blockBox = box.offset(x, y, z);
-                                    AABB testBox = currentBox.offset(0, dy, 0);
-                                    if (testBox.intersects(blockBox)) {
-                                        if (dy > 0) {
-                                            dy = blockBox.getMin().y - currentBox.getMax().y - 0.001f;
-                                        } else {
-                                            dy = blockBox.getMax().y - currentBox.getMin().y + 0.001f;
-                                            onGround = true; 
+                                    if (currentBox.offset(0, dy, 0).intersects(blockBox)) {
+                                        if (dy > 0) dy = blockBox.minY() - currentBox.maxY() - 0.001f;
+                                        else {
+                                            dy = blockBox.maxY() - currentBox.minY() + 0.001f;
+                                            onGround = true;
                                         }
                                         velocity.y = 0;
                                     }
@@ -102,33 +132,32 @@ public abstract class Entity {
             currentBox = boundingBox.offset(position);
         }
 
-        // If we were falling but didn't hit ground this frame, we are no longer on ground
+        // Если мы падали, но не коснулись земли (dy остался равен originalDy), значит мы в воздухе
         if (originalDy < -0.001f && onGround && Math.abs(dy - originalDy) < 0.0001f) {
             onGround = false;
         }
 
-        // --- Horizontal movement with collision (X) ---
+        // 3. HORIZONTAL COLLISION (X)
         if (dx != 0) {
-            int minX = (int) Math.floor(currentBox.getMin().x + Math.min(0, dx));
-            int maxX = (int) Math.floor(currentBox.getMax().x + Math.max(0, dx));
-            int minZ = (int) Math.floor(currentBox.getMin().z);
-            int maxZ = (int) Math.floor(currentBox.getMax().z);
-            int minY = (int) Math.floor(currentBox.getMin().y);
-            int maxY = (int) Math.floor(currentBox.getMax().y);
+            int minX = (int) Math.floor(currentBox.minX() + Math.min(0, dx));
+            int maxX = (int) Math.floor(currentBox.maxX() + Math.max(0, dx));
+            int minZ = (int) Math.floor(currentBox.minZ());
+            int maxZ = (int) Math.floor(currentBox.maxZ());
+            int minY = (int) Math.floor(currentBox.minY());
+            int maxY = (int) Math.floor(currentBox.maxY());
 
             for (int x = minX; x <= maxX; x++) {
                 for (int z = minZ; z <= maxZ; z++) {
                     for (int y = minY; y <= maxY; y++) {
                         Block block = world.getBlock(x, y, z);
                         if (!block.isAir() && block.isSolid()) {
-                            com.za.minecraft.world.physics.VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
+                            VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
                             if (shape != null) {
                                 for (AABB box : shape.getBoxes()) {
                                     AABB blockBox = box.offset(x, y, z);
-                                    AABB testBox = currentBox.offset(dx, 0, 0);
-                                    if (testBox.intersects(blockBox)) {
-                                        if (dx > 0) dx = blockBox.getMin().x - currentBox.getMax().x - 0.001f;
-                                        else dx = blockBox.getMax().x - currentBox.getMin().x + 0.001f;
+                                    if (currentBox.offset(dx, 0, 0).intersects(blockBox)) {
+                                        if (dx > 0) dx = blockBox.minX() - currentBox.maxX() - 0.001f;
+                                        else dx = blockBox.maxX() - currentBox.minX() + 0.001f;
                                         velocity.x = 0;
                                     }
                                 }
@@ -141,28 +170,27 @@ public abstract class Entity {
             currentBox = boundingBox.offset(position);
         }
 
-        // --- Horizontal movement with collision (Z) ---
+        // 4. HORIZONTAL COLLISION (Z)
         if (dz != 0) {
-            int minX = (int) Math.floor(currentBox.getMin().x);
-            int maxX = (int) Math.floor(currentBox.getMax().x);
-            int minZ = (int) Math.floor(currentBox.getMin().z + Math.min(0, dz));
-            int maxZ = (int) Math.floor(currentBox.getMax().z + Math.max(0, dz));
-            int minY = (int) Math.floor(currentBox.getMin().y);
-            int maxY = (int) Math.floor(currentBox.getMax().y);
+            int minX = (int) Math.floor(currentBox.minX());
+            int maxX = (int) Math.floor(currentBox.maxX());
+            int minZ = (int) Math.floor(currentBox.minZ() + Math.min(0, dz));
+            int maxZ = (int) Math.floor(currentBox.maxZ() + Math.max(0, dz));
+            int minY = (int) Math.floor(currentBox.minY());
+            int maxY = (int) Math.floor(currentBox.maxY());
 
             for (int x = minX; x <= maxX; x++) {
                 for (int z = minZ; z <= maxZ; z++) {
                     for (int y = minY; y <= maxY; y++) {
                         Block block = world.getBlock(x, y, z);
                         if (!block.isAir() && block.isSolid()) {
-                            com.za.minecraft.world.physics.VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
+                            VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
                             if (shape != null) {
                                 for (AABB box : shape.getBoxes()) {
                                     AABB blockBox = box.offset(x, y, z);
-                                    AABB testBox = currentBox.offset(0, 0, dz);
-                                    if (testBox.intersects(blockBox)) {
-                                        if (dz > 0) dz = blockBox.getMin().z - currentBox.getMax().z - 0.001f;
-                                        else dz = blockBox.getMax().z - currentBox.getMin().z + 0.001f;
+                                    if (currentBox.offset(0, 0, dz).intersects(blockBox)) {
+                                        if (dz > 0) dz = blockBox.minZ() - currentBox.maxZ() - 0.001f;
+                                        else dz = blockBox.maxZ() - currentBox.minZ() + 0.001f;
                                         velocity.z = 0;
                                     }
                                 }
@@ -173,6 +201,32 @@ public abstract class Entity {
             }
             position.z += dz;
         }
+    }
+
+    private boolean isCollidingAt(World world, AABB box) {
+        int minX = (int) Math.floor(box.minX());
+        int maxX = (int) Math.floor(box.maxX());
+        int minY = (int) Math.floor(box.minY());
+        int maxY = (int) Math.floor(box.maxY());
+        int minZ = (int) Math.floor(box.minZ());
+        int maxZ = (int) Math.floor(box.maxZ());
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    Block block = world.getBlock(x, y, z);
+                    if (!block.isAir() && block.isSolid()) {
+                        VoxelShape shape = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType()).getShape(block.getMetadata());
+                        if (shape != null) {
+                            for (AABB bBox : shape.getBoxes()) {
+                                if (box.intersects(bBox.offset(x, y, z))) return true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     public Vector3f getPosition() { return position; }

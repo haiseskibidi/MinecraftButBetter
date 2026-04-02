@@ -28,11 +28,10 @@ public class ScoutEntity extends LivingEntity {
 
     @Override
     public void update(float deltaTime, World world) {
+        super.update(deltaTime, world);
+        
         // AI Logic
         updateAI(deltaTime, world);
-        
-        // Physics and Movement
-        super.update(deltaTime, world);
     }
 
     private void updateAI(float deltaTime, World world) {

@@ -25,13 +25,25 @@ public class ItemEntity extends Entity {
     
     @Override
     public void update(float deltaTime, World world) {
+        // Сохраняем состояние начала тика
+        prevPosition.set(position);
+        prevRotation.set(rotation);
+        
         float gravityMultiplier = stack.getItem().getWeight();
         
-        if (!flying) {
+        // Custom gravity for items (based on weight)
+        if (!flying && !onGround) {
             velocity.y = Math.max(velocity.y + GRAVITY * gravityMultiplier * deltaTime, TERMINAL_VELOCITY);
+        } else if (onGround) {
+            velocity.y = 0; // Ground lock
         }
         
+        // Мы вызываем move напрямую, минуя Entity.update(), так как нам нужна кастомная гравитация
         move(world, velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
+
+        // Snap very small residual velocities to zero
+        if (Math.abs(velocity.x) < 0.005f) velocity.x = 0f;
+        if (Math.abs(velocity.z) < 0.005f) velocity.z = 0f;
 
         age += deltaTime;
         if (pickupDelay > 0) {
@@ -41,20 +53,11 @@ public class ItemEntity extends Entity {
         // Трение (Friction)
         float friction;
         if (onGround) {
-            // Универсальная формула: чем тяжелее предмет, тем быстрее он останавливается (меньше коэффициент)
-            // Вес 0.1 (волокно) -> 0.95 (долго скользит)
-            // Вес 1.0 (обычный предмет) -> 0.80 (стандарт)
-            // Вес 2.5 (тяжелый блок) -> 0.50 (быстро останавливается)
             float weightFactor = stack.getItem().getWeight();
             friction = 0.98f - (weightFactor * 0.2f);
-            
-            // Защита: трение не может быть меньше 0.1 (мгновенный стоп) и больше 0.98 (вечный полет)
             friction = Math.max(0.1f, Math.min(0.98f, friction));
-            
-            // Замедляем вращение на земле
             angularVelocity.mul(0.9f);
         } else {
-            // В воздухе трение почти отсутствует
             friction = 0.98f;
         }
         
@@ -62,11 +65,26 @@ public class ItemEntity extends Entity {
         velocity.z *= friction;
         
         // Rotation for visual tumbling effect
+        if (onGround) {
+            // Плавно выравниваем предмет на земле (Pitch и Roll в 0)
+            rotation.x = lerpAngle(rotation.x, 0, deltaTime * 5.0f);
+            rotation.z = lerpAngle(rotation.z, 0, deltaTime * 5.0f);
+            // Замедляем вращение вокруг Y
+            angularVelocity.mul(0.85f);
+        }
+        
         rotation.add(
             angularVelocity.x * deltaTime,
             angularVelocity.y * deltaTime,
             angularVelocity.z * deltaTime
         );
+    }
+
+    private float lerpAngle(float start, float end, float t) {
+        float diff = end - start;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        return start + diff * t;
     }
     
     public ItemStack getStack() {

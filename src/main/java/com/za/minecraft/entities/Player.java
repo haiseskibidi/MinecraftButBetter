@@ -103,6 +103,8 @@ public class Player extends LivingEntity {
     
     @Override
     public void update(float deltaTime, World world) {
+        super.update(deltaTime, world);
+        
         inventory.update(world, this, com.za.minecraft.engine.core.GameLoop.getInstance().getCamera());
         updateHunger(deltaTime);
         updateNoise(deltaTime);
@@ -135,7 +137,6 @@ public class Player extends LivingEntity {
         locomotionTimer = (locomotionTimer + deltaTime / currentDuration) % 1.0f;
         
         preUpdateVelocityY = velocity.y;
-        super.update(deltaTime, world);
     }
 
     public void updateAnimations(float deltaTime, World world) {

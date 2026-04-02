@@ -1,8 +1,16 @@
  # Архитектура проекта "MinecraftButBetter"
 
-### Rendering Pipeline (v5.1 UPDATED)
-1. **RGBA Framebuffer**: Supports alpha-channel masking for post-processing effects.
-2. **Depth-Sampling Architecture**:
+### Entity Physics & Collision System (v5.6 UPDATED)
+1.  **Interpolation Engine**: Движок использует разделение физического тика (Fixed Update) и рендеринга. Каждая сущность хранит состояние текущего и предыдущего тика (`prevPosition`, `prevRotation`). Рендерер вычисляет промежуточное состояние через коэффициент `alpha`, обеспечивая плавность 144Hz+ на 20Hz физике.
+2.  **AABB Collision Strategy**: Используется скользящая коллизия с epsilon-отступами. Внедрена логика **Unstuck** (поэтапное выталкивание вверх) для предотвращения проваливания объектов сквозь террейн при лагах или некорректном спавне.
+3.  **Ground Locking**: Для оптимизации и стабильности визуализации, при нахождении на земле (`onGround`) вертикальная скорость обнуляется, а гравитация временно отключается, предотвращая микро-колебания объекта "внутри" поверхности блока.
+
+### Rendering Pipeline (v5.2 UPDATED)
+1.  **RGBA Framebuffer**: Supports alpha-channel masking for post-processing effects.
+2.  **Dynamic Entity Rendering**:
+    - **Tumbling & Bobbing**: Выброшенные предметы используют физическое вращение (`angularVelocity`) и визуальное покачивание (`bobbing`). Покачивание всегда положительно относительно поверхности земли.
+    - **Axis-Projection Lift**: При отрисовке вращающихся кубов (блоков-предметов) высота подъема (`lift`) вычисляется как сумма абсолютных проекций локальных осей блока на мировую ось Y. Это гарантирует, что визуальная модель всегда находится над поверхностью, независимо от угла наклона.
+3.  **Depth-Sampling Architecture**:
     - **Depth Texture**: `Framebuffer` now provides a full depth texture for screen-space effects.
     - **Crease AO**: Post-processor analyzes depth derivatives to darken crevices.
 3. **Dynamic VoxelShape Highlight (NEW)**:

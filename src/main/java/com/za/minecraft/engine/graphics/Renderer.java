@@ -362,10 +362,12 @@ public class Renderer {
 
         blockShader.use();
         for (com.za.minecraft.entities.Entity entity : world.getEntities()) {
+            Vector3f interpPos = entity.getInterpolatedPosition(alpha);
+            
             if (entity instanceof com.za.minecraft.entities.ScoutEntity scout) {
                 if (playerMesh == null) createPlayerMesh();
                 modelMatrix.identity()
-                    .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z())
+                    .translate(interpPos.x(), interpPos.y(), interpPos.z())
                     .rotateY(entity.getRotation().y);
 
                 blockShader.setMatrix4f("model", modelMatrix);
@@ -390,20 +392,40 @@ public class Renderer {
                 }
 
                 if (mesh != null) {
-                    float age = itemEntity.getAge();
-                    float bob = (float) Math.sin(age * 2.5f) * 0.05f;
+                    float age = itemEntity.getAge() + alpha * 0.016f; 
+                    float bob = (float) (Math.sin(age * 2.5f) + 1.0f) * 0.025f; 
                     float scale = item.isBlock() ? 0.25f : item.getVisualScale() * 0.45f;
+                    Vector3f interpRot = entity.getInterpolatedRotation(alpha);
+
+                    // --- Динамический расчет высоты подъема (чтобы углы не тонули) ---
+                    float lift;
+                    if (item.isBlock()) {
+                        // Матрица вращения для расчета проекций осей блока
+                        org.joml.Matrix3f rotMat = new org.joml.Matrix3f().rotateXYZ(interpRot.x, interpRot.y, interpRot.z);
+                        Vector3f axisX = rotMat.transform(new Vector3f(0.5f, 0, 0));
+                        Vector3f axisY = rotMat.transform(new Vector3f(0, 0.5f, 0));
+                        Vector3f axisZ = rotMat.transform(new Vector3f(0, 0, 0.5f));
+                        // Максимальное отклонение по вертикали от центра
+                        float maxExtentY = Math.abs(axisX.y) + Math.abs(axisY.y) + Math.abs(axisZ.y);
+                        lift = (maxExtentY * scale) + bob;
+                    } else {
+                        lift = (scale * 0.5f) + bob;
+                    }
 
                     modelMatrix.identity()
-                        .translate(entity.getPosition().x(), entity.getPosition().y() + 0.1f + bob, entity.getPosition().z());
-                    
-                    modelMatrix.rotateX(itemEntity.getRotation().x)
-                               .rotateY(itemEntity.getRotation().y)
-                               .rotateZ(itemEntity.getRotation().z)
-                               .scale(scale);
+                        .translate(interpPos.x(), interpPos.y() + lift, interpPos.z())
+                        .rotateX(interpRot.x)
+                        .rotateY(interpRot.y)
+                        .rotateZ(interpRot.z)
+                        .scale(scale);
 
                     if (item.isBlock()) {
-                        modelMatrix.translate(-0.5f, 0, -0.5f);
+                        com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(item.getId());
+                        if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE) {
+                            modelMatrix.translate(0, -0.5f, 0);
+                        } else {
+                            modelMatrix.translate(-0.5f, -0.5f, -0.5f);
+                        }
                     }
 
                     blockShader.setMatrix4f("model", modelMatrix);
@@ -421,8 +443,10 @@ public class Renderer {
 
                 if (mesh != null) {
                     float scale = item.getVisualScale();
+                    float thicknessOffset = 0.03125f * scale;
+                    
                     modelMatrix.identity()
-                        .translate(entity.getPosition().x(), entity.getPosition().y() + 0.05f, entity.getPosition().z())
+                        .translate(interpPos.x(), interpPos.y() + thicknessOffset, interpPos.z())
                         .rotateY(resource.getRotation().y)
                         .rotateX(1.5708f) 
                         .scale(scale);
@@ -452,7 +476,7 @@ public class Renderer {
                 if (mesh != null) {
                     org.joml.Vector3f scale = def.visualScale();
                     modelMatrix.identity()
-                        .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z())
+                        .translate(interpPos.x(), interpPos.y(), interpPos.z())
                         .rotateY(entity.getRotation().y);
 
                     if ("block".equals(def.modelType())) {
@@ -469,7 +493,7 @@ public class Renderer {
             } else {
                 if (playerMesh == null) createPlayerMesh();
                 modelMatrix.identity()
-                    .translate(entity.getPosition().x(), entity.getPosition().y(), entity.getPosition().z())
+                    .translate(interpPos.x(), interpPos.y(), interpPos.z())
                     .rotateY(entity.getRotation().y);
 
                 blockShader.setMatrix4f("model", modelMatrix);
