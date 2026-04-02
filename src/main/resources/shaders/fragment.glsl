@@ -25,6 +25,12 @@ uniform int faceMask = 0; // 16-bit mask for 4x4 grid
 uniform bool useMask = false;
 uniform float overlayLayer;
 uniform float uBreakingProgress;
+uniform int uBreakingPattern;
+uniform float uWobbleTime;
+uniform vec3 uBreakingHitPoint;
+uniform vec3 uWeakSpotPos;
+uniform vec3 uHitHistory[16];
+uniform int uHitCount;
 uniform vec3 uHiddenBlockPos;
 uniform bool uIsProxy;
 
@@ -37,6 +43,7 @@ uniform float uHandPartWeight = 0.0; // 1.0=hand, 0.6=forearm, 0.3=shoulder
 #include "include/hand_conditions.glsl"
 #include "include/block_features.glsl"
 #include "include/lighting.glsl"
+#include "include/breaking_patterns.glsl"
 
 void main() {
     if (!uIsProxy && uHiddenBlockPos.y >= 0.0) {
@@ -90,6 +97,11 @@ void main() {
 
         // Feature: Brighten Stump tops
         baseColor = brightenTopFace(baseColor, actualBlockType, fragNormal);
+
+        // Apply Breaking Patterns
+        if (uIsProxy && uBreakingProgress > 0.0) {
+            baseColor = applyBreakingPattern(uBreakingPattern, baseColor, vLocalPos, uBreakingProgress);
+        }
     }
 
     // Apply Lighting

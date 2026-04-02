@@ -13,6 +13,7 @@ import com.za.minecraft.world.BlockPos;
 import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.blocks.Blocks;
 import com.za.minecraft.world.blocks.BlockDefinition;
+import com.za.minecraft.world.blocks.MiningSettings;
 import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.blocks.PlacementType;
 import com.za.minecraft.world.items.Item;
@@ -65,6 +66,8 @@ public class InputManager {
     private float blockAccumulatedDamage = 0.0f;
     private float hitCooldownTimer = 0.0f;
     private float wobbleTimer = 0.0f;
+    private Vector3f currentWeakSpot = new Vector3f(0.5f);
+    private final java.util.List<Vector3f> hitHistory = new java.util.ArrayList<>();
     private float breakDelayTimer = 0.0f;
     private float placeDelayTimer = 0.0f;
     private static final float BREAK_COOLDOWN = 0.25f; // 4 bps (5 ticks)
@@ -751,14 +754,14 @@ public class InputManager {
                     breakingBlockPos = null;
                     breakingProgress = 0.0f;
                     blockAccumulatedDamage = 0.0f;
-                    renderer.setBreakingBlock(null, null, 0.0f, 0.0f);
+                    renderer.setBreakingBlock(null, null, 0.0f, 0.0f, null, null, null);
                 }
             } else {
                 if (breakingBlockPos != null) {
                     breakingBlockPos = null;
                     breakingProgress = 0.0f;
                     blockAccumulatedDamage = 0.0f;
-                    renderer.setBreakingBlock(null, null, 0.0f, 0.0f);
+                    renderer.setBreakingBlock(null, null, 0.0f, 0.0f, null, null, null);
                 }
             }
 
@@ -778,11 +781,12 @@ public class InputManager {
                     int blockType = world.getBlock(hitPos).getType();
                     BlockDefinition blockDef = BlockRegistry.getBlock(blockType);
                     
-                    float rx = raycast.getHitPoint().x - hitPos.x();
+                    float rx = raycast.getHitPoint().x - hitPos.x() - 0.5f;
                     float ry = raycast.getHitPoint().y - hitPos.y();
-                    float rz = raycast.getHitPoint().z - hitPos.z();
+                    float rz = raycast.getHitPoint().z - hitPos.z() - 0.5f;
+                    Vector3f localHit = new Vector3f(rx, ry, rz);
 
-                    if (blockDef.onLeftClick(world, hitPos, player, currentStack, rx, ry, rz, isNewLeftClick)) {
+                    if (blockDef.onLeftClick(world, hitPos, player, currentStack, rx + 0.5f, ry, rz + 0.5f, isNewLeftClick)) {
                         leftMousePressed = true;
                         return null; 
                     }
@@ -792,6 +796,8 @@ public class InputManager {
                         breakingProgress = 0.0f;
                         blockAccumulatedDamage = 0.0f;
                         wobbleTimer = 1.0f; // Prevent animation leaking to new blocks
+                        hitHistory.clear();
+                        currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), raycast.getNormal());
                     }
 
                     float hardness = blockDef.getHardness();
@@ -811,7 +817,21 @@ public class InputManager {
                                     currentItem.getMiningSpeed(blockType) : 
                                     Items.HAND.getMiningSpeed(blockType);
                                 
-                                blockAccumulatedDamage += miningDamage;
+                                MiningSettings mSettings = blockDef.getMiningSettings();
+                                if (mSettings.strategy().equals("weak_spots")) {
+                                    float dist = localHit.distance(currentWeakSpot);
+                                    if (dist < mSettings.precision()) {
+                                        blockAccumulatedDamage += miningDamage;
+                                        hitHistory.add(new Vector3f(currentWeakSpot));
+                                        currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), raycast.getNormal());
+                                        com.za.minecraft.utils.Logger.info("Weak spot HIT!");
+                                    } else {
+                                        blockAccumulatedDamage += miningDamage * mSettings.missMultiplier();
+                                    }
+                                } else {
+                                    blockAccumulatedDamage += miningDamage;
+                                }
+
                                 breakingProgress = Math.min(1.0f, blockAccumulatedDamage / maxHealth);
                                 
                                 hitCooldownTimer = 0.35f;
@@ -827,7 +847,7 @@ public class InputManager {
                             player.swing();
                         }
                         
-                        renderer.setBreakingBlock(hitPos, world.getBlock(hitPos), breakingProgress, wobbleTimer);
+                        renderer.setBreakingBlock(hitPos, world.getBlock(hitPos), breakingProgress, wobbleTimer, localHit, currentWeakSpot, hitHistory);
 
                         if (breakingProgress >= 1.0f) {
                             if (hitPos != null) {
@@ -898,7 +918,7 @@ public class InputManager {
                             breakingBlockPos = null;
                             breakingProgress = 0.0f;
                             blockAccumulatedDamage = 0.0f;
-                            renderer.setBreakingBlock(null, null, 0.0f, 0.0f);
+                            renderer.setBreakingBlock(null, null, 0.0f, 0.0f, null, null, null);
                             breakDelayTimer = BREAK_COOLDOWN;
                             if (currentStack != null && currentItem.isTool()) {
                                 com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
@@ -913,7 +933,10 @@ public class InputManager {
             } else {
                 if (breakingBlockPos != null && raycast.isHit()) {
                     Block block = world.getBlock(raycast.getBlockPos());
-                    renderer.setBreakingBlock(raycast.getBlockPos(), block, breakingProgress, wobbleTimer);
+                    float rx = raycast.getHitPoint().x - raycast.getBlockPos().x();
+                    float ry = raycast.getHitPoint().y - raycast.getBlockPos().y();
+                    float rz = raycast.getHitPoint().z - raycast.getBlockPos().z();
+                    renderer.setBreakingBlock(raycast.getBlockPos(), block, breakingProgress, wobbleTimer, new Vector3f(rx, ry, rz), currentWeakSpot, hitHistory);
                 }
             }
             leftMousePressed = lm;
@@ -1096,5 +1119,41 @@ public class InputManager {
     private boolean isPlayerAt(Player player, BlockPos blockPos) {
         Vector3f p = player.getPosition();
         return !(p.x + 0.3f <= blockPos.x() || p.x - 0.3f >= blockPos.x() + 1 || p.y + 1.8f <= blockPos.y() || p.y >= blockPos.y() + 1 || p.z + 0.3f <= blockPos.z() || p.z - 0.3f >= blockPos.z() + 1);
+    }
+
+    private Vector3f generateRandomWeakSpot(com.za.minecraft.world.physics.VoxelShape shape, Vector3f normal) {
+        if (shape == null || shape.getBoxes().isEmpty()) return new Vector3f(0, 0.5f, 0);
+        
+        // Pick the first box
+        com.za.minecraft.world.physics.AABB box = shape.getBoxes().get(0);
+        Vector3f min = box.getMin();
+        Vector3f max = box.getMax();
+
+        // Add 15% padding to each axis to keep spots away from sharp edges
+        float padding = 0.15f;
+        
+        float randX = padding + (float)Math.random() * (1.0f - padding * 2.0f);
+        float randY = padding + (float)Math.random() * (1.0f - padding * 2.0f);
+        float randZ = padding + (float)Math.random() * (1.0f - padding * 2.0f);
+
+        // Calculate actual coordinates within the box using padded randoms
+        Vector3f spot = new Vector3f(
+            min.x + randX * (max.x - min.x),
+            min.y + randY * (max.y - min.y),
+            min.z + randZ * (max.z - min.z)
+        );
+
+        // Snap to the face based on normal
+        if (normal != null) {
+            if (Math.abs(normal.x) > 0.5f) spot.x = normal.x > 0 ? max.x : min.x;
+            else if (Math.abs(normal.y) > 0.5f) spot.y = normal.y > 0 ? max.y : min.y;
+            else if (Math.abs(normal.z) > 0.5f) spot.z = normal.z > 0 ? max.z : min.z;
+        }
+
+        // Apply -0.5 offset to X and Z to match proxy mesh coordinate space
+        spot.x -= 0.5f;
+        spot.z -= 0.5f;
+
+        return spot;
     }
 }

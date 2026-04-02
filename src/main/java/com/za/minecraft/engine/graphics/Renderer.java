@@ -52,6 +52,10 @@ public class Renderer {
     // Impact Wobble
     private Block currentBreakingBlock;
     private com.za.minecraft.world.BlockPos breakingPos;
+    private Vector3f breakingHitPoint = new Vector3f();
+    private Vector3f weakSpotPos = new Vector3f();
+    private final Vector3f[] hitHistory = new Vector3f[16];
+    private int hitCount = 0;
     private Mesh breakingMesh;
     private Mesh holeMesh;
     private com.za.minecraft.world.BlockPos holePos;
@@ -67,7 +71,7 @@ public class Renderer {
         this.lightDirection = new Vector3f(0.2f, -1.0f, 0.2f).normalize();
     }
 
-    public void setBreakingBlock(com.za.minecraft.world.BlockPos pos, Block block, float progress, float timer) {
+    public void setBreakingBlock(com.za.minecraft.world.BlockPos pos, Block block, float progress, float timer, Vector3f localHitPoint, Vector3f localWeakSpot, java.util.List<Vector3f> history) {
         if (block == null) {
             this.breakingPos = null;
             this.currentBreakingBlock = null;
@@ -84,6 +88,16 @@ public class Renderer {
         this.breakingPos = pos;
         this.breakingProgress = progress;
         this.wobbleTimer = timer;
+        if (localHitPoint != null) this.breakingHitPoint.set(localHitPoint);
+        if (localWeakSpot != null) this.weakSpotPos.set(localWeakSpot);
+        
+        this.hitCount = history != null ? Math.min(16, history.size()) : 0;
+        if (history != null) {
+            for (int i = 0; i < hitCount; i++) {
+                if (hitHistory[i] == null) hitHistory[i] = new Vector3f();
+                hitHistory[i].set(history.get(i));
+            }
+        }
     }
 
     public void setPreviewBlock(com.za.minecraft.world.BlockPos pos, Block block) {
@@ -232,6 +246,10 @@ public class Renderer {
         blockShader.setBoolean("previewPass", false);
         blockShader.setFloat("brightnessMultiplier", 1.0f);
         blockShader.setInt("highlightPass", 0);
+        blockShader.setFloat("uBreakingProgress", 0.0f);
+        blockShader.setInt("uBreakingPattern", 0);
+        blockShader.setVector3f("uBreakingHitPoint", new Vector3f(0.5f));
+        blockShader.setVector3f("uWeakSpotPos", new Vector3f(0.5f));
         
         if (breakingPos != null) {
             if (holeMesh == null || !breakingPos.equals(holePos)) {
@@ -314,6 +332,13 @@ public class Renderer {
         blockShader.setFloat("uWobbleShake", shake);
         blockShader.setFloat("uWobbleTime", wobbleTimer);
         blockShader.setFloat("uBreakingProgress", breakingProgress);
+        blockShader.setInt("uBreakingPattern", def.getBreakingPattern());
+        blockShader.setVector3f("uBreakingHitPoint", breakingHitPoint);
+        blockShader.setVector3f("uWeakSpotPos", weakSpotPos);
+        blockShader.setInt("uHitCount", hitCount);
+        for (int i = 0; i < hitCount; i++) {
+            blockShader.setVector3f("uHitHistory[" + i + "]", hitHistory[i]);
+        }
         
         if (breakingMesh != null) {
             blockShader.setBoolean("uIsProxy", true);

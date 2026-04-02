@@ -52,11 +52,17 @@
 ### com.za.minecraft.engine.graphics.Renderer (UPDATED)
 Назначение: Главный рендерер игрового мира.
 Функции:
-- `render()`: Основной проход отрисовки. Делегирует отрисовку обводки в `BlockHighlightRenderer`.
-- `setBreakingBlock()`: Принимает данные о ломаемом блоке и запускает генерацию `breakingMesh`.
-- `renderBreakingProxyBlock()`: Отрисовывает анимированный прокси-меш блока поверх оригинального.
+- `render()`: Основной проход. Передает массив `uHitHistory` (16 слотов), точку клика `uBreakingHitPoint` и цель `uWeakSpotPos` в шейдер.
+- `setBreakingBlock()`: Принимает историю ударов и текущую слабую точку для синхронизации визуала.
+- Отрисовывает анимированный прокси-меш и `holeMesh`.
+- `renderEntities()`, `renderPlayers()`: Отрисовка динамических объектов.
+- `renderBlockHighlight()`: Отрисовка рамки выделенного блока. Делегирует `BlockHighlightRenderer`.
 
-### com.za.minecraft.engine.graphics.CarvingRenderer (UPDATED)
+### src/main/resources/shaders/include
+- `breaking_patterns.glsl`: (NEW) Математика "зарубок" (Wood Notches) и визуализация истории ударов через массив попаданий.
+- `noise.glsl`: (UPDATED) Добавлены функции `noise(vec3)` и `voronoi(vec3)`.
+
+### src/main/resources/shaders/vertex.glsl (UPDATED)
 Назначение: Рендеринг динамических масок на блоках (например, обтёсывание пней).
 Функции:
 - `render()`: Отрисовывает маску поверх блока. Теперь синхронизирован с Impact Wobble (поддерживает `uIsProxy` и общую систему координат).
@@ -88,7 +94,9 @@
 ### com.za.minecraft.engine.input.InputManager (UPDATED)
 Назначение: Обработка ввода и игровая логика.
 Функции:
-- `input()`: Реализует дискретные удары по блокам и рейкаст.
+- `input()`: Реализует систему **Weak Spots** (ударов по точкам). Вычисляет дистанцию от клика до текущей цели.
+- `generateRandomWeakSpot()`: Создает новую цель на поверхности блока с учётом его `VoxelShape` и отступов (15% padding).
+- Ведет список `hitHistory` текущей сессии добычи.
 - Управляет кулдаунами `hitCooldownTimer` и сохранением прогресса ломания.
 
 ### com.za.minecraft.engine.core.GameLoop (UPDATED)
