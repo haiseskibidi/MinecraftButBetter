@@ -1,16 +1,23 @@
 {
-  "id": 184,
-  "identifier": "minecraft:stripped_dark_oak_log",
-  "translationKey": "block.minecraft.stripped_dark_oak_log",
-  "solid": true,
-  "transparent": false,
-  "type": "log",
-  "breaking_pattern": "wood",
-  "hardness": 2.0,
-  "tags": ["minecraft:logs"],
-  "textures": {
-    "top": "stripped_dark_oak_log_top.png",
-    "bottom": "stripped_dark_oak_log_top.png",
-    "side": "stripped_dark_oak_log.png"
-  }
+    "id": 184,
+    "identifier": "minecraft:stripped_dark_oak_log",
+    "translationKey": "block.minecraft.stripped_dark_oak_log",
+    "solid": true,
+    "transparent": false,
+    "type": "log",
+    "breaking_pattern": "wood",
+    "hardness": 2.0,
+    "tags": [
+        "minecraft:logs"
+    ],
+    "textures": {
+        "top": "stripped_dark_oak_log_top.png",
+        "bottom": "stripped_dark_oak_log_top.png",
+        "side": "stripped_dark_oak_log.png"
+    },
+    "mining_logic": {
+        "strategy": "weak_spots",
+        "precision": 0.2,
+        "miss_multiplier": 0.3
+    }
 }

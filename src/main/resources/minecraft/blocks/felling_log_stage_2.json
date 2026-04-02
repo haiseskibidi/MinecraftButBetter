@@ -1,18 +1,29 @@
 {
-  "id": 452,
-  "identifier": "minecraft:felling_stage_2",
-  "translationKey": "block.minecraft.felling_log",
-  "solid": true,
-  "transparent": true,
-  "type": "felling_log",
-  "breaking_pattern": "wood",
-  "mining_logic": {
-    "strategy": "weak_spots",
-    "precision": 0.15,
-    "miss_multiplier": 0.2
-  },
-  "next_stage": "minecraft:felling_stage_3",
-  "hardness": 1.5,
-  "shape": [[0.2, 0.0, 0.2, 0.8, 1.0, 0.8]],
-  "tags": ["treecapitator"]
+    "id": 452,
+    "identifier": "minecraft:felling_stage_2",
+    "translationKey": "block.minecraft.felling_log",
+    "solid": true,
+    "transparent": true,
+    "type": "felling_log",
+    "breaking_pattern": "wood",
+    "mining_logic": {
+        "strategy": "weak_spots",
+        "precision": 0.2,
+        "miss_multiplier": 0.3
+    },
+    "next_stage": "minecraft:felling_stage_3",
+    "hardness": 1.5,
+    "shape": [
+        [
+            0.2,
+            0.0,
+            0.2,
+            0.8,
+            1.0,
+            0.8
+        ]
+    ],
+    "tags": [
+        "treecapitator"
+    ]
 }

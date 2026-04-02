@@ -87,6 +87,12 @@ public class LogBlockDefinition extends BlockDefinition {
             return true; // Рукой ломаем по одному блоку
         }
 
+        // Проверяем, есть ли что-то над нами. Если нет — рубим как обычный блок
+        int logsAbove = com.za.minecraft.world.TreecapitatorService.getInstance().countLogsAbove(world, pos);
+        if (logsAbove == 0) {
+            return true;
+        }
+
         // Всегда начинаем с первой стадии (minecraft:felling_stage_1)
         Identifier stage1Id = Identifier.of("minecraft:felling_stage_1");
         

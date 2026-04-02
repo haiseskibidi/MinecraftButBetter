@@ -31,7 +31,9 @@ public class FellingLogBlockDefinition extends BlockDefinition {
         
         boolean shouldFell = false;
         
-        if (logsAbove <= 3) {
+        if (logsAbove == 0) {
+            shouldFell = true; // Нет блоков сверху — падает мгновенно
+        } else if (logsAbove <= 3) {
             // Маленькое дерево (до 3 блоков сверху) -> падает сразу после stage 1
             if (currentId.contains("stage_1")) shouldFell = true;
         } else if (logsAbove <= 6) {

@@ -16,5 +16,13 @@
     "placement": "log",
     "next_stage": "minecraft:felling_stage_1",
     "fellingStages": 5,
-    "tags": ["treecapitator", "minecraft:logs"]
+    "tags": [
+        "treecapitator",
+        "minecraft:logs"
+    ],
+    "mining_logic": {
+        "strategy": "weak_spots",
+        "precision": 0.2,
+        "miss_multiplier": 0.3
+    }
 }
