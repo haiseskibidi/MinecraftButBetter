@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.za.minecraft.utils.Identifier;
 import com.za.minecraft.utils.Logger;
 import com.za.minecraft.world.blocks.BlockDefinition;
+import com.za.minecraft.world.blocks.MiningSettings;
 import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.blocks.BlockTextures;
 import com.za.minecraft.world.blocks.BlockTypeRegistry;
@@ -595,6 +596,27 @@ public class DataLoader {
             if (obj.has("requiredTool")) def.setRequiredTool(obj.get("requiredTool").getAsString());            if (obj.has("dropItem")) def.setDropItem(obj.get("dropItem").getAsString());
             if (obj.has("dropChance")) def.setDropChance(obj.get("dropChance").getAsFloat());
             
+            if (obj.has("wobble_animation")) def.setWobbleAnimation(obj.get("wobble_animation").getAsString());
+            
+            if (obj.has("breaking_pattern")) {
+                String pattern = obj.get("breaking_pattern").getAsString().toLowerCase();
+                int patternId = switch(pattern) {
+                    case "wood" -> 1;
+                    case "stone" -> 2;
+                    case "shatter", "glass" -> 3;
+                    default -> 0;
+                };
+                def.setBreakingPattern(patternId);
+            }
+
+            if (obj.has("mining_logic")) {
+                JsonObject ml = obj.getAsJsonObject("mining_logic");
+                String strategy = ml.has("strategy") ? ml.get("strategy").getAsString() : "default";
+                float precision = ml.has("precision") ? ml.get("precision").getAsFloat() : 0.2f;
+                float multiplier = ml.has("miss_multiplier") ? ml.get("miss_multiplier").getAsFloat() : 1.0f;
+                def.setMiningSettings(new MiningSettings(strategy, precision, multiplier));
+            }
+
             // Расширенная система дропа (DropRule)
             if (obj.has("drops")) {
                 JsonArray dropsArr = obj.getAsJsonArray("drops");

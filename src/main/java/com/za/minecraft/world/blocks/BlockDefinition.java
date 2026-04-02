@@ -41,14 +41,32 @@ public class BlockDefinition {
     private float cleaningAmount = 0.0f;
     private float firingTemperature = 0.0f;
     private String wobbleAnimation = "block_wobble";
+    private int breakingPattern = 0; // 0=Generic, 1=Wood, 2=Stone, etc.
+    private MiningSettings miningSettings = MiningSettings.DEFAULT;
 
     // ... в методе getTextures() или аналогичном ...
     public String getWobbleAnimation() {
         return wobbleAnimation;
     }
 
+    public MiningSettings getMiningSettings() {
+        return miningSettings;
+    }
+
+    public void setMiningSettings(MiningSettings miningSettings) {
+        this.miningSettings = miningSettings;
+    }
+
     public void setWobbleAnimation(String wobbleAnimation) {
         this.wobbleAnimation = wobbleAnimation;
+    }
+
+    public int getBreakingPattern() {
+        return breakingPattern;
+    }
+
+    public void setBreakingPattern(int breakingPattern) {
+        this.breakingPattern = breakingPattern;
     }
 
     public void setUpperTexture(String upperTexture) {

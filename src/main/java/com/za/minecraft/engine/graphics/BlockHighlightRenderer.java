@@ -19,7 +19,7 @@ import static org.lwjgl.opengl.GL11.*;
 public class BlockHighlightRenderer {
     private final Map<VoxelShape, Mesh> highlightMeshes = new ConcurrentHashMap<>();
 
-    public void render(Camera camera, World world, RaycastResult highlightedBlock, Shader blockShader, Matrix4f modelMatrix, float alpha) {
+    public void render(Camera camera, World world, RaycastResult highlightedBlock, Shader blockShader, Matrix4f modelMatrix, float alpha, BlockPos breakingPos, Block currentBreakingBlock, float wobbleTimer) {
         BlockPos pos = highlightedBlock.getBlockPos();
         Block block = world.getBlock(pos);
         VoxelShape shape = block.getShape();
@@ -37,21 +37,53 @@ public class BlockHighlightRenderer {
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
         blockShader.setMatrix4f("view", camera.getViewMatrix(alpha));
         
+        // Vertices are now shifted by -0.5 on X and Z, so we center at pos.x + 0.5 and pos.z + 0.5.
         modelMatrix.identity()
-            .translate(pos.x() + 0.5f, pos.y() + 0.5f, pos.z() + 0.5f)
-            .scale(1.002f)
-            .translate(-0.5f, -0.5f, -0.5f);
+            .translate(pos.x() + 0.5f, pos.y(), pos.z() + 0.5f)
+            .scale(1.002f);
             
         blockShader.setMatrix4f("model", modelMatrix);
         blockShader.setInt("highlightPass", 1);
         blockShader.setVector3f("highlightColor", new Vector3f(0.2f, 0.2f, 0.2f));
         
+        boolean isProxy = false;
+        if (pos.equals(breakingPos) && currentBreakingBlock != null) {
+            isProxy = true;
+            com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(currentBreakingBlock.getType());
+            String animName = (def != null && def.getWobbleAnimation() != null) ? def.getWobbleAnimation() : "block_wobble";
+            
+            com.za.minecraft.entities.parkour.animation.AnimationProfile profile = com.za.minecraft.entities.parkour.animation.AnimationRegistry.get(animName);
+            
+            float scaleX = 1.0f, scaleY = 1.0f, scaleZ = 1.0f;
+            float offsetX = 0.0f, offsetY = 0.0f, offsetZ = 0.0f;
+            float shake = 0.0f;
+            
+            if (profile != null) {
+                float normTimer = wobbleTimer / Math.max(0.001f, profile.getDuration());
+                scaleX = profile.evaluate("scale_x", normTimer, 1.0f);
+                scaleY = profile.evaluate("scale_y", normTimer, 1.0f);
+                scaleZ = profile.evaluate("scale_z", normTimer, 1.0f);
+                offsetX = profile.evaluate("offset_x", normTimer, 0.0f);
+                offsetY = profile.evaluate("offset_y", normTimer, 0.0f);
+                offsetZ = profile.evaluate("offset_z", normTimer, 0.0f);
+                shake = profile.evaluate("shake", normTimer, 0.0f);
+            }
+            
+            blockShader.setVector3f("uWobbleScale", new Vector3f(scaleX, scaleY, scaleZ));
+            blockShader.setVector3f("uWobbleOffset", new Vector3f(offsetX, offsetY, offsetZ));
+            blockShader.setFloat("uWobbleShake", shake);
+            blockShader.setFloat("uWobbleTime", wobbleTimer);
+        }
+        
+        blockShader.setBoolean("uIsProxy", isProxy);
+
         glEnable(GL_POLYGON_OFFSET_LINE);
         glPolygonOffset(-1.0f, -1.0f);
         
         mesh.render(GL_LINES);
         
         glDisable(GL_POLYGON_OFFSET_LINE);
+        blockShader.setBoolean("uIsProxy", false);
         blockShader.setInt("highlightPass", 0);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glEnable(GL_CULL_FACE);
@@ -137,7 +169,11 @@ public class BlockHighlightRenderer {
         }
 
         float[] posArray = new float[positionsList.size()];
-        for (int i = 0; i < positionsList.size(); i++) posArray[i] = positionsList.get(i);
+        for (int i = 0; i < positionsList.size(); i += 3) {
+            posArray[i] = positionsList.get(i) - 0.5f;
+            posArray[i+1] = positionsList.get(i+1);
+            posArray[i+2] = positionsList.get(i+2) - 0.5f;
+        }
 
         int[] indArray = new int[indicesList.size()];
         for (int i = 0; i < indicesList.size(); i++) indArray[i] = indicesList.get(i);

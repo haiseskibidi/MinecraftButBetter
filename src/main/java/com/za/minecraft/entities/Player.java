@@ -272,18 +272,26 @@ public class Player extends LivingEntity {
             } else landingTimer = 1.0f;
         }
 
+        float swingPosX = 0f, swingPosY = 0f, swingPosZ = 0f;
+        float swingPitch = 0f, swingYaw = 0f, swingRoll = 0f;
+
         if (swinging) {
             String sN = heldItem != null ? heldItem.getAnimation("item_swing") : "item_swing";
             AnimationProfile swingAnim = animationRegistry.get(sN);
             if (swingAnim != null) {
-                itemSwingTimer += deltaTime / swingAnim.getDuration();
+                // scale the animation duration so it takes exactly hitCooldownTimer (0.35s) if we want perfectly matched animations.
+                // Or we can just use the json duration, but the user says it doesn't match the timing.
+                // Let's use exactly 0.35f as the swing duration to perfectly match the hit cooldown!
+                itemSwingTimer += deltaTime / 0.35f; 
                 if (itemSwingTimer >= 1.0f) { swinging = false; itemSwingTimer = 0; }
                 else {
-                    tItX += swingAnim.evaluate("item_x", itemSwingTimer, 1.0f);
-                    tItY += swingAnim.evaluate("item_y", itemSwingTimer, 1.0f);
-                    tItZ += swingAnim.evaluate("item_z", itemSwingTimer, 1.0f);
-                    tItP += swingAnim.evaluate("item_pitch", itemSwingTimer, 1.0f);
-                    tItYw += swingAnim.evaluate("item_yaw", itemSwingTimer, 1.0f);
+                    swingPosX = swingAnim.evaluate("item_x", itemSwingTimer, 1.0f);
+                    swingPosY = swingAnim.evaluate("item_y", itemSwingTimer, 1.0f);
+                    swingPosZ = swingAnim.evaluate("item_z", itemSwingTimer, 1.0f);
+                    swingPitch = swingAnim.evaluate("item_pitch", itemSwingTimer, 1.0f);
+                    swingYaw = swingAnim.evaluate("item_yaw", itemSwingTimer, 1.0f);
+                    // Also support roll for more cinematic swings
+                    swingRoll = swingAnim.evaluate("item_roll", itemSwingTimer, 1.0f);
                 }
             } else swinging = false;
         }
@@ -375,7 +383,13 @@ public class Player extends LivingEntity {
                 hand.animRotation.set(a.x * 0.7f, a.y * 0.7f, a.z * 0.7f);
                 sh.animRotation.x += lerpedWeight * 0.05f;
 
-                viewmodel.updateHierarchy(new org.joml.Matrix4f().identity().translate(mainHandPhys.currentPos));
+                // Apply swing rotations dynamically across the arm joints (snappy, ignores physics lag)
+                sh.animRotation.add(swingPitch * 0.1f, swingYaw * 0.1f, swingRoll * 0.1f);
+                fo.animRotation.add(swingPitch * 0.2f, swingYaw * 0.2f, swingRoll * 0.2f);
+                hand.animRotation.add(swingPitch * 0.7f, swingYaw * 0.7f, swingRoll * 0.7f);
+
+                Vector3f finalPos = new Vector3f(mainHandPhys.currentPos).add(swingPosX, swingPosY, swingPosZ);
+                viewmodel.updateHierarchy(new org.joml.Matrix4f().identity().translate(finalPos));
             }
         }
     }

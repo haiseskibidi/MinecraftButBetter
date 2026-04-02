@@ -5,6 +5,7 @@
     "solid": true,
     "transparent": false,
     "type": "log",
+    "breaking_pattern": "wood",
     "hardness": 2.0,
     "textures": {
         "top": "birch_log_top.png",

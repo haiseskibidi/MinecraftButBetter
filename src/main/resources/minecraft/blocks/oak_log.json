@@ -5,6 +5,12 @@
     "solid":  true,
     "transparent":  false,
     "type": "log",
+    "breaking_pattern": "wood",
+    "mining_logic": {
+        "strategy": "weak_spots",
+        "precision": 0.15,
+        "miss_multiplier": 0.2
+    },
     "hardness":  2.0,
     "textures":  {
                      "top":  "oak_log_top.png",

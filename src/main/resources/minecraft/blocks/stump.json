@@ -3,6 +3,7 @@
   "identifier": "minecraft:stump",
   "translationKey": "block.minecraft.stump",
   "type": "stump",
+  "breaking_pattern": "wood",
   "solid": true,
   "transparent": false,
   "hardness": 2.0,

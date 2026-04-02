@@ -5,6 +5,7 @@
   "solid": true,
   "transparent": false,
   "type": "log",
+  "breaking_pattern": "wood",
   "hardness": 2.0,
   "tags": ["minecraft:logs"],
   "textures": {
