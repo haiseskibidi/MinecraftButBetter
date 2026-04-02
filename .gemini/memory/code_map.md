@@ -131,7 +131,7 @@
 
 ### com.za.minecraft.engine.graphics.model.ViewmodelController
 Назначение: Менеджер скелетных анимаций.
-Функции: Применяет AnimationProfile к костям скелета, поддерживает наслоение (blending) нескольких анимаций.
+Функции: Применяет AnimationProfile к костям скелета (поддержка парсинга треков `nodeName:track`), поддерживает наслоение (blending) нескольких анимаций и динамическое масштабирование времени (`baseMiningCooldown`).
 
 ### com.za.minecraft.engine.graphics.model.ViewmodelMeshGenerator
 Назначение: Генератор воксельных мешей для костей.

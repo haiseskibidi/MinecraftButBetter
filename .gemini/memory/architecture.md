@@ -73,6 +73,7 @@
 ### Physical Viewmodel & Skeletal Animation (v5.5 UPDATED)
 1. **Skeletal Hierarchy**:
     - **Bone-Based Architecture**: Отрисовка рук переведена на полноценный скелет (`Shoulder -> Forearm -> Hand`). Это позволяет создавать сложные сочленения и реалистичную анатомию.
+    - **Per-Bone Animation Tracks**: Движок `ViewmodelController` поддерживает индивидуальные треки анимации для каждой кости (например, `forearm_r:pitch`, `hand_r:roll`), позволяя создавать сложную кинематику ударов (сгибание локтей, поворот кисти) прямо из JSON без хардкода в Java.
     - **Joint Distribution**: Вращение распределяется по иерархии (Shoulder: 10%, Forearm: 20%, Hand: 70%). Это создает эффект "гибкой руки" при поворотах без использования шейдерного скиннинга.
     - **Overlap Geometry**: Геометрия костей в JSON описана с нахлестом воксельных кубов, что предотвращает появление "дыр" в суставах при экстремальных изгибах.
 2. **Automatic Orientation & PCA Engine (NEW)**:
