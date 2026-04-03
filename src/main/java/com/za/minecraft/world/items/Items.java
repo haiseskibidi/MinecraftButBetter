@@ -8,6 +8,8 @@ import com.za.minecraft.utils.Identifier;
 public class Items {
     public static Item STONE_KNIFE;
     public static Item STONE_AXE;
+    public static Item WOODEN_SHOVEL;
+    public static Item STONE_SHOVEL;
     public static Item SCRAP_PICKAXE;
     public static Item CROWBAR;
     public static Item FUEL_CANISTER;

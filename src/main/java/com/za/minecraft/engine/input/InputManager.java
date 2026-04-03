@@ -865,6 +865,7 @@ public class InputManager {
 
                         if (!actionConsumed && blockDef.onUse(world, hitPos, player, currentStack, rx, ry, rz)) {
                             actionConsumed = true;
+                            placeDelayTimer = PLACE_COOLDOWN; // Prevent accidental placement on next frame
                         }
                     }
                 }
@@ -919,6 +920,7 @@ public class InputManager {
                                     
                                     ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
                                     player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
+                                    player.place();
                                     placeDelayTimer = PLACE_COOLDOWN;
                                     actionConsumed = true;
                                 }
@@ -928,6 +930,7 @@ public class InputManager {
                                 if (networkClient != null && networkClient.isConnected()) networkClient.sendBlockUpdate(pPos.x(), pPos.y(), pPos.z(), blockType);
                                 ItemStack newStack = currentStack.getCount() > 1 ? new ItemStack(currentItem, currentStack.getCount() - 1) : null;
                                 player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), newStack);
+                                player.place();
                                 placeDelayTimer = PLACE_COOLDOWN;
                                 actionConsumed = true;
                             }

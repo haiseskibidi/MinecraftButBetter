@@ -1,0 +1,15 @@
+{
+  "id": 441,
+  "identifier": "minecraft:stone_shovel",
+  "translationKey": "item.minecraft.stone_shovel",
+  "texture": "minecraft/textures/item/stone_shovel.png",
+  "visualScale": 1.15,
+  "weight": 2.0,
+  "components": {
+    "minecraft:tool": {
+      "type": "shovel",
+      "efficiency": 2.5,
+      "durability": 150
+    }
+  }
+}

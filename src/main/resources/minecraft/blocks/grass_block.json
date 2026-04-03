@@ -11,7 +11,7 @@
                      "bottom":  "dirt.png", 
                      "side":  "grass_block_side.png"
                  },
-    "requiredTool":  "knife",
+    "requiredTool":  "shovel",
     "supportScavenge":  true,
     "tags": ["minecraft:tinted"]
 }

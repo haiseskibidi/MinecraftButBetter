@@ -464,6 +464,17 @@ public class Player extends LivingEntity {
             currentSwingAnim = "pickup";
         }
     }
+
+    public void place() { place(0.25f); }
+    public void place(float duration) {
+        if (!swinging) {
+            swinging = true;
+            itemSwingTimer = 0;
+            itemSwingDuration = duration;
+            currentSwingAnim = "place";
+        }
+    }
+
     public boolean isSwinging() { return swinging; }
     public boolean isMoving() { return moving; }
 

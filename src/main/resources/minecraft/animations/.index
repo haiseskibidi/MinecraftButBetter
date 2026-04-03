@@ -22,3 +22,6 @@ pickaxe_swing
 hand_swing
 hand_pickup
 item_pickup
+item_place
+block_place
+hand_place

@@ -1,0 +1,15 @@
+{
+  "id": 440,
+  "identifier": "minecraft:wooden_shovel",
+  "translationKey": "item.minecraft.wooden_shovel",
+  "texture": "minecraft/textures/item/wooden_shovel.png",
+  "visualScale": 1.1,
+  "weight": 1.2,
+  "components": {
+    "minecraft:tool": {
+      "type": "shovel",
+      "efficiency": 1.5,
+      "durability": 60
+    }
+  }
+}
