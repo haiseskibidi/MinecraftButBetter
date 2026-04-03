@@ -12,15 +12,13 @@ import org.joml.Matrix4f;
 public class ViewmodelRenderer {
     private final HeldItemRenderer heldItemRenderer = new HeldItemRenderer();
 
-    public void render(Viewmodel viewmodel, Shader shader, DynamicTextureAtlas atlas, com.za.minecraft.entities.Player player, ItemStack mainHand, ItemStack offHand, float heat) {
-        boolean miningWithHand = (mainHand == null || mainHand.getItem() == com.za.minecraft.world.items.Items.HAND);
-        
-        renderNode(viewmodel.root, shader, miningWithHand ? heat : 0.0f);
+    public void render(Viewmodel viewmodel, Shader shader, DynamicTextureAtlas atlas, com.za.minecraft.entities.Player player, ItemStack mainHand, ItemStack offHand, float handHeat, float itemHeat) {
+        renderNode(viewmodel.root, shader, handHeat);
         
         // Main hand attachment
         ModelNode attachR = viewmodel.getNode("item_attachment_r");
         if (attachR != null && mainHand != null && mainHand.getItem() != null) {
-            heldItemRenderer.render(attachR.globalMatrix, mainHand, shader, atlas, true, heat);
+            heldItemRenderer.render(attachR.globalMatrix, mainHand, shader, atlas, true, itemHeat);
         }
         
         // Off hand attachment

@@ -222,7 +222,7 @@ public class Renderer {
             
             ItemStack mainHand = player.getInventory().getSelectedItemStack();
             ItemStack offHand = player.getInventory().getStack(com.za.minecraft.entities.Inventory.SLOT_OFFHAND);
-            viewmodelRenderer.render(vm, viewmodelShader, atlas, player, mainHand, offHand, vfxManager.getHeatLevel());
+            viewmodelRenderer.render(vm, viewmodelShader, atlas, player, mainHand, offHand, vfxManager.getHandHeat(), vfxManager.getItemHeat());
         }
 
         glDepthRange(0.0, 1.0); 
