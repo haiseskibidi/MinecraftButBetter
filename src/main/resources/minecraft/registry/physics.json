@@ -16,7 +16,7 @@
   "baseMiningCooldown": 0.5,
   "mouseSensitivity": 0.002,
   "flySprintMultiplier": 1.8,
-  "itemAttractionRadius": 4.5,
-  "itemPickupRadius": 0.6,
+  "itemAttractionRadius": 3.0,
+  "itemPickupRadius": 0.2,
   "itemAttractionForce": 45.0
 }

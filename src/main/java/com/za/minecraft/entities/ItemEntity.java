@@ -13,6 +13,7 @@ public class ItemEntity extends Entity {
     private float pickupDelay = 1.0f; // 1 second before it can be picked up
     private final Vector3f angularVelocity = new Vector3f();
     private boolean isBeingAttracted = false;
+    private boolean isLockedOnPlayer = false; // "Мертвая хватка"
     
     public ItemEntity(Vector3f position, ItemStack stack) {
         super(position, 0.25f, 0.25f);
@@ -31,94 +32,69 @@ public class ItemEntity extends Entity {
         prevRotation.set(rotation);
         
         Player player = world.getPlayer();
-        boolean attractedThisTick = false;
         
         if (canBePickedUp() && player != null) {
             Vector3f playerCenter = new Vector3f(player.getPosition());
-            playerCenter.y += player.getHeight() * 0.5f; // Нацеливаемся в центр тела
+            playerCenter.y += player.getHeight() * 0.5f;
             
             float distSq = position.distanceSquared(playerCenter);
             float attrRadius = com.za.minecraft.world.physics.PhysicsSettings.getInstance().itemAttractionRadius;
             
-            if (distSq < attrRadius * attrRadius) {
-                attractedThisTick = true;
+            // Если вошел в радиус - захватываем навсегда
+            if (distSq < attrRadius * attrRadius || isLockedOnPlayer) {
                 isBeingAttracted = true;
+                isLockedOnPlayer = true;
                 
-                // --- МАГНИТНОЕ ПРИТЯЖЕНИЕ (УСИЛЕННОЕ) ---
-                Vector3f direction = new Vector3f(playerCenter).sub(position).normalize();
-                
-                // Ускорение зависит от расстояния (квадратичная зависимость для 'сочности')
                 float distance = (float)Math.sqrt(distSq);
-                float force = com.za.minecraft.world.physics.PhysicsSettings.getInstance().itemAttractionForce;
+                Vector3f toPlayer = new Vector3f(playerCenter).sub(position);
+                Vector3f direction = new Vector3f(toPlayer).normalize();
                 
-                // Базовая сила + добавка за близость (чем ближе, тем злее тянет)
-                float t = 1.0f - (distance / attrRadius);
-                float pullStrength = (t * t * 1.5f + 0.2f) * force; // Квадратичный разгон
+                // --- ГРАМОТНАЯ ФИЗИКА МАГНИТА ---
+                // 1. Целевая скорость сближения (растет при приближении)
+                float approachSpeed = 12.0f + (1.0f - Math.min(1.0f, distance / 4.0f)) * 10.0f;
                 
-                velocity.add(direction.mul(pullStrength * deltaTime));
+                // 2. Идеальный вектор скорости: Скорость Игрока + Вектор к Игроку
+                Vector3f targetVelocity = new Vector3f(player.getVelocity());
+                targetVelocity.add(direction.mul(approachSpeed));
                 
-                // Ограничиваем скорость полета
-                float maxPullSpeed = 20.0f;
-                if (velocity.length() > maxPullSpeed) {
-                    velocity.normalize(maxPullSpeed);
-                }
+                // 3. Плавно, но быстро приводим текущую скорость к идеальной (Slerp-like)
+                // Чем ближе предмет, тем жестче он следует за целевым вектором
+                float followSharpness = 5.0f + (1.0f - Math.min(1.0f, distance / 2.0f)) * 15.0f;
+                velocity.lerp(targetVelocity, deltaTime * followSharpness);
                 
                 onGround = false; 
             }
         }
         
-        if (!attractedThisTick) isBeingAttracted = false;
-
         float gravityMultiplier = stack.getItem().getWeight();
         
-        // Custom gravity for items (based on weight), disabled during attraction
+        // Custom gravity, disabled during attraction
         if (!flying && !onGround && !isBeingAttracted) {
             velocity.y = Math.max(velocity.y + GRAVITY * gravityMultiplier * deltaTime, TERMINAL_VELOCITY);
         } else if (onGround && !isBeingAttracted) {
-            velocity.y = 0; // Ground lock
+            velocity.y = 0;
         }
         
-        // Мы вызываем move напрямую, минуя Entity.update(), так как нам нужна кастомная гравитация
+        // Движение с коллизиями
         move(world, velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
-
-        // Snap very small residual velocities to zero (only if not flying to player)
-        if (!isBeingAttracted) {
-            if (Math.abs(velocity.x) < 0.005f) velocity.x = 0f;
-            if (Math.abs(velocity.z) < 0.005f) velocity.z = 0f;
-        }
 
         age += deltaTime;
         if (pickupDelay > 0) {
             pickupDelay -= deltaTime;
         }
         
-        // Трение (Friction)
-        float friction;
-        if (onGround && !isBeingAttracted) {
-            float weightFactor = stack.getItem().getWeight();
-            friction = 0.98f - (weightFactor * 0.2f);
-            friction = Math.max(0.1f, Math.min(0.98f, friction));
-            angularVelocity.mul(0.9f);
-        } else if (isBeingAttracted) {
-            friction = 1.0f; // В вакууме магнита не тормозим (чтобы не было 'киселя')
-        } else {
-            friction = 0.98f;
-        }
+        // Трение (в режиме магнита трения нет, мы управляем вектором напрямую)
+        float friction = isBeingAttracted ? 1.0f : (onGround ? 0.85f : 0.98f);
+        velocity.mul(friction);
         
-        velocity.x *= friction;
-        velocity.y *= friction; 
-        velocity.z *= friction;
-        
-        // Rotation for visual tumbling effect
         if (onGround && !isBeingAttracted) {
-            // Плавно выравниваем предмет на земле (Pitch и Roll в 0)
             rotation.x = lerpAngle(rotation.x, 0, deltaTime * 5.0f);
             rotation.z = lerpAngle(rotation.z, 0, deltaTime * 5.0f);
-            // Замедляем вращение вокруг Y
             angularVelocity.mul(0.85f);
         } else if (isBeingAttracted) {
-            // В полете предмет начинает быстрее вращаться (эффект вихря)
+            // Визуальный "вихрь"
             angularVelocity.y += deltaTime * 20.0f;
+            angularVelocity.x += deltaTime * 5.0f;
         }
         
         rotation.add(

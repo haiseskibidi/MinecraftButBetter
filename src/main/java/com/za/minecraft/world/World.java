@@ -135,13 +135,21 @@ public class World {
                 if (player != null && itemEntity.canBePickedUp()) {
                     float pickupRadius = com.za.minecraft.world.physics.PhysicsSettings.getInstance().itemPickupRadius;
                     
-                    // Считаем дистанцию до центра игрока, а не до ног
                     Vector3f playerCenter = new Vector3f(player.getPosition());
                     playerCenter.y += player.getHeight() * 0.5f;
                     
-                    float dist = playerCenter.distance(itemEntity.getPosition());
+                    // Центр предмета (чуть выше его базовой позиции)
+                    Vector3f itemCenter = new Vector3f(itemEntity.getPosition());
+                    itemCenter.y += 0.125f; 
                     
-                    if (dist < pickupRadius) {
+                    float dist = playerCenter.distance(itemCenter);
+                    
+                    // 100% надежный подбор: пересечение хитбоксов ИЛИ вхождение в радиус
+                    // Если предмет уже летит к нам (magnetic), мы расширяем окно подбора для стабильности
+                    boolean isMagnetic = itemEntity.getVelocity().lengthSquared() > 25.0f; // Признак активного полета
+                    float effectiveRadius = isMagnetic ? pickupRadius * 1.5f : pickupRadius;
+                    
+                    if (dist < effectiveRadius || player.getBoundingBox().intersects(itemEntity.getBoundingBox())) {
                         if (player.getInventory().addItem(itemEntity.getStack())) {
                             entities.remove(i);
                             com.za.minecraft.utils.Logger.info("Picked up item: %s", itemEntity.getStack().getItem().getName());
