@@ -29,6 +29,7 @@ uniform int uBreakingPattern;
 uniform float uWobbleTime;
 uniform vec3 uBreakingHitPoint;
 uniform vec3 uWeakSpotPos;
+uniform vec3 uWeakSpotColor;
 uniform vec3 uHitHistory[16];
 uniform int uHitCount;
 uniform vec3 uHiddenBlockPos;

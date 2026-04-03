@@ -54,6 +54,7 @@ public class Renderer {
     private com.za.minecraft.world.BlockPos breakingPos;
     private Vector3f breakingHitPoint = new Vector3f();
     private Vector3f weakSpotPos = new Vector3f();
+    private Vector3f weakSpotColor = new Vector3f(1.0f, 0.9f, 0.4f);
     private final Vector3f[] hitHistory = new Vector3f[16];
     private int hitCount = 0;
     private Mesh breakingMesh;
@@ -71,7 +72,7 @@ public class Renderer {
         this.lightDirection = new Vector3f(0.2f, -1.0f, 0.2f).normalize();
     }
 
-    public void setBreakingBlock(com.za.minecraft.world.BlockPos pos, Block block, float progress, float timer, Vector3f localHitPoint, Vector3f localWeakSpot, java.util.List<Vector3f> history) {
+    public void setBreakingBlock(com.za.minecraft.world.BlockPos pos, Block block, float progress, float timer, Vector3f localHitPoint, Vector3f localWeakSpot, Vector3f color, java.util.List<Vector3f> history) {
         if (block == null) {
             this.breakingPos = null;
             this.currentBreakingBlock = null;
@@ -90,6 +91,7 @@ public class Renderer {
         this.wobbleTimer = timer;
         if (localHitPoint != null) this.breakingHitPoint.set(localHitPoint);
         if (localWeakSpot != null) this.weakSpotPos.set(localWeakSpot);
+        if (color != null) this.weakSpotColor.set(color);
         
         this.hitCount = history != null ? Math.min(16, history.size()) : 0;
         if (history != null) {
@@ -250,6 +252,7 @@ public class Renderer {
         blockShader.setInt("uBreakingPattern", 0);
         blockShader.setVector3f("uBreakingHitPoint", new Vector3f(0.5f));
         blockShader.setVector3f("uWeakSpotPos", new Vector3f(0.5f));
+        blockShader.setVector3f("uWeakSpotColor", new Vector3f(1.0f, 0.9f, 0.4f));
         
         if (breakingPos != null) {
             if (holeMesh == null || !breakingPos.equals(holePos)) {
@@ -335,6 +338,7 @@ public class Renderer {
         blockShader.setInt("uBreakingPattern", def.getBreakingPattern());
         blockShader.setVector3f("uBreakingHitPoint", breakingHitPoint);
         blockShader.setVector3f("uWeakSpotPos", weakSpotPos);
+        blockShader.setVector3f("uWeakSpotColor", weakSpotColor);
         blockShader.setInt("uHitCount", hitCount);
         for (int i = 0; i < hitCount; i++) {
             blockShader.setVector3f("uHitHistory[" + i + "]", hitHistory[i]);

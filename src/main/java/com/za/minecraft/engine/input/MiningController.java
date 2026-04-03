@@ -58,6 +58,11 @@ public class MiningController {
         hitHistory.clear();
         this.currentNormal.set(normal);
         currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), normal);
+        
+        // Сразу передаем цвет в рендерер, чтобы не было желтой вспышки в начале
+        if (renderer != null) {
+            renderer.setBreakingBlock(hitPos, world.getBlock(hitPos), 0.0f, 1.0f, new Vector3f(0.5f), currentWeakSpot, blockDef.getMiningSettings().weakSpotColor(), hitHistory);
+        }
     }
 
     public void stopMining() {
@@ -65,7 +70,7 @@ public class MiningController {
             breakingBlockPos = null;
             breakingProgress = 0.0f;
             blockAccumulatedDamage = 0.0f;
-            if (renderer != null) renderer.setBreakingBlock(null, null, 0.0f, 0.0f, null, null, null);
+            if (renderer != null) renderer.setBreakingBlock(null, null, 0.0f, 0.0f, null, null, null, null);
         }
     }
 
@@ -147,7 +152,7 @@ public class MiningController {
         }
             
         if (renderer != null && breakingBlockPos != null) {
-            renderer.setBreakingBlock(hitPos, world.getBlock(hitPos), breakingProgress, wobbleTimer, localHit, currentWeakSpot, hitHistory);
+            renderer.setBreakingBlock(hitPos, world.getBlock(hitPos), breakingProgress, wobbleTimer, localHit, currentWeakSpot, blockDef.getMiningSettings().weakSpotColor(), hitHistory);
         }
 
         if (breakingProgress >= 1.0f) {
@@ -230,7 +235,8 @@ public class MiningController {
 
     public void renderVisuals(BlockPos hitPos, Block block, Vector3f localHit) {
         if (breakingBlockPos != null && hitPos != null && hitPos.equals(breakingBlockPos)) {
-            renderer.setBreakingBlock(hitPos, block, breakingProgress, wobbleTimer, localHit, currentWeakSpot, hitHistory);
+            com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(block.getType());
+            renderer.setBreakingBlock(hitPos, block, breakingProgress, wobbleTimer, localHit, currentWeakSpot, def.getMiningSettings().weakSpotColor(), hitHistory);
         }
     }
 

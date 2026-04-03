@@ -1,11 +1,19 @@
 {
-    "id":  41,
-    "identifier":  "minecraft:emerald_ore",
-    "translationKey":  "block.minecraft.emerald_ore",
-    "solid":  true,
-    "transparent":  false,
-    "hardness":  3.0,
-    "textures":  {
-                     "all":  "emerald_ore.png"
-                 }
+    "id": 41,
+    "identifier": "minecraft:emerald_ore",
+    "translationKey": "block.minecraft.emerald_ore",
+    "solid": true,
+    "transparent": false,
+    "hardness": 3.0,
+    "textures": {
+        "all": "emerald_ore.png"
+    },
+    "requiredTool": "pickaxe",
+    "breaking_pattern": "stone",
+    "mining_logic": {
+        "strategy": "weak_spots",
+        "precision": 0.15,
+        "miss_multiplier": 0.15,
+        "weak_spot_color": [0.0, 1.0, 0.3]
+    }
 }

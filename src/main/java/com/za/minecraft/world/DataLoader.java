@@ -615,7 +615,14 @@ public class DataLoader {
                 String strategy = ml.has("strategy") ? ml.get("strategy").getAsString() : "default";
                 float precision = ml.has("precision") ? ml.get("precision").getAsFloat() : 0.2f;
                 float multiplier = ml.has("miss_multiplier") ? ml.get("miss_multiplier").getAsFloat() : 1.0f;
-                def.setMiningSettings(new MiningSettings(strategy, precision, multiplier));
+                
+                org.joml.Vector3f wsColor = new org.joml.Vector3f(1.0f, 0.9f, 0.4f);
+                if (ml.has("weak_spot_color")) {
+                    JsonArray col = ml.getAsJsonArray("weak_spot_color");
+                    wsColor.set(col.get(0).getAsFloat(), col.get(1).getAsFloat(), col.get(2).getAsFloat());
+                }
+                
+                def.setMiningSettings(new MiningSettings(strategy, precision, multiplier, wsColor));
             }
 
             // Расширенная система дропа (DropRule)
