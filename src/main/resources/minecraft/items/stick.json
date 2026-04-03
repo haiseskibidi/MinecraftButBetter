@@ -4,5 +4,5 @@
     "translationKey": "item.minecraft.stick",
     "texture": "minecraft/textures/item/stick.png",
     "visualScale": 0.6,
-    "interaction_cooldown": 0.2
+    "interaction_cooldown": 0.5
 }
