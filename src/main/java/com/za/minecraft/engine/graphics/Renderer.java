@@ -16,6 +16,7 @@ import com.za.minecraft.engine.graphics.model.ModelNode;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
+import com.za.minecraft.engine.core.GameLoop;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
@@ -37,9 +38,13 @@ public class Renderer {
     private Mesh previewMesh;
     private final Map<Integer, Mesh> blockMeshCache = new java.util.HashMap<>();
     private final Vector3f lightDirection;
+    private final Vector3f lightColor = new Vector3f(0.3f, 0.3f, 0.25f);
+    private final Vector3f ambientLight = new Vector3f(0.85f, 0.85f, 0.9f);
     
     // Viewmodel
     private final ViewmodelRenderer viewmodelRenderer = new ViewmodelRenderer();
+    private Shader viewmodelShader;
+    private final com.za.minecraft.engine.graphics.vfx.MiningVFXManager vfxManager = new com.za.minecraft.engine.graphics.vfx.MiningVFXManager();
     
     // View Model caching
     private Mesh heldItemMesh;
@@ -161,11 +166,13 @@ public class Renderer {
         postProcessor.init();
         uiRenderer = new UIRenderer();
         uiRenderer.init();
+        viewmodelShader = new Shader("src/main/resources/shaders/viewmodel_vertex.glsl", "src/main/resources/shaders/viewmodel_fragment.glsl");
         carvingRenderer = new CarvingRenderer();
         highlightRenderer = new BlockHighlightRenderer();
     }
     
-    public void render(Window window, Camera camera, World world, RaycastResult highlightedBlock, com.za.minecraft.network.GameClient networkClient, float alpha) {
+    public void render(Window window, Camera camera, World world, RaycastResult highlightedBlock, com.za.minecraft.network.GameClient networkClient, float alpha, float deltaTime) {
+        vfxManager.update(deltaTime, world.getPlayer(), GameLoop.getInstance().getInputManager().getMiningController());
         framebuffer.resize(window.getWidth(), window.getHeight());
         framebuffer.bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -194,16 +201,18 @@ public class Renderer {
         glDisable(GL_CULL_FACE);
         glDepthRange(0.0, 0.05);
         
-        blockShader.use();
+        viewmodelShader.use();
         atlas.bind();
         Matrix4f viewModelProjection = new Matrix4f().setPerspective((float)Math.toRadians(70.0f), camera.getAspectRatio(), 0.01f, 1000.0f);
-        blockShader.setMatrix4f("projection", viewModelProjection);
-        blockShader.setMatrix4f("view", new Matrix4f().identity());
-        blockShader.setBoolean("viewModelPass", true);
-        blockShader.setVector3f("lightDirection", new Vector3f(0.4f, -0.8f, 0.4f).normalize());
+        viewmodelShader.setMatrix4f("projection", viewModelProjection);
+        viewmodelShader.setMatrix4f("view", new Matrix4f().identity());
+        viewmodelShader.setVector3f("lightDirection", new Vector3f(0.4f, -0.8f, 0.4f).normalize());
+        viewmodelShader.setVector3f("lightColor", lightColor);
+        viewmodelShader.setVector3f("ambientLight", ambientLight);
+        viewmodelShader.setFloat("uTime", (float)org.lwjgl.glfw.GLFW.glfwGetTime());
         
         // Состояние рук
-        blockShader.setVector3f("uCondition", new Vector3f(player.getDirt(), player.getBlood(), player.getWetness()));
+        viewmodelShader.setVector3f("uCondition", new Vector3f(player.getDirt(), player.getBlood(), player.getWetness()));
 
         Viewmodel vm = player.getViewmodel();
         if (vm != null) {
@@ -213,13 +222,9 @@ public class Renderer {
             
             ItemStack mainHand = player.getInventory().getSelectedItemStack();
             ItemStack offHand = player.getInventory().getStack(com.za.minecraft.entities.Inventory.SLOT_OFFHAND);
-            viewmodelRenderer.render(vm, blockShader, atlas, player, mainHand, offHand);
+            viewmodelRenderer.render(vm, viewmodelShader, atlas, player, mainHand, offHand, vfxManager.getHeatLevel());
         }
 
-        blockShader.setInt("highlightPass", 0);
-        blockShader.setBoolean("viewModelPass", false);
-        blockShader.setVector3f("lightDirection", lightDirection);
-        
         glDepthRange(0.0, 1.0); 
         glEnable(GL_CULL_FACE);
     }

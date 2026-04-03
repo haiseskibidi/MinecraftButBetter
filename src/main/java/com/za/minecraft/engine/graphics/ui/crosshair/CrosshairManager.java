@@ -12,7 +12,7 @@ import com.za.minecraft.entities.LivingEntity;
 
 /**
  * Manages the current state and selection of the crosshair.
- * Improved with smooth transitions and state timers for animations.
+ * Prioritizes active actions (like mining) over passive detection.
  */
 public class CrosshairManager {
     public enum State {
@@ -25,8 +25,8 @@ public class CrosshairManager {
     private State currentState = State.DEFAULT;
     private Identifier currentId = Identifier.of("minecraft:default");
     private Identifier lastId = Identifier.of("minecraft:default");
-    private float transitionFactor = 1.0f; // 1.0 = fully currentId
-    private float stateTimer = 0.0f; // Time since state change
+    private float transitionFactor = 1.0f;
+    private float stateTimer = 0.0f;
 
     public void update(float deltaTime) {
         State nextState = determineState();
@@ -34,34 +34,33 @@ public class CrosshairManager {
             lastId = currentId;
             currentState = nextState;
             updateIdentifier();
-            transitionFactor = 0.0f; // Start transition
-            stateTimer = 0.0f; // Reset state timer for entry animations
+            transitionFactor = 0.0f;
+            stateTimer = 0.0f;
         }
 
         if (transitionFactor < 1.0f) {
-            transitionFactor = Math.min(1.0f, transitionFactor + deltaTime * 8.0f); // 125ms transition
+            transitionFactor = Math.min(1.0f, transitionFactor + deltaTime * 8.0f);
         }
         stateTimer += deltaTime;
     }
 
     private State determineState() {
-        InputManager input = GameLoop.getInstance().getInputManager();
-        RaycastResult ray = GameLoop.getInstance().getHighlightedBlock();
-        com.za.minecraft.entities.Entity hitEntity = input.getHitEntity();
-
-        // 1. ACTIVE ACTION PRIORITY
-        // If we are already mining, don't switch crosshair even if we look at a cow or a chest
+        var game = GameLoop.getInstance();
+        InputManager input = game.getInputManager();
+        
+        // --- 1. ACTION PRIORITY (If actively mining, use mining crosshair) ---
         if (input.getMiningController().getBreakingBlockPos() != null) return State.MINING;
 
-        // 2. Attack Priority (Entities)
-        if (hitEntity instanceof LivingEntity) return State.ATTACK;
+        // --- 2. DETECTION PRIORITY ---
+        RaycastResult ray = game.getHighlightedBlock();
+        com.za.minecraft.entities.Entity hitEntity = input.getHitEntity();
 
-        // 3. Interact Priority (Entities)
+        if (hitEntity instanceof LivingEntity) return State.ATTACK;
         if (hitEntity instanceof ResourceEntity || hitEntity instanceof ItemEntity) return State.INTERACT;
 
-        // 4. Interact Priority (Blocks)
         if (ray != null && ray.isHit()) {
-            BlockDefinition def = BlockRegistry.getBlock(ray.getBlock().getType());
+            int type = game.getWorld().getBlock(ray.getBlockPos()).getType();
+            BlockDefinition def = BlockRegistry.getBlock(type);
             if (def != null && def.hasOnUse()) return State.INTERACT;
         }
 

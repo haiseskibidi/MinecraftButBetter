@@ -129,7 +129,7 @@ public class GameLoop {
             // Calculate interpolation alpha [0..1]
             float alpha = accumulator / interval;
             
-            render(alpha); // Render with interpolation
+            render(alpha, elapsedTime); // Render with interpolation and deltaTime
             
             sync(elapsedTime);
         }
@@ -248,7 +248,7 @@ public class GameLoop {
         }
     }
     
-    private void render(float alpha) {
+    private void render(float alpha, float deltaTime) {
         // High-Frequency Animation Update (Right before render)
         if (!paused) {
             player.updateAnimations(timer.getDeltaF(), world);
@@ -260,7 +260,7 @@ public class GameLoop {
             camera.setOffsets(player.getCameraOffsetX(), player.getCameraOffsetY(), player.getCameraOffsetZ());
         }
 
-        renderer.render(window, camera, world, highlightedBlock, networkClient, alpha);
+        renderer.render(window, camera, world, highlightedBlock, networkClient, alpha, deltaTime);
         
         if (inventoryOpen) renderer.getUIRenderer().renderInventory(window.getWidth(), window.getHeight(), renderer.getAtlas());
         else if (currentNappingSession != null) com.za.minecraft.engine.graphics.ui.NappingGUI.render(renderer.getUIRenderer(), window.getWidth(), window.getHeight(), currentNappingSession);

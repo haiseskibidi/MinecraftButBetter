@@ -6,6 +6,7 @@ import java.util.List;
 /**
  * Data-driven definition of a crosshair shape.
  * Matrix-based approach allows for flexible pixel-art shapes.
+ * Supported animation parameters: bounce, recoil (pulse), and spread (progress-based).
  */
 public class CrosshairDefinition {
     private String identifier;
@@ -18,6 +19,9 @@ public class CrosshairDefinition {
     // Animation settings
     private float bounceScale = 0.0f; // Extra scale on state entry
     private float bounceDuration = 0.3f; // Seconds
+    
+    private float recoilScale = 1.0f; // Power of the hit pulse (expansion on click)
+    private float spreadScale = 0.0f; // How much corners move apart based on mining progress
 
     public CrosshairDefinition() {}
 
@@ -32,4 +36,7 @@ public class CrosshairDefinition {
     public boolean isCentered() { return centered; }
     public float getBounceScale() { return bounceScale; }
     public float getBounceDuration() { return bounceDuration; }
+    
+    public float getRecoilScale() { return recoilScale; }
+    public float getSpreadScale() { return spreadScale; }
 }

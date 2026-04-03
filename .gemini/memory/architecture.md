@@ -1,13 +1,18 @@
  # Архитектура проекта "MinecraftButBetter"
 
 ### UI & Interaction Systems
-1.  **Matrix Crosshair System**:
-    - **Data-Driven Shapes**: Прицел определяется сеткой 1/0 в JSON (`matrix`). Это позволяет создавать любые пиксель-арт формы без использования текстур.
-    - **State-Based Logic**: `CrosshairManager` анализирует контекст (на что смотрит игрок) и выбирает нужный ID прицела. Приоритет всегда у активного действия (Mining).
-    - **Shader Effects**: Визуальные эффекты (прогресс, пульсация, цветовые градиенты) изолированы и применяются только к соответствующим состояниям через `ui_fragment.glsl`.
-2.  **Physical Viewmodel**:
+1.  **Matrix Crosshair System (v2.0)**:
+    - **Data-Driven Shapes**: Прицел определяется сеткой 1/0 в JSON (`matrix`).
+    - **State-Based Logic**: `CrosshairManager` анализирует контекст. Приоритет всегда у активного действия (Mining).
+    - **Data-Driven Animations**: Поддержка параметров `recoilScale` (отдача при ударе) и `spreadScale` (разлет элементов при прогрессе) прямо в JSON прицела.
+    - **Surgical Rendering**: Прицел отрисовывается через выделенный `crosshairShader`, гарантируя сохранение формы из JSON независимо от внешних эффектов.
+2.  **Mining Heat VFX System (NEW)**:
+    - **Natural Energy Simulation**: Инструмент или руки игрока постепенно раскаляются при работе. Жар остывает плавно (~2 сек), сохраняясь при смене предметов.
+    - **Localized Emission**: Использование масок (Y-coord для предметов, веса костей для рук) для раскаления только рабочих частей (лезвия, костяшки кулака).
+    - **Integrity Logic**: `MiningVFXManager` обеспечивает сброс прогресса добычи при смене/выбрасывании предмета, связывая визуальный эффект с механикой.
+3.  **Physical Viewmodel**:
+    - **Isolated Rendering**: Рендеринг рук и предметов вынесен в специализированные `viewmodel_vertex/fragment.glsl` для точного управления освещением и спецэффектами жара.
     - **Skeletal Animation**: Иерархия костей (Shoulder -> Forearm -> Hand) для органичных движений.
-    - **Procedural Impacts**: Физические импульсы при ударах и приземлении.
     - **Spring Physics**: Инерция рук и предметов на основе пружинного симулятора.
 
 ### Data-Driven Development (v3.3 UPDATED)

@@ -37,16 +37,26 @@
 Назначение: Статичная 3D модель ресурса (палка, камень) на поверхности.
 Функции: Используется для декораций мира, собирается мгновенно ЛКМ.
 
-### com.za.minecraft.engine.input.InputManager (UPDATED)
-Назначение: Обработка пользовательского ввода.
-Функции: Захват событий мыши/клавиатуры, управление Raycast и базовым инвентарем. Теперь хранит `hitEntity` (сущность под прицелом) и предоставляет доступ к `MiningController`.
+### com.za.minecraft.engine.graphics.Renderer (UPDATED)
+Назначение: Главный контроллер рендеринга.
+Функции: Управляет проходами отрисовки мира, сущностей, Viewmodel и UI. Теперь инициализирует выделенный `viewmodelShader` и обновляет `MiningVFXManager`.
 
-### com.za.minecraft.engine.graphics.ui.crosshair (NEW)
-Назначение: Модульная система динамического матричного прицела.
-- **CrosshairDefinition**: POJO-класс для описания формы (матрицы), цвета и масштаба прицела в JSON.
-- **CrosshairRegistry**: Реестр и загрузчик конфигураций прицелов. Поддерживает Data-Driven подход.
-- **CrosshairManager**: Управляет логикой выбора текущего прицела на основе контекста (Mining, Attack, Interact). Приоритет всегда у активного действия.
-- **CrosshairRenderer**: Процедурный рендерер. Генерирует меши из пикселей на основе матриц и применяет шейдерные эффекты (прогресс, пульсация, цветовые градиенты).
+### com.za.minecraft.engine.graphics.vfx.MiningVFXManager (NEW)
+Назначение: Менеджер визуальных эффектов добычи.
+Функции: Рассчитывает уровень раскаления (`heatLevel`) инструментов и рук. Обеспечивает плавное остывание и универсальный сброс прогресса добычи при смене/выбрасывании предмета (через отслеживание `identityHashCode` и слота).
+
+### src/main/resources/shaders (NEW SHADERS)
+- **viewmodel_vertex/fragment.glsl**: Изолированные шейдеры для рук и предметов. Поддерживают процедурное раскаление (`uMiningHeat`), маскировку по весам костей и PCA-ориентированным координатам.
+- **crosshair_vertex/fragment.glsl**: Шейдеры динамического прицела. Поддерживают data-driven анимации разлета (`spreadScale`) и отдачи (`recoilScale`).
+
+### com.za.minecraft.engine.graphics.ui.crosshair (UPDATED)
+- **CrosshairDefinition**: Добавлены поля `recoilScale` и `spreadScale` для настройки анимаций в JSON.
+- **CrosshairManager**: Управляет состояниями. Приоритет `MINING` восстановлен для корректного отображения на интерактивных блоках (пни).
+- **CrosshairRenderer**: Теперь строго использует специализированный шейдер для отрисовки матриц из JSON. Реализует анимацию разлета элементов.
+
+### com.za.minecraft.engine.graphics.model (UPDATED)
+- **ViewmodelRenderer**: Теперь принимает `heat` и распределяет его между руками и инструментами.
+- **HeldItemRenderer**: Реализует точечную передачу уровня жара инструменту.
 
 ## Animation & Locomotion System (v4.5 UPDATED)
 ### com.za.minecraft.entities.Player (UPDATED)

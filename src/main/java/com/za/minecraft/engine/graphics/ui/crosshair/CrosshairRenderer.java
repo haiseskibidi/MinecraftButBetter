@@ -1,6 +1,7 @@
 package com.za.minecraft.engine.graphics.ui.crosshair;
 
 import com.za.minecraft.engine.graphics.Shader;
+import com.za.minecraft.engine.core.GameLoop;
 import org.joml.Vector4f;
 import org.joml.Vector2f;
 import org.lwjgl.opengl.GL11;
@@ -21,9 +22,7 @@ import static org.lwjgl.opengl.GL30.*;
 
 /**
  * Procedural renderer for matrix-based crosshairs.
- * Generates and caches meshes for each crosshair definition.
- * Supports smooth transitions and state entry animations.
- * Added per-quadrant displacement for rigid-group recoil animations.
+ * Now supports data-driven animations: recoil (hits) and spread (progress).
  */
 public class CrosshairRenderer {
     private static class CrosshairMesh {
@@ -35,35 +34,38 @@ public class CrosshairRenderer {
     }
 
     private final Map<String, CrosshairMesh> meshCache = new HashMap<>();
+    private Shader crosshairShader;
 
-    public void render(CrosshairManager manager, Shader uiShader, int sw, int sh, float alpha) {
+    public void render(CrosshairManager manager, Shader fallbackShader, int sw, int sh, float alpha) {
+        if (crosshairShader == null) {
+            crosshairShader = new Shader(
+                "src/main/resources/shaders/crosshair_vertex.glsl",
+                "src/main/resources/shaders/crosshair_fragment.glsl"
+            );
+        }
+
         CrosshairDefinition current = CrosshairRegistry.get(manager.getCurrentId());
         float transition = manager.getTransitionFactor();
         float stateTimer = manager.getStateTimer();
-        var input = com.za.minecraft.engine.core.GameLoop.getInstance().getInputManager();
-        float progress = input.getBreakingProgress();
-        float hitPulse = input.getMiningController().getHitPulse();
+        
+        var game = GameLoop.getInstance();
+        var mining = game.getInputManager().getMiningController();
+        float hitPulse = mining.getHitPulse();
+        float progress = mining.getBreakingProgress();
 
-        uiShader.use();
-        uiShader.setInt("useTexture", 0);
-        uiShader.setInt("useArray", 0);
-        uiShader.setInt("isSlot", 0);
-        uiShader.setInt("isGrayscale", 0);
-        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
-        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-        uiShader.setFloat("uHitPulse", hitPulse);
+        crosshairShader.use();
+        crosshairShader.setFloat("uHitPulse", hitPulse);
+        crosshairShader.setFloat("uProgress", progress);
 
         glDisable(GL_CULL_FACE);
 
-        // 1. Render Old Crosshair (Fading out)
         if (transition < 1.0f) {
             CrosshairDefinition last = CrosshairRegistry.get(manager.getLastId());
             if (last != null) {
-                renderSingle(last, uiShader, sw, sh, alpha * (1.0f - transition), 0.0f, 1.0f - (transition * 0.5f), false);
+                renderSingle(last, crosshairShader, sw, sh, alpha * (1.0f - transition), 1.0f - (transition * 0.5f));
             }
         }
 
-        // 2. Render Current Crosshair (Fading in + Entry Animation)
         if (current != null) {
             float bounce = 0.0f;
             if (stateTimer < current.getBounceDuration()) {
@@ -74,33 +76,29 @@ public class CrosshairRenderer {
             float scaleMod = transition; 
             if (transition >= 1.0f) scaleMod = 1.0f + bounce;
             
-            boolean isMining = manager.getCurrentState() == CrosshairManager.State.MINING;
-            renderSingle(current, uiShader, sw, sh, alpha * transition, progress, scaleMod, isMining);
+            renderSingle(current, crosshairShader, sw, sh, alpha * transition, scaleMod);
         }
 
-        // --- RESET ALL STATE TO PREVENT BREAKING UI ---
-        uiShader.setInt("isCrosshair", 0);
-        uiShader.setFloat("uProgress", 0.0f);
-        uiShader.setFloat("uHitPulse", 0.0f);
-        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
         glEnable(GL_CULL_FACE);
     }
 
-    private void renderSingle(CrosshairDefinition def, Shader uiShader, int sw, int sh, float alpha, float progress, float scaleMod, boolean isMining) {
+    private void renderSingle(CrosshairDefinition def, Shader shader, int sw, int sh, float alpha, float scaleMod) {
         CrosshairMesh mesh = meshCache.computeIfAbsent(def.getIdentifier(), k -> createMesh(def));
         if (mesh == null || mesh.vertexCount == 0) return;
         
         Vector4f color = def.getColor();
-        uiShader.setUniform("tintColor", color.x, color.y, color.z, color.w * alpha);
-        uiShader.setInt("isCrosshair", isMining ? 1 : 0);
-        uiShader.setFloat("uProgress", progress);
+        shader.setUniform("tintColor", color.x, color.y, color.z, color.w * alpha);
+        
+        // --- DATA-DRIVEN ANIMATION UNIFORMS ---
+        shader.setFloat("uRecoilScale", def.getRecoilScale());
+        shader.setFloat("uSpreadScale", def.getSpreadScale());
 
         float basePixelSize = 4.0f; 
         float scaleX = (basePixelSize * def.getScale() * scaleMod) / sw;
         float scaleY = (basePixelSize * def.getScale() * scaleMod) / sh;
 
-        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
-        uiShader.setUniform("position_offset", 0.0f, 0.0f, 0.0f, 0.0f);
+        shader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+        shader.setUniform("position_offset", 0.0f, 0.0f, 0.0f, 0.0f);
 
         glBindVertexArray(mesh.vao);
         glDrawArrays(GL_TRIANGLES, 0, mesh.vertexCount);
@@ -136,27 +134,11 @@ public class CrosshairRenderer {
                     float x = (startX + c);
                     float y = (startY - r);
                     
-                    // --- QUADRANT-BASED DISPLACEMENT ---
-                    // Instead of normalizing each pixel's individual center, 
-                    // we normalize the SIGN of its quadrant. This forces all pixels 
-                    // in a corner/quadrant to move together as a single rigid unit.
                     float pxCenter = x + 0.5f;
                     float pyCenter = y - 0.5f;
                     
-                    Vector2f disp = new Vector2f();
-                    // Determine horizontal direction
-                    if (pxCenter < -0.1f) disp.x = -1.0f;
-                    else if (pxCenter > 0.1f) disp.x = 1.0f;
-                    
-                    // Determine vertical direction
-                    if (pyCenter < -0.1f) disp.y = -1.0f;
-                    else if (pyCenter > 0.1f) disp.y = 1.0f;
-                    
-                    if (disp.length() > 0.001f) {
-                        disp.normalize();
-                    }
+                    Vector2f disp = calculateDisplacement(pxCenter, pyCenter);
 
-                    // Vertex 1-6 (Two triangles)
                     addVertex(vertices, vIdx, x, y, disp); vIdx += 4;
                     addVertex(vertices, vIdx, x, y - 1, disp); vIdx += 4;
                     addVertex(vertices, vIdx, x + 1, y - 1, disp); vIdx += 4;
@@ -181,11 +163,11 @@ public class CrosshairRenderer {
         glBufferData(GL_ARRAY_BUFFER, buffer, GL_STATIC_DRAW);
         MemoryUtil.memFree(buffer);
 
-        // Attribute 0: Position (vec2)
+        // Location 0: position (vec2)
         glVertexAttribPointer(0, 2, GL_FLOAT, false, 4 * Float.BYTES, 0);
         glEnableVertexAttribArray(0);
         
-        // Attribute 1: Displacement (vec2)
+        // Location 1: displacement (vec2)
         glVertexAttribPointer(1, 2, GL_FLOAT, false, 4 * Float.BYTES, 2 * Float.BYTES);
         glEnableVertexAttribArray(1);
 
@@ -200,7 +182,23 @@ public class CrosshairRenderer {
         vertices[offset + 3] = disp.y;
     }
 
+    private Vector2f calculateDisplacement(float pxCenter, float pyCenter) {
+        Vector2f disp = new Vector2f();
+        // Determine quadrant
+        if (pxCenter < -0.1f) disp.x = -1.0f;
+        else if (pxCenter > 0.1f) disp.x = 1.0f;
+        
+        if (pyCenter < -0.1f) disp.y = -1.0f;
+        else if (pyCenter > 0.1f) disp.y = 1.0f;
+        
+        if (disp.length() > 0.001f) {
+            disp.normalize();
+        }
+        return disp;
+    }
+
     public void cleanup() {
+        if (crosshairShader != null) crosshairShader.cleanup();
         for (CrosshairMesh mesh : meshCache.values()) {
             mesh.cleanup();
         }

@@ -32,7 +32,7 @@ public class HeldItemRenderer {
         0.4f
     );
 
-    public void render(Matrix4f parentMatrix, ItemStack stack, Shader shader, DynamicTextureAtlas atlas, boolean isMainHand) {
+    public void render(Matrix4f parentMatrix, ItemStack stack, Shader shader, DynamicTextureAtlas atlas, boolean isMainHand, float heat) {
         if (stack == null || stack.getItem() == null) return;
         
         Item item = stack.getItem();
@@ -68,6 +68,8 @@ public class HeldItemRenderer {
                 modelMatrix.translate(-go.x, -go.y, -go.z);
             }
 
+            shader.setBoolean("isHand", false);
+            shader.setFloat("uMiningHeat", heat);
             shader.setMatrix4f("model", modelMatrix);
             mesh.render();
         }

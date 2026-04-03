@@ -12,28 +12,25 @@ import org.joml.Matrix4f;
 public class ViewmodelRenderer {
     private final HeldItemRenderer heldItemRenderer = new HeldItemRenderer();
 
-    public void render(Viewmodel viewmodel, Shader shader, DynamicTextureAtlas atlas, com.za.minecraft.entities.Player player, ItemStack mainHand, ItemStack offHand) {
-        // Set hand condition uniforms for the procedural overlays
-        if (player != null) {
-            shader.setVector3f("uCondition", new org.joml.Vector3f(player.getDirt(), player.getBlood(), player.getWetness()));
-        }
-
-        renderNode(viewmodel.root, shader);
+    public void render(Viewmodel viewmodel, Shader shader, DynamicTextureAtlas atlas, com.za.minecraft.entities.Player player, ItemStack mainHand, ItemStack offHand, float heat) {
+        boolean miningWithHand = (mainHand == null || mainHand.getItem() == com.za.minecraft.world.items.Items.HAND);
+        
+        renderNode(viewmodel.root, shader, miningWithHand ? heat : 0.0f);
         
         // Main hand attachment
         ModelNode attachR = viewmodel.getNode("item_attachment_r");
         if (attachR != null && mainHand != null && mainHand.getItem() != null) {
-            heldItemRenderer.render(attachR.globalMatrix, mainHand, shader, atlas, true);
+            heldItemRenderer.render(attachR.globalMatrix, mainHand, shader, atlas, true, heat);
         }
         
         // Off hand attachment
         ModelNode attachL = viewmodel.getNode("item_attachment_l");
         if (attachL != null && offHand != null && offHand.getItem() != null) {
-            heldItemRenderer.render(attachL.globalMatrix, offHand, shader, atlas, false);
+            heldItemRenderer.render(attachL.globalMatrix, offHand, shader, atlas, false, 0.0f);
         }
     }
 
-    private void renderNode(ModelNode node, Shader shader) {
+    private void renderNode(ModelNode node, Shader shader, float heat) {
         if (node.mesh != null) {
             shader.setMatrix4f("model", node.globalMatrix);
             
@@ -48,12 +45,13 @@ public class ViewmodelRenderer {
 
             shader.setBoolean("isHand", partWeight > 0.01f);
             shader.setFloat("uHandPartWeight", partWeight);
+            shader.setFloat("uMiningHeat", heat);
             
             node.mesh.render();
             shader.setBoolean("isHand", false);
         }
         for (ModelNode child : node.children) {
-            renderNode(child, shader);
+            renderNode(child, shader, heat);
         }
     }
 
