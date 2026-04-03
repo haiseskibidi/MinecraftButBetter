@@ -47,6 +47,7 @@ public class Player extends LivingEntity {
 
     // Item Animation State
     private boolean swinging = false;
+    private String currentSwingAnim = "swing";
     private float itemSwingTimer = 0.0f;
     private float itemOffsetX = 0.0f;
     private float itemOffsetY = 0.0f;
@@ -278,7 +279,8 @@ public class Player extends LivingEntity {
         float swingPitch = 0f, swingYaw = 0f, swingRoll = 0f;
 
         if (swinging) {
-            String sN = heldItem != null ? heldItem.getAnimation("item_swing") : "hand_swing";
+            String swingKey = "item_" + currentSwingAnim;
+            String sN = heldItem != null ? heldItem.getAnimation(swingKey) : swingKey.replace("item_", "hand_");
             AnimationProfile swingAnim = animationRegistry.get(sN);
             if (swingAnim != null) {
                 itemSwingTimer += deltaTime / itemSwingDuration; 
@@ -443,7 +445,25 @@ public class Player extends LivingEntity {
     public float getItemRollOffset() { return itemRollOffset; }
     
     public void swing() { swing(0.35f); }
-    public void swing(float duration) { if (!swinging) { swinging = true; itemSwingTimer = 0; itemSwingDuration = duration; } }
+    public void swing(float duration) { 
+        if (!swinging) { 
+            swinging = true; 
+            itemSwingTimer = 0; 
+            itemSwingDuration = duration; 
+            currentSwingAnim = "swing";
+        } 
+    }
+    
+    public void interact() { interact(0.25f); }
+    public void interact(float duration) {
+        if (!swinging) {
+            swinging = true;
+            itemSwingTimer = 0;
+            itemSwingDuration = duration;
+            currentSwingAnim = "pickup";
+        }
+    }
+    public boolean isSwinging() { return swinging; }
     public boolean isMoving() { return moving; }
 
     public boolean isInWater() {

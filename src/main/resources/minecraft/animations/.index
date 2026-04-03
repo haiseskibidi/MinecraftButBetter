@@ -20,3 +20,5 @@ block_idle
 block_wobble
 pickaxe_swing
 hand_swing
+hand_pickup
+item_pickup

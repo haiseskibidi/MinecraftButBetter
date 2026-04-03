@@ -32,7 +32,6 @@ public class MiningController {
     private final List<Vector3f> hitHistory = new ArrayList<>();
     
     private float breakDelayTimer = 0.0f;
-    private static final float BREAK_COOLDOWN = 0.25f; // 4 bps (5 ticks)
 
     public MiningController() {
     }
@@ -79,11 +78,19 @@ public class MiningController {
         if (hardness < 0) return; // Unbreakable
 
         float maxHealth = hardness * 10.0f;
+        boolean isInstantBreak = maxHealth <= 0.1f;
         boolean shouldHit = false;
 
-        if (maxHealth <= 0.0f) {
-            // Instant break
-            if (isNewLeftClick || breakDelayTimer <= 0.0f) {
+        float interval = com.za.minecraft.world.physics.PhysicsSettings.getInstance().baseMiningCooldown;
+        if (currentItem != null) {
+            com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
+            if (tool != null) interval = tool.attackInterval();
+        }
+        interval /= Math.max(0.1f, player.getMiningSpeedMultiplier());
+
+        if (isInstantBreak) {
+            // Instant break: Always respect breakDelayTimer, NO bypass with clicks
+            if (breakDelayTimer <= 0.0f) {
                 breakingProgress = 1.0f;
                 blockAccumulatedDamage = maxHealth;
                 shouldHit = true;
@@ -111,13 +118,6 @@ public class MiningController {
 
                 breakingProgress = Math.min(1.0f, blockAccumulatedDamage / maxHealth);
 
-                float interval = com.za.minecraft.world.physics.PhysicsSettings.getInstance().baseMiningCooldown;
-                if (currentItem != null) {
-                    com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
-                    if (tool != null) interval = tool.attackInterval();
-                }
-                interval /= Math.max(0.1f, player.getMiningSpeedMultiplier());
-
                 hitCooldownTimer = interval;
                 wobbleTimer = 0.0f;
                 shouldHit = true;
@@ -128,14 +128,11 @@ public class MiningController {
         }
 
         if (shouldHit) {
-            float interval = com.za.minecraft.world.physics.PhysicsSettings.getInstance().baseMiningCooldown;
-            if (currentItem != null) {
-                com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
-                if (tool != null) interval = tool.attackInterval();
+            if (isInstantBreak) {
+                player.interact(interval); // Sync animation duration with physics interval
+            } else {
+                player.swing(hitCooldownTimer > 0 ? hitCooldownTimer : interval);
             }
-            interval /= Math.max(0.1f, player.getMiningSpeedMultiplier());
-
-            player.swing(hitCooldownTimer > 0 ? hitCooldownTimer : interval);
         }
             
         if (renderer != null && breakingBlockPos != null) {
@@ -209,7 +206,7 @@ public class MiningController {
             }
 
             stopMining();
-            breakDelayTimer = BREAK_COOLDOWN;
+            breakDelayTimer = interval; // Use global interval instead of BREAK_COOLDOWN
             if (currentStack != null && currentItem.isTool()) {
                 com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
                 if (tool != null && (tool.isEffectiveAgainstAll() || tool.type().name().equalsIgnoreCase(blockDef.getRequiredTool()))) {

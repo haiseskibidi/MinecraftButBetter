@@ -21,6 +21,7 @@ import com.za.minecraft.world.items.ItemStack;
 import com.za.minecraft.world.items.Items;
 import com.za.minecraft.world.physics.Raycast;
 import com.za.minecraft.world.physics.RaycastResult;
+import com.za.minecraft.world.physics.PhysicsSettings;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
@@ -752,17 +753,33 @@ public class InputManager {
             }
 
             if (lm) {
+                boolean actionConsumed = false;
                 if (isNewLeftClick && hitEntity instanceof LivingEntity living) {
                     player.swing();
                     living.takeDamage(2.0f);
                     player.addBlood(0.15f);
                     com.za.minecraft.utils.Logger.info("Attacked %s, hands are now bloody", living.getClass().getSimpleName());
+                    actionConsumed = true;
                 } else if (isNewLeftClick && hitEntity instanceof com.za.minecraft.entities.ResourceEntity resource) {
-                    player.swing();
-                    player.getInventory().addItem(resource.getStack());
-                    resource.setRemoved();
-                    com.za.minecraft.utils.Logger.info("Picked up %s", resource.getStack().getItem().getName());
-                } else if (raycast.isHit()) {
+                    if (!player.isSwinging()) {
+                        player.interact(PhysicsSettings.getInstance().baseMiningCooldown);
+                        player.getInventory().addItem(resource.getStack());
+                        resource.setRemoved();
+                        com.za.minecraft.utils.Logger.info("Picked up resource %s", resource.getStack().getItem().getName());
+                    }
+                    actionConsumed = true;
+                } else if (isNewLeftClick && hitEntity instanceof com.za.minecraft.entities.ItemEntity itemEntity) {
+                    if (!player.isSwinging()) {
+                        player.interact(PhysicsSettings.getInstance().baseMiningCooldown);
+                        if (player.getInventory().addItem(itemEntity.getStack())) {
+                            itemEntity.setRemoved();
+                            com.za.minecraft.utils.Logger.info("Picked up item %s", itemEntity.getStack().getItem().getName());
+                        }
+                    }
+                    actionConsumed = true;
+                }
+
+                if (!actionConsumed && raycast.isHit()) {
                     BlockPos hitPos = raycast.getBlockPos();
                     int blockType = world.getBlock(hitPos).getType();
                     BlockDefinition blockDef = BlockRegistry.getBlock(blockType);
@@ -803,16 +820,22 @@ public class InputManager {
                 // Entity Interaction (RMB Pickup)
                 if (isNewRightClick) {
                     if (hitEntity instanceof com.za.minecraft.entities.ResourceEntity resource) {
-                        if (player.getInventory().addItem(resource.getStack())) {
-                            resource.setRemoved();
-                            com.za.minecraft.utils.Logger.info("Picked up %s (RMB)", resource.getStack().getItem().getName());
-                            actionConsumed = true;
+                        if (!player.isSwinging()) {
+                            player.interact(PhysicsSettings.getInstance().baseMiningCooldown);
+                            if (player.getInventory().addItem(resource.getStack())) {
+                                resource.setRemoved();
+                                com.za.minecraft.utils.Logger.info("Picked up %s (RMB)", resource.getStack().getItem().getName());
+                                actionConsumed = true;
+                            }
                         }
                     } else if (hitEntity instanceof com.za.minecraft.entities.ItemEntity itemEntity) {
-                        if (player.getInventory().addItem(itemEntity.getStack())) {
-                            itemEntity.setRemoved();
-                            com.za.minecraft.utils.Logger.info("Picked up %s (RMB)", itemEntity.getStack().getItem().getName());
-                            actionConsumed = true;
+                        if (!player.isSwinging()) {
+                            player.interact(PhysicsSettings.getInstance().baseMiningCooldown);
+                            if (player.getInventory().addItem(itemEntity.getStack())) {
+                                itemEntity.setRemoved();
+                                com.za.minecraft.utils.Logger.info("Picked up %s (RMB)", itemEntity.getStack().getItem().getName());
+                                actionConsumed = true;
+                            }
                         }
                     }
                 }

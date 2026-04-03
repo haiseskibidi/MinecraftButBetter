@@ -30,94 +30,12 @@
 
 ## Animation & Locomotion System (v4.5 UPDATED)
 ### com.za.minecraft.entities.Player (UPDATED)
-Назначение: Основная сущность игрока с AAA-системой локомоции.
-Функции:
-- `update()`: Обновляет физические таймеры локомоции на частоте 170Hz.
-- `updateAnimations()`: Визуальный проход. Рассчитывает оффсеты, применяет импульсы приземления и эффекты падения.
-
-## UI System (v4.2 UPDATED)
-### com.za.minecraft.engine.graphics.ui.InventoryLayout (UPDATED)
-Назначение: Универсальный двигатель верстки.
-Функции: Рекурсивный расчет позиций групп, поддержка юнитов `"s"` (слоты), автоматическое центрирование сложных блоков (`centerCombined`) и расчет границ для адаптивных фонов.
-
-### com.za.minecraft.engine.graphics.ui.GUIConfig (UPDATED)
-Назначение: POJO-конфигурация GUI. Добавлена поддержка корневого объекта `background` и гибридных типов координат (`Object`).
-
-### com.za.minecraft.engine.graphics.ui.GroupUI (NEW)
-Назначение: Контейнер вычисленных экранных координат и размеров для группы слотов.
-
-### com.za.minecraft.engine.graphics.ui.LayoutResult (NEW)
-Назначение: Результирующий набор данных верстки (списки слотов, групп и общий фон).
-
-### com.za.minecraft.engine.graphics.ui.PlayerInventoryScreen (UPDATED)
-Назначение: Экран инвентаря игрока. Реализует реактивность через `layoutKey`.
-
-### com.za.minecraft.engine.graphics.ui.UIRenderer (UPDATED)
-Назначение: Отрисовка 2D элементов. Добавлен метод `renderGroupBackground` для рендеринга адаптивных подложек.
-
-## Graphics (UPDATED)
-### com.za.minecraft.engine.graphics.BlockHighlightRenderer (NEW)
-Назначение: Динамический рендеринг контура выделенного блока.
-Функции:
-- `render()`: Рисует линии поверх выделенного блока. Синхронизирует отрисовку с анимацией удара (передает `wobbleTimer`, `shake`, `scale` в шейдер).
-- `createMeshForShape()`: Вычисляет идеальный Wireframe контур на основе `VoxelShape`, удаляя внутренние швы (Quadrant-Sampling Algorithm) и центрируя вершины для корректного математического вращения. Кэширует меши.
-
-### com.za.minecraft.engine.graphics.Renderer (UPDATED)
-Назначение: Главный рендерер игрового мира.
-Функции:
-- `render()`: Основной проход. Реализует интерполяцию позиций через коэффициент `alpha`.
-- `renderEntities()`: Отрисовка сущностей с динамическим расчетом высоты подъема (`lift`) для кувыркающихся блоков на основе проекции осей.
-- `setBreakingBlock()`: Принимает историю ударов и текущую слабую точку для синхронизации визуала.
-- Отрисовывает анимированный прокси-меш и `holeMesh`.
-- `renderPlayers()`: Отрисовка динамических объектов.
-- `renderBlockHighlight()`: Отрисовка рамки выделенного блока. Делегирует `BlockHighlightRenderer`.
-
-### src/main/resources/shaders/include
-- `breaking_patterns.glsl`: (NEW) Математика "зарубок" (Wood Notches) и визуализация истории ударов через массив попаданий.
-- `noise.glsl`: (UPDATED) Добавлены функции `noise(vec3)` и `voronoi(vec3)`.
-
-### src/main/resources/shaders/vertex.glsl (UPDATED)
-Назначение: Рендеринг динамических масок на блоках (например, обтёсывание пней).
-Функции:
-- `render()`: Отрисовывает маску поверх блока. Теперь синхронизирован с Impact Wobble (поддерживает `uIsProxy` и общую систему координат).
-
-### src/main/resources/minecraft/animations
-Назначение: JSON-конфигурации анимаций.
-- `block_wobble.json`: Физический отклик блока на удар (только сжатие и тряска).
-- `pickaxe_swing.json`: (NEW) Уникальная анимация вертикального взмаха для кирки.
-- `axe_swing.json`: Широкий силовой взмах для топора.
-
-### src/main/resources/shaders/vertex.glsl (UPDATED)
-Назначение: Вершинный шейдер. Добавлена логика `uIsProxy` для деформации блоков при ударе.
-
-### src/main/resources/shaders/ui_fragment.glsl (UPDATED)
-Назначение: Пиксельный шейдер для UI.
-Логика: Поддержка SDF-форм (октагонов) и эффектов Grayscale.
-
-### src/main/resources/shaders/inventory_block_fragment.glsl (UPDATED)
-Назначение: Шейдер для 3D иконок. Реализует 3-точечное освещение.
-
-### com.za.minecraft.world.chunks.ChunkMeshGenerator (UPDATED)
-Назначение: Генератор мешей.
-Функции:
-- `generateMesh()`: Основной метод для чанков. Исправлен тинтинг листвы в инвентаре.
-- `generateSingleBlockMesh()`: Создание прокси-мешей для рендеринга отдельных блоков (анимация ударов, дроп, инвентарь). Отцентрирован по `Y=0.5`.
-- `generateHoleMesh()`: (NEW) Динамически генерирует сетку из внутренних граней соседних блоков вокруг ломаемого, скрывая X-Ray дыры при сжатии прокси-блока.
-
-### com.za.minecraft.world.TreecapitatorService (UPDATED)
-Назначение: Механика массовой рубки деревьев и управления стадиями.
-Функции:
-- `fellTree()`: Уничтожает дерево и консолидирует дроп. Теперь корректно резолвит технические блоки стадий в оригинальные логи.
-- `countLogsAbove()`: (NEW) Подсчитывает высоту дерева для реализации динамических стадий.
-
-## Core Engine
-### com.za.minecraft.engine.input.InputManager (UPDATED)
-Назначение: Обработка мыши, клавиатуры, Raycasting, Drag-to-Distribute в инвентаре.
-Функции: Делегирует разрушение блоков в `MiningController`, управляет режимами игрока и инвентарем.
+Назначение: Главная сущность игрока.
+Функции: Управление инвентарем, статами (голод, стамина), паркуром и анимациями. Поддерживает методы `swing()` (удар) и `interact()` (быстрый сбор/подбор). Поддерживает методы `swing()` (удар) и `interact()` (быстрый сбор/подбор).
 
 ### com.za.minecraft.engine.input.MiningController (NEW)
 Назначение: Контроллер процесса добычи блоков.
-Функции: Управляет таймерами (cooldown, breakingDelay), генерирует Weak Spots, рассчитывает прогресс разрушения с учетом инструмента, отправляет сетевые пакеты при разрушении. Передает данные для отрисовки прокси-блока в `Renderer`.
+Функции: Управляет таймерами (cooldown, breakingDelay), генерирует Weak Spots, рассчитывает прогресс разрушения. Автоматически выбирает тип анимации (`swing` vs `interact`) на основе прочности блока. Передает данные для отрисовки прокси-блока в `Renderer`.
 
 ### com.za.minecraft.engine.core.GameLoop (UPDATED)
 Назначение: Главный цикл. Добавлен геттер для `Timer`.
