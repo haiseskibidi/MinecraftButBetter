@@ -738,6 +738,15 @@ public class DataLoader {
                     ));
                 }
                 
+                if (comps.has("minecraft:magnetic") || comps.has("magnetic")) {
+                    JsonObject m = comps.has("minecraft:magnetic") ? comps.getAsJsonObject("minecraft:magnetic") : comps.getAsJsonObject("magnetic");
+                    item.addComponent(com.za.minecraft.world.items.component.MagneticComponent.class, new com.za.minecraft.world.items.component.MagneticComponent(
+                        m.has("attractionRadius") ? m.get("attractionRadius").getAsFloat() : 4.0f,
+                        m.has("pickupRadius") ? m.get("pickupRadius").getAsFloat() : 0.2f,
+                        m.has("attractionForce") ? m.get("attractionForce").getAsFloat() : 45.0f
+                    ));
+                }
+
                 if (comps.has("minecraft:tool") || comps.has("tool")) {
                     JsonObject t = comps.has("minecraft:tool") ? comps.getAsJsonObject("minecraft:tool") : comps.getAsJsonObject("tool");
                     item.addComponent(ToolComponent.class, new ToolComponent(

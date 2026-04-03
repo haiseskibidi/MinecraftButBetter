@@ -2,6 +2,8 @@ package com.za.minecraft.entities;
 
 import com.za.minecraft.world.World;
 import com.za.minecraft.world.items.ItemStack;
+import com.za.minecraft.entities.inventory.Slot;
+import com.za.minecraft.entities.inventory.SlotGroup;
 import org.joml.Vector3f;
 
 /**
@@ -32,16 +34,39 @@ public class ItemEntity extends Entity {
         prevRotation.set(rotation);
         
         Player player = world.getPlayer();
+        boolean hasMagnet = false;
+        
+        if (player != null) {
+            // Проверяем наличие MagneticComponent в любом активном слоте оборудования (аксессуары, offhand и т.д.)
+            if (player.getInventory().hasActiveComponent(com.za.minecraft.world.items.component.MagneticComponent.class)) {
+                hasMagnet = true;
+            }
+        }
         
         if (canBePickedUp() && player != null) {
             Vector3f playerCenter = new Vector3f(player.getPosition());
             playerCenter.y += player.getHeight() * 0.5f;
             
             float distSq = position.distanceSquared(playerCenter);
-            float attrRadius = com.za.minecraft.world.physics.PhysicsSettings.getInstance().itemAttractionRadius;
             
+            // Ищем магнит в инвентаре (в активном оборудовании)
+            com.za.minecraft.world.items.component.MagneticComponent magnet = null;
+            SlotGroup equipment = player.getInventory().getGroup("equipment");
+            if (equipment != null) {
+                for (Slot slot : equipment.getSlots()) {
+                    ItemStack stack = slot.getStack();
+                    if (stack != null) {
+                        com.za.minecraft.world.items.component.MagneticComponent m = stack.getItem().getComponent(com.za.minecraft.world.items.component.MagneticComponent.class);
+                        if (m != null) {
+                            magnet = m;
+                            break;
+                        }
+                    }
+                }
+            }
+
             // Если вошел в радиус - захватываем навсегда
-            if (distSq < attrRadius * attrRadius || isLockedOnPlayer) {
+            if (magnet != null && (distSq < magnet.attractionRadius * magnet.attractionRadius || isLockedOnPlayer)) {
                 isBeingAttracted = true;
                 isLockedOnPlayer = true;
                 
@@ -50,20 +75,20 @@ public class ItemEntity extends Entity {
                 Vector3f direction = new Vector3f(toPlayer).normalize();
                 
                 // --- ГРАМОТНАЯ ФИЗИКА МАГНИТА ---
-                // 1. Целевая скорость сближения (растет при приближении)
-                float approachSpeed = 12.0f + (1.0f - Math.min(1.0f, distance / 4.0f)) * 10.0f;
+                // Параметры теперь из компонента
+                float approachSpeed = 12.0f + (1.0f - Math.min(1.0f, distance / 4.0f)) * (magnet.attractionForce * 0.2f);
                 
-                // 2. Идеальный вектор скорости: Скорость Игрока + Вектор к Игроку
                 Vector3f targetVelocity = new Vector3f(player.getVelocity());
                 targetVelocity.add(direction.mul(approachSpeed));
                 
-                // 3. Плавно, но быстро приводим текущую скорость к идеальной (Slerp-like)
-                // Чем ближе предмет, тем жестче он следует за целевым вектором
                 float followSharpness = 5.0f + (1.0f - Math.min(1.0f, distance / 2.0f)) * 15.0f;
                 velocity.lerp(targetVelocity, deltaTime * followSharpness);
                 
                 onGround = false; 
             }
+        } else {
+            isBeingAttracted = false;
+            isLockedOnPlayer = false;
         }
         
         float gravityMultiplier = stack.getItem().getWeight();

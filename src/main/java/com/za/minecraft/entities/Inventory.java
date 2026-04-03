@@ -79,7 +79,10 @@ public class Inventory implements IInventory {
         equipment.addSlot(new Slot(this, SLOT_BOOTS, "armor_boots"));
         equipment.addSlot(new Slot(this, SLOT_OFFHAND, "offhand"));
         equipment.addSlot(new Slot(this, SLOT_ACCESSORY, "accessory")
-            .withValidator(stack -> stack.getItem().hasComponent(BagComponent.class)));
+            .withValidator(stack -> {
+                com.za.minecraft.world.items.component.EquipmentComponent eq = stack.getItem().getComponent(com.za.minecraft.world.items.component.EquipmentComponent.class);
+                return eq != null && eq.getSlotType().equals("accessory");
+            }));
         groups.add(equipment);
 
         // 4. Pouch
@@ -89,6 +92,19 @@ public class Inventory implements IInventory {
                 return acc != null && acc.getItem().hasComponent(BagComponent.class);
             });
         groups.add(pouch);
+    }
+
+    public boolean hasActiveComponent(Class<? extends com.za.minecraft.world.items.component.ItemComponent> componentClass) {
+        SlotGroup equipment = getGroup("equipment");
+        if (equipment == null) return false;
+        
+        for (Slot slot : equipment.getSlots()) {
+            ItemStack stack = slot.getStack();
+            if (stack != null && stack.getItem().hasComponent(componentClass)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

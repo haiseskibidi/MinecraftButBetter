@@ -4,7 +4,7 @@
     "translationKey":  "block.minecraft.oak_planks",
     "solid":  true,
     "transparent":  false,
-    "breaking_pattern": "wood",
+    "breaking_pattern": "default",
     "hardness":  2.0,
     "textures":  {
                      "all":  "oak_planks.png"

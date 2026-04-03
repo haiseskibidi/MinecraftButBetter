@@ -31,6 +31,7 @@ public class Items {
     public static Item PLANT_FIBER;
     public static Item STRING;
     public static Item FIRE_STARTER;
+    public static Item MAGNETITE;
     public static Item HAND;
     public static Item POUCH;
     public static Item OFFHAND_DUMMY;
