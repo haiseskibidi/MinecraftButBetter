@@ -133,8 +133,15 @@ public class World {
             // Item Pickup logic
             if (entity instanceof com.za.minecraft.entities.ItemEntity itemEntity) {
                 if (player != null && itemEntity.canBePickedUp()) {
-                    float dist = player.getPosition().distance(itemEntity.getPosition());
-                    if (dist < 1.5f) {
+                    float pickupRadius = com.za.minecraft.world.physics.PhysicsSettings.getInstance().itemPickupRadius;
+                    
+                    // Считаем дистанцию до центра игрока, а не до ног
+                    Vector3f playerCenter = new Vector3f(player.getPosition());
+                    playerCenter.y += player.getHeight() * 0.5f;
+                    
+                    float dist = playerCenter.distance(itemEntity.getPosition());
+                    
+                    if (dist < pickupRadius) {
                         if (player.getInventory().addItem(itemEntity.getStack())) {
                             entities.remove(i);
                             com.za.minecraft.utils.Logger.info("Picked up item: %s", itemEntity.getStack().getItem().getName());

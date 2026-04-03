@@ -571,6 +571,11 @@ public class Player extends LivingEntity {
         if (speed > maxSpeed && speed > 0.0001f) { float scale = maxSpeed / speed; velocity.x *= scale; velocity.z *= scale; }
     }
     public void setHorizontalVelocity(float vx, float vz) { velocity.x = vx; velocity.z = vz; }
+    public float getHeight() {
+        return sneaking ? com.za.minecraft.world.physics.PhysicsSettings.getInstance().sneakingHeight : 
+                         com.za.minecraft.world.physics.PhysicsSettings.getInstance().standingHeight;
+    }
+
     public Inventory getInventory() { return inventory; }
     public com.za.minecraft.engine.core.PlayerMode getMode() { return mode; }
     public void setMode(com.za.minecraft.engine.core.PlayerMode mode) { this.mode = mode; }

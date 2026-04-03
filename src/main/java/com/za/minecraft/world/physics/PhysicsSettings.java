@@ -34,6 +34,11 @@ public class PhysicsSettings {
     // Input
     public float mouseSensitivity = 0.002f;
 
+    // Items
+    public float itemAttractionRadius = 3.2f;
+    public float itemPickupRadius = 0.4f;
+    public float itemAttractionForce = 12.0f;
+
     public static PhysicsSettings getInstance() {
         return instance;
     }
