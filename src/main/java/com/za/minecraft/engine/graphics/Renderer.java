@@ -54,7 +54,7 @@ public class Renderer {
     private com.za.minecraft.world.BlockPos breakingPos;
     private Vector3f breakingHitPoint = new Vector3f();
     private Vector3f weakSpotPos = new Vector3f();
-    private Vector3f weakSpotColor = new Vector3f(1.0f, 0.9f, 0.4f);
+    private Vector3f weakSpotColor = new Vector3f(1.0f, 1.0f, 1.0f);
     private final Vector3f[] hitHistory = new Vector3f[16];
     private int hitCount = 0;
     private Mesh breakingMesh;
@@ -252,7 +252,7 @@ public class Renderer {
         blockShader.setInt("uBreakingPattern", 0);
         blockShader.setVector3f("uBreakingHitPoint", new Vector3f(0.5f));
         blockShader.setVector3f("uWeakSpotPos", new Vector3f(0.5f));
-        blockShader.setVector3f("uWeakSpotColor", new Vector3f(1.0f, 0.9f, 0.4f));
+        blockShader.setVector3f("uWeakSpotColor", new Vector3f(1.0f, 1.0f, 1.0f));
         
         if (breakingPos != null) {
             if (holeMesh == null || !breakingPos.equals(holePos)) {

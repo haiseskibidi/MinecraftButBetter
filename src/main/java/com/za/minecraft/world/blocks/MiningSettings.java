@@ -10,5 +10,5 @@ import org.joml.Vector3f;
  * @param weakSpotColor Color of the fresh chip/spark (default is wood-like yellowish)
  */
 public record MiningSettings(String strategy, float precision, float missMultiplier, Vector3f weakSpotColor) {
-    public static final MiningSettings DEFAULT = new MiningSettings("default", 0.2f, 1.0f, new Vector3f(1.0f, 0.9f, 0.4f));
+    public static final MiningSettings DEFAULT = new MiningSettings("default", 0.2f, 1.0f, new Vector3f(1.0f, 1.0f, 1.0f));
 }

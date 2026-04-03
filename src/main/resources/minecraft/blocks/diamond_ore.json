@@ -14,6 +14,6 @@
         "strategy": "weak_spots",
         "precision": 0.15,
         "miss_multiplier": 0.15,
-        "weak_spot_color": [0.4, 0.9, 1.0]
+        "weak_spot_color": [1.0, 0.9, 0.4]
     }
 }

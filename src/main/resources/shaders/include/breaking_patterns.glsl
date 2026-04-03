@@ -43,8 +43,8 @@ vec3 applyWoodNotch(vec3 color, vec3 localPos, vec3 notchPos, float progress, bo
         float intensity = (1.0 - (vDist / range)) * smoothstep(0.25, 0.0, horizDist);
         
         if (isFresh) {
-            // Use dynamic weak spot color for fresh cuts
-            return mix(color, uWeakSpotColor, intensity * 0.9);
+            // Restore bright white fresh cut for wood
+            return mix(color, vec3(1.0, 1.0, 1.0), intensity * 0.9);
         } else {
             // Dark damaged old cut
             return mix(color, color * 0.15, intensity * 0.8);
@@ -102,7 +102,7 @@ vec3 applyWeakSpotMarker(vec3 color, vec3 localPos, vec3 weakSpotPos, float prog
     
     if (d < 0.08) {
         float pulse = sin(uWobbleTime * 25.0) * 0.5 + 0.5;
-        // Pixel-perfect pulse marker using dynamic color
+        // Pixel-perfect pulse marker
         return mix(color, uWeakSpotColor, (0.5 + pulse * 0.5) * smoothstep(0.08, 0.0, d));
     }
     return color;
@@ -113,15 +113,15 @@ vec3 applyBreakingPattern(int patternId, vec3 color, vec3 localPos, float progre
     
     vec3 result = color;
     
-    // 1. Draw the weak spot marker (target)
-    result = applyWeakSpotMarker(result, localPos, uWeakSpotPos, progress);
-
     if (patternId == 1) { // WOOD
         for (int i = 0; i < uHitCount; i++) {
             if (i < 16) result = applyWoodNotch(result, localPos, uHitHistory[i], progress, false);
         }
         result = applyWoodNotch(result, localPos, uWeakSpotPos, progress, true);
     } else if (patternId == 2) { // STONE / ORE
+        // Draw marker only for stone/ore pattern
+        result = applyWeakSpotMarker(result, localPos, uWeakSpotPos, progress);
+        
         for (int i = 0; i < uHitCount; i++) {
             if (i < 16) result = applyStoneChip(result, localPos, uHitHistory[i], progress, false);
         }
