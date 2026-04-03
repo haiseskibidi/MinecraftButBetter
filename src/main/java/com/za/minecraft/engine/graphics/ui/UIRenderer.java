@@ -145,12 +145,7 @@ public class UIRenderer {
         float delta = GameLoop.getInstance().getTimer().getDeltaF();
         crosshairManager.update(delta);
         
-        float progress = GameLoop.getInstance().getInputManager().getBreakingProgress();
-        
-        CrosshairDefinition def = CrosshairRegistry.get(crosshairManager.getCurrentId());
-        if (def != null) {
-            crosshairRenderer.render(def, uiShader, screenWidth, screenHeight, 1.0f, progress, crosshairManager.getCurrentState());
-        }
+        crosshairRenderer.render(crosshairManager, uiShader, screenWidth, screenHeight, 1.0f);
         
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);

@@ -25,6 +25,7 @@ public class MiningController {
 
     private BlockPos breakingBlockPos = null;
     private float breakingProgress = 0.0f;
+    private float hitPulse = 0.0f; // 0 to 1 pulse on hit
     private float blockAccumulatedDamage = 0.0f;
     private float hitCooldownTimer = 0.0f;
     private float wobbleTimer = 0.0f;
@@ -45,6 +46,7 @@ public class MiningController {
     public void update(float deltaTime) {
         breakDelayTimer = Math.max(0, breakDelayTimer - deltaTime);
         hitCooldownTimer = Math.max(0, hitCooldownTimer - deltaTime);
+        hitPulse = Math.max(0, hitPulse - deltaTime * 5.0f); // Fast decay (200ms)
         if (breakingBlockPos != null) {
             wobbleTimer += deltaTime;
         }
@@ -149,6 +151,7 @@ public class MiningController {
             } else {
                 player.swing(hitCooldownTimer > 0 ? hitCooldownTimer : interval);
             }
+            hitPulse = 1.0f;
         }
             
         if (renderer != null && breakingBlockPos != null) {
@@ -243,6 +246,8 @@ public class MiningController {
     public BlockPos getBreakingBlockPos() { return breakingBlockPos; }
     
     public float getBreakingProgress() { return breakingProgress; }
+
+    public float getHitPulse() { return hitPulse; }
 
     private Vector3f generateRandomWeakSpot(VoxelShape shape, Vector3f normal) {
         if (shape == null || shape.getBoxes().isEmpty()) return new Vector3f(0, 0.5f, 0);

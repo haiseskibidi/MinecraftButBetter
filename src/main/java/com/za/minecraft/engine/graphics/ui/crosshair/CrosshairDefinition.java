@@ -14,6 +14,10 @@ public class CrosshairDefinition {
     private List<String> matrix;
     private float scale = 1.0f;
     private boolean centered = true;
+    
+    // Animation settings
+    private float bounceScale = 0.0f; // Extra scale on state entry
+    private float bounceDuration = 0.3f; // Seconds
 
     public CrosshairDefinition() {}
 
@@ -26,4 +30,6 @@ public class CrosshairDefinition {
     public List<String> getMatrix() { return matrix; }
     public float getScale() { return scale; }
     public boolean isCentered() { return centered; }
+    public float getBounceScale() { return bounceScale; }
+    public float getBounceDuration() { return bounceDuration; }
 }

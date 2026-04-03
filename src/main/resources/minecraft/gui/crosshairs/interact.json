@@ -3,6 +3,8 @@
   "size": 7,
   "color": [1.0, 0.9, 0.4, 1.0],
   "scale": 1.2,
+  "bounceScale": 0.25,
+  "bounceDuration": 0.2,
   "matrix": [
     "0011100",
     "0100010",

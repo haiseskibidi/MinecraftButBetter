@@ -14,7 +14,7 @@ uniform int isGrayscale = 0;
 
 // Mining / Action Progress
 uniform float uProgress = 0.0;
-uniform int isCrosshair = 0;
+uniform int isCrosshair = 0; // 0: None, 1: Standard, 2: Halo Ring
 
 // Slot Shape & Light parameters
 uniform int isSlot = 0; 
@@ -49,26 +49,9 @@ void main() {
         vec4 finalColor = tintColor;
         
         if (isCrosshair == 1 && uProgress > 0.001) {
-            // Enhanced Multi-stage color ramp for Mining
-            vec3 white = tintColor.rgb;
-            vec3 orange = vec3(1.0, 0.55, 0.0);
-            vec3 softRed = vec3(1.0, 0.25, 0.25);
-            
-            vec3 midColor;
-            if (uProgress < 0.5) {
-                midColor = mix(white, orange, uProgress * 2.0);
-            } else {
-                midColor = mix(orange, softRed, (uProgress - 0.5) * 2.0);
-            }
-            
-            finalColor.rgb = midColor;
-            
-            // Subtle "strain" pulse - high frequency, low amplitude
-            float pulse = 1.0 + sin(uProgress * 30.0) * 0.12 * uProgress;
-            finalColor.rgb *= pulse;
-            
-            // Slight glow boost at the end
-            finalColor.rgb += 0.15 * smoothstep(0.7, 1.0, uProgress);
+            // Subtle color change towards the end of mining
+            vec3 focusColor = mix(vec3(1.0), vec3(1.0, 0.8, 0.4), uProgress);
+            finalColor.rgb = focusColor;
         }
         
         fragColor = finalColor;
