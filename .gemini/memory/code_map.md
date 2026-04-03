@@ -15,6 +15,15 @@
 - `hotbar.json`: Конфигурация HUD-хотбара.
 - `chest.json`: Интерфейс сундуков.
 
+## World & Items (UPDATED)
+### com.za.minecraft.world.blocks.BlockDefinition (UPDATED)
+Назначение: Физические и визуальные свойства блока.
+Функции: Хранит `interaction_cooldown` для настройки скорости сбора.
+
+### com.za.minecraft.world.items.Item (UPDATED)
+Назначение: Базовый класс предмета.
+Функции: Управление компонентами и индивидуальным `interaction_cooldown`.
+
 ## Entity System (v5.6 NEW)
 ### com.za.minecraft.entities.Entity (UPDATED)
 Назначение: Базовый класс для всех сущностей (игрок, мобы, предметы).

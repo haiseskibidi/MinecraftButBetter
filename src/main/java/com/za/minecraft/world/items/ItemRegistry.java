@@ -17,6 +17,7 @@ public class ItemRegistry {
             int intId = BlockRegistry.getRegistry().getId(id);
             
             Item blockItem = new BlockItem(intId, def.getIdentifier(), def.getName(), def.getTextures() != null ? def.getTextures().getNorth() : "");
+            blockItem.setInteractionCooldown(def.getInteractionCooldown());
             registerItem(blockItem);
         });
     }

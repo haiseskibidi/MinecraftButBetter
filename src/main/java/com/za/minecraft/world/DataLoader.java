@@ -597,6 +597,7 @@ public class DataLoader {
             if (obj.has("dropChance")) def.setDropChance(obj.get("dropChance").getAsFloat());
             
             if (obj.has("wobble_animation")) def.setWobbleAnimation(obj.get("wobble_animation").getAsString());
+            if (obj.has("interaction_cooldown")) def.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());
             
             if (obj.has("breaking_pattern")) {
                 String pattern = obj.get("breaking_pattern").getAsString().toLowerCase();
@@ -716,6 +717,7 @@ public class DataLoader {
             if (obj.has("visualScale")) item.setVisualScale(obj.get("visualScale").getAsFloat());
             if (obj.has("miningSpeed")) item.setMiningSpeed(obj.get("miningSpeed").getAsFloat());
             if (obj.has("maxStackSize")) item.setMaxStackSize(obj.get("maxStackSize").getAsInt());
+            if (obj.has("interaction_cooldown")) item.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());
             
             // Парсинг компонентов (перезаписывают дефолтные из конструктора)
             if (obj.has("components")) {

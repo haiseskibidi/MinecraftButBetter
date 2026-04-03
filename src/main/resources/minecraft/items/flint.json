@@ -1,7 +1,8 @@
-﻿{
-    "id":  422,
-    "identifier":  "minecraft:flint",
-    "translationKey":  "item.minecraft.flint",
-    "texture":  "minecraft/textures/item/flint.png",
-    "visualScale":  0.55
+{
+    "id": 422,
+    "identifier": "minecraft:flint",
+    "translationKey": "item.minecraft.flint",
+    "texture": "minecraft/textures/item/flint.png",
+    "visualScale": 0.55,
+    "interaction_cooldown": 0.2
 }

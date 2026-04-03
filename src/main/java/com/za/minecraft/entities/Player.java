@@ -335,7 +335,8 @@ public class Player extends LivingEntity {
                 if (lp != null) viewmodelController.applyAnimation(viewmodel, lp, Math.min(1.0f, landingTimer), landingScale);
             }
             if (swinging) {
-                String sN = heldItem != null ? heldItem.getAnimation("item_swing") : "hand_swing";
+                String swingKey = "item_" + currentSwingAnim;
+                String sN = heldItem != null ? heldItem.getAnimation(swingKey) : swingKey.replace("item_", "hand_");
                 AnimationProfile swingAnim = animationRegistry.get(sN);
                 if (swingAnim != null) viewmodelController.applyAnimation(viewmodel, swingAnim, itemSwingTimer, 1.0f);
             }

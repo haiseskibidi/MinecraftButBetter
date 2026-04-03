@@ -798,7 +798,7 @@ public class InputManager {
                         miningController.startMining(hitPos, blockDef, world, raycast.getNormal());
                     }
 
-                    miningController.mine(world, player, hitPos, blockType, blockDef, currentStack, currentItem, isNewLeftClick, localHit);
+                    miningController.mine(world, player, hitPos, blockType, blockDef, currentStack, currentItem, isNewLeftClick, localHit, raycast.getNormal());
                 }
             } else {
                 if (raycast.isHit()) {
@@ -821,7 +821,8 @@ public class InputManager {
                 if (isNewRightClick) {
                     if (hitEntity instanceof com.za.minecraft.entities.ResourceEntity resource) {
                         if (!player.isSwinging()) {
-                            player.interact(PhysicsSettings.getInstance().baseMiningCooldown);
+                            float cooldown = resource.getStack().getItem().getInteractionCooldown();
+                            player.interact(cooldown);
                             if (player.getInventory().addItem(resource.getStack())) {
                                 resource.setRemoved();
                                 com.za.minecraft.utils.Logger.info("Picked up %s (RMB)", resource.getStack().getItem().getName());
@@ -830,7 +831,8 @@ public class InputManager {
                         }
                     } else if (hitEntity instanceof com.za.minecraft.entities.ItemEntity itemEntity) {
                         if (!player.isSwinging()) {
-                            player.interact(PhysicsSettings.getInstance().baseMiningCooldown);
+                            float cooldown = itemEntity.getStack().getItem().getInteractionCooldown();
+                            player.interact(cooldown);
                             if (player.getInventory().addItem(itemEntity.getStack())) {
                                 itemEntity.setRemoved();
                                 com.za.minecraft.utils.Logger.info("Picked up %s (RMB)", itemEntity.getStack().getItem().getName());

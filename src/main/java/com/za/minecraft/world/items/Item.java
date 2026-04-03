@@ -18,6 +18,18 @@ public class Item {
     protected float visualScale = 1.0f;
     protected float miningSpeed = 0.1f;
     protected int maxStackSize = -1; // -1 means use type default
+    protected float interactionCooldown = -1.0f; 
+
+    public float getInteractionCooldown() {
+        if (interactionCooldown < 0) {
+            return com.za.minecraft.world.physics.PhysicsSettings.getInstance().baseMiningCooldown;
+        }
+        return interactionCooldown;
+    }
+
+    public void setInteractionCooldown(float interactionCooldown) {
+        this.interactionCooldown = interactionCooldown;
+    }
     
     private final Map<Class<? extends ItemComponent>, ItemComponent> components = new HashMap<>();
 

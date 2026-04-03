@@ -43,6 +43,18 @@ public class BlockDefinition {
     private String wobbleAnimation = "block_wobble";
     private int breakingPattern = 0; // 0=Generic, 1=Wood, 2=Stone, etc.
     private MiningSettings miningSettings = MiningSettings.DEFAULT;
+    private float interactionCooldown = -1.0f; // -1 means use PhysicsSettings.baseMiningCooldown
+
+    public float getInteractionCooldown() {
+        if (interactionCooldown < 0) {
+            return com.za.minecraft.world.physics.PhysicsSettings.getInstance().baseMiningCooldown;
+        }
+        return interactionCooldown;
+    }
+
+    public void setInteractionCooldown(float interactionCooldown) {
+        this.interactionCooldown = interactionCooldown;
+    }
 
     // ... в методе getTextures() или аналогичном ...
     public String getWobbleAnimation() {

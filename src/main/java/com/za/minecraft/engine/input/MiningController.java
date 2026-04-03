@@ -29,6 +29,7 @@ public class MiningController {
     private float hitCooldownTimer = 0.0f;
     private float wobbleTimer = 0.0f;
     private Vector3f currentWeakSpot = new Vector3f(0.5f);
+    private Vector3f currentNormal = new Vector3f(0, 1, 0);
     private final List<Vector3f> hitHistory = new ArrayList<>();
     
     private float breakDelayTimer = 0.0f;
@@ -55,6 +56,7 @@ public class MiningController {
         blockAccumulatedDamage = 0.0f;
         wobbleTimer = 1.0f; // Prevent animation leaking to new blocks
         hitHistory.clear();
+        this.currentNormal.set(normal);
         currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), normal);
     }
 
@@ -73,15 +75,21 @@ public class MiningController {
         hitHistory.clear();
     }
 
-    public void mine(World world, Player player, BlockPos hitPos, int blockType, BlockDefinition blockDef, ItemStack currentStack, Item currentItem, boolean isNewLeftClick, Vector3f localHit) {
+    public void mine(World world, Player player, BlockPos hitPos, int blockType, BlockDefinition blockDef, ItemStack currentStack, Item currentItem, boolean isNewLeftClick, Vector3f localHit, Vector3f normal) {
         float hardness = blockDef.getHardness();
         if (hardness < 0) return; // Unbreakable
+
+        // Если сменилась грань (нормаль), перегенерируем слабую точку на новой грани
+        if (normal != null && normal.distanceSquared(currentNormal) > 0.01f) {
+            currentNormal.set(normal);
+            currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), normal);
+        }
 
         float maxHealth = hardness * 10.0f;
         boolean isInstantBreak = maxHealth <= 0.1f;
         boolean shouldHit = false;
 
-        float interval = com.za.minecraft.world.physics.PhysicsSettings.getInstance().baseMiningCooldown;
+        float interval = blockDef.getInteractionCooldown();
         if (currentItem != null) {
             com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
             if (tool != null) interval = tool.attackInterval();
@@ -96,6 +104,8 @@ public class MiningController {
                 shouldHit = true;
             }
         } else {
+            // Re-calculate interval for standard blocks if needed, 
+            // but usually we want to stay consistent with tool speeds
             if (hitCooldownTimer <= 0.0f) {
                 float miningDamage = (currentItem != null) ?
                     currentItem.getMiningSpeed(blockType) :
@@ -107,7 +117,8 @@ public class MiningController {
                     if (dist < mSettings.precision()) {
                         blockAccumulatedDamage += miningDamage;
                         hitHistory.add(new Vector3f(currentWeakSpot));
-                        currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), localHit); // Needs the surface normal, passing localHit as fallback for now. Should be normal.
+                        // Перегенерируем на ТОЙ ЖЕ грани, используя честную нормаль
+                        currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), currentNormal); 
                         com.za.minecraft.utils.Logger.info("Weak spot HIT!");
                     } else {
                         blockAccumulatedDamage += miningDamage * mSettings.missMultiplier();

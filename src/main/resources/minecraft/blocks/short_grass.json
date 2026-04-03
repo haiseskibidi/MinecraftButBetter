@@ -7,6 +7,7 @@
   "placement": "CROSS_PLANE",
   "replaceable": true,
   "hardness": 0.01,
+  "interaction_cooldown": 0.2,
   "cleaningAmount": 0.25,
   "dropItem": "minecraft:straw",
   "dropChance": 0.2,
