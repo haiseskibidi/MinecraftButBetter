@@ -13,6 +13,11 @@ public class CampfireBlockDefinition extends BlockDefinition {
     }
 
     @Override
+    public boolean hasOnUse() {
+        return true;
+    }
+
+    @Override
     public boolean onUse(World world, BlockPos pos, Player player, ItemStack heldStack, float hitX, float hitY, float hitZ) {
         if (heldStack != null && heldStack.getItem().getId() == Items.RAW_MEAT.getId()) {
             player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), new ItemStack(Items.COOKED_MEAT));

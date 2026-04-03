@@ -9,8 +9,11 @@ uniform vec4 uvOffset; // uvX, uvY, unused, unused
 uniform vec4 uvScale;  // uvScaleX, uvScaleY, unused, unused
 
 out vec2 fragTexCoord;
+out vec2 vPos;
 
 void main() {
+    vPos = position;
+    
     // Применяем масштаб и смещение к вершинам
     vec2 scaledPos = position * scale.xy + position_offset.xy;
     

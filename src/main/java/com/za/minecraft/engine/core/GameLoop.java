@@ -60,6 +60,7 @@ public class GameLoop {
     public Timer getTimer() { return timer; }
     public InputManager getInputManager() { return inputManager; }
     public Renderer getRenderer() { return renderer; }
+    public com.za.minecraft.world.physics.RaycastResult getHighlightedBlock() { return highlightedBlock; }
     public void setInventoryOpen(boolean open) { this.inventoryOpen = open; }
 
     public void runSingleplayer() { runWithMode(GameMode.SINGLEPLAYER, "Player", null); }
@@ -264,8 +265,6 @@ public class GameLoop {
         if (inventoryOpen) renderer.getUIRenderer().renderInventory(window.getWidth(), window.getHeight(), renderer.getAtlas());
         else if (currentNappingSession != null) com.za.minecraft.engine.graphics.ui.NappingGUI.render(renderer.getUIRenderer(), window.getWidth(), window.getHeight(), currentNappingSession);
 
-        renderer.getUIRenderer().renderMiningProgress(window.getWidth(), window.getHeight(), inputManager.getBreakingProgress());
-        
         if (highlightedBlock != null && highlightedBlock.isHit()) {
             com.za.minecraft.world.blocks.Block block = world.getBlock(highlightedBlock.getBlockPos());
             if (block.getType() == com.za.minecraft.world.blocks.Blocks.BURNING_PIT_KILN.getId()) {

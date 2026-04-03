@@ -24,6 +24,11 @@ public class StumpBlockDefinition extends BlockDefinition {
     }
 
     @Override
+    public boolean hasOnUse() {
+        return true;
+    }
+
+    @Override
     public boolean onUse(World world, BlockPos pos, Player player, ItemStack heldStack, float hitX, float hitY, float hitZ) {
         BlockEntity be = world.getBlockEntity(pos);
         if (!(be instanceof StumpBlockEntity)) {

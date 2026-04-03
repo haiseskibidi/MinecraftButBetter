@@ -61,14 +61,18 @@ public class InputManager {
     
     // Breaking block state
     private final MiningController miningController;
+    private com.za.minecraft.entities.Entity hitEntity;
     private float placeDelayTimer = 0.0f;
     private static final float PLACE_COOLDOWN = 0.25f; // 4 bps (5 ticks)
     
     public InputManager() {
         previousPos = new Vector2f();
         currentPos = new Vector2f();
-        miningController = new MiningController();
+        this.miningController = new MiningController();
     }
+    
+    public MiningController getMiningController() { return miningController; }
+    public com.za.minecraft.entities.Entity getHitEntity() { return hitEntity; }
     
     public void init(Window window) {
         glfwSetCursorPos(window.getWindowHandle(), window.getWidth() / 2.0, window.getHeight() / 2.0);
@@ -735,7 +739,7 @@ public class InputManager {
         }
         qKeyPressed = qKeyCurrentlyPressed;
         
-        com.za.minecraft.entities.Entity hitEntity = Raycast.raycastEntity(world, camera.getPosition(), lookDir);
+        this.hitEntity = Raycast.raycastEntity(world, camera.getPosition(), lookDir);
         
         if (!inventoryOpen && !paused && !nappingOpen) {
             boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1);

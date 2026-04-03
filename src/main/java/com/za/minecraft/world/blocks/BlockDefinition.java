@@ -324,6 +324,13 @@ public class BlockDefinition {
     }
 
     /**
+     * @return true, если блок имеет логику взаимодействия на ПКМ.
+     */
+    public boolean hasOnUse() {
+        return false;
+    }
+
+    /**
      * Вызывается при нажатии ПКМ по блоку.
      * @param hitX Относительная координата X клика (0.0-1.0)
      * @param hitY Относительная координата Y клика (0.0-1.0)

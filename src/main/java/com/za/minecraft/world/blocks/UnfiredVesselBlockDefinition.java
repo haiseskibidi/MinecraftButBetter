@@ -13,6 +13,11 @@ public class UnfiredVesselBlockDefinition extends BlockDefinition {
     }
 
     @Override
+    public boolean hasOnUse() {
+        return true;
+    }
+
+    @Override
     public boolean onUse(World world, BlockPos pos, Player player, ItemStack heldStack, float hitX, float hitY, float hitZ) {
         if (player.isSneaking() && heldStack != null && heldStack.getItem().getId() == Items.STRAW.getId()) {
             world.setBlock(pos, new Block(Blocks.PIT_KILN.getId(), (byte)0));

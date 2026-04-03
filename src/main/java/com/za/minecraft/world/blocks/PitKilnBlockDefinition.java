@@ -15,6 +15,11 @@ public class PitKilnBlockDefinition extends BlockDefinition {
     }
 
     @Override
+    public boolean hasOnUse() {
+        return true;
+    }
+
+    @Override
     public boolean onUse(World world, BlockPos pos, Player player, ItemStack heldStack, float hitX, float hitY, float hitZ) {
         if (!player.isSneaking()) return false;
 

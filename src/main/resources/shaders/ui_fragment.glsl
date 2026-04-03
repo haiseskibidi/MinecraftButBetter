@@ -1,6 +1,7 @@
 #version 330 core
 
 in vec2 fragTexCoord;
+in vec2 vPos;
 out vec4 fragColor;
 
 uniform sampler2D textureSampler;
@@ -10,6 +11,10 @@ uniform int useTexture = 1;
 uniform int useArray = 0;
 uniform float layerIndex = 0.0;
 uniform int isGrayscale = 0;
+
+// Mining / Action Progress
+uniform float uProgress = 0.0;
+uniform int isCrosshair = 0;
 
 // Slot Shape & Light parameters
 uniform int isSlot = 0; 
@@ -25,38 +30,48 @@ float sdChamferedRect(vec2 p, vec2 b, float r) {
 void main() {
     if (isSlot == 1) {
         vec2 p = fragTexCoord * 2.0 - 1.0;
-        
-        // 1. Calculate Shape Mask
         float d = sdChamferedRect(p, vec2(0.85), cornerRadius);
         float mask = smoothstep(0.01, 0.0, d);
         if (mask < 0.01) discard;
 
-        // 2. Base Color (Dark industrial grey)
         vec3 baseColor = tintColor.rgb;
-        
-        // 3. Central Ambient Light (Inner Glow)
-        // Makes center brighter so dark items pop
         float distFromCenter = length(p);
         float innerGlow = exp(-distFromCenter * 1.5) * 0.25;
-        
-        // 4. Edge Highlight (Bevel effect)
         float border = smoothstep(0.05, 0.0, abs(d));
-        
-        // 5. Dynamic Hover Glow
-        // When hovered, the slot "wakes up" with a subtle cyan/blue tint or just more light
         float interactionLight = hoverProgress * 0.1;
         
-        vec3 finalColor = baseColor;
-        finalColor += innerGlow; // Light behind the item
-        finalColor += border * (0.1 + hoverProgress * 0.2); // Brighter edges on hover
-        finalColor += interactionLight;
-        
+        vec3 finalColor = baseColor + innerGlow + border * (0.1 + hoverProgress * 0.2) + interactionLight;
         fragColor = vec4(finalColor, tintColor.a * mask);
         return;
     }
 
     if (useTexture == 0) {
-        fragColor = tintColor;
+        vec4 finalColor = tintColor;
+        
+        if (isCrosshair == 1 && uProgress > 0.001) {
+            // Enhanced Multi-stage color ramp for Mining
+            vec3 white = tintColor.rgb;
+            vec3 orange = vec3(1.0, 0.55, 0.0);
+            vec3 softRed = vec3(1.0, 0.25, 0.25);
+            
+            vec3 midColor;
+            if (uProgress < 0.5) {
+                midColor = mix(white, orange, uProgress * 2.0);
+            } else {
+                midColor = mix(orange, softRed, (uProgress - 0.5) * 2.0);
+            }
+            
+            finalColor.rgb = midColor;
+            
+            // Subtle "strain" pulse - high frequency, low amplitude
+            float pulse = 1.0 + sin(uProgress * 30.0) * 0.12 * uProgress;
+            finalColor.rgb *= pulse;
+            
+            // Slight glow boost at the end
+            finalColor.rgb += 0.15 * smoothstep(0.7, 1.0, uProgress);
+        }
+        
+        fragColor = finalColor;
     } else {
         vec4 textureColor;
         if (useArray == 1) {

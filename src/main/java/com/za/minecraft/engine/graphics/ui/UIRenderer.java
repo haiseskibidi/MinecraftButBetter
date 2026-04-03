@@ -13,6 +13,10 @@ import com.za.minecraft.world.blocks.Block;
 import com.za.minecraft.world.blocks.BlockTextureMapper;
 import com.za.minecraft.world.blocks.BlockRegistry;
 import com.za.minecraft.world.items.ItemRegistry;
+import com.za.minecraft.engine.graphics.ui.crosshair.CrosshairManager;
+import com.za.minecraft.engine.graphics.ui.crosshair.CrosshairRenderer;
+import com.za.minecraft.engine.graphics.ui.crosshair.CrosshairRegistry;
+import com.za.minecraft.engine.graphics.ui.crosshair.CrosshairDefinition;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.FloatBuffer;
@@ -30,7 +34,8 @@ import static org.lwjgl.opengl.GL30.*;
 public class UIRenderer {
     private Shader uiShader;
     private Shader blockShader;
-    private Texture crosshairTexture;
+    private final CrosshairManager crosshairManager = new CrosshairManager();
+    private final CrosshairRenderer crosshairRenderer = new CrosshairRenderer();
     private Map<Integer, Texture> itemTextures = new HashMap<>();
     private Map<String, Texture> externalTextures = new HashMap<>();
     
@@ -63,7 +68,7 @@ public class UIRenderer {
             "src/main/resources/shaders/ui_fragment.glsl"
         );
         
-        crosshairTexture = new Texture("src/main/resources/textures/crosshair.png", false, false);
+        CrosshairRegistry.load();
         
         createQuad();
         
@@ -137,26 +142,15 @@ public class UIRenderer {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
-        uiShader.use();
-        uiShader.setInt("useTexture", 1);
-        uiShader.setInt("useArray", 0);
-        uiShader.setInt("isSlot", 0);
-        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+        float delta = GameLoop.getInstance().getTimer().getDeltaF();
+        crosshairManager.update(delta);
         
-        float crosshairSize = 16.0f;
-        float scaleX = crosshairSize / screenWidth;
-        float scaleY = crosshairSize / screenHeight;
+        float progress = GameLoop.getInstance().getInputManager().getBreakingProgress();
         
-        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
-        uiShader.setUniform("position_offset", 0.0f, 0.0f, 0.0f, 0.0f);
-        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
-        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-        
-        crosshairTexture.bind();
-        
-        glBindVertexArray(quadVAO);
-        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
+        CrosshairDefinition def = CrosshairRegistry.get(crosshairManager.getCurrentId());
+        if (def != null) {
+            crosshairRenderer.render(def, uiShader, screenWidth, screenHeight, 1.0f, progress, crosshairManager.getCurrentState());
+        }
         
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
@@ -370,25 +364,6 @@ public class UIRenderer {
             glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
             uiShader.setInt("isGrayscale", 0);
         }
-    }
-
-    public void renderMiningProgress(int screenWidth, int screenHeight, float progress) {
-        if (progress <= 0.0f) return;
-
-        glDisable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        String text = com.za.minecraft.utils.I18n.format("gui.mining_progress", (int)(progress * 100));
-        int textSize = 18;
-        int textWidth = fontRenderer.getStringWidth(text, textSize);
-        int x = (screenWidth - textWidth) / 2;
-        int y = (screenHeight / 2) + 30;
-
-        fontRenderer.drawString(text, x, y, textSize, screenWidth, screenHeight);
-
-        glEnable(GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
     }
 
     public void renderFiringProgress(int screenWidth, int screenHeight, float progress) {
@@ -806,8 +781,8 @@ public class UIRenderer {
 
     public void cleanup() {
         if (uiShader != null) uiShader.cleanup();
-        if (crosshairTexture != null) crosshairTexture.cleanup();
         if (fontRenderer != null) fontRenderer.cleanup();
+        crosshairRenderer.cleanup();
         blockRenderer.cleanup();
         glDeleteVertexArrays(quadVAO);
         glDeleteBuffers(quadVBO);

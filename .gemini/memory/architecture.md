@@ -1,6 +1,16 @@
  # Архитектура проекта "MinecraftButBetter"
 
-### Data-Driven Development (v3.2 UPDATED)
+### UI & Interaction Systems
+1.  **Matrix Crosshair System**:
+    - **Data-Driven Shapes**: Прицел определяется сеткой 1/0 в JSON (`matrix`). Это позволяет создавать любые пиксель-арт формы без использования текстур.
+    - **State-Based Logic**: `CrosshairManager` анализирует контекст (на что смотрит игрок) и выбирает нужный ID прицела. Приоритет всегда у активного действия (Mining).
+    - **Shader Effects**: Визуальные эффекты (прогресс, пульсация, цветовые градиенты) изолированы и применяются только к соответствующим состояниям через `ui_fragment.glsl`.
+2.  **Physical Viewmodel**:
+    - **Skeletal Animation**: Иерархия костей (Shoulder -> Forearm -> Hand) для органичных движений.
+    - **Procedural Impacts**: Физические импульсы при ударах и приземлении.
+    - **Spring Physics**: Инерция рук и предметов на основе пружинного симулятора.
+
+### Data-Driven Development (v3.3 UPDATED)
 1.  **JSON Schema**: Все игровые параметры (блоки, предметы, анимации, рецепты) загружаются из ресурсов.
 2.  **Interaction Tuning**: Поле `interaction_cooldown` в JSON позволяет переопределять глобальный интервал добычи для конкретных объектов (например, быстрый сбор растений vs медленная рубка камня).
 
