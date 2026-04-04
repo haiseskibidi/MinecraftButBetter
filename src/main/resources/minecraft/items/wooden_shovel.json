@@ -6,6 +6,11 @@
   "visualScale": 1.1,
   "weight": 1.2,
   "components": {
+    "viewmodel": {
+      "translation": [0.0, -0.1, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": 0.85
+    },
     "minecraft:tool": {
       "type": "shovel",
       "efficiency": 1.5,
