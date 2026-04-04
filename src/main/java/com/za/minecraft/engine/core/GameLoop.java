@@ -3,6 +3,7 @@ package com.za.minecraft.engine.core;
 import com.za.minecraft.engine.graphics.Camera;
 import com.za.minecraft.engine.graphics.Renderer;
 import com.za.minecraft.engine.graphics.ui.Hotbar;
+import com.za.minecraft.engine.graphics.ui.editor.animation.AnimationEditorScreen;
 import com.za.minecraft.engine.input.InputManager;
 import com.za.minecraft.entities.Player;
 import com.za.minecraft.network.GameClient;
@@ -31,6 +32,7 @@ public class GameLoop {
     private boolean paused = false;
     private boolean inventoryOpen = false;
     private boolean jPressed = false;
+    private boolean f8Pressed = false;
     private boolean ePressed = false;
     private boolean escPressed = false;
     
@@ -138,6 +140,12 @@ public class GameLoop {
     private void input() {
         com.za.minecraft.engine.graphics.ui.Screen active = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
         
+        boolean f8Key = window.isKeyPressed(GLFW_KEY_F8);
+        if (f8Key && !f8Pressed && !paused) {
+            toggleAnimationEditor();
+        }
+        f8Pressed = f8Key;
+
         boolean eKey = window.isKeyPressed(GLFW_KEY_E);
         if (eKey && !ePressed && !paused) {
             if (active != null) {
@@ -176,6 +184,19 @@ public class GameLoop {
             inputManager.disableMouseCapture(window);
             com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().openScreen(
                 new com.za.minecraft.engine.graphics.ui.JournalScreen(), window.getWidth(), window.getHeight());
+        } else {
+            inputManager.enableMouseCapture(window);
+            com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
+        }
+    }
+
+    public void toggleAnimationEditor() {
+        if (currentNappingSession != null) return;
+        inventoryOpen = !inventoryOpen;
+        if (inventoryOpen) {
+            inputManager.disableMouseCapture(window);
+            com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().openScreen(
+                new AnimationEditorScreen(), window.getWidth(), window.getHeight());
         } else {
             inputManager.enableMouseCapture(window);
             com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
@@ -229,6 +250,9 @@ public class GameLoop {
 
     private void update(float interval) {
         if (paused) return;
+
+        com.za.minecraft.engine.graphics.ui.Screen active = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+        if (active != null && active.isScene()) return;
         
         world.update(interval); // Fixed Physics
         
@@ -249,6 +273,14 @@ public class GameLoop {
     }
     
     private void render(float alpha, float deltaTime) {
+        com.za.minecraft.engine.graphics.ui.Screen active = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+        if (active != null && active.isScene()) {
+            active.render(renderer.getUIRenderer(), window.getWidth(), window.getHeight(), renderer.getAtlas());
+            renderer.renderDebug(currentFps, window.getWidth(), window.getHeight());
+            window.update();
+            return;
+        }
+
         // High-Frequency Animation Update (Right before render)
         if (!paused) {
             player.updateAnimations(timer.getDeltaF(), world);

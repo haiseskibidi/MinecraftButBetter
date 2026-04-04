@@ -39,4 +39,11 @@ public interface Screen {
     default boolean handleScroll(double yoffset) {
         return false;
     }
+
+    /**
+     * @return true if this screen replaces the entire game scene (e.g. Animation Editor).
+     */
+    default boolean isScene() {
+        return false;
+    }
 }

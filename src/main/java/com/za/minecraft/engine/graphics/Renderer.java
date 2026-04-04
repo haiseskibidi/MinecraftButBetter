@@ -175,6 +175,7 @@ public class Renderer {
         vfxManager.update(deltaTime, world.getPlayer(), GameLoop.getInstance().getInputManager().getMiningController());
         framebuffer.resize(window.getWidth(), window.getHeight());
         framebuffer.bind();
+        glClearColor(0.6f, 0.8f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         
         renderScene(camera, world, networkClient, alpha);
