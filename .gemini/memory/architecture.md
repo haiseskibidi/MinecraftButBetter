@@ -1,7 +1,12 @@
  # Архитектура проекта "MinecraftButBetter"
 
 ### UI & Interaction Systems
-1.  **Matrix Crosshair System (v2.0)**:
+1.  **Animation Studio (Experimental)**:
+    - **Standalone Scene Environment**: Полноценный 3D-редактор, изолированный от основного игрового мира. Использует `Screen.isScene()` для полной остановки игровых систем при работе.
+    - **Ray-OBB Interaction Core**: Система выбора объектов на основе 3D рейкастинга против ориентированных ограничивающих боксов (OBB). Гарантирует пиксельную точность выбора даже при наложении сложных форм (рука vs предмет).
+    - **Blender-style Hotkeys**: Быстрое манипулирование через `G` (Grab) и `R` (Rotate) с поддержкой блокировки осей (`X`, `Y`, `Z`).
+    - **Integrated Resource Preview**: Прямая связь с `Developer Panel` позволяет мгновенно рендерить любой игровой предмет в руках анимационной модели для проверки хватов и траекторий.
+2.  **Matrix Crosshair System (v2.0)**:
     - **Data-Driven Shapes**: Прицел определяется сеткой 1/0 в JSON (`matrix`).
     - **State-Based Logic**: `CrosshairManager` анализирует контекст. Приоритет всегда у активного действия (Mining).
     - **Data-Driven Animations**: Поддержка параметров `recoilScale` (отдача при ударе) и `spreadScale` (разлет элементов при прогрессе) прямо в JSON прицела.

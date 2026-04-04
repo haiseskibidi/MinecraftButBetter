@@ -4,28 +4,46 @@ import com.za.minecraft.engine.graphics.Shader;
 import com.za.minecraft.engine.graphics.DynamicTextureAtlas;
 import com.za.minecraft.engine.graphics.Mesh;
 import com.za.minecraft.world.items.ItemStack;
-import com.za.minecraft.world.items.ItemMeshGenerator;
-import com.za.minecraft.world.chunks.ChunkMeshGenerator;
-import com.za.minecraft.world.blocks.Block;
 import org.joml.Matrix4f;
 
+/**
+ * Рендерер для отображения рук игрока и предметов в них.
+ */
 public class ViewmodelRenderer {
     private final HeldItemRenderer heldItemRenderer = new HeldItemRenderer();
 
+    public HeldItemRenderer getHeldItemRenderer() {
+        return heldItemRenderer;
+    }
+
     public void render(Viewmodel viewmodel, Shader shader, DynamicTextureAtlas atlas, com.za.minecraft.entities.Player player, ItemStack mainHand, ItemStack offHand, float handHeat, float itemHeat) {
+        if (viewmodel == null) return;
+
+        shader.use();
+        atlas.bind();
+
+        // 1. Отрисовка скелета рук
         renderNode(viewmodel.root, shader, handHeat);
-        
-        // Main hand attachment
-        ModelNode attachR = viewmodel.getNode("item_attachment_r");
-        if (attachR != null && mainHand != null && mainHand.getItem() != null) {
-            heldItemRenderer.render(attachR.globalMatrix, mainHand, shader, atlas, true, itemHeat);
+
+        // 2. Отрисовка предметов в точках привязки
+        ModelNode mainHandNode = findNode(viewmodel.root, "item_attachment_r");
+        if (mainHandNode != null && mainHand != null) {
+            heldItemRenderer.render(mainHandNode.globalMatrix, mainHand, shader, atlas, true, itemHeat);
         }
-        
-        // Off hand attachment
-        ModelNode attachL = viewmodel.getNode("item_attachment_l");
-        if (attachL != null && offHand != null && offHand.getItem() != null) {
-            heldItemRenderer.render(attachL.globalMatrix, offHand, shader, atlas, false, 0.0f);
+
+        ModelNode offHandNode = findNode(viewmodel.root, "item_attachment_l");
+        if (offHandNode != null && offHand != null) {
+            heldItemRenderer.render(offHandNode.globalMatrix, offHand, shader, atlas, false, itemHeat);
         }
+    }
+
+    private ModelNode findNode(ModelNode root, String name) {
+        if (root.name.equals(name)) return root;
+        for (ModelNode child : root.children) {
+            ModelNode found = findNode(child, name);
+            if (found != null) return found;
+        }
+        return null;
     }
 
     private void renderNode(ModelNode node, Shader shader, float heat) {
@@ -33,13 +51,9 @@ public class ViewmodelRenderer {
             shader.setMatrix4f("model", node.globalMatrix);
             
             float partWeight = 0.0f;
-            if (node.name.contains("hand") || node.name.contains("finger")) {
-                partWeight = 1.0f;
-            } else if (node.name.contains("forearm")) {
-                partWeight = 0.6f;
-            } else if (node.name.contains("shoulder")) {
-                partWeight = 0.3f;
-            }
+            if (node.name.contains("hand") || node.name.contains("finger")) partWeight = 1.0f;
+            else if (node.name.contains("forearm")) partWeight = 0.6f;
+            else if (node.name.contains("shoulder")) partWeight = 0.3f;
 
             shader.setBoolean("isHand", partWeight > 0.01f);
             shader.setFloat("uHandPartWeight", partWeight);

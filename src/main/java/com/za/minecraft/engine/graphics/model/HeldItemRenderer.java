@@ -47,11 +47,8 @@ public class HeldItemRenderer {
             float tz = t.pz;
 
             // Динамическая коррекция для блоков: прижимаем "заднюю" грань к кисти.
-            // Независимо от размера блока (целый или сосуд), он будет начинаться от одной линии.
             if (item.isBlock() && t == DEFAULT_BLOCK_TRANSFORM) {
                 org.joml.Vector3f max = mesh.getMax();
-                // Сдвигаем на глубину половины блока вперед (в сторону -Z), 
-                // чтобы задняя плоскость (max.z) совпала с точкой крепления.
                 tz -= max.z * t.scale;
             }
 
@@ -61,10 +58,8 @@ public class HeldItemRenderer {
                        .rotateZ((float)Math.toRadians(t.rz))
                        .scale(t.scale);
             
-            // Если у меша есть офсет точки хвата (для предметов), применяем его
             if (!item.isBlock()) {
                 org.joml.Vector3f go = mesh.getGraspOffset();
-                // Офсет применяется ПЕРЕД масштабированием (в локальных координатах 0..1)
                 modelMatrix.translate(-go.x, -go.y, -go.z);
             }
 
@@ -83,7 +78,7 @@ public class HeldItemRenderer {
         return DEFAULT_ITEM_TRANSFORM;
     }
 
-    private Mesh getOrGenerateMesh(Item item, DynamicTextureAtlas atlas) {
+    public Mesh getOrGenerateMesh(Item item, DynamicTextureAtlas atlas) {
         Mesh mesh = itemMeshCache.get(item.getId());
         if (mesh == null) {
             if (item.isBlock()) {

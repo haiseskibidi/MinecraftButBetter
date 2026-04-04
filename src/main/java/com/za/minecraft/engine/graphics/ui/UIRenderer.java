@@ -552,7 +552,7 @@ public class UIRenderer {
         uiShader.setInt("isSlot", 0);
     }
 
-    private void renderDeveloperPanel(int devX, int startY, int slotSize, int spacing, int sw, int sh, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
+    public void renderDeveloperPanel(int devX, int startY, int slotSize, int spacing, int sw, int sh, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
         int cols = 7;
         int rows = 14; // Visible rows
         int padding = 12;
