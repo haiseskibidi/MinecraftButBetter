@@ -226,6 +226,7 @@ public class MiningController {
 
             stopMining();
             breakDelayTimer = interval; // Use global interval instead of BREAK_COOLDOWN
+            hitCooldownTimer = interval;
             if (currentStack != null && currentItem.isTool()) {
                 com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
                 if (tool != null && (tool.isEffectiveAgainstAll() || tool.type().name().equalsIgnoreCase(blockDef.getRequiredTool()))) {
