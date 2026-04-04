@@ -85,10 +85,24 @@ public class InputManager {
         glfwSetCursorPosCallback(window.getWindowHandle(), (windowHandle, xpos, ypos) -> {
             currentPos.x = (float) xpos;
             currentPos.y = (float) ypos;
+
+            com.za.minecraft.engine.graphics.ui.Screen active = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+            if (active != null) {
+                active.handleMouseMove(currentPos.x, currentPos.y);
+            }
         });
         
         glfwSetCursorEnterCallback(window.getWindowHandle(), (windowHandle, entered) -> {
             inWindow = entered;
+        });
+
+        glfwSetKeyCallback(window.getWindowHandle(), (windowHandle, key, scancode, action, mods) -> {
+            if (action == GLFW_PRESS) {
+                com.za.minecraft.engine.graphics.ui.Screen active = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+                if (active != null) {
+                    active.handleKeyPress(key);
+                }
+            }
         });
         
         glfwSetMouseButtonCallback(window.getWindowHandle(), (windowHandle, button, action, mode) -> {

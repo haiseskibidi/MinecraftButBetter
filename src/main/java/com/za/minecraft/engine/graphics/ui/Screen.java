@@ -25,6 +25,12 @@ public interface Screen {
     }
 
     /**
+     * Handles mouse movement.
+     */
+    default void handleMouseMove(float mx, float my) {
+    }
+
+    /**
      * Handles key presses.
      * @return true if the key press was consumed.
      */
