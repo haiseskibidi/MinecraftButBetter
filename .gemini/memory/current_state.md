@@ -27,17 +27,17 @@
     - **Progressive Chipping**: Удачные удары оставляют визуальные "шрамы" на поверхности блока.
 - **Survivor's Tablet (Journal System)**: Модульная система обучения с современным карточным UI и поддержкой динамических рецептов.
 - **Modular Inventory System v4**: Полный переход на Data-Driven GUI, абстракцию хранилищ (`IInventory`) и CSS-подобную систему верстки.
-- **Animation Studio (NEW)**:
-    - **Isolated Scene**: Отдельный режим (F8) с собственной студийной средой и рендерингом.
-    - **Interactive Keyframes**: Система создания и редактирования кадров с интерполяцией в реальном времени.
-    - **Precise 3D Picking**: Выбор костей и предметов через Raycasting против OBB (Oriented Bounding Boxes).
-    - **Live Item Preview**: Интеграция с Developer Panel для мгновенной примерки инструментов в руках.
-    - **Transform Tools**: Режимы Grab (G) и Rotate (R) с привязкой к осям (X, Y, Z).
-    - **JSON Export**: Прямое сохранение анимаций в формат, совместимый с движком игры.
+- **Animation Studio (Experimental)**:
+    - **Isolated Scene**: Отдельный режим (F8) с собственной студийной средой и рендерингом. Позволяет редактировать анимации без нагрузки от игрового мира.
+    - **Interactive Keyframes**: Система создания и редактирования кадров (K/DEL) с интерполяцией в реальном времени.
+    - **Precise 3D Picking**: Выбор костей и предметов через Raycasting против OBB (Oriented Bounding Boxes) с использованием реальной геометрии мешей.
+    - **Live Item Preview**: Интеграция с Developer Panel для мгновенной примерки любого предмета в руках модели.
+    - **Transform Tools**: Режимы Grab (G) и Rotate (R) с привязкой к осям (X, Y, Z) в духе Blender.
+    - **JSON Export**: Сохранение анимаций (Ctrl+S) в формат, полностью совместимый с игровым движком.
 - **Texture Array Graphics Engine (v4.0)**: Полное устранение мерцания текстур через переход на `GL_TEXTURE_2D_ARRAY`.
 
 ## В работе
-- **Animation Editor Refinement**: Доработка иерархии трансформаций (Parent-Child) и загрузки существующих файлов.
+- **Animation Studio Refinement**: Доработка иерархии трансформаций (Parent-Child) и поддержка загрузки существующих файлов анимаций.
 - **Stamina System**: Implement exhaustion logic for hanging and climbing.
 - **Collision Edge Cases**: Refining interactions with corners and slabs.
 - **Generic Containers**: Тестирование `ChestScreen` и расширение поддержки сундуков.

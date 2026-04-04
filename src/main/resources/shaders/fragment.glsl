@@ -91,13 +91,13 @@ void main() {
             baseColor = applyHandConditions(baseColor, vLocalPos, uCondition, uHandPartWeight);
         }
 
-        // Tinting (Leaves/Grass)
+        // Feature: Brighten Stump tops
+        baseColor = brightenTopFace(baseColor, actualBlockType, fragNormal);
+
+        // Tinting (Leaves/Grass) - Apply after everything else to ensure color
         if (blockType < -0.5) {
             baseColor *= vec3(0.486, 0.784, 0.314);
         }
-
-        // Feature: Brighten Stump tops
-        baseColor = brightenTopFace(baseColor, actualBlockType, fragNormal);
 
         // Apply Breaking Patterns
         if (uIsProxy && uBreakingProgress > 0.0) {

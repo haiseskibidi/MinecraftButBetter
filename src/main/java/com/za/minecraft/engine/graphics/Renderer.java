@@ -252,6 +252,7 @@ public class Renderer {
         blockShader.setMatrix4f("view", camera.getViewMatrix(alpha));
         blockShader.setBoolean("useMask", false);
         blockShader.setBoolean("previewPass", false);
+        blockShader.setBoolean("isHand", false); // Ensure world blocks are not masked as hands
         blockShader.setFloat("brightnessMultiplier", 1.0f);
         blockShader.setInt("highlightPass", 0);
         blockShader.setFloat("uBreakingProgress", 0.0f);

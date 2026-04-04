@@ -63,5 +63,10 @@ void main() {
     // 3. Apply Lighting
     vec3 lighting = calculateLighting(fragNormal, lightDirection, lightColor, ambientLight);
     
+    // 4. Tinting (Leaves/Grass)
+    if (blockType < -0.5) {
+        baseColor *= vec3(0.486, 0.784, 0.314);
+    }
+
     fragColor = vec4(lighting * baseColor, alpha);
 }

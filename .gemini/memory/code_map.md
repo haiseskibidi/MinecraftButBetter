@@ -15,6 +15,19 @@
 - `hotbar.json`: Конфигурация HUD-хотбара.
 - `chest.json`: Интерфейс сундуков.
 
+## UI & Animation Editor (v1.0 NEW)
+### com.za.minecraft.engine.graphics.ui.editor.animation.AnimationEditorScreen (NEW)
+Назначение: Главный экран Animation Studio.
+Функции: 3D вьюпорт, интерактивный таймлайн, выбор частей тела через Raycasting, Grab/Rotate трансформации, экспорт в JSON.
+
+### com.za.minecraft.engine.graphics.ui.Screen (UPDATED)
+Назначение: Базовый интерфейс окон.
+Функции: Добавлены методы `isScene()` (для изоляции), `handleMouseMove()` и `handleMouseRelease()` (для интерактивности).
+
+### com.za.minecraft.engine.graphics.ui.UIRenderer (UPDATED)
+Назначение: Основной рендерер интерфейса.
+Функции: Метод `renderDeveloperPanel` сделан публичным для использования в редакторе.
+
 ## World & Items (UPDATED)
 ### com.za.minecraft.world.blocks.BlockDefinition (UPDATED)
 Назначение: Физические и визуальные свойства блока.
@@ -39,14 +52,14 @@
 
 ### com.za.minecraft.engine.graphics.Renderer (UPDATED)
 Назначение: Главный контроллер рендеринга.
-Функции: Управляет проходами отрисовки мира, сущностей, Viewmodel и UI. Теперь инициализирует выделенный `viewmodelShader` и обновляет `MiningVFXManager`.
+Функции: Управляет проходами отрисовки мира, сущностей, Viewmodel и UI. Теперь инициализирует выделенный `viewmodelShader` и обновляет `MiningVFXManager`. Реализована корректная очистка цвета неба при возврате из редактора.
 
 ### com.za.minecraft.engine.graphics.vfx.MiningVFXManager (NEW)
 Назначение: Менеджер визуальных эффектов добычи.
 Функции: Рассчитывает уровень раскаления (`heatLevel`) инструментов и рук. Обеспечивает плавное остывание и универсальный сброс прогресса добычи при смене/выбрасывании предмета (через отслеживание `identityHashCode` и слота).
 
 ### src/main/resources/shaders (NEW SHADERS)
-- **viewmodel_vertex/fragment.glsl**: Изолированные шейдеры для рук и предметов. Поддерживают процедурное раскаление (`uMiningHeat`), маскировку по весам костей и PCA-ориентированным координатам.
+- **viewmodel_vertex/fragment.glsl**: Изолированные шейдеры для рук и предметов. Поддерживают процедурное раскаление (`uMiningHeat`), маскировку по весам костей и поддержку биомного тинта для блоков в руках.
 - **crosshair_vertex/fragment.glsl**: Шейдеры динамического прицела. Поддерживают data-driven анимации разлета (`spreadScale`) и отдачи (`recoilScale`).
 
 ### com.za.minecraft.engine.graphics.ui.crosshair (UPDATED)
@@ -55,8 +68,8 @@
 - **CrosshairRenderer**: Теперь строго использует специализированный шейдер для отрисовки матриц из JSON. Реализует анимацию разлета элементов.
 
 ### com.za.minecraft.engine.graphics.model (UPDATED)
-- **ViewmodelRenderer**: Теперь принимает `heat` и распределяет его между руками и инструментами.
-- **HeldItemRenderer**: Реализует точечную передачу уровня жара инструменту.
+- **ViewmodelRenderer**: Теперь принимает `heat` и распределяет его между руками и инструментами. Доступен геттер для `heldItemRenderer`.
+- **HeldItemRenderer**: Реализует точечную передачу уровня жара инструменту. Метод `getOrGenerateMesh` сделан публичным для системы выбора.
 
 ## Animation & Locomotion System (v4.5 UPDATED)
 ### com.za.minecraft.entities.Player (UPDATED)
@@ -68,7 +81,7 @@
 Функции: Управляет таймерами (cooldown, breakingDelay), генерирует Weak Spots, рассчитывает прогресс разрушения. Автоматически выбирает тип анимации (`swing` vs `interact`) на основе прочности блока. Передает данные для отрисовки прокси-блока в `Renderer`.
 
 ### com.za.minecraft.engine.core.GameLoop (UPDATED)
-Назначение: Главный цикл. Добавлен геттер для `Timer`.
+Назначение: Главный цикл. Добавлена поддержка переключения в режим Студии (F8) и изоляция обновлений.
 
 ## Physical Viewmodel System (v5.0 NEW)
 ### com.za.minecraft.engine.graphics.Mesh (UPDATED)
@@ -77,7 +90,7 @@
 
 ### com.za.minecraft.engine.graphics.model.ViewmodelRenderer (UPDATED)
 Назначение: Рендерер рук игрока.
-Функции: Рендерит иерархию костей. Делегирует отрисовку удерживаемых предметов классу `HeldItemRenderer`.
+Функции: Рендерит иерархия костей. Делегирует отрисовку удерживаемых предметов классу `HeldItemRenderer`.
 
 ### com.za.minecraft.engine.graphics.model.HeldItemRenderer (NEW)
 Назначение: Специализированный рендерер для предметов и блоков в руках.
@@ -111,3 +124,4 @@
 ### com.za.minecraft.world.inventory.ItemInventory
 Назначение: Реализация `IInventory` для предметов-контейнеров (рюкзаки, мешочки).
 Функции: Позволяет предмету (`ItemStack`) хранить внутри себя другие предметы, поддерживает динамический размер из `BagComponent`, запрещает вложенность рюкзаков.
+
