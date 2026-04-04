@@ -25,6 +25,12 @@ public interface Screen {
     }
 
     /**
+     * Handles mouse releases.
+     */
+    default void handleMouseRelease(int button) {
+    }
+
+    /**
      * Handles mouse movement.
      */
     default void handleMouseMove(float mx, float my) {

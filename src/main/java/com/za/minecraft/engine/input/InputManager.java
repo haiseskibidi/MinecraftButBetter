@@ -106,13 +106,14 @@ public class InputManager {
         });
         
         glfwSetMouseButtonCallback(window.getWindowHandle(), (windowHandle, button, action, mode) -> {
-            if (GameLoop.getInstance().isInventoryOpen()) {
-                if (action == GLFW_PRESS) {
-                    com.za.minecraft.engine.graphics.ui.Screen active = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
-                    if (active != null && active.handleMouseClick(currentPos.x, currentPos.y, button)) {
-                        return;
-                    }
+            com.za.minecraft.engine.graphics.ui.Screen active = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+            
+            if (action == GLFW_PRESS) {
+                if (active != null && active.handleMouseClick(currentPos.x, currentPos.y, button)) {
+                    return;
+                }
 
+                if (GameLoop.getInstance().isInventoryOpen()) {
                     dragButton = button;
                     draggedSlots.clear();
                     isDragging = false;
@@ -128,7 +129,13 @@ public class InputManager {
                             handleInventoryClick(window, button);
                         }
                     }
-                } else if (action == GLFW_RELEASE) {
+                }
+            } else if (action == GLFW_RELEASE) {
+                if (active != null) {
+                    active.handleMouseRelease(button);
+                }
+
+                if (GameLoop.getInstance().isInventoryOpen()) {
                     if (dragButton == button) {
                         if (isDragging && !draggedSlots.isEmpty()) {
                             if (draggedSlots.size() == 1) {

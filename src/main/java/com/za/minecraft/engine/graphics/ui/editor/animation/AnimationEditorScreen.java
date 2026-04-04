@@ -39,6 +39,17 @@ public class AnimationEditorScreen implements Screen {
     private float currentTime = 0.0f; // 0.0 to 1.0
     private boolean isPlaying = false;
     private long lastFrameTime;
+    private boolean isScrubbing = false;
+
+    // Interaction Modes
+    private enum TransformMode { NONE, GRAB, ROTATE }
+    private TransformMode currentMode = TransformMode.NONE;
+    private char activeAxis = ' '; // 'X', 'Y', 'Z' or ' ' for all
+    
+    private Vector2f lastMousePos = new Vector2f();
+    private Vector3f originalValue = new Vector3f();
+    private Vector3f startAnimTranslation = new Vector3f();
+    private Vector3f startAnimRotation = new Vector3f();
 
     private boolean initialized = false;
 
@@ -75,7 +86,6 @@ public class AnimationEditorScreen implements Screen {
     }
 
     private void collectParts(ModelNode node) {
-        // Collect only parts that have meshes and are not technical roots/attachments
         if (node != null && node.name != null && !node.name.equals("root") && !node.name.contains("attachment")) { 
             allParts.add(node);
         }
@@ -108,7 +118,7 @@ public class AnimationEditorScreen implements Screen {
         }
         update();
 
-        // 0. Clear screen with studio background
+        // 0. Clear screen
         glClearColor(0.12f, 0.12f, 0.12f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -120,7 +130,6 @@ public class AnimationEditorScreen implements Screen {
         shader.use();
         atlas.bind();
 
-        // Exact in-game viewmodel matrices
         Matrix4f projection = new Matrix4f().setPerspective((float)Math.toRadians(70.0f), (float)sw/sh, 0.01f, 1000.0f);
         Matrix4f view = new Matrix4f().identity();
         
@@ -133,15 +142,11 @@ public class AnimationEditorScreen implements Screen {
         shader.setFloat("uTime", (float)glfwGetTime());
         shader.setVector3f("uCondition", new Vector3f(0, 0, 0)); 
 
-        // Ensure meshes are initialized
         if (!viewmodel.root.children.isEmpty() && viewmodel.root.children.get(0).mesh == null) {
             viewmodel.initMeshes(atlas);
         }
 
-        // Update hierarchy (static for now)
         viewmodel.updateHierarchy(new Matrix4f().identity());
-
-        // Render the model with selection highlight
         renderModelWithHighlight(viewmodel.root);
 
         glEnable(GL_CULL_FACE);
@@ -161,7 +166,6 @@ public class AnimationEditorScreen implements Screen {
             else if (node.name.contains("forearm")) partWeight = 0.6f;
             else if (node.name.contains("shoulder")) partWeight = 0.3f;
 
-            // Highlight logic: force full glow if selected
             boolean isSelected = (node == selectedPart);
             if (isSelected) {
                 shader.setBoolean("isHand", true);
@@ -186,6 +190,13 @@ public class AnimationEditorScreen implements Screen {
         renderer.getFontRenderer().drawString("ANIMATION EDITOR", 20, 20, 24, sw, sh, 1.0f, 0.6f, 0.0f, 1.0f);
         renderer.getFontRenderer().drawString("F8 - Close | Model: minecraft:hands", 20, 50, 14, sw, sh, 0.7f, 0.7f, 0.7f, 1.0f);
         
+        // Mode Hint
+        if (currentMode != TransformMode.NONE) {
+            String modeStr = currentMode.name() + (activeAxis != ' ' ? " (" + activeAxis + ")" : "");
+            renderer.getFontRenderer().drawString(modeStr, sw/2 - 50, 20, 20, sw, sh, 1.0f, 1.0f, 0.0f, 1.0f);
+            renderer.getFontRenderer().drawString("Confirm: Left Click | Cancel: Right Click/ESC", sw/2 - 120, 45, 12, sw, sh);
+        }
+
         // Parts List Panel (Left)
         int panelX = 10;
         int panelY = 80;
@@ -206,12 +217,8 @@ public class AnimationEditorScreen implements Screen {
                 renderer.renderRect(panelX + 5, itemY - 2, panelW - 10, 20, sw, sh, 0.15f, 0.15f, 0.15f, 1.0f);
             }
             
-            float r = 1, g = 1, b = 1;
-            if (isSelected) { r = 1; g = 1; b = 1; }
-            else if (isHovered) { r = 0.9f; g = 0.9f; b = 0.9f; }
-            else { r = 0.6f; g = 0.6f; b = 0.6f; }
-            
-            renderer.getFontRenderer().drawString(part.name, panelX + 15, itemY, 14, sw, sh, r, g, b, 1.0f);
+            float r = isSelected ? 1 : (isHovered ? 0.9f : 0.6f);
+            renderer.getFontRenderer().drawString(part.name, panelX + 15, itemY, 14, sw, sh, r, r, r, 1.0f);
             itemY += 22;
         }
 
@@ -232,6 +239,8 @@ public class AnimationEditorScreen implements Screen {
             drawTransformInfo(renderer, "Pitch", (float)Math.toDegrees(selectedPart.animRotation.x), propX + 15, infoY + 90, sw, sh);
             drawTransformInfo(renderer, "Yaw  ", (float)Math.toDegrees(selectedPart.animRotation.y), propX + 15, infoY + 115, sw, sh);
             drawTransformInfo(renderer, "Roll ", (float)Math.toDegrees(selectedPart.animRotation.z), propX + 15, infoY + 140, sw, sh);
+
+            renderer.getFontRenderer().drawString("[G] Grab | [R] Rotate", propX + 15, sh - 150, 12, sw, sh, 0.5f, 0.5f, 0.5f, 1.0f);
         }
         
         // Timeline Panel
@@ -242,23 +251,18 @@ public class AnimationEditorScreen implements Screen {
         renderer.renderRect(tlX, tlY, tlW, tlH, sw, sh, 0.08f, 0.08f, 0.08f, 0.9f);
         renderer.getFontRenderer().drawString("TIMELINE", tlX + 10, tlY + 10, 16, sw, sh, 0.4f, 0.7f, 1.0f, 1.0f);
         
-        // Timeline Bar
         int barX = tlX + 50;
         int barY = tlY + 45;
         int barW = tlW - 100;
         int barH = 10;
         renderer.renderRect(barX, barY, barW, barH, sw, sh, 0.2f, 0.2f, 0.2f, 1.0f);
-        
-        // Time Playhead
         int phX = barX + (int)(currentTime * barW);
         renderer.renderRect(phX - 2, barY - 15, 4, 40, sw, sh, 1.0f, 0.2f, 0.2f, 1.0f);
         
-        // Time labels
         renderer.getFontRenderer().drawString("0.0", barX - 30, barY - 2, 12, sw, sh);
         renderer.getFontRenderer().drawString("1.0", barX + barW + 10, barY - 2, 12, sw, sh);
         renderer.getFontRenderer().drawString(String.format("%.2f", currentTime), phX - 10, barY + 30, 12, sw, sh, 1.0f, 0.4f, 0.4f, 1.0f);
 
-        // Play/Pause Hint
         String status = isPlaying ? "PLAYING" : "PAUSED";
         renderer.getFontRenderer().drawString(status, sw - 120, 20, 16, sw, sh, isPlaying ? 0.2f : 1.0f, isPlaying ? 1.0f : 0.2f, 0.2f, 1.0f);
         renderer.getFontRenderer().drawString("[Space] to Toggle", sw - 140, 45, 12, sw, sh);
@@ -266,14 +270,44 @@ public class AnimationEditorScreen implements Screen {
 
     private void drawTransformInfo(UIRenderer renderer, String label, float value, int x, int y, int sw, int sh) {
         renderer.getFontRenderer().drawString(label + ":", x, y, 12, sw, sh, 0.6f, 0.6f, 0.6f, 1.0f);
-        renderer.getFontRenderer().drawString(String.format("%.2f", value), x + 60, y, 12, sw, sh, 1.0f, 1.0f, 1.0f, 1.0f);
+        renderer.getFontRenderer().drawString(String.format("%.3f", value), x + 60, y, 12, sw, sh, 1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     @Override
     public boolean handleMouseClick(float mx, float my, int button) {
-        Logger.info("Click at: " + mx + ", " + my);
-        
-        // 1. Check Parts List (Left Panel)
+        if (currentMode != TransformMode.NONE) {
+            if (button == 0) { // Confirm
+                currentMode = TransformMode.NONE;
+                activeAxis = ' ';
+                Logger.info("Transform confirmed.");
+            } else if (button == 1) { // Cancel
+                if (selectedPart != null) {
+                    selectedPart.animTranslation.set(startAnimTranslation);
+                    selectedPart.animRotation.set(startAnimRotation);
+                }
+                currentMode = TransformMode.NONE;
+                activeAxis = ' ';
+                Logger.info("Transform cancelled.");
+            }
+            return true;
+        }
+
+        // Timeline Seek/Scrub
+        int sw = GameLoop.getInstance().getWindow().getWidth();
+        int sh = GameLoop.getInstance().getWindow().getHeight();
+        int tlY = sh - 100;
+        int barX = 60;
+        int barW = sw - 120;
+        if (my >= tlY + 20 && my <= tlY + 80) {
+            isScrubbing = true;
+            currentTime = (mx - barX) / (float)barW;
+            currentTime = Math.max(0, Math.min(1.0f, currentTime));
+            return true;
+        }
+
+        if (pickPart3D(mx, my)) return true;
+
+        // Parts List
         int panelX = 10;
         int panelY = 80;
         int panelW = 220;
@@ -282,98 +316,52 @@ public class AnimationEditorScreen implements Screen {
             for (int i = 0; i < allParts.size(); i++) {
                 if (my >= itemY - 5 && my <= itemY + 20) {
                     selectedPart = allParts.get(i);
-                    Logger.info("Selected via list: " + selectedPart.name);
                     return true;
                 }
                 itemY += 22;
             }
         }
 
-        // 2. Check 3D Picking (Click on model)
-        if (pickPart3D(mx, my)) return true;
-
-        // 3. Check Timeline Bar
-        int sw = GameLoop.getInstance().getWindow().getWidth();
-        int sh = GameLoop.getInstance().getWindow().getHeight();
-        int tlX = 10;
-        int tlY = sh - 100;
-        int barX = tlX + 50;
-        int barW = sw - 20 - 100;
-        if (mx >= barX && mx <= barX + barW && my >= tlY + 20 && my <= tlY + 80) {
-            currentTime = (mx - barX) / (float)barW;
-            currentTime = Math.max(0, Math.min(1.0f, currentTime));
-            return true;
-        }
-
-        return false;
-    }
-
-    private boolean pickPart3D(float mx, float my) {
-        int sw = GameLoop.getInstance().getWindow().getWidth();
-        int sh = GameLoop.getInstance().getWindow().getHeight();
-        
-        // 1. Generate Ray from screen coordinates
-        float nx = (2.0f * mx / sw) - 1.0f;
-        float ny = 1.0f - (2.0f * my / sh);
-        
-        Matrix4f projection = new Matrix4f().setPerspective((float)Math.toRadians(70.0f), (float)sw/sh, 0.01f, 1000.0f);
-        Matrix4f view = new Matrix4f().identity();
-        Matrix4f invProjView = new Matrix4f(projection).mul(view).invert();
-
-        Vector4f near = new Vector4f(nx, ny, -1.0f, 1.0f).mul(invProjView);
-        near.div(near.w);
-        Vector4f far = new Vector4f(nx, ny, 1.0f, 1.0f).mul(invProjView);
-        far.div(far.w);
-
-        Vector3f rayOrigin = new Vector3f(near.x, near.y, near.z);
-        Vector3f rayDir = new Vector3f(far.x - near.x, far.y - near.y, far.z - near.z).normalize();
-
-        // 2. Test against each cube using Ray-OBB (Ray vs oriented box)
-        ModelNode bestPart = null;
-        float minDistance = Float.MAX_VALUE;
-
-        for (ModelNode part : allParts) {
-            if (part.def == null || part.def.cubes == null) continue;
-
-            // Transform ray to part's local space
-            Matrix4f invGlobal = new Matrix4f(part.globalMatrix).invert();
-            Vector3f localOrigin = rayOrigin.mulPosition(invGlobal, new Vector3f());
-            Vector3f localDir = rayDir.mulDirection(invGlobal, new Vector3f());
-
-            float px = part.def.pivot != null ? part.def.pivot[0] : 0;
-            float py = part.def.pivot != null ? part.def.pivot[1] : 0;
-            float pz = part.def.pivot != null ? part.def.pivot[2] : 0;
-
-            for (BoneDefinition.CubeDefinition cube : part.def.cubes) {
-                // Bounds relative to pivot (same as mesh generation)
-                float x0 = (cube.origin[0] - px) / 16.0f;
-                float y0 = (cube.origin[1] - py) / 16.0f;
-                float z0 = (cube.origin[2] - pz) / 16.0f;
-                float x1 = x0 + (cube.size[0] / 16.0f);
-                float y1 = y0 + (cube.size[1] / 16.0f);
-                float z1 = z0 + (cube.size[2] / 16.0f);
-
-                Vector2f result = new Vector2f();
-                if (Intersectionf.intersectRayAab(localOrigin, localDir, new Vector3f(x0, y0, z0), new Vector3f(x1, y1, z1), result)) {
-                    float dist = result.x;
-                    if (dist < minDistance) {
-                        minDistance = dist;
-                        bestPart = part;
-                    }
-                }
-            }
-        }
-
-        if (bestPart != null) {
-            selectedPart = bestPart;
-            Logger.info("Raycast Picked: " + selectedPart.name + " at dist " + minDistance);
-            return true;
-        }
         return false;
     }
 
     @Override
+    public void handleMouseRelease(int button) {
+        if (button == 0) {
+            isScrubbing = false;
+        }
+    }
+
+    @Override
     public void handleMouseMove(float mx, float my) {
+        if (isScrubbing) {
+            int sw = GameLoop.getInstance().getWindow().getWidth();
+            int barX = 60;
+            int barW = sw - 120;
+            currentTime = (mx - barX) / (float)barW;
+            currentTime = Math.max(0, Math.min(1.0f, currentTime));
+            return;
+        }
+
+        if (currentMode != TransformMode.NONE && selectedPart != null) {
+            float dx = (mx - lastMousePos.x) * 0.01f;
+            float dy = (my - lastMousePos.y) * 0.01f;
+
+            if (currentMode == TransformMode.GRAB) {
+                if (activeAxis == 'X' || activeAxis == ' ') selectedPart.animTranslation.x += dx;
+                if (activeAxis == 'Y' || activeAxis == ' ') selectedPart.animTranslation.y -= dy;
+                if (activeAxis == 'Z') selectedPart.animTranslation.z += dy;
+            } else if (currentMode == TransformMode.ROTATE) {
+                float sens = 5.0f;
+                if (activeAxis == 'X' || activeAxis == ' ') selectedPart.animRotation.x -= dy * sens;
+                if (activeAxis == 'Y' || activeAxis == ' ') selectedPart.animRotation.y += dx * sens;
+                if (activeAxis == 'Z') selectedPart.animRotation.z += dx * sens;
+            }
+        }
+
+        lastMousePos.set(mx, my);
+
+        // Hover list
         int panelX = 10;
         int panelY = 80;
         int panelW = 220;
@@ -390,9 +378,71 @@ public class AnimationEditorScreen implements Screen {
         }
     }
 
+    private boolean pickPart3D(float mx, float my) {
+        int sw = GameLoop.getInstance().getWindow().getWidth();
+        int sh = GameLoop.getInstance().getWindow().getHeight();
+        Matrix4f projection = new Matrix4f().setPerspective((float)Math.toRadians(70.0f), (float)sw/sh, 0.01f, 1000.0f);
+        Matrix4f invProjView = new Matrix4f(projection).invert();
+
+        float nx = (2.0f * mx / sw) - 1.0f;
+        float ny = 1.0f - (2.0f * my / sh);
+        Vector4f near = new Vector4f(nx, ny, -1.0f, 1.0f).mul(invProjView);
+        near.div(near.w);
+        Vector4f far = new Vector4f(nx, ny, 1.0f, 1.0f).mul(invProjView);
+        far.div(far.w);
+
+        Vector3f rayOrigin = new Vector3f(near.x, near.y, near.z);
+        Vector3f rayDir = new Vector3f(far.x - near.x, far.y - near.y, far.z - near.z).normalize();
+
+        ModelNode bestPart = null;
+        float minDistance = Float.MAX_VALUE;
+
+        for (ModelNode part : allParts) {
+            if (part.def == null || part.def.cubes == null) continue;
+            Matrix4f invGlobal = new Matrix4f(part.globalMatrix).invert();
+            Vector3f localOrigin = rayOrigin.mulPosition(invGlobal, new Vector3f());
+            Vector3f localDir = rayDir.mulDirection(invGlobal, new Vector3f());
+
+            float px = part.def.pivot != null ? part.def.pivot[0] : 0;
+            float py = part.def.pivot != null ? part.def.pivot[1] : 0;
+            float pz = part.def.pivot != null ? part.def.pivot[2] : 0;
+
+            for (BoneDefinition.CubeDefinition cube : part.def.cubes) {
+                float x0 = (cube.origin[0] - px) / 16.0f;
+                float y0 = (cube.origin[1] - py) / 16.0f;
+                float z0 = (cube.origin[2] - pz) / 16.0f;
+                float x1 = x0 + (cube.size[0] / 16.0f);
+                float y1 = y0 + (cube.size[1] / 16.0f);
+                float z1 = z0 + (cube.size[2] / 16.0f);
+
+                Vector2f res = new Vector2f();
+                if (Intersectionf.intersectRayAab(localOrigin, localDir, new Vector3f(x0, y0, z0), new Vector3f(x1, y1, z1), res)) {
+                    if (res.x < minDistance) {
+                        minDistance = res.x;
+                        bestPart = part;
+                    }
+                }
+            }
+        }
+        if (bestPart != null) {
+            selectedPart = bestPart;
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public boolean handleKeyPress(int key) {
         if (key == GLFW_KEY_ESCAPE || key == GLFW_KEY_F8) {
+            if (currentMode != TransformMode.NONE) {
+                if (selectedPart != null) {
+                    selectedPart.animTranslation.set(startAnimTranslation);
+                    selectedPart.animRotation.set(startAnimRotation);
+                }
+                currentMode = TransformMode.NONE;
+                activeAxis = ' ';
+                return true;
+            }
             GameLoop.getInstance().toggleAnimationEditor();
             return true;
         }
@@ -400,6 +450,28 @@ public class AnimationEditorScreen implements Screen {
         if (key == GLFW_KEY_SPACE) {
             isPlaying = !isPlaying;
             return true;
+        }
+
+        if (selectedPart != null) {
+            if (key == GLFW_KEY_G) {
+                currentMode = TransformMode.GRAB;
+                startAnimTranslation.set(selectedPart.animTranslation);
+                startAnimRotation.set(selectedPart.animRotation);
+                activeAxis = ' ';
+                return true;
+            }
+            if (key == GLFW_KEY_R) {
+                currentMode = TransformMode.ROTATE;
+                startAnimTranslation.set(selectedPart.animTranslation);
+                startAnimRotation.set(selectedPart.animRotation);
+                activeAxis = ' ';
+                return true;
+            }
+            if (currentMode != TransformMode.NONE) {
+                if (key == GLFW_KEY_X) { activeAxis = 'X'; return true; }
+                if (key == GLFW_KEY_Y) { activeAxis = 'Y'; return true; }
+                if (key == GLFW_KEY_Z) { activeAxis = 'Z'; return true; }
+            }
         }
 
         return false;
