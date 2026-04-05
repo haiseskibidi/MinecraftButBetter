@@ -15,10 +15,14 @@
 - `hotbar.json`: Конфигурация HUD-хотбара.
 - `chest.json`: Интерфейс сундуков.
 
-## UI & Animation Editor (v1.0 NEW)
-### com.za.minecraft.engine.graphics.ui.editor.animation.AnimationEditorScreen (NEW)
-Назначение: Главный экран Animation Studio.
-Функции: 3D вьюпорт, интерактивный таймлайн, выбор частей тела через Raycasting, Grab/Rotate трансформации, экспорт в JSON.
+## UI & Animation Editor (v1.1 MODULAR)
+### com.za.minecraft.engine.graphics.ui.editor.animation
+- **AnimationEditorScreen.java**: Главный оркестратор. Делегирует задачи специализированным модулям.
+- **AnimationEditorState.java**: Модель данных. Хранит ключи, треки, текущее время и выбранные объекты.
+- **AnimationEditorRenderer.java**: Рендеринг 3D сцены студии и подсветка выделения.
+- **EditorInputHandler.java**: Логика взаимодействия: Ray-OBB Picking, Grab/Rotate манипуляции, горячие клавиши.
+- **EditorUI.java**: Отрисовка всех панелей интерфейса (Parts, Properties, Timeline).
+- **AnimationExporter.java**: Конвертация состояния в JSON формат движка.
 
 ### com.za.minecraft.engine.graphics.ui.Screen (UPDATED)
 Назначение: Базовый интерфейс окон.
