@@ -16,9 +16,43 @@ import static org.lwjgl.opengl.GL11.*;
 public class AnimationEditorRenderer {
     private final ViewmodelRenderer viewmodelRenderer = new ViewmodelRenderer();
     private final Shader shader;
+    private com.za.minecraft.engine.graphics.Mesh gizmoMesh;
+    private com.za.minecraft.engine.graphics.Mesh circleMesh;
 
     public AnimationEditorRenderer() {
         this.shader = new Shader("src/main/resources/shaders/viewmodel_vertex.glsl", "src/main/resources/shaders/viewmodel_fragment.glsl");
+        initGizmoMesh();
+    }
+
+    private void initGizmoMesh() {
+        // Line mesh
+        float[] pos = { 0,0,0, 1,0,0 };
+        float[] uv = { 0,0,0, 0,0,0 };
+        float[] norm = { 0,1,0, 0,1,0 };
+        float[] types = { 0, 0 };
+        float[] neighbor = { 0, 0 };
+        int[] ind = { 0, 1 };
+        this.gizmoMesh = new com.za.minecraft.engine.graphics.Mesh(pos, uv, norm, types, neighbor, ind);
+
+        // Circle mesh (32 segments)
+        int segs = 32;
+        float[] cPos = new float[(segs + 1) * 3];
+        int[] cInd = new int[segs * 2];
+        for (int i = 0; i <= segs; i++) {
+            float ang = (float) (i * 2.0 * Math.PI / segs);
+            cPos[i * 3] = 0;
+            cPos[i * 3 + 1] = (float) Math.cos(ang);
+            cPos[i * 3 + 2] = (float) Math.sin(ang);
+            if (i < segs) {
+                cInd[i * 2] = i;
+                cInd[i * 2 + 1] = i + 1;
+            }
+        }
+        float[] cUv = new float[cPos.length / 3 * 2];
+        float[] cNorm = new float[cPos.length];
+        float[] cTypes = new float[cPos.length / 3];
+        float[] cNeighbors = new float[cPos.length / 3];
+        this.circleMesh = new com.za.minecraft.engine.graphics.Mesh(cPos, cUv, cNorm, cTypes, cNeighbors, cInd);
     }
 
     public ViewmodelRenderer getViewmodelRenderer() {
@@ -52,7 +86,47 @@ public class AnimationEditorRenderer {
         viewmodel.updateHierarchy(new Matrix4f().identity());
         renderRecursive(viewmodel.root, state, atlas);
 
+        if (state.selectedPart != null) {
+            renderGizmos(state.selectedPart);
+        }
+
         glDisable(GL_DEPTH_TEST);
+    }
+
+    private void renderGizmos(ModelNode node) {
+        glDisable(GL_DEPTH_TEST);
+        glLineWidth(2.5f);
+        
+        shader.setBoolean("isHand", true);
+        shader.setFloat("uHandPartWeight", 1.0f);
+        
+        Matrix4f base = new Matrix4f(node.globalMatrix);
+        float ringRadius = 0.2f;
+        
+        // X - Red (Pitch)
+        shader.setVector3f("lightColor", new Vector3f(1, 0.2f, 0.2f));
+        shader.setMatrix4f("model", new Matrix4f(base).scale(0.22f, 1, 1));
+        gizmoMesh.render(GL_LINES);
+        shader.setMatrix4f("model", new Matrix4f(base).rotateY((float)Math.toRadians(0)).scale(ringRadius));
+        circleMesh.render(GL_LINES);
+        
+        // Y - Green (Yaw)
+        shader.setVector3f("lightColor", new Vector3f(0.2f, 1, 0.2f));
+        shader.setMatrix4f("model", new Matrix4f(base).rotateZ((float)Math.toRadians(90)).scale(0.22f, 1, 1));
+        gizmoMesh.render(GL_LINES);
+        shader.setMatrix4f("model", new Matrix4f(base).rotateZ((float)Math.toRadians(90)).scale(ringRadius));
+        circleMesh.render(GL_LINES);
+        
+        // Z - Blue (Roll)
+        shader.setVector3f("lightColor", new Vector3f(0.2f, 0.2f, 1));
+        shader.setMatrix4f("model", new Matrix4f(base).rotateY((float)Math.toRadians(-90)).scale(0.22f, 1, 1));
+        gizmoMesh.render(GL_LINES);
+        shader.setMatrix4f("model", new Matrix4f(base).rotateY((float)Math.toRadians(90)).scale(ringRadius));
+        circleMesh.render(GL_LINES);
+        
+        shader.setBoolean("isHand", false);
+        glLineWidth(1.0f);
+        glEnable(GL_DEPTH_TEST);
     }
 
     private void renderRecursive(ModelNode node, AnimationEditorState state, DynamicTextureAtlas atlas) {

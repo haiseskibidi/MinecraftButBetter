@@ -72,6 +72,12 @@ public class AnimationExporter {
             }
             if (!hasData) continue;
 
+            String easingStr = "linear";
+            switch (track.easing) {
+                case SINE_IN_OUT -> easingStr = "smooth";
+                case QUAD_IN_OUT, CUBIC_IN_OUT -> easingStr = "smootherstep";
+            }
+
             List<List<Object>> keyList = new ArrayList<>();
             for (AnimationEditorState.EditorKeyframe k : track.keyframes) {
                 float val = 0;
@@ -87,7 +93,7 @@ public class AnimationExporter {
                 List<Object> key = new ArrayList<>();
                 key.add(k.time());
                 key.add(val);
-                key.add("smootherstep"); 
+                key.add(easingStr); 
                 keyList.add(key);
             }
             jsonTracks.put(prefix + suffix, keyList);

@@ -127,13 +127,13 @@ public class AnimationEditorScreen implements Screen {
 
     @Override
     public void handleMouseRelease(int button) {
-        inputHandler.handleMouseRelease(button);
+        inputHandler.handleMouseRelease(button, state);
         state.isScrubbing = false;
     }
 
     @Override
     public void handleMouseMove(float mx, float my) {
-        inputHandler.handleMouseMove(mx, my, state);
+        inputHandler.handleMouseMove(mx, my, state, getPartsList());
     }
 
     @Override

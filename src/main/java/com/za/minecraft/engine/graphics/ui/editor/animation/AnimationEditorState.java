@@ -11,10 +11,13 @@ import java.util.*;
  */
 public class AnimationEditorState {
     
+    public enum EasingType { LINEAR, SINE_IN_OUT, QUAD_IN_OUT, CUBIC_IN_OUT }
+    
     public record EditorKeyframe(float time, Vector3f pos, Vector3f rot) {}
     
     public static class EditorTrack {
         public final List<EditorKeyframe> keyframes = new ArrayList<>();
+        public EasingType easing = EasingType.LINEAR;
         
         public void addKey(float time, Vector3f pos, Vector3f rot) {
             keyframes.removeIf(k -> Math.abs(k.time - time) < 0.005f);
@@ -44,10 +47,20 @@ public class AnimationEditorState {
                 EditorKeyframe k2 = keyframes.get(i + 1);
                 if (time >= k1.time && time <= k2.time) {
                     float t = (time - k1.time) / (k2.time - k1.time);
-                    k1.pos.lerp(k2.pos, t, outPos);
-                    k1.rot.lerp(k2.rot, t, outRot);
+                    float alpha = applyEasing(t);
+                    k1.pos.lerp(k2.pos, alpha, outPos);
+                    k1.rot.lerp(k2.rot, alpha, outRot);
                     return;
                 }
+            }
+        }
+
+        private float applyEasing(float t) {
+            switch (easing) {
+                case SINE_IN_OUT: return (float) (-(Math.cos(Math.PI * t) - 1) / 2.0);
+                case QUAD_IN_OUT: return t < 0.5 ? 2 * t * t : 1 - (float)Math.pow(-2 * t + 2, 2) / 2;
+                case CUBIC_IN_OUT: return t < 0.5 ? 4 * t * t * t : 1 - (float)Math.pow(-2 * t + 2, 3) / 2;
+                default: return t;
             }
         }
     }
@@ -64,13 +77,23 @@ public class AnimationEditorState {
 
     public void evaluateAll(List<ModelNode> parts, boolean isTransforming) {
         for (ModelNode part : parts) {
-            // Don't overwrite with animation if the user is currently manually moving it
             if (isTransforming && part == selectedPart) continue;
-            
             EditorTrack track = tracks.get(part.name);
             if (track != null && !track.keyframes.isEmpty()) {
                 track.evaluate(currentTime, part.animTranslation, part.animRotation);
             }
         }
+    }
+
+    public List<ModelNode> getFlatPartList(ModelNode root) {
+        List<ModelNode> list = new ArrayList<>();
+        flatten(root, list);
+        return list;
+    }
+
+    private void flatten(ModelNode node, List<ModelNode> out) {
+        if (node == null) return;
+        if (!node.name.equals("root")) out.add(node);
+        for (ModelNode child : node.children) flatten(child, out);
     }
 }
