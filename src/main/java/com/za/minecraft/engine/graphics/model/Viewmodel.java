@@ -50,6 +50,10 @@ public class Viewmodel {
     public ModelNode getNode(String name) {
         return nodesMap.get(name);
     }
+
+    public List<ModelNode> getAllNodes() {
+        return new java.util.ArrayList<>(nodesMap.values());
+    }
     
     public void initMeshes(DynamicTextureAtlas atlas) {
         String texturePath = def.texture != null ? def.texture : "minecraft/textures/entity/hands.png";

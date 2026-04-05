@@ -26,6 +26,11 @@ public class AnimationExporter {
             AnimationEditorState.EditorTrack track = entry.getValue();
             if (track.keyframes.isEmpty()) continue;
 
+            if (boneName.equals("Camera")) {
+                addCameraTracks(jsonTracks, track);
+                continue;
+            }
+
             // Filtering logic: ignore tracks where all keyframes are zero
             boolean allZero = true;
             for (AnimationEditorState.EditorKeyframe k : track.keyframes) {
@@ -47,6 +52,49 @@ public class AnimationExporter {
             Logger.info("Animation successfully exported to: " + path);
         } catch (IOException e) {
             Logger.error("Failed to export animation: " + e.getMessage());
+        }
+    }
+
+    private static void addCameraTracks(Map<String, List<List<Object>>> jsonTracks, AnimationEditorState.EditorTrack track) {
+        String[] mappedNames = {"camera_x", "camera_y", "fov_offset", "camera_tilt", "camera_roll"};
+        for (String name : mappedNames) {
+            boolean hasData = false;
+            for (AnimationEditorState.EditorKeyframe k : track.keyframes) {
+                float val = 0;
+                switch (name) {
+                    case "camera_x" -> val = k.pos().x;
+                    case "camera_y" -> val = k.pos().y;
+                    case "fov_offset" -> val = k.pos().z;
+                    case "camera_tilt" -> val = k.rot().x;
+                    case "camera_roll" -> val = k.rot().z;
+                }
+                if (Math.abs(val) > 0.0001f) { hasData = true; break; }
+            }
+            if (!hasData) continue;
+
+            String easingStr = "linear";
+            switch (track.easing) {
+                case SINE_IN_OUT -> easingStr = "smooth";
+                case QUAD_IN_OUT, CUBIC_IN_OUT -> easingStr = "smootherstep";
+            }
+
+            List<List<Object>> keyList = new ArrayList<>();
+            for (AnimationEditorState.EditorKeyframe k : track.keyframes) {
+                float val = 0;
+                switch (name) {
+                    case "camera_x" -> val = k.pos().x * 16.0f;
+                    case "camera_y" -> val = k.pos().y * 16.0f;
+                    case "fov_offset" -> val = k.pos().z * 16.0f;
+                    case "camera_tilt" -> val = (float)Math.toDegrees(k.rot().x);
+                    case "camera_roll" -> val = (float)Math.toDegrees(k.rot().z);
+                }
+                List<Object> key = new ArrayList<>();
+                key.add(k.time());
+                key.add(val);
+                key.add(easingStr);
+                keyList.add(key);
+            }
+            jsonTracks.put(name, keyList);
         }
     }
 

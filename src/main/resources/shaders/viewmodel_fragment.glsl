@@ -19,6 +19,7 @@ uniform float uHandPartWeight = 0.0; // 1.0=hand, 0.6=forearm, 0.3=shoulder
 
 uniform float uMiningHeat = 0.0; // 0.0 to 1.0 intensity
 uniform float uTime;
+uniform float uAlpha = 1.0;
 
 // Modular Includes
 #include "include/noise.glsl"
@@ -68,5 +69,5 @@ void main() {
         baseColor *= vec3(0.486, 0.784, 0.314);
     }
 
-    fragColor = vec4(lighting * baseColor, alpha);
+    fragColor = vec4(lighting * baseColor, alpha * uAlpha);
 }

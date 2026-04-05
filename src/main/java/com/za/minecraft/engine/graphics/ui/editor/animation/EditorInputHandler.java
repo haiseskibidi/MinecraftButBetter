@@ -106,10 +106,75 @@ public class EditorInputHandler {
 
         // 4. Parts List
         if (mx <= 230 && my >= 120) {
-            List<ModelNode> flat = state.getFlatPartList(findRoot(allParts));
+            List<AnimationEditorState.FlatNode> flat = state.getFlatPartList(findRoot(allParts));
             int idx = (int)((my - 130) / 22);
             if (idx >= 0 && idx < flat.size()) {
-                state.selectedPart = flat.get(idx);
+                state.selectedPart = flat.get(idx).node();
+                state.editingProperty = null; // Cancel typing on switch
+            }
+            return;
+        }
+
+        // 5. Properties Click
+        if (state.selectedPart != null && mx >= 240 && mx <= 460 && my >= 80 && my <= 400) {
+            int rowIdx = (int)((my - 140) / 22);
+            if (my >= 140 && rowIdx >= 0 && rowIdx < 7) {
+                int actualIdx = rowIdx;
+                if (rowIdx > 2) {
+                    if (my < 140 + 3 * 22 + 10) return;
+                    actualIdx = (int)((my - 150) / 22);
+                }
+                
+                if (actualIdx >= 0 && actualIdx < 6) {
+                    boolean isCam = state.selectedPart.name.equals("Camera");
+                    String[] labels = isCam ? new String[]{"Cam X", "Cam Y", "FOV Off", "Cam Tilt", "Yaw (N/A)", "Cam Roll"} 
+                                            : new String[]{"Anim X", "Anim Y", "Anim Z", "Pitch", "Yaw", "Roll"};
+                    
+                    // Button detection: x + 65 (Minus), x + 165 (Plus)
+                    float rx = mx - 240; // Relative X inside panel
+                    if (rx >= 15 + 65 && rx <= 15 + 65 + 12) {
+                        // Clicked Minus
+                        float step = (actualIdx < 3) ? -0.01f : -1.0f;
+                        applyStep(state, labels[actualIdx], step);
+                        confirmTransform(state);
+                        return;
+                    } else if (rx >= 15 + 165 && rx <= 15 + 165 + 12) {
+                        // Clicked Plus
+                        float step = (actualIdx < 3) ? 0.01f : 1.0f;
+                        applyStep(state, labels[actualIdx], step);
+                        confirmTransform(state);
+                        return;
+                    }
+
+                    state.editingProperty = labels[actualIdx];
+                    state.editingValue = "";
+                    return;
+                }
+            }
+        }
+        state.editingProperty = null;
+    }
+
+    private void applyStep(AnimationEditorState state, String prop, float step) {
+        if (state.selectedPart == null) return;
+        boolean isCam = state.selectedPart.name.equals("Camera");
+        
+        if (isCam) {
+            switch (prop) {
+                case "Cam X" -> state.selectedPart.animTranslation.x += step;
+                case "Cam Y" -> state.selectedPart.animTranslation.y += step;
+                case "FOV Off" -> state.selectedPart.animTranslation.z += step;
+                case "Cam Tilt" -> state.selectedPart.animRotation.x += (float)Math.toRadians(step);
+                case "Cam Roll" -> state.selectedPart.animRotation.z += (float)Math.toRadians(step);
+            }
+        } else {
+            switch (prop) {
+                case "Anim X" -> state.selectedPart.animTranslation.x += step;
+                case "Anim Y" -> state.selectedPart.animTranslation.y += step;
+                case "Anim Z" -> state.selectedPart.animTranslation.z += step;
+                case "Pitch" -> state.selectedPart.animRotation.x += (float)Math.toRadians(step);
+                case "Yaw" -> state.selectedPart.animRotation.y += (float)Math.toRadians(step);
+                case "Roll" -> state.selectedPart.animRotation.z += (float)Math.toRadians(step);
             }
         }
     }
@@ -125,8 +190,14 @@ public class EditorInputHandler {
 
     private void prepareGrab(AnimationEditorState state, float mx, float my, int sw, int sh) {
         if (state.selectedPart == null) return;
-        Matrix4f m = state.selectedPart.globalMatrix;
-        startWorldPivot.set(m.m30(), m.m31(), m.m32());
+        
+        if (state.selectedPart == state.cameraNode) {
+            startWorldPivot.set(state.selectedPart.animTranslation);
+        } else {
+            Matrix4f m = state.selectedPart.globalMatrix;
+            startWorldPivot.set(m.m30(), m.m31(), m.m32());
+        }
+        
         startAnimTranslation.set(state.selectedPart.animTranslation);
         startAnimRotation.set(state.selectedPart.animRotation);
         
@@ -146,27 +217,35 @@ public class EditorInputHandler {
             getRay(mx, my, sw, sh, ro, rd);
 
             if (currentMode == TransformMode.GRAB) {
-                Vector3f currentHitPos = new Vector3f();
+                Vector3f targetWorldPos = new Vector3f();
                 if (activeAxis == ' ') {
-                    currentHitPos.set(rd).mul(startGrabDist).add(ro);
+                    targetWorldPos.set(rd).mul(startGrabDist).add(ro);
                 } else {
                     Vector3f axisDir = new Vector3f();
                     if (activeAxis == 'X') axisDir.set(1, 0, 0);
                     else if (activeAxis == 'Y') axisDir.set(0, 1, 0);
                     else if (activeAxis == 'Z') axisDir.set(0, 0, 1);
-                    state.selectedPart.globalMatrix.transformDirection(axisDir).normalize();
-                    currentHitPos.set(getClosestPointOnLine(ro, rd, startWorldPivot, axisDir));
+                    
+                    if (state.selectedPart != state.cameraNode) {
+                        state.selectedPart.globalMatrix.transformDirection(axisDir).normalize();
+                    }
+                    targetWorldPos.set(getClosestPointOnLine(ro, rd, startWorldPivot, axisDir));
                 }
 
-                Vector3f worldDelta = new Vector3f(currentHitPos).sub(startHitPos);
-                ModelNode rootNode = findRoot(allParts);
-                ModelNode parent = findParent(rootNode, state.selectedPart);
-                Matrix4f invParent = new Matrix4f();
-                if (parent != null) parent.globalMatrix.invert(invParent);
+                Vector3f worldDelta = new Vector3f(targetWorldPos).sub(startHitPos);
                 
-                Vector3f localDelta = new Vector3f();
-                worldDelta.mulDirection(invParent, localDelta);
-                state.selectedPart.animTranslation.set(startAnimTranslation).add(localDelta);
+                if (state.selectedPart == state.cameraNode) {
+                    state.selectedPart.animTranslation.set(startAnimTranslation).add(worldDelta);
+                } else {
+                    ModelNode rootNode = findRoot(allParts);
+                    ModelNode parent = findParent(rootNode, state.selectedPart);
+                    Matrix4f invParent = new Matrix4f();
+                    if (parent != null) parent.globalMatrix.invert(invParent);
+                    
+                    Vector3f localDelta = new Vector3f();
+                    worldDelta.mulDirection(invParent, localDelta);
+                    state.selectedPart.animTranslation.set(startAnimTranslation).add(localDelta);
+                }
             } else if (currentMode == TransformMode.ROTATE) {
                 if (activeAxis == 'S') {
                     // Project pivot to screen space
@@ -194,18 +273,37 @@ public class EditorInputHandler {
                         Vector3f cross = new Vector3f(startHitDir).cross(currentHitDir);
                         if (cross.dot(axisDir) < 0) angle = -angle;
 
-                        if (activeAxis == 'X') state.selectedPart.animRotation.x = startAnimRotation.x + angle;
-                        if (activeAxis == 'Y') state.selectedPart.animRotation.y = startAnimRotation.y + angle;
-                        if (activeAxis == 'Z') state.selectedPart.animRotation.z = startAnimRotation.z + angle;
+                        if (state.selectedPart == state.cameraNode) {
+                            if (activeAxis == 'X') state.selectedPart.animRotation.x = startAnimRotation.x + angle;
+                            if (activeAxis == 'Z') state.selectedPart.animRotation.z = startAnimRotation.z + angle;
+                        } else {
+                            if (activeAxis == 'X') state.selectedPart.animRotation.x = startAnimRotation.x + angle;
+                            if (activeAxis == 'Y') state.selectedPart.animRotation.y = startAnimRotation.y + angle;
+                            if (activeAxis == 'Z') state.selectedPart.animRotation.z = startAnimRotation.z + angle;
+                        }
                     }
+                    }
+                    }        }
+        lastMousePos.set(mx, my);
+        
+        List<AnimationEditorState.FlatNode> flat = state.getFlatPartList(findRoot(allParts));
+        state.hoveredPartIndex = (mx <= 230 && my >= 130) ? (int)((my - 130) / 22) : -1;
+        if (state.hoveredPartIndex >= flat.size()) state.hoveredPartIndex = -1;
+    }
+
+    private void jumpToKeyframe(AnimationEditorState state, int direction) {
+        float bestTime = direction > 0 ? 1.1f : -0.1f;
+        boolean found = false;
+        for (AnimationEditorState.EditorTrack track : state.tracks.values()) {
+            for (AnimationEditorState.EditorKeyframe k : track.keyframes) {
+                if (direction > 0 && k.time() > state.currentTime + 0.005f && k.time() < bestTime) {
+                    bestTime = k.time(); found = true;
+                } else if (direction < 0 && k.time() < state.currentTime - 0.005f && k.time() > bestTime) {
+                    bestTime = k.time(); found = true;
                 }
             }
         }
-        lastMousePos.set(mx, my);
-        
-        List<ModelNode> flat = state.getFlatPartList(findRoot(allParts));
-        state.hoveredPartIndex = (mx <= 230 && my >= 130) ? (int)((my - 130) / 22) : -1;
-        if (state.hoveredPartIndex >= flat.size()) state.hoveredPartIndex = -1;
+        if (found) state.currentTime = bestTime;
     }
 
     private ModelNode findParent(ModelNode root, ModelNode target) {
@@ -339,6 +437,41 @@ public class EditorInputHandler {
         boolean ctrl = glfwGetKey(window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS;
         boolean shift = glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS;
         
+        // --- Property Editing Mode ---
+        if (state.editingProperty != null) {
+            if (key == GLFW_KEY_ENTER || key == GLFW_KEY_KP_ENTER) {
+                try {
+                    float val = Float.parseFloat(state.editingValue);
+                    applyTypedValue(state, state.editingProperty, val);
+                    confirmTransform(state);
+                } catch (Exception ignored) {}
+                state.editingProperty = null;
+                return true;
+            }
+            if (key == GLFW_KEY_BACKSPACE && !state.editingValue.isEmpty()) {
+                state.editingValue = state.editingValue.substring(0, state.editingValue.length() - 1);
+                return true;
+            }
+            if (key == GLFW_KEY_ESCAPE) {
+                state.editingProperty = null;
+                return true;
+            }
+            // Filter keys for numbers
+            if ((key >= GLFW_KEY_0 && key <= GLFW_KEY_9) || (key >= GLFW_KEY_KP_0 && key <= GLFW_KEY_KP_9) 
+                || key == GLFW_KEY_PERIOD || key == GLFW_KEY_MINUS || key == GLFW_KEY_KP_DECIMAL || key == GLFW_KEY_KP_SUBTRACT) {
+                
+                char c = (char)0;
+                if (key >= GLFW_KEY_0 && key <= GLFW_KEY_9) c = (char)('0' + (key - GLFW_KEY_0));
+                else if (key >= GLFW_KEY_KP_0 && key <= GLFW_KEY_KP_9) c = (char)('0' + (key - GLFW_KEY_KP_0));
+                else if (key == GLFW_KEY_PERIOD || key == GLFW_KEY_KP_DECIMAL) c = '.';
+                else if (key == GLFW_KEY_MINUS || key == GLFW_KEY_KP_SUBTRACT) c = '-';
+                
+                if (c != 0) state.editingValue += c;
+                return true;
+            }
+            return true; // Consume other keys while typing
+        }
+
         if (key == GLFW_KEY_S && ctrl) {
             AnimationExporter.export(state, "src/main/resources/minecraft/animations/editor_output.json");
             return true;
@@ -359,6 +492,29 @@ public class EditorInputHandler {
 
         if (key == GLFW_KEY_SPACE) {
             state.isPlaying = !state.isPlaying;
+            return true;
+        }
+
+        if (key == GLFW_KEY_LEFT) {
+            if (shift) {
+                jumpToKeyframe(state, -1);
+            } else {
+                state.currentTime = Math.max(0, state.currentTime - 0.01f);
+            }
+            return true;
+        }
+        if (key == GLFW_KEY_RIGHT) {
+            if (shift) {
+                jumpToKeyframe(state, 1);
+            } else {
+                state.currentTime = Math.min(1, state.currentTime + 0.01f);
+            }
+            return true;
+        }
+
+        if (key == GLFW_KEY_O) {
+            state.onionSkinning = !state.onionSkinning;
+            Logger.info("Onion Skinning: " + (state.onionSkinning ? "ON" : "OFF"));
             return true;
         }
 
@@ -401,6 +557,31 @@ public class EditorInputHandler {
             }
         }
         return false;
+    }
+
+    private void applyTypedValue(AnimationEditorState state, String prop, float val) {
+        if (state.selectedPart == null) return;
+        boolean isCam = state.selectedPart.name.equals("Camera");
+        float rad = (float)Math.toRadians(val);
+        
+        if (isCam) {
+            switch (prop) {
+                case "Cam X" -> state.selectedPart.animTranslation.x = val;
+                case "Cam Y" -> state.selectedPart.animTranslation.y = val;
+                case "FOV Off" -> state.selectedPart.animTranslation.z = val;
+                case "Cam Tilt" -> state.selectedPart.animRotation.x = rad;
+                case "Cam Roll" -> state.selectedPart.animRotation.z = rad;
+            }
+        } else {
+            switch (prop) {
+                case "Anim X" -> state.selectedPart.animTranslation.x = val;
+                case "Anim Y" -> state.selectedPart.animTranslation.y = val;
+                case "Anim Z" -> state.selectedPart.animTranslation.z = val;
+                case "Pitch" -> state.selectedPart.animRotation.x = rad;
+                case "Yaw" -> state.selectedPart.animRotation.y = rad;
+                case "Roll" -> state.selectedPart.animRotation.z = rad;
+            }
+        }
     }
 
     public void handleMouseRelease(int button, AnimationEditorState state) {

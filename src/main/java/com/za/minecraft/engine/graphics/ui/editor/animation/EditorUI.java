@@ -46,19 +46,18 @@ public class EditorUI {
         renderer.getFontRenderer().drawString("PARTS", 20, 90, 18, sw, sh, 0.4f, 0.7f, 1.0f, 1.0f);
         
         int startY = 130;
-        List<RenderNode> flatList = new ArrayList<>();
-        flattenTree(state.selectedPart, allParts.isEmpty() ? null : findRoot(allParts), 0, flatList);
+        List<AnimationEditorState.FlatNode> flatList = state.getFlatPartList(allParts.isEmpty() ? null : findRoot(allParts));
         
         for (int i = 0; i < flatList.size(); i++) {
-            RenderNode rn = flatList.get(i);
+            AnimationEditorState.FlatNode fn = flatList.get(i);
             int itemY = startY + (i * 22);
-            boolean sel = (rn.node == state.selectedPart);
+            boolean sel = (fn.node() == state.selectedPart);
             
             if (sel) renderer.renderRect(15, itemY - 2, 210, 20, sw, sh, 0.2f, 0.4f, 0.8f, 1.0f);
             else if (i == state.hoveredPartIndex) renderer.renderRect(15, itemY - 2, 210, 20, sw, sh, 0.2f, 0.2f, 0.2f, 1.0f);
             
-            String prefix = rn.depth > 0 ? "  ".repeat(rn.depth) + "└ " : "";
-            renderer.getFontRenderer().drawString(prefix + rn.node.name, 25, itemY, 14, sw, sh, 1, 1, 1, 1);
+            String prefix = fn.depth() > 0 ? "  ".repeat(fn.depth()) + "└ " : "";
+            renderer.getFontRenderer().drawString(prefix + fn.node().name, 25, itemY, 14, sw, sh, 1, 1, 1, 1);
         }
 
         // 3. Properties (Middle-Left)
@@ -72,15 +71,22 @@ public class EditorUI {
             curY += 25;
             renderer.getFontRenderer().drawString(state.selectedPart.name, px + 10, curY, 12, sw, sh, 0.6f, 0.6f, 0.6f, 1);
             
-            curY += 35; // Start transforms
-            drawTransformInfo(renderer, "Anim X", state.selectedPart.animTranslation.x, px + 15, curY, sw, sh); curY += 22;
-            drawTransformInfo(renderer, "Anim Y", state.selectedPart.animTranslation.y, px + 15, curY, sw, sh); curY += 22;
-            drawTransformInfo(renderer, "Anim Z", state.selectedPart.animTranslation.z, px + 15, curY, sw, sh); curY += 22;
+            boolean isCam = state.selectedPart.name.equals("Camera");
             
-            curY += 10; // Rotation group
-            drawTransformInfo(renderer, "Pitch", (float)Math.toDegrees(state.selectedPart.animRotation.x), px + 15, curY, sw, sh); curY += 22;
-            drawTransformInfo(renderer, "Yaw", (float)Math.toDegrees(state.selectedPart.animRotation.y), px + 15, curY, sw, sh); curY += 22;
-            drawTransformInfo(renderer, "Roll", (float)Math.toDegrees(state.selectedPart.animRotation.z), px + 15, curY, sw, sh); curY += 22;
+            curY += 35; // Start transforms
+            String[] labels = isCam ? new String[]{"Cam X", "Cam Y", "FOV Off", "Cam Tilt", "Yaw (N/A)", "Cam Roll"} 
+                                    : new String[]{"Anim X", "Anim Y", "Anim Z", "Pitch", "Yaw", "Roll"};
+            float[] values = {
+                state.selectedPart.animTranslation.x, state.selectedPart.animTranslation.y, state.selectedPart.animTranslation.z,
+                (float)Math.toDegrees(state.selectedPart.animRotation.x), (float)Math.toDegrees(state.selectedPart.animRotation.y), (float)Math.toDegrees(state.selectedPart.animRotation.z)
+            };
+
+            for (int i = 0; i < 6; i++) {
+                boolean isEditing = labels[i].equals(state.editingProperty);
+                drawTransformInfo(renderer, labels[i], isEditing ? state.editingValue : String.format("%.3f", values[i]), px + 15, curY, sw, sh, isEditing);
+                curY += 22;
+                if (i == 2) curY += 10; // Spacing after translation
+            }
             
             curY += 15;
             AnimationEditorState.EditorTrack track = state.tracks.get(state.selectedPart.name);
@@ -127,9 +133,23 @@ public class EditorUI {
         renderer.getFontRenderer().drawString(status, 400, 25, 16, sw, sh, state.isPlaying ? 0.2f : 1.0f, state.isPlaying ? 1.0f : 0.2f, 0.2f, 1.0f);
     }
 
-    private void drawTransformInfo(UIRenderer renderer, String label, float value, int x, int y, int sw, int sh) {
+    private void drawTransformInfo(UIRenderer renderer, String label, String value, int x, int y, int sw, int sh, boolean isEditing) {
         renderer.getFontRenderer().drawString(label + ":", x, y, 12, sw, sh, 0.6f, 0.6f, 0.6f, 1);
-        renderer.getFontRenderer().drawString(String.format("%.3f", value), x + 85, y, 12, sw, sh, 1, 1, 1, 1);
+        
+        // Minus button
+        renderer.renderRect(x + 65, y - 2, 12, 14, sw, sh, 0.15f, 0.15f, 0.15f, 1.0f);
+        renderer.getFontRenderer().drawString("-", x + 68, y, 12, sw, sh, 1, 1, 1, 1);
+        
+        if (isEditing) {
+            renderer.renderRect(x + 80, y - 2, 80, 16, sw, sh, 0.2f, 0.3f, 0.5f, 1.0f);
+            renderer.getFontRenderer().drawString(value + "_", x + 85, y, 12, sw, sh, 1, 1, 1, 1);
+        } else {
+            renderer.getFontRenderer().drawString(value, x + 85, y, 12, sw, sh, 1, 1, 1, 1);
+        }
+        
+        // Plus button
+        renderer.renderRect(x + 165, y - 2, 12, 14, sw, sh, 0.15f, 0.15f, 0.15f, 1.0f);
+        renderer.getFontRenderer().drawString("+", x + 168, y, 12, sw, sh, 1, 1, 1, 1);
     }
 
     private static class RenderNode {

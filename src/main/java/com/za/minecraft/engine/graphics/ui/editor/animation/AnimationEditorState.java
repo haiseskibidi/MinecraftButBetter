@@ -75,7 +75,16 @@ public class AnimationEditorState {
     public int hoveredPartIndex = -1;
     public ItemStack heldStack;
 
+    // UI Interaction
+    public String editingProperty = null; // Name of the property being typed
+    public String editingValue = "";      // Current string buffer
+    
+    // Virtual Camera node
+    public final ModelNode cameraNode = new ModelNode("Camera", null);
+    public boolean onionSkinning = false;
+
     public void evaluateAll(List<ModelNode> parts, boolean isTransforming) {
+        // Evaluate bones
         for (ModelNode part : parts) {
             if (isTransforming && part == selectedPart) continue;
             EditorTrack track = tracks.get(part.name);
@@ -83,17 +92,30 @@ public class AnimationEditorState {
                 track.evaluate(currentTime, part.animTranslation, part.animRotation);
             }
         }
+        // Evaluate camera
+        if (!(isTransforming && selectedPart == cameraNode)) {
+            EditorTrack camTrack = tracks.get("Camera");
+            if (camTrack != null && !camTrack.keyframes.isEmpty()) {
+                camTrack.evaluate(currentTime, cameraNode.animTranslation, cameraNode.animRotation);
+            }
+        }
     }
 
-    public List<ModelNode> getFlatPartList(ModelNode root) {
-        List<ModelNode> list = new ArrayList<>();
-        flatten(root, list);
+    public record FlatNode(ModelNode node, int depth) {}
+
+    public List<FlatNode> getFlatPartList(ModelNode root) {
+        List<FlatNode> list = new ArrayList<>();
+        list.add(new FlatNode(cameraNode, 0)); 
+        flatten(root, 0, list);
         return list;
     }
 
-    private void flatten(ModelNode node, List<ModelNode> out) {
+    private void flatten(ModelNode node, int depth, List<FlatNode> out) {
         if (node == null) return;
-        if (!node.name.equals("root")) out.add(node);
-        for (ModelNode child : node.children) flatten(child, out);
+        if (!node.name.equals("root")) {
+            out.add(new FlatNode(node, depth));
+        }
+        int nextDepth = node.name.equals("root") ? depth : depth + 1;
+        for (ModelNode child : node.children) flatten(child, nextDepth, out);
     }
 }

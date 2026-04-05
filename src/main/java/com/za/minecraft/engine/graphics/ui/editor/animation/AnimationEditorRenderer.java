@@ -69,9 +69,23 @@ public class AnimationEditorRenderer {
         shader.use();
         atlas.bind();
         
-        // Exact in-game viewmodel perspective
-        shader.setMatrix4f("projection", new Matrix4f().setPerspective((float)Math.toRadians(70.0f), aspectRatio, 0.01f, 1000.0f));
-        shader.setMatrix4f("view", new Matrix4f().identity()); 
+        // --- Apply Camera Animations ---
+        float fovBase = (float)Math.toRadians(70.0f);
+        // cameraNode.animTranslation.z is used as FOV offset (scaled down from 16ths)
+        float fovOffset = state.cameraNode != null ? state.cameraNode.animTranslation.z : 0;
+        float currentFov = fovBase + fovOffset;
+        
+        shader.setMatrix4f("projection", new Matrix4f().setPerspective(currentFov, aspectRatio, 0.01f, 1000.0f));
+        
+        // Camera Roll and Tilt (Pitch)
+        Matrix4f viewMatrix = new Matrix4f().identity();
+        if (state.cameraNode != null) {
+            viewMatrix.rotateZ(-state.cameraNode.animRotation.z); // Roll
+            viewMatrix.rotateX(-state.cameraNode.animRotation.x); // Pitch/Tilt
+            // We can also apply small X/Y translation if needed
+            viewMatrix.translate(-state.cameraNode.animTranslation.x, -state.cameraNode.animTranslation.y, 0);
+        }
+        shader.setMatrix4f("view", viewMatrix); 
         
         shader.setVector3f("lightDirection", new Vector3f(0.4f, -0.8f, 0.4f).normalize());
         shader.setVector3f("lightColor", new Vector3f(0.3f, 0.3f, 0.25f));
@@ -84,13 +98,55 @@ public class AnimationEditorRenderer {
         }
 
         viewmodel.updateHierarchy(new Matrix4f().identity());
+        
+        // --- Onion Skinning (Ghosts) ---
+        if (state.onionSkinning) {
+            renderGhosts(state, viewmodel, atlas);
+        }
+
         renderRecursive(viewmodel.root, state, atlas);
 
-        if (state.selectedPart != null) {
+        if (state.selectedPart != null && state.selectedPart != state.cameraNode) {
             renderGizmos(state.selectedPart);
         }
 
         glDisable(GL_DEPTH_TEST);
+    }
+
+    private void renderGhosts(AnimationEditorState state, Viewmodel viewmodel, DynamicTextureAtlas atlas) {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
+        // Find prev and next keyframes
+        float prevT = -1, nextT = -1;
+        for (AnimationEditorState.EditorTrack track : state.tracks.values()) {
+            for (AnimationEditorState.EditorKeyframe k : track.keyframes) {
+                if (k.time() < state.currentTime - 0.001f) prevT = Math.max(prevT, k.time());
+                if (k.time() > state.currentTime + 0.001f) nextT = (nextT == -1) ? k.time() : Math.min(nextT, k.time());
+            }
+        }
+
+        if (prevT != -1) renderGhostAt(state, viewmodel, atlas, prevT, 0.25f);
+        if (nextT != -1) renderGhostAt(state, viewmodel, atlas, nextT, 0.25f);
+        
+        glDisable(GL_BLEND);
+    }
+
+    private void renderGhostAt(AnimationEditorState state, Viewmodel viewmodel, DynamicTextureAtlas atlas, float time, float alpha) {
+        // Temporarily swap time and evaluate
+        float realTime = state.currentTime;
+        state.currentTime = time;
+        state.evaluateAll(viewmodel.getAllNodes(), false);
+        viewmodel.updateHierarchy(new Matrix4f().identity());
+        
+        // Render with alpha
+        shader.setFloat("uAlpha", alpha); // Assuming shader supports uAlpha
+        renderRecursive(viewmodel.root, state, atlas);
+        shader.setFloat("uAlpha", 1.0f);
+        
+        // Restore
+        state.currentTime = realTime;
+        state.evaluateAll(viewmodel.getAllNodes(), false);
     }
 
     private void renderGizmos(ModelNode node) {
