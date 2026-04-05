@@ -141,13 +141,13 @@ public class GameLoop {
         com.za.minecraft.engine.graphics.ui.Screen active = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
         
         boolean f8Key = window.isKeyPressed(GLFW_KEY_F8);
-        if (f8Key && !f8Pressed && !paused) {
+        if (f8Key && !f8Pressed && !paused && !inputManager.isKeyHandled(GLFW_KEY_F8)) {
             toggleAnimationEditor();
         }
         f8Pressed = f8Key;
 
         boolean eKey = window.isKeyPressed(GLFW_KEY_E);
-        if (eKey && !ePressed && !paused) {
+        if (eKey && !ePressed && !paused && !inputManager.isKeyHandled(GLFW_KEY_E)) {
             if (active != null) {
                 if (active.handleKeyPress(GLFW_KEY_E)) return;
                 com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
@@ -157,14 +157,14 @@ public class GameLoop {
         ePressed = eKey;
 
         boolean jKey = window.isKeyPressed(GLFW_KEY_J);
-        if (jKey && !jPressed && !paused) {
+        if (jKey && !jPressed && !paused && !inputManager.isKeyHandled(GLFW_KEY_J)) {
             if (active != null && active.handleKeyPress(GLFW_KEY_J)) { }
             else toggleJournal();
         }
         jPressed = jKey;
 
         boolean escKey = window.isKeyPressed(GLFW_KEY_ESCAPE);
-        if (escKey && !escPressed) {
+        if (escKey && !escPressed && !inputManager.isKeyHandled(GLFW_KEY_ESCAPE)) {
             if (active != null && active.handleKeyPress(GLFW_KEY_ESCAPE)) { }
             else if (inventoryOpen) {
                 com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
@@ -192,12 +192,16 @@ public class GameLoop {
 
     public void toggleAnimationEditor() {
         if (currentNappingSession != null) return;
-        inventoryOpen = !inventoryOpen;
-        if (inventoryOpen) {
+        
+        if (!inventoryOpen) { // Opening
+            inventoryOpen = true;
             inputManager.disableMouseCapture(window);
             com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().openScreen(
                 new AnimationEditorScreen(), window.getWidth(), window.getHeight());
-        } else {
+        } else { // Closing
+            inventoryOpen = false; 
+            paused = false;
+            // Explicitly enable capture BEFORE closing screen to ensure state
             inputManager.enableMouseCapture(window);
             com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
         }

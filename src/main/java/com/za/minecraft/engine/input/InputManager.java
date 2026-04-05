@@ -46,6 +46,21 @@ public class InputManager {
     private ItemStack heldStack = null;
     private com.za.minecraft.entities.inventory.Slot hoveredSlot = null;
     
+    // Event handling sync
+    private int lastHandledKey = -1;
+    private long lastHandledFrame = -1;
+
+    public boolean isKeyHandled(int key) {
+        long currentFrame = GameLoop.getInstance().getTimer().getFrames();
+        // Allow match for current or previous frame due to callback timing
+        return lastHandledKey == key && (lastHandledFrame == currentFrame || lastHandledFrame == currentFrame - 1);
+    }
+
+    private void markKeyHandled(int key) {
+        lastHandledKey = key;
+        lastHandledFrame = GameLoop.getInstance().getTimer().getFrames();
+    }
+    
     // UI tracking
     private long lastClickTime = 0;
     private int lastClickSlot = -1;
@@ -99,8 +114,8 @@ public class InputManager {
         glfwSetKeyCallback(window.getWindowHandle(), (windowHandle, key, scancode, action, mods) -> {
             if (action == GLFW_PRESS) {
                 com.za.minecraft.engine.graphics.ui.Screen active = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
-                if (active != null) {
-                    active.handleKeyPress(key);
+                if (active != null && active.handleKeyPress(key)) {
+                    markKeyHandled(key);
                 }
             }
         });

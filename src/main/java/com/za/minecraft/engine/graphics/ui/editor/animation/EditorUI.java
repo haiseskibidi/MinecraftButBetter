@@ -57,7 +57,7 @@ public class EditorUI {
         // 3. Properties (Middle-Left)
         if (state.selectedPart != null) {
             int px = 240, py = 80;
-            renderer.renderRect(px, py, 220, 260, sw, sh, 0.05f, 0.05f, 0.05f, 0.9f);
+            renderer.renderRect(px, py, 220, 300, sw, sh, 0.05f, 0.05f, 0.05f, 0.9f);
             renderer.getFontRenderer().drawString("PROPERTIES", px + 10, py + 10, 18, sw, sh, 1, 0.8f, 0, 1);
             renderer.getFontRenderer().drawString(state.selectedPart.name, px + 10, py + 35, 12, sw, sh, 0.6f, 0.6f, 0.6f, 1);
             
@@ -69,8 +69,8 @@ public class EditorUI {
             drawTransformInfo(renderer, "Yaw", (float)Math.toDegrees(state.selectedPart.animRotation.y), px + 15, iy + 115, sw, sh);
             drawTransformInfo(renderer, "Roll", (float)Math.toDegrees(state.selectedPart.animRotation.z), px + 15, iy + 140, sw, sh);
             
-            renderer.getFontRenderer().drawString("[G] Move | [R] Rot | [K] Key", px + 15, py + 220, 12, sw, sh, 0.5f, 0.5f, 0.5f, 1);
-            renderer.getFontRenderer().drawString("[Ctrl+S] Export JSON", px + 15, py + 240, 12, sw, sh, 0.4f, 1, 0.4f, 1);
+            renderer.getFontRenderer().drawString("[G] Move | [R] Rot | [K] Key", px + 15, py + 250, 12, sw, sh, 0.5f, 0.5f, 0.5f, 1);
+            renderer.getFontRenderer().drawString("[Ctrl+S] Export JSON", px + 15, py + 270, 12, sw, sh, 0.4f, 1, 0.4f, 1);
         }
 
         // 4. Timeline (Bottom)
@@ -93,11 +93,12 @@ public class EditorUI {
         renderer.getFontRenderer().drawString(String.format("%.2f", state.currentTime), bx + (int)(state.currentTime * bw) - 10, by + 30, 12, sw, sh, 1, 0.4f, 0.4f, 1);
         
         String status = state.isPlaying ? "PLAYING" : "PAUSED";
-        renderer.getFontRenderer().drawString(status, sw - 120, 20, 16, sw, sh, state.isPlaying ? 0.2f : 1.0f, state.isPlaying ? 1.0f : 0.2f, 0.2f, 1.0f);
+        // Move status further right to avoid "ANIMATION STUDIO" overlap
+        renderer.getFontRenderer().drawString(status, 400, 25, 16, sw, sh, state.isPlaying ? 0.2f : 1.0f, state.isPlaying ? 1.0f : 0.2f, 0.2f, 1.0f);
     }
 
     private void drawTransformInfo(UIRenderer renderer, String label, float value, int x, int y, int sw, int sh) {
         renderer.getFontRenderer().drawString(label + ":", x, y, 12, sw, sh, 0.6f, 0.6f, 0.6f, 1);
-        renderer.getFontRenderer().drawString(String.format("%.3f", value), x + 65, y, 12, sw, sh, 1, 1, 1, 1);
+        renderer.getFontRenderer().drawString(String.format("%.3f", value), x + 85, y, 12, sw, sh, 1, 1, 1, 1);
     }
 }
