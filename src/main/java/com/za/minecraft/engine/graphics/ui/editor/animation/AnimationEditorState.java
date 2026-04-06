@@ -87,6 +87,11 @@ public class AnimationEditorState {
         // Evaluate bones
         for (ModelNode part : parts) {
             if (isTransforming && part == selectedPart) continue;
+            
+            // Reset to default
+            part.animTranslation.set(0, 0, 0);
+            part.animRotation.set(0, 0, 0);
+            
             EditorTrack track = tracks.get(part.name);
             if (track != null && !track.keyframes.isEmpty()) {
                 track.evaluate(currentTime, part.animTranslation, part.animRotation);
@@ -94,6 +99,8 @@ public class AnimationEditorState {
         }
         // Evaluate camera
         if (!(isTransforming && selectedPart == cameraNode)) {
+            cameraNode.animTranslation.set(0, 0, 0);
+            cameraNode.animRotation.set(0, 0, 0);
             EditorTrack camTrack = tracks.get("Camera");
             if (camTrack != null && !camTrack.keyframes.isEmpty()) {
                 camTrack.evaluate(currentTime, cameraNode.animTranslation, cameraNode.animRotation);

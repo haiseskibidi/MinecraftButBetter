@@ -36,6 +36,9 @@ public class AnimationEditorScreen implements Screen {
             ViewmodelDefinition handsDef = ModelRegistry.getViewmodel(Identifier.of("minecraft:hands"));
             if (handsDef != null) {
                 viewmodel = new Viewmodel(handsDef);
+                // Attach camera to root so it gets global matrix updates
+                viewmodel.root.children.add(state.cameraNode);
+                
                 state.tracks.clear();
                 
                 // Collect parts first
@@ -57,6 +60,8 @@ public class AnimationEditorScreen implements Screen {
         for (com.za.minecraft.engine.graphics.model.ModelNode child : node.children) collectParts(child);
     }
 
+    public Viewmodel getViewmodel() { return viewmodel; }
+
     @Override
     public boolean isScene() {
         return true;
@@ -77,13 +82,11 @@ public class AnimationEditorScreen implements Screen {
         }
 
         // Apply animations to bone transforms
-        state.evaluateAll(new java.util.ArrayList<>(state.tracks.keySet().stream().map(this::findNode).filter(Objects::nonNull).toList()), 
-                         inputHandler.getCurrentMode() != EditorInputHandler.TransformMode.NONE);
-
+        state.evaluateAll(getPartsList(), inputHandler.getCurrentMode() != TransformController.TransformMode.NONE);
         // 2. Render 3D
         glClearColor(0.1f, 0.1f, 0.12f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        renderer.render(state, viewmodel, atlas, (float)sw/sh);
+        renderer.render(state, viewmodel, atlas, (float)sw/sh, inputHandler.getTransformController());
 
         // 3. Render UI
         uiRenderer.setupUIProjection(sw, sh);
@@ -121,24 +124,27 @@ public class AnimationEditorScreen implements Screen {
     }
     @Override
     public boolean handleMouseClick(float mx, float my, int button) {
+        if (viewmodel != null) viewmodel.updateHierarchy(new org.joml.Matrix4f().identity());
         inputHandler.handleMouseClick(mx, my, button, state, getPartsList(), renderer);
         return true;
     }
 
     @Override
     public void handleMouseRelease(int button) {
-        inputHandler.handleMouseRelease(button, state);
+        if (viewmodel != null) viewmodel.updateHierarchy(new org.joml.Matrix4f().identity());
+        inputHandler.handleMouseRelease(button, state, getPartsList());
         state.isScrubbing = false;
     }
 
     @Override
     public void handleMouseMove(float mx, float my) {
+        if (viewmodel != null) viewmodel.updateHierarchy(new org.joml.Matrix4f().identity());
         inputHandler.handleMouseMove(mx, my, state, getPartsList());
     }
 
     @Override
     public boolean handleKeyPress(int key) {
-        return inputHandler.handleKeyPress(key, state);
+        return inputHandler.handleKeyPress(key, state, getPartsList());
     }
 
     @Override

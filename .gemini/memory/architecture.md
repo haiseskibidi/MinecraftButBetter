@@ -1,9 +1,10 @@
  # Архитектура проекта "MinecraftButBetter"
 
 ### UI & Interaction Systems
-1.  **Animation Studio (v2.0 Modular)**:
+1.  **Animation Studio (v2.1 Stable)**:
     - **Modular Separation**: Система разделена на 4 автономных модуля: `AnimationEditorState` (данные), `AnimationEditorRenderer` (3D/Gizmos), `EditorInputHandler` (трансформации/picking) и `EditorUI` (интерфейс).
-    - **Synchronous Transform Core**: Манипуляция костями через Гизмо использует handle-offset (сохранение дистанции до центра при клике) и обратную трансформацию из мировых координат в локальное пространство родительской кости.
+    - **Pure FK Core**: Манипуляция костями осуществляется через прямую кинематику (Forward Kinematics). Математика IK вынесена в отдельный план для реализации универсального солвера FABRIK.
+    - **Synchronous Transform Core**: Манипуляция костями через Гизмо использует handle-offset и обратную трансформацию из мировых координат в локальное пространство родительской кости.
     - **Auto-Keying System**: Любое подтвержденное изменение (отпускание Гизмо или ЛКМ после G/R) мгновенно записывается в `EditorTrack`, предотвращая перезапись изменений при воспроизведении анимации.
     - **Visual Hierarchy & Timeline**: Использование рекурсивного списка частей с отступами и визуализацией ключевых кадров ромбами на таймлайне.
 2.  **Input & Frame Synchronization (NEW)**:

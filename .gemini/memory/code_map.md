@@ -19,10 +19,11 @@
 ### com.za.minecraft.engine.graphics.ui.editor.animation
 - **AnimationEditorScreen.java**: Главный оркестратор. Делегирует задачи специализированным модулям.
 - **AnimationEditorState.java**: Модель данных. Хранит ключи, треки, текущее время и выбранные объекты.
-- **AnimationEditorRenderer.java**: Рендеринг 3D сцены студии и подсветка выделения.
-- **EditorInputHandler.java**: Логика взаимодействия: Ray-OBB Picking, Grab/Rotate манипуляции, горячие клавиши.
-- **EditorUI.java**: Отрисовка всех панелей интерфейса (Parts, Properties, Timeline).
+- **AnimationEditorRenderer.java**: Рендеринг 3D сцены студии, отрисовка Гизмо и "призраков" кадров. Очищен от логики IK.
+- **EditorInputHandler.java**: Логика взаимодействия: Ray-OBB Picking, Grab/Rotate манипуляции через чистый FK, горячие клавиши.
+- **EditorUI.java**: Отрисовка всех панелей интерфейса (Parts, Properties, Timeline). Удален статус IK и управление таргетами.
 - **AnimationExporter.java**: Конвертация состояния в JSON формат движка.
+- **TransformController.java**: Низкоуровневая логика трансформаций. Реализует перемещение и вращение костей в 3D пространстве с учетом иерархии.
 
 ### com.za.minecraft.engine.graphics.ui.Screen (UPDATED)
 Назначение: Базовый интерфейс окон.

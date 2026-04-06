@@ -1,0 +1,17 @@
+{
+  "grab": "G",
+  "rotate": "R",
+  "axis_x": "X",
+  "axis_y": "Y",
+  "axis_z": "Z",
+  "set_keyframe": "K",
+  "delete_keyframe": "DELETE",
+  "toggle_play": "SPACE",
+  "toggle_onion": "O",
+  "toggle_ik": "I",
+  "export": "S",
+  "step_left": "LEFT",
+  "step_right": "RIGHT",
+  "cancel": "ESCAPE",
+  "confirm": "ENTER"
+}
