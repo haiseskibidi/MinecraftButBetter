@@ -7,6 +7,8 @@ import com.za.minecraft.world.items.ItemStack;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
+import java.util.Map;
+
 import static org.lwjgl.glfw.GLFW.glfwGetTime;
 import static org.lwjgl.opengl.GL11.*;
 
@@ -90,12 +92,42 @@ public class AnimationEditorRenderer {
 
         // Establish FK
         viewmodel.updateHierarchy(new Matrix4f().identity());
+        
+        // --- IK Update ---
+        if (state.ikManager.isEnabled()) {
+            state.ikManager.update(viewmodel.root);
+        }
 
         if (state.onionSkinning) {
             renderGhosts(state, viewmodel, atlas);
         }
 
         renderRecursive(viewmodel.root, state, atlas);
+
+        // --- IK Target Visualization ---
+        if (state.ikManager.isEnabled()) {
+            glDisable(GL_DEPTH_TEST);
+            for (Map.Entry<String, com.za.minecraft.engine.graphics.model.ik.IKChain> entry : state.ikManager.getChains().entrySet()) {
+                String name = entry.getKey();
+                Vector3f tPos = state.ikManager.getTargetPos(name);
+                Vector3f pPos = state.ikManager.getPolePos(name);
+
+                // Draw Target (Yellow)
+                shader.setMatrix4f("model", new Matrix4f().translate(tPos).scale(0.02f));
+                shader.setBoolean("isHand", true); shader.setFloat("uHandPartWeight", 1.0f);
+                shader.setVector3f("lightColor", new Vector3f(1, 1, 0)); 
+                gizmoMesh.render(GL_LINES); 
+
+                // Draw Pole (Blue)
+                if (pPos != null) {
+                    shader.setMatrix4f("model", new Matrix4f().translate(pPos).scale(0.015f));
+                    shader.setVector3f("lightColor", new Vector3f(0.2f, 0.4f, 1.0f)); 
+                    gizmoMesh.render(GL_LINES); 
+                }
+            }
+            shader.setBoolean("isHand", false);
+            glEnable(GL_DEPTH_TEST);
+        }
 
         if (state.selectedPart != null && state.selectedPart != state.cameraNode) {
             renderGizmos(state.selectedPart);

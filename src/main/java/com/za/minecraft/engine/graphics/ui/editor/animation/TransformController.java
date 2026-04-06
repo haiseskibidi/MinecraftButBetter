@@ -10,6 +10,7 @@ import org.joml.Vector3f;
 import org.joml.Vector4f;
 
 import java.util.List;
+import java.util.Map;
 
 public class TransformController {
     
@@ -71,15 +72,26 @@ public class TransformController {
             
             if (state.selectedPart == state.cameraNode) {
                 state.selectedPart.animTranslation.set(startAnimTranslation).add(worldDelta);
+            } else if (state.ikManager.isEnabled()) {
+                // Check if current selected part is an effector of any IK chain
+                boolean handledByIK = false;
+                for (Map.Entry<String, com.za.minecraft.engine.graphics.model.ik.IKChain> entry : state.ikManager.getChains().entrySet()) {
+                    com.za.minecraft.engine.graphics.model.ik.IKChain chain = entry.getValue();
+                    if (chain.nodes.get(chain.nodes.size() - 1) == state.selectedPart) {
+                        state.ikManager.getTargetPos(entry.getKey()).set(startWorldPivot).add(worldDelta);
+                        handledByIK = true;
+                        break;
+                    }
+                }
+                
+                if (!handledByIK) {
+                    applyStandardTranslation(state, worldDelta, allParts);
+                }
             } else {
-                ModelNode parent = findParent(findRoot(allParts), state.selectedPart);
-                Matrix4f invParent = new Matrix4f();
-                if (parent != null) parent.globalMatrix.invert(invParent);
-                Vector3f localDelta = new Vector3f();
-                worldDelta.mulDirection(invParent, localDelta);
-                state.selectedPart.animTranslation.set(startAnimTranslation).add(localDelta);
+                applyStandardTranslation(state, worldDelta, allParts);
             }
         } else if (currentMode == TransformMode.ROTATE) {
+            // ... (rest of rotate logic)
             if (activeAxis == 'S') {
                 float ang = (mx - lastMx) * 0.05f;
                 state.selectedPart.animRotation.z += ang;
@@ -105,6 +117,16 @@ public class TransformController {
                 }
             }
         }
+    }
+
+    private void applyStandardTranslation(AnimationEditorState state, Vector3f worldDelta, List<ModelNode> allParts) {
+        ModelNode root = findRoot(allParts);
+        ModelNode parent = findParent(root, state.selectedPart);
+        Matrix4f invParent = new Matrix4f();
+        if (parent != null) parent.globalMatrix.invert(invParent);
+        Vector3f localDelta = new Vector3f();
+        worldDelta.mulDirection(invParent, localDelta);
+        state.selectedPart.animTranslation.set(startAnimTranslation).add(localDelta);
     }
 
     private Viewmodel getViewmodel() {

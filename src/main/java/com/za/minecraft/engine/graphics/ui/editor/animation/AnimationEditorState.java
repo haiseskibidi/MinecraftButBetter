@@ -82,6 +82,8 @@ public class AnimationEditorState {
     // Virtual Camera node
     public final ModelNode cameraNode = new ModelNode("Camera", null);
     public boolean onionSkinning = false;
+    
+    public final EditorIKManager ikManager = new EditorIKManager();
 
     public void evaluateAll(List<ModelNode> parts, boolean isTransforming) {
         // Evaluate bones

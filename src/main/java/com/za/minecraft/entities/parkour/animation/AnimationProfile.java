@@ -29,6 +29,10 @@ public class AnimationProfile {
         tracks.put(param, track);
     }
 
+    public boolean hasTrack(String param) {
+        return tracks.containsKey(param);
+    }
+
     public float evaluate(String param, float t, float multiplier) {
         AnimationTrack track = tracks.get(param);
         if (track == null) return 0.0f;

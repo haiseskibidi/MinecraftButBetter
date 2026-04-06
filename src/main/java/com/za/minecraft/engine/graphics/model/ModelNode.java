@@ -61,4 +61,14 @@ public class ModelNode {
             child.cleanup();
         }
     }
+
+    public static ModelNode findParent(ModelNode root, ModelNode target) {
+        if (root == null || target == null) return null;
+        for (ModelNode child : root.children) {
+            if (child == target) return root;
+            ModelNode found = findParent(child, target);
+            if (found != null) return found;
+        }
+        return null;
+    }
 }

@@ -117,9 +117,16 @@
 Назначение: Генератор воксельных мешей для костей.
 Функции: Создает оптимизированную геометрию на основе кубов, описанных в JSON.
 
-### com.za.minecraft.engine.graphics.model.TwoBoneIK
-Назначение: Алгоритм инверсной кинематики для рук.
-Функции: Рассчитывает изгиб локтя и плеча для достижения целевой точки кистью.
+### com.za.minecraft.engine.graphics.model.ik (NEW)
+- **FABRIKSolver.java**: Математическое ядро IK. Реализует алгоритм FABRIK с поддержкой Pole Targets для контроля сгибов.
+- **IKChain.java**: Контейнер для цепочки костей, хранит целевые позиции и ограничения.
+- **constraints/IKConstraint.java**: Базовый интерфейс для ограничений суставов.
+- **constraints/HingeConstraint.java**: Ограничение вращения по одной оси (для локтей и коленей).
+
+### com.za.minecraft.engine.graphics.ui.editor.animation (UPDATED)
+- **EditorIKManager.java**: Управляет несколькими IK-цепями одновременно. Поддерживает `autoSetup` (руки/ноги) и запекание поз в ключи.
+- **AnimationEditorRenderer.java**: Визуализирует цели IK (желтые) и Pole Targets (синие).
+- **TransformController.java**: Теперь поддерживает прямой ввод в IK-таргеты при перемещении эффекторов (кистей/стоп).
 
 ### com.za.minecraft.engine.graphics.model.ModelRegistry
 Назначение: Реестр скелетных моделей.

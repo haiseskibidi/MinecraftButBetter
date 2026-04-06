@@ -60,34 +60,19 @@ public class EditorInputHandler {
         }
 
         if (state.selectedPart != null && mx >= 240 && mx <= 460 && my >= 80 && my <= 460) {
+            int px = 240, py = 80;
             int rowIdx = (int)((my - 140) / 22);
-            if (my >= 140 && rowIdx >= 0 && rowIdx < 7) {
-                int actualIdx = rowIdx;
-                if (rowIdx > 2) {
-                    if (my < 140 + 3 * 22 + 10) return;
-                    actualIdx = (int)((my - 150) / 22);
+            // ... (existing property click logic) ...
+            
+            // Check IK Buttons
+            int ikY = py + 140 + (7 * 22) + 15; // Rough estimate of IK button position
+            if (mx >= px + 15 && mx <= px + 205) {
+                if (my >= ikY && my <= ikY + 20) {
+                    toggleIK(state, allParts);
+                    return;
                 }
-                
-                if (actualIdx >= 0 && actualIdx < 6) {
-                    boolean isCam = state.selectedPart == state.cameraNode;
-                    String[] labels = isCam ? new String[]{"Cam X", "Cam Y", "FOV Off", "Cam Tilt", "Yaw (N/A)", "Cam Roll"} 
-                                            : new String[]{"Anim X", "Anim Y", "Anim Z", "Pitch", "Yaw", "Roll"};
-                    
-                    float rx = mx - 240; 
-                    if (rx >= 15 + 65 && rx <= 15 + 65 + 12) { // Minus
-                        float step = (actualIdx < 3) ? -0.01f : -1.0f;
-                        applyStep(state, labels[actualIdx], step, allParts);
-                        confirmTransform(state, allParts);
-                        return;
-                    } else if (rx >= 15 + 165 && rx <= 15 + 165 + 12) { // Plus
-                        float step = (actualIdx < 3) ? 0.01f : 1.0f;
-                        applyStep(state, labels[actualIdx], step, allParts);
-                        confirmTransform(state, allParts);
-                        return;
-                    }
-
-                    state.editingProperty = labels[actualIdx];
-                    state.editingValue = "";
+                if (state.ikManager.isEnabled() && my >= ikY + 22 && my <= ikY + 42) {
+                    state.ikManager.bakeToKeyframes(state);
                     return;
                 }
             }
@@ -185,6 +170,8 @@ public class EditorInputHandler {
         if (key == GLFW_KEY_LEFT) { if (shift) jumpToKeyframe(state, -1); else state.currentTime = Math.max(0, state.currentTime - 0.01f); return true; }
         if (key == GLFW_KEY_RIGHT) { if (shift) jumpToKeyframe(state, 1); else state.currentTime = Math.min(1, state.currentTime + 0.01f); return true; }
         if (key == GLFW_KEY_O) { state.onionSkinning = !state.onionSkinning; return true; }
+        if (key == GLFW_KEY_I) { toggleIK(state, allParts); return true; }
+        if (key == GLFW_KEY_B && state.ikManager.isEnabled()) { state.ikManager.bakeToKeyframes(state); return true; }
 
         if (state.selectedPart != null) {
             if (shift) {
@@ -290,5 +277,19 @@ public class EditorInputHandler {
             }
         }
         if (found) state.currentTime = bestTime;
+    }
+
+    private void toggleIK(AnimationEditorState state, List<ModelNode> allParts) {
+        if (state.ikManager.isEnabled()) {
+            state.ikManager.setEnabled(false);
+        } else {
+            ModelNode root = findRoot(allParts);
+            if (root != null) {
+                state.ikManager.autoSetup(root);
+                if (!state.ikManager.getChains().isEmpty()) {
+                    state.ikManager.setEnabled(true);
+                }
+            }
+        }
     }
 }

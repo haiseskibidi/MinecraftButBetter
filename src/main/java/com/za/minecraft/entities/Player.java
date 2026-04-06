@@ -104,7 +104,20 @@ public class Player extends LivingEntity {
     
     @Override
     public void update(float deltaTime, World world) {
+        // Save velocity BEFORE physics clears it on impact
+        preUpdateVelocityY = velocity.y;
+        
         super.update(deltaTime, world);
+
+        // Impulse Trigger: Landing (Moved from updateAnimations for physical accuracy)
+        if (onGround && !wasOnGround && preUpdateVelocityY < -1.5f) {
+            landingTimer = 0.0f;
+            landingSide = Math.random() > 0.5 ? 1.0f : -1.0f;
+            float v = Math.abs(preUpdateVelocityY);
+            // Softer scaling: tuned for direct physics application
+            landingScale = Math.min(1.8f, (v * v) / 220.0f + (v * 0.03f)); 
+        }
+        wasOnGround = onGround;
         
         inventory.update(world, this, com.za.minecraft.engine.core.GameLoop.getInstance().getCamera());
         updateHunger(deltaTime);
@@ -136,8 +149,6 @@ public class Player extends LivingEntity {
         
         float currentDuration = iDur + ( (wDur / speedFactor) - iDur) * movementAlpha;
         locomotionTimer = (locomotionTimer + deltaTime / currentDuration) % 1.0f;
-        
-        preUpdateVelocityY = velocity.y;
     }
 
     public void updateAnimations(float deltaTime, World world) {
@@ -160,14 +171,15 @@ public class Player extends LivingEntity {
         leanAmount += (leanTarget - leanAmount) * (sneaking ? 3.0f : 7.0f) * deltaTime;
         lastYaw = currentYaw;
 
-        // 2. Impulse Trigger: Landing
-        if (onGround && !wasOnGround && preUpdateVelocityY < -2.0f) {
-            landingTimer = 0.0f;
-            landingSide = Math.random() > 0.5 ? 1.0f : -1.0f;
-            float v = Math.abs(preUpdateVelocityY);
-            landingScale = Math.min(2.2f, (v * v) / 250.0f + (v * 0.02f)); 
+        // 2.1 Falling logic (Tension & Wind Shake)
+        float fallIntensity = 0.0f;
+        if (!onGround && !parkourHandler.isInParkour() && velocity.y < -2.0f) {
+            fallingTimer += deltaTime;
+            // fallIntensity builds up based on vertical speed
+            fallIntensity = Math.min(1.0f, (Math.abs(velocity.y) - 2.0f) / 25.0f);
+        } else {
+            fallingTimer = Math.max(0.0f, fallingTimer - deltaTime * 5.0f);
         }
-        wasOnGround = onGround;
 
         // 3. Profiles & Evaluation
         com.za.minecraft.world.items.Item heldItem = inventory.getSelectedItem();
@@ -179,6 +191,7 @@ public class Player extends LivingEntity {
         AnimationProfile ip = animationRegistry.get(iN);
         AnimationProfile cip = animationRegistry.get(sneaking ? "sneak_idle" : "idle");
         AnimationProfile iip = animationRegistry.get(iiN);
+        AnimationProfile fp = animationRegistry.get("falling");
 
         float horizontalSpeed = (float) Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z);
         float maxSneakSpeed = com.za.minecraft.world.physics.PhysicsSettings.getInstance().baseMoveSpeed * 0.35f;
@@ -204,35 +217,50 @@ public class Player extends LivingEntity {
         float iItP = (iip != null) ? iip.evaluate("item_pitch", locomotionTimer, 1.0f) : 0;
         float iItR = (iip != null) ? iip.evaluate("item_roll", sneaking ? 0.0f : locomotionTimer, 1.0f) : 0;
 
+        float fTilt = (fp != null) ? fp.evaluate("camera_tilt", fallingTimer, 1.0f) : 0;
+        float fCamY = (fp != null) ? fp.evaluate("camera_y", fallingTimer, 1.0f) : 0;
+        float fFov = (fp != null) ? fp.evaluate("fov_offset", fallingTimer, 1.0f) : 0;
+        float fItY = (fp != null) ? fp.evaluate("item_y", fallingTimer, 1.0f) : 0;
+        float fItZ = (fp != null) ? fp.evaluate("item_z", fallingTimer, 1.0f) : 0;
+        float fItP = (fp != null) ? fp.evaluate("item_pitch", fallingTimer, 1.0f) : 0;
+
         float targetTilt, targetRoll, tCamY, tCamX, targetFov;
         float tItX, tItY, tItZ, tItP, tItYw, tItR;
 
-        targetFov = wFov * movementAlpha;
+        targetFov = (wFov * movementAlpha) + (fFov * fallIntensity);
 
         if (sneaking) {
             float breathWeight = 0.4f + (speedIntensity * 0.6f);
             float walkWeight = speedIntensity; 
-            targetTilt = iTilt + (wTilt - iTilt) * breathWeight;
+            targetTilt = iTilt + (wTilt - iTilt) * breathWeight + fTilt * fallIntensity;
             targetRoll = (iRoll + (wRoll - iRoll) * breathWeight) + leanAmount;
-            tCamY = iCamY + (wCamY - iCamY) * breathWeight;
+            tCamY = iCamY + (wCamY - iCamY) * breathWeight + fCamY * fallIntensity;
             tCamX = iCamX * walkWeight; 
             tItX = iItX + (wItX - iItX) * walkWeight;
-            tItY = iItY + (wItY - iItY) * breathWeight;
-            tItZ = iItZ + (wItZ - iItZ) * breathWeight;
-            tItP = iItP + (wItP - iItP) * breathWeight;
+            tItY = iItY + (wItY - iItY) * breathWeight + fItY * fallIntensity;
+            tItZ = iItZ + (wItZ - iItZ) * breathWeight + fItZ * fallIntensity;
+            tItP = iItP + (wItP - iItP) * breathWeight + fItP * fallIntensity;
             tItYw = (leanAmount * 0.2f);
             tItR = iItR + (wItR - iItR) * walkWeight;
         } else {
-            targetTilt = iTilt + (wTilt - iTilt) * movementAlpha;
+            targetTilt = iTilt + (wTilt - iTilt) * movementAlpha + fTilt * fallIntensity;
             targetRoll = (iRoll + (wRoll - iRoll) * movementAlpha) + leanAmount;
-            tCamY = iCamY + (wCamY - iCamY) * movementAlpha;
+            tCamY = iCamY + (wCamY - iCamY) * movementAlpha + fCamY * fallIntensity;
             tCamX = 0; 
             tItX = iItX + (wItX - iItX) * movementAlpha;
-            tItY = iItY + (wItY - iItY) * movementAlpha;
-            tItZ = iItZ + (wItZ - iItZ) * movementAlpha;
-            tItP = iItP + (wItP - iItP) * movementAlpha;
+            tItY = iItY + (wItY - iItY) * movementAlpha + fItY * fallIntensity;
+            tItZ = iItZ + (wItZ - iItZ) * movementAlpha + fItZ * fallIntensity;
+            tItP = iItP + (wItP - iItP) * movementAlpha + fItP * fallIntensity;
             tItYw = (leanAmount * 0.2f);
             tItR = iItR + (wItR - iItR) * movementAlpha;
+        }
+
+        // Procedural Wind Shake for hands during fall
+        if (fallIntensity > 0.01f) {
+            float shakeFreq = 45.0f;
+            float shake = (float) Math.sin(fallingTimer * shakeFreq) * 0.02f * fallIntensity;
+            tItY += shake;
+            tItX += (float) Math.cos(fallingTimer * shakeFreq * 0.8f) * 0.01f * fallIntensity;
         }
 
         // 4. Parkour blending
@@ -258,7 +286,8 @@ public class Player extends LivingEntity {
             }
         }
 
-        // 5. Impulse Apply
+        // 5. Impulse Apply (Moved to variables for direct physics application)
+        float lItY = 0, lItP = 0, lItR = 0;
         if (landingTimer < 1.0f) {
             AnimationProfile lp = animationRegistry.get("landing");
             if (lp != null) {
@@ -269,9 +298,9 @@ public class Player extends LivingEntity {
                 tCamY += lp.evaluate("camera_y", t, landingSide) * landingScale;
                 tCamX += lp.evaluate("camera_x", t, landingSide) * landingScale;
                 targetFov += lp.evaluate("fov_offset", t, landingSide) * landingScale;
-                tItY += lp.evaluate("item_y", t, landingSide) * landingScale;
-                tItP += lp.evaluate("item_pitch", t, landingSide) * landingScale;
-                tItR += lp.evaluate("item_roll", t, landingSide) * landingScale;
+                lItY = lp.evaluate("item_y", t, landingSide) * landingScale;
+                lItP = lp.evaluate("item_pitch", t, landingSide) * landingScale;
+                lItR = lp.evaluate("item_roll", t, landingSide) * landingScale;
             } else landingTimer = 1.0f;
         }
 
@@ -357,9 +386,13 @@ public class Player extends LivingEntity {
                 float pDelta = currentPitch - lastPitch; lastPitch = currentPitch;
                 Vector3f extF = new Vector3f(-yawDelta * 60.0f, pDelta * 60.0f, 0);
 
+                // --- KEY FIX: Apply landing and falling RAW values directly to physics target ---
                 Vector3f tPos = new Vector3f(itemOffsetX, itemOffsetY, itemOffsetZ);
+                tPos.y += lItY; // Apply landing impulse directly
+                tPos.z += (fp != null ? fp.evaluate("item_z", fallingTimer, 1.0f) : 0) * fallIntensity;
 
-                org.joml.Quaternionf tRot = new org.joml.Quaternionf().rotateX(itemPitchOffset).rotateY(itemYawOffset).rotateZ(itemRollOffset);
+                org.joml.Quaternionf tRot = new org.joml.Quaternionf().rotateX(itemPitchOffset + lItP).rotateY(itemYawOffset).rotateZ(itemRollOffset + lItR);
+
 
                 // --- 7.1 WORLD COLLISIONS (Tarkov-style) ---
                 float reach = 0.6f; 

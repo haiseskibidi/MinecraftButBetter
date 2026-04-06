@@ -99,6 +99,17 @@ public class EditorUI {
             curY += 18;
             renderer.getFontRenderer().drawString("[Shift+1-4] Change Easing", px + 15, curY, 10, sw, sh, 0.5f, 0.5f, 0.5f, 1);
             
+            curY += 25;
+            boolean ikEnabled = state.ikManager.isEnabled();
+            renderer.renderRect(px + 15, curY - 2, 190, 20, sw, sh, 0.15f, 0.15f, 0.15f, 1.0f);
+            renderer.getFontRenderer().drawString(ikEnabled ? "IK: ACTIVE" : "[I] ENABLE IK", px + 25, curY, 12, sw, sh, ikEnabled ? 0.4f : 1, ikEnabled ? 1 : 1, ikEnabled ? 0.4f : 1, 1);
+            
+            if (ikEnabled) {
+                curY += 22;
+                renderer.renderRect(px + 15, curY - 2, 190, 20, sw, sh, 0.15f, 0.35f, 0.15f, 1.0f);
+                renderer.getFontRenderer().drawString("[B] BAKE IK TO KEYS", px + 25, curY, 12, sw, sh, 1, 1, 1, 1);
+            }
+
             renderer.getFontRenderer().drawString("[G] Move | [R] Rot | [K] Key", px + 15, py + panelH - 45, 12, sw, sh, 0.5f, 0.5f, 0.5f, 1);
             renderer.getFontRenderer().drawString("[Ctrl+S] Export JSON", px + 15, py + panelH - 25, 12, sw, sh, 0.4f, 1, 0.4f, 1);
         }
