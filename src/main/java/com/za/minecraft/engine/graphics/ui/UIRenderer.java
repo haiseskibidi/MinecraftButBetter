@@ -409,10 +409,10 @@ public class UIRenderer {
         uiShader.setInt("useTexture", 0);
         uiShader.setInt("isSlot", 0);
         
-        int width = 80;
-        int height = 6;
-        int x = (screenWidth) / 2 + 10;
-        int y = hotbar.getScreenY(screenHeight) - 20;
+        int width = 120;
+        int height = 8;
+        int x = (screenWidth + (int)(Hotbar.HOTBAR_WIDTH * Hotbar.HOTBAR_SCALE)) / 2 + 20;
+        int y = hotbar.getScreenY(screenHeight) + 32; // Under the hunger text
 
         float scaleX = (float)width / screenWidth;
         float scaleY = (float)height / screenHeight;
