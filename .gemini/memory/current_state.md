@@ -33,6 +33,9 @@
 - **Hytale-style Hit-based Block Breaking (v2.1)**:
     - **Weak Spot System**: Реализованы процедурные точки попадания для деревянных блоков.
     - **Progressive Chipping**: Удачные удары оставляют визуальные "шрамы" на поверхности блока.
+- **Universal In-World Crafting API (v2)**: Реализован интерфейс `ICraftingSurface` (например, пень `StumpBlockEntity`). Поддержка крафта и обтёсывания (Napping) прямо в мире без GUI.
+- **Industrial Tier 1 Blocks**: Реализована базовая система передачи энергии (`IEnergyStorage`) с поддержкой генераторов (`GeneratorBlockEntity`), батарей, ламп и передающих кабелей (`CableBlockEntity`).
+- **Entity AI & Global Noise**: Внедрена система глобального шума. Реализован базовый `ScoutEntity` с простейшим ИИ (`AIState`: WANDER, SEARCH, CHASE), реагирующий на шум игрока.
 - **Survivor's Tablet (Journal System)**: Модульная система обучения с современным карточным UI и поддержкой динамических рецептов.
 - **Modular Inventory System v4**: Полный переход на Data-Driven GUI, абстракцию хранилищ (`IInventory`) и CSS-подобную систему верстки.
 - **Animation Studio (v2.1 Stable)**:
@@ -43,6 +46,11 @@
     - **Advanced Timeline**: Визуализация ключей, поддержка Shift-привязки и удаления.
     - **Easing & Export**: Поддержка типов сглаживания и экспорт в JSON движка.
     - **Frame-Synced Input**: Исправлена проблема "двойной паузы".
+- **Data-Driven Player Action System**:
+  - Централизованная система расчета выносливости (stamina), шума (noise) и голода (hunger) через `ActionDefinition`.
+  - Действия загружаются из JSON-файлов (например, ходьба, бег, лазание, паркур, майнинг).
+  - Интеграция с `ParkourHandler` для истощения стамины при висении и лазании (со срывом и отталкиванием при 0).
+  - Динамическая отрисовка Stamina Bar поверх хотбара, когда стамина расходуется.
 - **Texture Array Graphics Engine (v4.0)**: Полное устранение мерцания текстур через переход на `GL_TEXTURE_2D_ARRAY`.
 
 ## В работе
@@ -53,7 +61,6 @@
 - **Animation Studio UX**:
     - Реализация Undo/Redo буфера для трансформаций.
     - Копирование и вставка (Copy/Paste) данных ключевых кадров между временными метками.
-- **Stamina System**: Implement exhaustion logic for hanging and climbing.
 - **Collision Edge Cases**: Refining interactions with corners and slabs.
 - **Generic Containers**: Тестирование `ChestScreen` и расширение поддержки сундуков.
 

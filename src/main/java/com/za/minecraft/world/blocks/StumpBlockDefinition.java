@@ -144,10 +144,9 @@ public class StumpBlockDefinition extends BlockDefinition {
             if (recipe.matches(currentItems, toolId)) {
                 surface.incrementProgress();
                 player.swing();
-                player.addNoise(0.15f);
-                
-                com.za.minecraft.utils.Logger.info("Progress: %d/%d", surface.getCraftingProgress(), recipe.getRequiredHits());
-                
+                player.performDiscreteAction(com.za.minecraft.utils.Identifier.of("minecraft:mine"));
+
+                com.za.minecraft.utils.Logger.info("Progress: %d/%d", surface.getCraftingProgress(), recipe.getRequiredHits());                
                 if (surface.getCraftingProgress() >= recipe.getRequiredHits()) {
                     for (int i = 0; i < 9; i++) surface.setStackInSlot(i, null);
                     ItemStack result = recipe.getResult();

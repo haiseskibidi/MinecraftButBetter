@@ -10,6 +10,7 @@
   "gui.ok": "Ок",
   "gui.mining_progress": "Разрушение: %d%%",
   "gui.hunger": "Голод: %.1f/20",
+  "gui.stamina": "Выносливость: %d%%",
   "gui.noise": "Шум: %d%%",
   "menu.resume": "Продолжить",
   "menu.exit": "Выйти из игры",

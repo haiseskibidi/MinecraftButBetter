@@ -34,6 +34,10 @@
 Функции: Метод `renderDeveloperPanel` сделан публичным для использования в редакторе.
 
 ## World & Items (UPDATED)
+### com.za.minecraft.world.actions (NEW)
+Назначение: Data-Driven система действий игрока (бег, прыжок, добыча, паркур).
+Функции: `ActionDefinition` парсит JSON-файлы с параметрами шума, выносливости и голода. `ActionRegistry` хранит их для использования в `Player` и `ParkourHandler`.
+
 ### com.za.minecraft.world.blocks.BlockDefinition (UPDATED)
 Назначение: Физические и визуальные свойства блока.
 Функции: Хранит `interaction_cooldown` для настройки скорости сбора.

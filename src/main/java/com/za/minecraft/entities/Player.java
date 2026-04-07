@@ -33,6 +33,9 @@ public class Player extends LivingEntity {
     private float wetness = 0.0f;
     private boolean hasParasites = false;
     private float parasitesTimer = 0.0f;
+
+    // Action System
+    private final java.util.Set<com.za.minecraft.utils.Identifier> activeActions = new java.util.HashSet<>();
     
     // Animation State
     private float currentEyeHeight;
@@ -121,7 +124,7 @@ public class Player extends LivingEntity {
         
         inventory.update(world, this, com.za.minecraft.engine.core.GameLoop.getInstance().getCamera());
         updateHunger(deltaTime);
-        updateNoise(deltaTime);
+        updateActions(deltaTime);
         updateSneakState(world, deltaTime);
         parkourHandler.update(this, deltaTime, world);
         updateThermalAndConditions(deltaTime, world);
@@ -520,16 +523,65 @@ public class Player extends LivingEntity {
         return false;
     }
 
-    private void updateNoise(float deltaTime) {
-        float floorNoise = 0.0f;
-        if (!flying && moving) {
-            if (sprinting) floorNoise = 0.35f;
-            else if (sneaking) floorNoise = 0.02f;
-            else floorNoise = 0.10f;
+    public void startAction(com.za.minecraft.utils.Identifier id) {
+        activeActions.add(id);
+    }
+
+    public void stopAction(com.za.minecraft.utils.Identifier id) {
+        activeActions.remove(id);
+    }
+
+    public void performDiscreteAction(com.za.minecraft.utils.Identifier id) {
+        com.za.minecraft.world.actions.ActionDefinition def = com.za.minecraft.world.actions.ActionRegistry.get(id);
+        if (def != null) {
+            addNoise(def.noiseLevel());
+            stamina = Math.max(0.0f, stamina - def.staminaCostPerUse());
+            hunger = Math.max(0.0f, hunger - def.hungerCostPerUse());
         }
+    }
+
+    private void updateActions(float deltaTime) {
+        float floorNoise = 0.0f;
+        
+        // Automatic locomotion actions
+        if (!flying && moving) {
+            if (sprinting) startAction(com.za.minecraft.utils.Identifier.of("minecraft:sprint"));
+            else stopAction(com.za.minecraft.utils.Identifier.of("minecraft:sprint"));
+            
+            if (sneaking) startAction(com.za.minecraft.utils.Identifier.of("minecraft:sneak"));
+            else stopAction(com.za.minecraft.utils.Identifier.of("minecraft:sneak"));
+            
+            if (!sprinting && !sneaking) startAction(com.za.minecraft.utils.Identifier.of("minecraft:walk"));
+            else stopAction(com.za.minecraft.utils.Identifier.of("minecraft:walk"));
+        } else {
+            stopAction(com.za.minecraft.utils.Identifier.of("minecraft:sprint"));
+            stopAction(com.za.minecraft.utils.Identifier.of("minecraft:sneak"));
+            stopAction(com.za.minecraft.utils.Identifier.of("minecraft:walk"));
+        }
+
+        boolean staminaConsumingAction = false;
+
+        for (com.za.minecraft.utils.Identifier id : activeActions) {
+            com.za.minecraft.world.actions.ActionDefinition def = com.za.minecraft.world.actions.ActionRegistry.get(id);
+            if (def != null) {
+                if (def.staminaCostPerSecond() > 0) {
+                    staminaConsumingAction = true;
+                    stamina = Math.max(0.0f, stamina - def.staminaCostPerSecond() * deltaTime);
+                }
+                hunger = Math.max(0.0f, hunger - def.hungerCostPerSecond() * deltaTime);
+                floorNoise = Math.max(floorNoise, def.noiseLevel());
+            }
+        }
+
+        // Stamina regeneration
+        if (!staminaConsumingAction && onGround) {
+            stamina = Math.min(1.0f, stamina + 0.1f * deltaTime); // Regenerate 10% per second when idle
+        }
+
         noiseLevel = Math.max(floorNoise, Math.max(continuousNoise, noiseLevel - 0.5f * deltaTime));
         continuousNoise = 0.0f;
     }
+
     public void addNoise(float amount) { this.noiseLevel = Math.min(1.0f, this.noiseLevel + amount); }
     public void setContinuousNoise(float level) { this.continuousNoise = Math.max(this.continuousNoise, level); }
     public float getNoiseLevel() { return noiseLevel; }
@@ -596,7 +648,7 @@ public class Player extends LivingEntity {
         }
     }
     public float getHunger() { return hunger; }
-    public void jump() { if (onGround || flying) { velocity.y = com.za.minecraft.world.physics.PhysicsSettings.getInstance().jumpVelocity; onGround = false; } }
+    public void jump() { if (onGround || flying) { velocity.y = com.za.minecraft.world.physics.PhysicsSettings.getInstance().jumpVelocity; onGround = false; performDiscreteAction(com.za.minecraft.utils.Identifier.of("minecraft:jump")); } }
     public void addVelocity(float vx, float vy, float vz) { velocity.add(vx, vy, vz); }
     public void applyHorizontalAcceleration(float ax, float az, float maxSpeed) {
         velocity.x += ax; velocity.z += az;

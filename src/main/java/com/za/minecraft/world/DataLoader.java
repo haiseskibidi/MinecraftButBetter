@@ -82,11 +82,29 @@ public class DataLoader {
 
         for (String ns : namespaces) {
             loadModels(ns);
+            loadActions(ns);
         }
 
         loadParkourAnimations();
         loadScavengeSettings();
         loadPhysicsSettings();
+    }
+
+    private static void loadActions(String namespace) {
+        List<String> actionNames = listResources(namespace + "/actions");
+        for (String name : actionNames) {
+            String path = namespace + "/actions/" + name + ".json";
+            try (java.io.InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path)) {
+                if (is == null) {
+                    com.za.minecraft.utils.Logger.warn("Action file not found: " + path);
+                    continue;
+                }
+                com.za.minecraft.world.actions.ActionDefinition def = GSON.fromJson(new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8), com.za.minecraft.world.actions.ActionDefinition.class);
+                com.za.minecraft.world.actions.ActionRegistry.register(com.za.minecraft.utils.Identifier.of(namespace + ":" + name), def);
+            } catch (Exception e) {
+                com.za.minecraft.utils.Logger.error("Failed to load action " + path + ": " + e.getMessage());
+            }
+        }
     }
 
     private static void loadParkourAnimations() {

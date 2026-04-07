@@ -47,9 +47,17 @@ public class ParkourHandler {
             player.setFlying(true);
 
             if (t >= 1.0f) {
-                state = ParkourState.HANGING;
+                setState(player, ParkourState.HANGING);
             }
         } else if (state == ParkourState.HANGING) {
+            if (player.getStamina() <= 0.01f) {
+                setState(player, ParkourState.NONE);
+                float pushBack = 0.15f;
+                player.getVelocity().x = (float) Math.sin(-baseYaw) * -pushBack;
+                player.getVelocity().y = -0.5f; // Small detach impulse
+                player.getVelocity().z = (float) Math.cos(-baseYaw) * pushBack;
+                return;
+            }
             player.getVelocity().set(0, 0, 0);
             player.getPosition().set(hangingPosition);
             player.setFlying(true);
@@ -194,7 +202,7 @@ public class ParkourHandler {
         );
 
         transitionTimer = 0;
-        state = ParkourState.CLIMBING;
+        setState(player, ParkourState.CLIMBING);
     }
 
     public float getClimbSide() {
@@ -238,7 +246,20 @@ public class ParkourHandler {
     public ParkourState getState() { return state; }
 
     public void setState(Player player, ParkourState newState) {
+        if (this.state == ParkourState.HANGING) {
+            player.stopAction(com.za.minecraft.utils.Identifier.of("minecraft:hang"));
+        } else if (this.state == ParkourState.CLIMBING) {
+            player.stopAction(com.za.minecraft.utils.Identifier.of("minecraft:climb"));
+        }
+
         this.state = newState;
+
+        if (newState == ParkourState.HANGING) {
+            player.startAction(com.za.minecraft.utils.Identifier.of("minecraft:hang"));
+        } else if (newState == ParkourState.CLIMBING) {
+            player.startAction(com.za.minecraft.utils.Identifier.of("minecraft:climb"));
+        }
+
         if (newState == ParkourState.NONE) {
             player.setFlying(wasFlyingBeforeParkour);
         }

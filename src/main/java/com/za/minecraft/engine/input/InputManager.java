@@ -713,7 +713,6 @@ public class InputManager {
                     parkour.startClimb(player);
                 } else if (!parkour.isClimbing()) {
                     if (player.isOnGround()) {
-                        player.addNoise(0.20f);
                         player.jump();
                     } else {
                         parkour.tryLedgeGrab(player, world, lookDir);

@@ -398,6 +398,63 @@ public class UIRenderer {
         glDisable(GL_BLEND);
     }
 
+    public void renderStamina(int screenWidth, int screenHeight, float stamina) {
+        if (stamina >= 0.99f) return; // Don't render if full
+        
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        uiShader.use();
+        uiShader.setInt("useTexture", 0);
+        uiShader.setInt("isSlot", 0);
+        
+        int width = 80;
+        int height = 6;
+        int x = (screenWidth) / 2 + 10;
+        int y = hotbar.getScreenY(screenHeight) - 20;
+
+        float scaleX = (float)width / screenWidth;
+        float scaleY = (float)height / screenHeight;
+        float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
+        float posY = 1.0f - (2.0f * y / screenHeight) - scaleY;
+
+        glBindVertexArray(quadVAO);
+        
+        // Background (black border)
+        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("tintColor", 0.0f, 0.0f, 0.0f, 0.8f);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        
+        // Inner Bar (Grey background)
+        float innerScaleX = scaleX - (2.0f / screenWidth);
+        float innerScaleY = scaleY - (2.0f / screenHeight);
+        uiShader.setUniform("scale", innerScaleX, innerScaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("tintColor", 0.2f, 0.2f, 0.2f, 0.8f);
+        glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+
+        // Progress (Yellow/Orange to Green)
+        if (stamina > 0) {
+            float barWidth = innerScaleX * stamina;
+            uiShader.setUniform("scale", barWidth, innerScaleY, 0.0f, 0.0f);
+            uiShader.setUniform("position_offset", posX - (innerScaleX - barWidth), posY, 0.0f, 0.0f);
+            
+            float r = 1.0f - stamina;
+            float g = stamina;
+            float b = 0.0f;
+            uiShader.setUniform("tintColor", r, g, b, 0.9f);
+            glDrawElements(GL_TRIANGLES, QUAD_INDICES.length, GL_UNSIGNED_INT, 0);
+        }
+
+        glBindVertexArray(0);
+        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+    }
+
     public void renderNoise(int screenWidth, int screenHeight, float noise) {
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);

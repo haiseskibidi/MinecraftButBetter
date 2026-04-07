@@ -141,7 +141,7 @@ public class MiningController {
                 shouldHit = true;
 
                 player.setContinuousNoise(Math.min(0.4f, 0.15f + hardness * 0.1f));
-                player.addNoise(hardness * 0.05f);
+                player.performDiscreteAction(com.za.minecraft.utils.Identifier.of("minecraft:mine"));
             }
         }
 
