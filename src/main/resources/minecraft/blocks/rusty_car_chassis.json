@@ -1,0 +1,29 @@
+{
+  "id": 205,
+  "identifier": "minecraft:rusty_car_chassis",
+  "translationKey": "block.minecraft.rusty_car_chassis",
+  "solid": true,
+  "transparent": false,
+  "hardness": 6.0,
+  "requiredTool": "crowbar",
+  "textures": {
+    "all": "rusty_metal.png"
+  },
+  "mining_logic": {
+    "strategy": "weak_spots"
+  },
+  "drops": [
+    {
+      "item": "minecraft:scrap_metal",
+      "chance": 0.25,
+      "tool": "crowbar",
+      "drop_on_hit": true
+    },
+    {
+      "item": "minecraft:copper_wire",
+      "chance": 0.10,
+      "tool": "none",
+      "drop_on_hit": true
+    }
+  ]
+}

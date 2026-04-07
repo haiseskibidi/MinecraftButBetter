@@ -651,7 +651,8 @@ public class DataLoader {
                     String tool = dropObj.has("tool") ? dropObj.get("tool").getAsString() : "none";
                     String item = dropObj.get("item").getAsString();
                     float chance = dropObj.has("chance") ? dropObj.get("chance").getAsFloat() : 1.0f;
-                    def.addDropRule(new com.za.minecraft.world.blocks.DropRule(tool, item, chance));
+                    boolean dropOnHit = dropObj.has("drop_on_hit") && dropObj.get("drop_on_hit").getAsBoolean();
+                    def.addDropRule(new com.za.minecraft.world.blocks.DropRule(tool, item, chance, dropOnHit));
                 }
             }
 

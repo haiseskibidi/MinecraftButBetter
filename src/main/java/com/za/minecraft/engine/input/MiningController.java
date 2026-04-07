@@ -127,6 +127,27 @@ public class MiningController {
                         // Перегенерируем на ТОЙ ЖЕ грани, используя честную нормаль
                         currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), currentNormal); 
                         com.za.minecraft.utils.Logger.info("Weak spot HIT!");
+                        
+                        String currentToolStr = "none";
+                        if (currentItem != null && currentItem.isTool()) {
+                            com.za.minecraft.world.items.component.ToolComponent toolComp = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
+                            if (toolComp != null) currentToolStr = toolComp.type().name().toLowerCase();
+                        }
+                        
+                        for (com.za.minecraft.world.blocks.DropRule rule : blockDef.getDropRules()) {
+                            if (rule.dropOnHit() && (rule.requiredToolType().equalsIgnoreCase("none") || rule.requiredToolType().equalsIgnoreCase(currentToolStr))) {
+                                if (Math.random() <= rule.chance()) {
+                                    Item dropItem = com.za.minecraft.world.items.ItemRegistry.getItem(com.za.minecraft.utils.Identifier.of(rule.dropItemIdentifier()));
+                                    if (dropItem != null) {
+                                        Vector3f spawnPos = new Vector3f(hitPos.x() + 0.5f + normal.x * 0.5f, hitPos.y() + 0.5f + normal.y * 0.5f, hitPos.z() + 0.5f + normal.z * 0.5f);
+                                        com.za.minecraft.entities.ItemEntity dropEntity = new com.za.minecraft.entities.ItemEntity(spawnPos, new ItemStack(dropItem, 1));
+                                        dropEntity.getVelocity().set(normal.x * 2.0f, Math.max(1.0f, normal.y * 2.0f), normal.z * 2.0f);
+                                        world.spawnEntity(dropEntity);
+                                        com.za.minecraft.utils.Logger.info("Progressive drop spawned: " + rule.dropItemIdentifier());
+                                    }
+                                }
+                            }
+                        }
                     } else {
                         blockAccumulatedDamage += miningDamage * mSettings.missMultiplier();
                     }

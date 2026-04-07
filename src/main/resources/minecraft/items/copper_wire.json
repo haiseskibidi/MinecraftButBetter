@@ -1,0 +1,7 @@
+{
+  "id": 106,
+  "identifier": "minecraft:copper_wire",
+  "translationKey": "item.minecraft.copper_wire",
+  "texture": "minecraft/textures/item/copper_wire.png",
+  "type": "default"
+}
