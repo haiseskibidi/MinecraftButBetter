@@ -51,6 +51,9 @@
   - Действия загружаются из JSON-файлов (например, ходьба, бег, лазание, паркур, майнинг).
   - Интеграция с `ParkourHandler` для истощения стамины при висении и лазании (со срывом и отталкиванием при 0).
   - Динамическая отрисовка Stamina Bar поверх хотбара, когда стамина расходуется.
+- **Modular UI Renderer (Refactoring)**:
+  - Громоздкий `UIRenderer` (~800 строк) разделен на 5 специализированных суб-рендереров: `UIPrimitives`, `SlotRenderer`, `HUDRenderer`, `InventoryScreenRenderer` и `MenuRenderer`.
+  - Улучшена архитектура и тестируемость UI-кода, `UIRenderer` теперь работает как Facade.
 - **Texture Array Graphics Engine (v4.0)**: Полное устранение мерцания текстур через переход на `GL_TEXTURE_2D_ARRAY`.
 
 ## В работе
