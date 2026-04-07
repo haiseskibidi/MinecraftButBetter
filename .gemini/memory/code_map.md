@@ -30,8 +30,8 @@
 Функции: Добавлены методы `isScene()` (для изоляции), `handleMouseMove()` и `handleMouseRelease()` (для интерактивности).
 
 ### com.za.minecraft.engine.graphics.ui.UIRenderer (UPDATED)
-Назначение: Основной рендерер интерфейса.
-Функции: Метод `renderDeveloperPanel` сделан публичным для использования в редакторе.
+Назначение: Модульный рендерер интерфейса (Facade).
+Функции: Является точкой входа для рендеринга всего UI, но делегирует работу специализированным суб-рендерерам: `UIPrimitives` (базовые формы), `SlotRenderer` (предметы/слоты), `HUDRenderer` (игровой оверлей, стамина, голод), `InventoryScreenRenderer` (инвентарь и dev-панель) и `MenuRenderer`.
 
 ## World & Items (UPDATED)
 ### com.za.minecraft.world.actions (NEW)
