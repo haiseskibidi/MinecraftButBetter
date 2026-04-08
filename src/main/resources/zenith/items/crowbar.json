@@ -1,0 +1,14 @@
+{
+  "id": 413,
+  "identifier": "zenith:crowbar",
+  "translationKey": "item.minecraft.crowbar",
+  "texture": "minecraft/textures/block/lever.png",
+  "maxStackSize": 1,
+  "components": {
+    "zenith:tool": {
+      "type": "crowbar",
+      "efficiency": 3.0,
+      "durability": 200
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "identifier": "zenith:ruined_house_1",
+  "palette": {
+    "B": "zenith:bricks",
+    "C": "zenith:gray_concrete",
+    "G": "zenith:glass",
+    "M": "zenith:rusty_metal",
+    "F": "zenith:cobblestone",
+    "W": "zenith:oak_log",
+    "K": "zenith:bookshelf",
+    "L": "zenith:oak_leaves",
+    " ": "-1",
+    ".": "zenith:air"
+  },
+  "layers": [
+    [
+      "BBBBBBB",
+      "BFFFFFB",
+      "BF.K.FB",
+      "BF.W.FB",
+      "BFFFFFB",
+      "BBB BBB"
+    ],
+    [
+      "BBGBGBB",
+      "BL....B",
+      "G..K..B",
+      "B..W..B",
+      "BL....B",
+      "BBB BBB" 
+    ],
+    [
+      "BBBBBBB",
+      "B.....B",
+      "B.....B",
+      "BBMBBBB",
+      "B.....B",
+      "BBBBBBB"
+    ],
+    [
+      "BB   BB",
+      "B     B",
+      "       ",
+      "B     B",
+      "B     B",
+      " BBB   "
+    ]
+  ]
+}

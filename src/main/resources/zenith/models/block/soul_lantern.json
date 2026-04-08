@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_lantern",
+  "textures": {
+    "lantern": "zenith:block/soul_lantern"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_fire_up",
+  "textures": {
+    "fire": "zenith:block/fire_0"
+  }
+}

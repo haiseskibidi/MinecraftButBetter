@@ -1,0 +1,9 @@
+{
+  "parent": "zenith:block/cube_bottom_top",
+  "textures": {
+    "bottom": "zenith:block/dirt",
+    "particle": "zenith:block/dirt",
+    "side": "zenith:block/grass_block_snow",
+    "top": "zenith:block/grass_block_top"
+  }
+}

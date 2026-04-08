@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:item/template_shulker_box",
+  "textures": {
+    "particle": "zenith:block/pink_shulker_box"
+  }
+}

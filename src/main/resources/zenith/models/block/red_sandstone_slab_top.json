@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/slab_top",
+  "textures": {
+    "bottom": "zenith:block/red_sandstone_bottom",
+    "side": "zenith:block/red_sandstone",
+    "top": "zenith:block/red_sandstone_top"
+  }
+}

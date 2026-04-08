@@ -1,0 +1,14 @@
+{
+  "id": 123,
+  "identifier": "zenith:clay",
+  "translationKey": "block.minecraft.clay",
+  "solid": true,
+  "transparent": false,
+  "hardness": 0.6,
+  "soilingAmount": 0.2,
+  "requiredTool": "shovel",
+  "dropItem": "zenith:clay_ball",
+  "textures": {
+    "all": "clay.png"
+  }
+}

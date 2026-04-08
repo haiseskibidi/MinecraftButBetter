@@ -1,0 +1,28 @@
+{
+  "variants": {
+    "age=0": {
+      "model": "zenith:block/carrots_stage0"
+    },
+    "age=1": {
+      "model": "zenith:block/carrots_stage0"
+    },
+    "age=2": {
+      "model": "zenith:block/carrots_stage1"
+    },
+    "age=3": {
+      "model": "zenith:block/carrots_stage1"
+    },
+    "age=4": {
+      "model": "zenith:block/carrots_stage2"
+    },
+    "age=5": {
+      "model": "zenith:block/carrots_stage2"
+    },
+    "age=6": {
+      "model": "zenith:block/carrots_stage2"
+    },
+    "age=7": {
+      "model": "zenith:block/carrots_stage3"
+    }
+  }
+}

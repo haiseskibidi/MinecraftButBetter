@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/orientable_vertical",
+  "textures": {
+    "front": "zenith:block/dropper_front_vertical",
+    "side": "zenith:block/furnace_top"
+  }
+}

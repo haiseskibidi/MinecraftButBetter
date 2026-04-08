@@ -1,0 +1,15 @@
+{
+  "identifier": "zenith:fire_starter",
+  "type": "in_world_crafting",
+  "tool": "zenith:hand",
+  "hits": 5,
+  "ingredients": [
+    "zenith:stick",
+    "zenith:string",
+    "zenith:sharpened_stick"
+  ],
+  "result": {
+    "item": "zenith:fire_starter",
+    "count": 1
+  }
+}

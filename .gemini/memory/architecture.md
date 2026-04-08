@@ -1,4 +1,4 @@
- # Архитектура проекта "MinecraftButBetter"
+ # Архитектура проекта "Zenith"
 
 ### UI & Interaction Systems
 1.  **Animation Studio (v2.1 Stable)**:
@@ -107,7 +107,7 @@
 
 ### Player Systems (v1.0 NEW)
 1.  **Data-Driven Action System**:
-    *   **Centralized Logic**: Все физические затраты (стамина, голод) и побочные эффекты (шум) вынесены из Java-кода в JSON (`resources/minecraft/actions/`).
+    *   **Centralized Logic**: Все физические затраты (стамина, голод) и побочные эффекты (шум) вынесены из Java-кода в JSON (`resources/zenith/actions/`).
     *   **Action Definitions**: `ActionDefinition` описывает стоимость действия за секунду или за использование. 
     *   **Continuous vs Discrete**: Система поддерживает как длительные действия (бег, лазание), так и мгновенные (прыжок, удар).
 2.  **Stamina Integration**: Стамина расходуется при выполнении паркур-действий (`HANGING`, `CLIMBING`). При достижении нулевой отметки игрок автоматически срывается с уступа.
@@ -161,7 +161,7 @@
 ### 4. Rendering & Tinting (NEW)
 - **Universal Tinting**: Механика наложения биомного тинта на блоки (трава, листва).
 - **Implementation**:
-    - `BlockDefinition` содержит флаг `tinted` (загружается через тег `minecraft:tinted`).
+    - `BlockDefinition` содержит флаг `tinted` (загружается через тег `zenith:tinted`).
     - `ChunkMeshGenerator` передает отрицательный ID (`-(id + 1)`) для тонируемых блоков.
     - `fragment.glsl` декодирует ID и применяет цвет тинта, если значение отрицательное.
     - Это избавляет от передачи дополнительных атрибутов в VBO или использования множества юниформ.
@@ -202,7 +202,7 @@
 - **ChestScreen**: Пример универсального окна для контейнеров 9xN.
 
 ### 3. Data-Driven Layout System (UPDATED)
-- **GUIConfig**: POJO-класс для маппинга JSON-конфигураций (`minecraft/gui/*.json`).
+- **GUIConfig**: POJO-класс для маппинга JSON-конфигураций (`zenith/gui/*.json`).
 - **InventoryLayout**: Двухпроходный двигатель верстки. 
 - **Layout Features**:
   - **Ghost Icons (Placeholders)**: привязка текстур к пустым слотам через JSON (`placeholders: { index: "texture_name" }`).
@@ -297,15 +297,15 @@
 
 
 ## Модульная структура
-- **com.za.minecraft.engine**: Ядро движка (core, graphics, input).
-- **com.za.minecraft.world**: Система мира.
+- **com.za.zenith.engine**: Ядро движка (core, graphics, input).
+- **com.za.zenith.world**: Система мира.
   - **blocks**: Определения блоков и их текстур.
   - **items (NEW)**: Система предметов. `Item` - базовый класс с поддержкой Data Components, `ItemStack` - контейнер для инвентаря. `ItemRegistry` связывает блоки и предметы.
   - **chunks**: Управление чанками.
   - **generation**: Генерация ландшафта.
   - **physics**: Коллизии и Raycast.
-- **com.za.minecraft.entities**: Сущности. `Inventory` теперь оперирует `ItemStack`.
-- **com.za.minecraft.network**: Сетевой код на Kryonet.
+- **com.za.zenith.entities**: Сущности. `Inventory` теперь оперирует `ItemStack`.
+- **com.za.zenith.network**: Сетевой код на Kryonet.
 
 ## Механика предметов и инструментов
 Система спроектирована для максимальной расширяемости:
@@ -313,7 +313,7 @@
 2. **Типизация**: Блоки автоматически мапятся в `BlockItem` через `ItemRegistry.BLOCK_ITEMS`. Прочие предметы используют базовый `Item` с подключенными компонентами (`FoodComponent`, `ToolComponent`).
 3. **Рендеринг**: `UIRenderer` использует `item.isBlock()` для выбора стратегии отрисовки:
    - **Блоки**: Отрисовываются из общего `DynamicTextureAtlas`.
-   - **Предметы**: Отрисовываются из индивидуальных текстур (папка `minecraft/textures/item/`).
+   - **Предметы**: Отрисовываются из индивидуальных текстур (папка `zenith/textures/item/`).
 4. **Кэширование**: Для повышения производительности `UIRenderer` кэширует загруженные текстуры предметов в `Map<Byte, Texture> itemTextures`.
 5. **Добыча**: Скорость разрушения блока рассчитывается как `ToolEfficiency / BlockHardness`.
 6. **Прочность**: `ItemStack` хранит текущую прочность. Инструмент удаляется из инвентаря при достижении нулевого значения прочности.
@@ -341,7 +341,7 @@
 
 ## Стандарты и Утилиты (NEW)
 1. **Поиск соседей (Neighbor Searching)**:
-   - Единый стандарт для всех систем (рендеринг, кабели, ИИ) — использование `com.za.minecraft.utils.Direction`.
+   - Единый стандарт для всех систем (рендеринг, кабели, ИИ) — использование `com.za.zenith.utils.Direction`.
    - ЗАПРЕЩЕНО хардкодить массивы смещений типа `int[][] offsets`.
    - Использование: `for (Direction dir : Direction.values()) { Block neighbor = world.getBlock(pos.offset(dir)); }`.
    - Это обеспечивает консистентность логики соединения блоков и упрощает поддержку.
@@ -362,7 +362,7 @@
 Архитектура новых механик строится на строгой модульности и **Data-Driven** подходе. 
 
 ### Принципы расширения
-1. **Конфигурация через JSON**: Любые статические данные (рецепты, прочность, выход энергии) должны храниться в папке `src/main/resources/minecraft/`.
+1. **Конфигурация через JSON**: Любые статические данные (рецепты, прочность, выход энергии) должны храниться в папке `src/main/resources/zenith/`.
 2. **Универсальные загрузчики**: Классы вроде `RecipeLoader` отвечают за парсинг ресурсов и их регистрацию в соответствующих реестрах.
 3. **Отсутствие хардкода**: Java-код содержит только логику обработки данных, но не сами данные.
 

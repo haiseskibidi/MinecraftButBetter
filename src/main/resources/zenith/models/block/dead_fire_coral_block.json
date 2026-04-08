@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/cube_all",
+  "textures": {
+    "all": "zenith:block/dead_fire_coral_block"
+  }
+}

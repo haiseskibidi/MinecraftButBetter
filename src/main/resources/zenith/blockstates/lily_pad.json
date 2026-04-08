@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "zenith:block/lily_pad"
+      },
+      {
+        "model": "zenith:block/lily_pad",
+        "y": 90
+      },
+      {
+        "model": "zenith:block/lily_pad",
+        "y": 180
+      },
+      {
+        "model": "zenith:block/lily_pad",
+        "y": 270
+      }
+    ]
+  }
+}

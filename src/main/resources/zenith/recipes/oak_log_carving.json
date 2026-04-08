@@ -1,0 +1,8 @@
+{
+  "identifier": "zenith:oak_log_carving",
+  "type": "carving",
+  "input": "zenith:oak_log",
+  "tool": "zenith:stone_knife",
+  "intermediate": "zenith:unfinished_stump",
+  "result": "zenith:stump"
+}

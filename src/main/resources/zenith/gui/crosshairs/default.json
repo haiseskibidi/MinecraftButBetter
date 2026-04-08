@@ -1,0 +1,15 @@
+{
+  "identifier": "zenith:default",
+  "size": 5,
+  "color": [1.0, 1.0, 1.0, 0.8],
+  "scale": 1.0,
+  "bounceScale": 0.15,
+  "bounceDuration": 0.15,
+  "matrix": [
+    "00100",
+    "00100",
+    "11111",
+    "00100",
+    "00100"
+  ]
+}

@@ -4,7 +4,7 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '8.1.1'
 }
 
-group = 'com.za.minecraft'
+group = 'com.za.zenith'
 version = '1.0-SNAPSHOT'
 
 java {
@@ -45,7 +45,7 @@ dependencies {
 }
 
 application {
-    mainClass = 'com.za.minecraft.Application'
+    mainClass = 'com.za.zenith.Application'
 }
 
 test {

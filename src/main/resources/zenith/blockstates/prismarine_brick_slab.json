@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/prismarine_brick_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/prismarine_bricks"
+    },
+    "type=top": {
+      "model": "zenith:block/prismarine_brick_slab_top"
+    }
+  }
+}

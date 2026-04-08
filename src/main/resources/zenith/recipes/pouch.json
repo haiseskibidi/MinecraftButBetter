@@ -1,0 +1,16 @@
+{
+  "identifier": "zenith:pouch",
+  "type": "in_world_crafting",
+  "tool": "zenith:sharpened_stick",
+  "hits": 5,
+  "ingredients": [
+    "zenith:string",
+    "zenith:string",
+    "zenith:string",
+    "zenith:string"
+  ],
+  "result": {
+    "item": "zenith:pouch",
+    "count": 1
+  }
+}

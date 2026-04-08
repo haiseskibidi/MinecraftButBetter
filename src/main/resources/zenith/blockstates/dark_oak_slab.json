@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/dark_oak_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/dark_oak_planks"
+    },
+    "type=top": {
+      "model": "zenith:block/dark_oak_slab_top"
+    }
+  }
+}

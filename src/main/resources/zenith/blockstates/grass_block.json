@@ -1,0 +1,24 @@
+{
+  "variants": {
+    "snowy=false": [
+      {
+        "model": "zenith:block/grass_block"
+      },
+      {
+        "model": "zenith:block/grass_block",
+        "y": 90
+      },
+      {
+        "model": "zenith:block/grass_block",
+        "y": 180
+      },
+      {
+        "model": "zenith:block/grass_block",
+        "y": 270
+      }
+    ],
+    "snowy=true": {
+      "model": "zenith:block/grass_block_snow"
+    }
+  }
+}

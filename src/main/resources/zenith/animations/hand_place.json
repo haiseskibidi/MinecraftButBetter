@@ -1,0 +1,36 @@
+{
+  "looping": false,
+  "duration": 1.0,
+  "tracks": {
+    "item_x": [
+      [0.0, 0.0, "linear"],
+      [0.2, 2.0, "quad_out"],
+      [1.0, 0.0, "smootherstep"]
+    ],
+    "item_y": [
+      [0.0, 0.0, "linear"],
+      [0.2, -4.0, "quad_out"],
+      [1.0, 0.0, "smootherstep"]
+    ],
+    "item_z": [
+      [0.0, 0.0, "linear"],
+      [0.2, -5.0, "quad_out"],
+      [1.0, 0.0, "smootherstep"]
+    ],
+    "item_pitch": [
+      [0.0, 0.0, "linear"],
+      [0.2, 20.0, "quad_out"],
+      [1.0, 0.0, "smootherstep"]
+    ],
+    "shoulder_r:pitch": [
+      [0.0, 0.0, "linear"],
+      [0.2, 15.0, "quad_out"],
+      [1.0, 0.0, "smootherstep"]
+    ],
+    "camera_tilt": [
+      [0.0, 0.0, "linear"],
+      [0.2, -0.003, "quad_out"],
+      [1.0, 0.0, "linear"]
+    ]
+  }
+}

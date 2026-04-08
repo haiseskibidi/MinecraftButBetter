@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/inner_stairs",
+  "textures": {
+    "bottom": "zenith:block/mossy_cobblestone",
+    "side": "zenith:block/mossy_cobblestone",
+    "top": "zenith:block/mossy_cobblestone"
+  }
+}

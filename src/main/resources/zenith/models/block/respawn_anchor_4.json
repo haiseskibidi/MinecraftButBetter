@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/cube_bottom_top",
+  "textures": {
+    "bottom": "zenith:block/respawn_anchor_bottom",
+    "side": "zenith:block/respawn_anchor_side4",
+    "top": "zenith:block/respawn_anchor_top"
+  }
+}

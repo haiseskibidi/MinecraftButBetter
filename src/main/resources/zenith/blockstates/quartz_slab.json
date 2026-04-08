@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/quartz_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/quartz_block"
+    },
+    "type=top": {
+      "model": "zenith:block/quartz_slab_top"
+    }
+  }
+}

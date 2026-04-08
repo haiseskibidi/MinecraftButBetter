@@ -1,0 +1,10 @@
+{
+  "id": 411,
+  "identifier": "zenith:stone_knife",
+  "translationKey": "item.minecraft.stone_knife",
+  "texture": "minecraft/textures/item/flint.png",
+  "type": "tool",
+  "toolType": "knife",
+  "efficiency": 1.5,
+  "durability": 50
+}

@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "zenith:block/bedrock"
+      },
+      {
+        "model": "zenith:block/bedrock_mirrored"
+      },
+      {
+        "model": "zenith:block/bedrock",
+        "y": 180
+      },
+      {
+        "model": "zenith:block/bedrock_mirrored",
+        "y": 180
+      }
+    ]
+  }
+}

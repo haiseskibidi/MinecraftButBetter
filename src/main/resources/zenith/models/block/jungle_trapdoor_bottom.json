@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_orientable_trapdoor_bottom",
+  "textures": {
+    "texture": "zenith:block/jungle_trapdoor"
+  }
+}

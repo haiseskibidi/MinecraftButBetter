@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "lit=false": {
+      "model": "zenith:block/pink_candle_cake"
+    },
+    "lit=true": {
+      "model": "zenith:block/pink_candle_cake_lit"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/button",
+  "textures": {
+    "texture": "zenith:block/spruce_planks"
+  }
+}

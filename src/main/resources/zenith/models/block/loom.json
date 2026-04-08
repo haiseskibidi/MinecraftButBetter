@@ -1,0 +1,9 @@
+{
+  "parent": "zenith:block/orientable_with_bottom",
+  "textures": {
+    "bottom": "zenith:block/loom_bottom",
+    "front": "zenith:block/loom_front",
+    "side": "zenith:block/loom_side",
+    "top": "zenith:block/loom_top"
+  }
+}

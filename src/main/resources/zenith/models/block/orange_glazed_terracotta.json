@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_glazed_terracotta",
+  "textures": {
+    "pattern": "zenith:block/orange_glazed_terracotta"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "zenith:block/purpur_pillar_horizontal",
+      "x": 90,
+      "y": 90
+    },
+    "axis=y": {
+      "model": "zenith:block/purpur_pillar"
+    },
+    "axis=z": {
+      "model": "zenith:block/purpur_pillar_horizontal",
+      "x": 90
+    }
+  }
+}

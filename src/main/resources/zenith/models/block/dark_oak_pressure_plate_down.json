@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/pressure_plate_down",
+  "textures": {
+    "texture": "zenith:block/dark_oak_planks"
+  }
+}

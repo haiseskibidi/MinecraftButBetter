@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "hanging=false": {
+      "model": "zenith:block/lantern"
+    },
+    "hanging=true": {
+      "model": "zenith:block/lantern_hanging"
+    }
+  }
+}

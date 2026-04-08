@@ -1,0 +1,8 @@
+{
+  "id": 900,
+  "identifier": "zenith:hand",
+  "translationKey": "item.minecraft.hand",
+  "texture": "zenith:textures/item/hand.png",
+  "miningSpeed": 0.08,
+  "maxStackSize": 1
+}

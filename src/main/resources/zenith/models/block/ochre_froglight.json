@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/cube_column",
+  "textures": {
+    "end": "zenith:block/ochre_froglight_top",
+    "side": "zenith:block/ochre_froglight_side"
+  }
+}

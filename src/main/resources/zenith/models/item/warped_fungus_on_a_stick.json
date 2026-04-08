@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:item/handheld_rod",
+  "textures": {
+    "layer0": "zenith:item/warped_fungus_on_a_stick"
+  }
+}

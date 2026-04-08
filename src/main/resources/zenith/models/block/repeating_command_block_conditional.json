@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/template_command_block",
+  "textures": {
+    "back": "zenith:block/repeating_command_block_back",
+    "front": "zenith:block/repeating_command_block_front",
+    "side": "zenith:block/repeating_command_block_conditional"
+  }
+}

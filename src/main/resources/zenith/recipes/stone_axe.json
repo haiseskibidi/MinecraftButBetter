@@ -1,0 +1,13 @@
+{
+  "identifier": "zenith:stone_axe",
+  "type": "in_world_crafting",
+  "tool": "zenith:axe_head",
+  "hits": 3,
+  "ingredients": [
+    "zenith:stick"
+  ],
+  "result": {
+    "item": "zenith:stone_axe",
+    "count": 1
+  }
+}

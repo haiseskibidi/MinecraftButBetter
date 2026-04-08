@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/crop",
+  "textures": {
+    "crop": "zenith:block/carrots_stage1"
+  }
+}

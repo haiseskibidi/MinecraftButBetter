@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/cube_column",
+  "textures": {
+    "end": "zenith:block/oak_planks",
+    "side": "zenith:block/bookshelf"
+  }
+}

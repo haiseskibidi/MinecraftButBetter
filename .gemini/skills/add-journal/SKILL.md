@@ -10,16 +10,16 @@ description: Навык для добавления записи в Дневни
 ## Алгоритм действий
 
 ### 1. Создание контента
-- Создать JSON файл в `src/main/resources/minecraft/journal/entries/<id>.json`.
+- Создать JSON файл в `src/main/resources/zenith/journal/entries/<id>.json`.
 - Формат JSON должен строго следовать схеме: `id`, `title` (ключ локализации), `icon` (Identifier), `elements` (массив блоков контента).
 - Типы элементов: `text`, `header`, `tip`, `image`, `recipe`, `item_row`, `spacer`.
 
 ### 2. Регистрация (Индексация)
-- **Файловый индекс**: Добавить строку `<id>.json` в конец файла `src/main/resources/minecraft/journal/entries/.index`.
-- **Категория**: Найти файл категории в `src/main/resources/minecraft/journal/categories/` и добавить `"minecraft:<id>"` в массив `entries`.
+- **Файловый индекс**: Добавить строку `<id>.json` в конец файла `src/main/resources/zenith/journal/entries/.index`.
+- **Категория**: Найти файл категории в `src/main/resources/zenith/journal/categories/` и добавить `"zenith:<id>"` в массив `entries`.
 
 ### 3. Локализация
-- Добавить ключ `"journal.entry.<id>.title"` в `src/main/resources/minecraft/lang/ru_ru.json`.
+- Добавить ключ `"journal.entry.<id>.title"` в `src/main/resources/zenith/lang/ru_ru.json`.
 - Добавить все текстовые ключи, используемые в элементах `text`, `header` и `tip`.
 
 ### 4. Валидация
@@ -29,12 +29,12 @@ description: Навык для добавления записи в Дневни
 ## Пример JSON статьи
 ```json
 {
-  "id": "minecraft:example",
+  "id": "zenith:example",
   "title": "journal.entry.example.title",
-  "icon": "minecraft:stick",
+  "icon": "zenith:stick",
   "elements": [
     { "type": "text", "value": "journal.entry.example.desc" },
-    { "type": "recipe", "value": "minecraft:stick" }
+    { "type": "recipe", "value": "zenith:stick" }
   ]
 }
 ```

@@ -1,0 +1,93 @@
+{
+  "id": "zenith:player_inventory",
+  "title": "container.inventory",
+  "background": {
+    "type": "solid",
+    "color": [0.05, 0.05, 0.05, 0.8],
+    "padding": 8,
+    "includeGroups": ["equipment", "pockets", "pouch"]
+  },
+  "groups": [
+    {
+      "id": "equipment",
+      "type": "vertical",
+      "inventorySource": "player",
+      "startIndex": 17,
+      "slotsCount": 6,
+      "relativeTo": "pockets",
+      "relativeAlign": "left",
+      "relativeAlignY": "bottom",
+      "snapToGrid": true,
+      "y": "-5%",
+      "rows": 4,
+      "spacing": 4,
+      "quickMoveTo": ["pockets", "hotbar"],
+      "placeholders": {
+        "0": "empty_armor_slot_helmet",
+        "1": "empty_armor_slot_chestplate",
+        "2": "empty_armor_slot_leggings",
+        "3": "empty_armor_slot_boots",
+        "5": "bundle"
+      }
+    },
+    {
+      "id": "pockets",
+      "type": "grid",
+      "inventorySource": "player",
+      "startIndex": 9,
+      "slotsCount": 8,
+      "relativeTo": "hotbar",
+      "relativeAlign": "top",
+      "relativeAlignX": "center",
+      "fixedOffsetX": 0,
+      "fixedOffsetY": "-1s",
+      "centerCombined": true,
+      "cols": 4,
+      "rows": 2,
+      "spacing": 4,
+      "quickMoveTo": ["equipment", "hotbar"]
+    },
+    {
+      "id": "pouch",
+      "type": "grid",
+      "inventorySource": "player",
+      "relativeTo": "pockets",
+      "relativeAlign": "right",
+      "relativeAlignY": "bottom",
+      "snapToGrid": true,
+      "y": "-5%",
+      "cols": 2,
+      "rows": 4,
+      "spacing": 4,
+      "condition": "has_pouch",
+      "quickMoveTo": ["pockets", "hotbar"]
+    },
+    {
+      "id": "hotbar",
+      "type": "horizontal",
+      "inventorySource": "player",
+      "startIndex": 0,
+      "slotsCount": 9,
+      "anchor": "center",
+      "x": "0%",
+      "y": "15%",
+      "cols": 9,
+      "spacing": 4,
+      "quickMoveTo": ["equipment", "pockets"]
+    },
+    {
+      "id": "developer_panel",
+      "type": "grid",
+      "inventorySource": "player",
+      "anchor": "top-right",
+      "alignX": "right",
+      "alignY": "top",
+      "x": "-10px",
+      "y": "10px",
+      "cols": 7,
+      "rows": 12,
+      "spacing": 4,
+      "condition": "developer_mode"
+    }
+  ]
+}

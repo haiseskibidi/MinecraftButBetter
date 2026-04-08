@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "bottom=false": {
+      "model": "zenith:block/scaffolding_stable"
+    },
+    "bottom=true": {
+      "model": "zenith:block/scaffolding_unstable"
+    }
+  }
+}

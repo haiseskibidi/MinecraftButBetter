@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "half=lower": {
+      "model": "zenith:block/tall_grass_bottom"
+    },
+    "half=upper": {
+      "model": "zenith:block/tall_grass_top"
+    }
+  }
+}

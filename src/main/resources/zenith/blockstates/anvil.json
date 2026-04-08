@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "zenith:block/anvil",
+      "y": 270
+    },
+    "facing=north": {
+      "model": "zenith:block/anvil",
+      "y": 180
+    },
+    "facing=south": {
+      "model": "zenith:block/anvil"
+    },
+    "facing=west": {
+      "model": "zenith:block/anvil",
+      "y": 90
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "parent": "zenith:block/cube",
+  "textures": {
+    "down": "zenith:block/smithing_table_bottom",
+    "east": "zenith:block/smithing_table_side",
+    "north": "zenith:block/smithing_table_front",
+    "particle": "zenith:block/smithing_table_front",
+    "south": "zenith:block/smithing_table_front",
+    "up": "zenith:block/smithing_table_top",
+    "west": "zenith:block/smithing_table_side"
+  }
+}

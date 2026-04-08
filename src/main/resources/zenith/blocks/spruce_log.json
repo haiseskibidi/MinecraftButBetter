@@ -1,0 +1,28 @@
+{
+    "id": 161,
+    "identifier": "zenith:spruce_log",
+    "translationKey": "block.minecraft.spruce_log",
+    "solid": true,
+    "transparent": false,
+    "type": "log",
+    "breaking_pattern": "wood",
+    "hardness": 2.0,
+    "textures": {
+        "top": "spruce_log_top.png",
+        "bottom": "spruce_log_top.png",
+        "side": "spruce_log.png"
+    },
+    "requiredTool": "axe",
+    "placement": "log",
+    "next_stage": "zenith:felling_stage_1",
+    "fellingStages": 5,
+    "tags": [
+        "treecapitator",
+        "zenith:logs"
+    ],
+    "mining_logic": {
+        "strategy": "weak_spots",
+        "precision": 0.2,
+        "miss_multiplier": 0.3
+    }
+}

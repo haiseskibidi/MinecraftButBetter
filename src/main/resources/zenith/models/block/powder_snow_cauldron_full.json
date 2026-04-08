@@ -1,0 +1,11 @@
+{
+  "parent": "zenith:block/template_cauldron_full",
+  "textures": {
+    "bottom": "zenith:block/cauldron_bottom",
+    "content": "zenith:block/powder_snow",
+    "inside": "zenith:block/cauldron_inner",
+    "particle": "zenith:block/cauldron_side",
+    "side": "zenith:block/cauldron_side",
+    "top": "zenith:block/cauldron_top"
+  }
+}

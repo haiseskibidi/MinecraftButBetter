@@ -1,9 +1,0 @@
-﻿{
-    "id":  421,
-    "identifier":  "minecraft:canned_food",
-    "translationKey":  "item.minecraft.canned_food",
-    "texture":  "minecraft/textures/item/mushroom_stew.png",
-    "type":  "food",
-    "nutrition":  4.0,
-    "saturation":  8.0
-}

@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/tinted_cross",
+  "textures": {
+    "cross": "zenith:block/kelp_plant"
+  }
+}

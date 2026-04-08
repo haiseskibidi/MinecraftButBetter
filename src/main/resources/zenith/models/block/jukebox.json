@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/cube_top",
+  "textures": {
+    "side": "zenith:block/jukebox_side",
+    "top": "zenith:block/jukebox_top"
+  }
+}

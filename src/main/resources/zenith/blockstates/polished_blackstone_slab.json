@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/polished_blackstone_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/polished_blackstone"
+    },
+    "type=top": {
+      "model": "zenith:block/polished_blackstone_slab_top"
+    }
+  }
+}

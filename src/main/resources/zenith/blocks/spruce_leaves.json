@@ -1,0 +1,13 @@
+{
+    "id": 171,
+    "identifier": "zenith:spruce_leaves",
+    "translationKey": "block.minecraft.spruce_leaves",
+    "solid": true,
+    "transparent": true,
+    "hardness": 0.2,
+    "textures": {
+        "all": "spruce_leaves.png"
+    },
+    "requiredTool": "knife",
+    "tags": ["treecapitator", "zenith:tinted"]
+}

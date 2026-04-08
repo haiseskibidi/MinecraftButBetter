@@ -1,0 +1,11 @@
+{
+    "id":  23,
+    "identifier":  "zenith:gray_concrete",
+    "translationKey":  "block.minecraft.gray_concrete",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  1.8,
+    "textures":  {
+                     "all":  "gray_concrete.png"
+                 }
+}

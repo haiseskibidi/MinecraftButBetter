@@ -1,0 +1,13 @@
+{
+    "id": 170,
+    "identifier": "zenith:birch_leaves",
+    "translationKey": "block.minecraft.birch_leaves",
+    "solid": true,
+    "transparent": true,
+    "hardness": 0.2,
+    "textures": {
+        "all": "birch_leaves.png"
+    },
+    "requiredTool": "knife",
+    "tags": ["treecapitator", "zenith:tinted"]
+}

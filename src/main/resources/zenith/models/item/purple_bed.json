@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:item/template_bed",
+  "textures": {
+    "particle": "zenith:block/purple_wool"
+  }
+}

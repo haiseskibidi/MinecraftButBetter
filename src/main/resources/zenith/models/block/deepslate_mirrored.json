@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/cube_column_mirrored",
+  "textures": {
+    "end": "zenith:block/deepslate_top",
+    "side": "zenith:block/deepslate"
+  }
+}

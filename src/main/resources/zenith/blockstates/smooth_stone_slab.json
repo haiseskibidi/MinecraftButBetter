@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/smooth_stone_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/smooth_stone_slab_double"
+    },
+    "type=top": {
+      "model": "zenith:block/smooth_stone_slab_top"
+    }
+  }
+}

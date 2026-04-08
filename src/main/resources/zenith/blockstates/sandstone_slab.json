@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/sandstone_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/sandstone"
+    },
+    "type=top": {
+      "model": "zenith:block/sandstone_slab_top"
+    }
+  }
+}

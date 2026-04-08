@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/inner_stairs",
+  "textures": {
+    "bottom": "zenith:block/spruce_planks",
+    "side": "zenith:block/spruce_planks",
+    "top": "zenith:block/spruce_planks"
+  }
+}

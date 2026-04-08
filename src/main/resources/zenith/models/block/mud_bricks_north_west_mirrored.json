@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/cube_north_west_mirrored_all",
+  "textures": {
+    "all": "zenith:block/mud_bricks"
+  }
+}

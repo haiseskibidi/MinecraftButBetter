@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/polished_andesite_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/polished_andesite"
+    },
+    "type=top": {
+      "model": "zenith:block/polished_andesite_slab_top"
+    }
+  }
+}

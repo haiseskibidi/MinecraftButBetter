@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "sculk_sensor_phase=active": {
+      "model": "zenith:block/sculk_sensor_active"
+    },
+    "sculk_sensor_phase=cooldown": {
+      "model": "zenith:block/sculk_sensor_inactive"
+    },
+    "sculk_sensor_phase=inactive": {
+      "model": "zenith:block/sculk_sensor_inactive"
+    }
+  }
+}

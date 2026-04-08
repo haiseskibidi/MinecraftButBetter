@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "zenith:block/stonecutter",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "zenith:block/stonecutter"
+    },
+    "facing=south": {
+      "model": "zenith:block/stonecutter",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "zenith:block/stonecutter",
+      "y": 270
+    }
+  }
+}

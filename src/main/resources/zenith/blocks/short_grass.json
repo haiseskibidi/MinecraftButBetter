@@ -1,0 +1,18 @@
+{
+  "id": 124,
+  "identifier": "zenith:short_grass",
+  "translationKey": "block.minecraft.short_grass",
+  "solid": false,
+  "transparent": true,
+  "placement": "CROSS_PLANE",
+  "replaceable": true,
+  "hardness": 0.01,
+  "interaction_cooldown": 0.5,
+  "cleaningAmount": 0.25,
+  "dropItem": "zenith:straw",
+  "dropChance": 0.2,
+  "textures": {
+    "all": "grass.png"
+  },
+  "tags": ["zenith:tinted"]
+}

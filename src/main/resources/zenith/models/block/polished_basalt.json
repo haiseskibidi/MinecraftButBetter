@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/cube_column",
+  "textures": {
+    "end": "zenith:block/polished_basalt_top",
+    "side": "zenith:block/polished_basalt_side"
+  }
+}

@@ -1,0 +1,35 @@
+{
+    "targets": [
+        "swap",
+        "previous"
+    ],
+    "passes": [
+        {
+            "name": "phosphor",
+            "intarget": "zenith:main",
+            "outtarget": "swap",
+            "auxtargets": [
+                {
+                    "name": "PrevSampler",
+                    "id": "previous"
+                }
+            ],
+            "uniforms": [
+                {
+                    "name": "Phosphor",
+                    "values": [ 0.95, 0.95, 0.95 ]
+                }
+            ]
+        },
+        {
+            "name": "blit",
+            "intarget": "swap",
+            "outtarget": "previous"
+        },
+        {
+            "name": "blit",
+            "intarget": "swap",
+            "outtarget": "zenith:main"
+        }
+    ]
+}

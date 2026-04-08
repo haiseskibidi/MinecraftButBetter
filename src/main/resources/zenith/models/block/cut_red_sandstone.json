@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/cube_column",
+  "textures": {
+    "end": "zenith:block/red_sandstone_top",
+    "side": "zenith:block/cut_red_sandstone"
+  }
+}

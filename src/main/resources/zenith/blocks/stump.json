@@ -1,0 +1,16 @@
+{
+  "id": 150,
+  "identifier": "zenith:stump",
+  "translationKey": "block.minecraft.stump",
+  "type": "stump",
+  "breaking_pattern": "default",
+  "solid": true,
+  "transparent": false,
+  "hardness": 2.0,
+  "requiredTool": "axe",
+  "textures": {
+    "top": "stripped_oak_log_top.png",
+    "bottom": "oak_log_top.png",
+    "side": "oak_log.png"
+  }
+}

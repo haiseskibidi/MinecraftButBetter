@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/petrified_oak_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/oak_planks"
+    },
+    "type=top": {
+      "model": "zenith:block/petrified_oak_slab_top"
+    }
+  }
+}

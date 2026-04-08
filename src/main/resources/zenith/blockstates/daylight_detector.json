@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "inverted=false": {
+      "model": "zenith:block/daylight_detector"
+    },
+    "inverted=true": {
+      "model": "zenith:block/daylight_detector_inverted"
+    }
+  }
+}

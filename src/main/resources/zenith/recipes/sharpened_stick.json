@@ -1,0 +1,13 @@
+{
+  "identifier": "zenith:sharpened_stick",
+  "type": "in_world_crafting",
+  "tool": "zenith:rock",
+  "hits": 3,
+  "ingredients": [
+    "zenith:stick"
+  ],
+  "result": {
+    "item": "zenith:sharpened_stick",
+    "count": 1
+  }
+}

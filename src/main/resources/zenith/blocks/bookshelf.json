@@ -1,0 +1,14 @@
+{
+    "id":  14,
+    "identifier":  "zenith:bookshelf",
+    "translationKey":  "block.minecraft.bookshelf",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  1.5,
+    "textures":  {
+                     "top":  "oak_planks.png",
+                     "bottom":  "oak_planks.png",
+                     "side":  "bookshelf.png"
+                 },
+    "requiredTool":  "axe"
+}

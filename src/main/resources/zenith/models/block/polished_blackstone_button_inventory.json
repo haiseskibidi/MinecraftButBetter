@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/button_inventory",
+  "textures": {
+    "texture": "zenith:block/polished_blackstone"
+  }
+}

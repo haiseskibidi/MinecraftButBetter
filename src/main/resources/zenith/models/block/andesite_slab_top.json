@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/slab_top",
+  "textures": {
+    "bottom": "zenith:block/andesite",
+    "side": "zenith:block/andesite",
+    "top": "zenith:block/andesite"
+  }
+}

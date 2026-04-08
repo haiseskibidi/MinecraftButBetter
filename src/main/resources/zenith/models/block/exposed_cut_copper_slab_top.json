@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/slab_top",
+  "textures": {
+    "bottom": "zenith:block/exposed_cut_copper",
+    "side": "zenith:block/exposed_cut_copper",
+    "top": "zenith:block/exposed_cut_copper"
+  }
+}

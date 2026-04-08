@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/cube_column",
+  "textures": {
+    "end": "zenith:block/ancient_debris_top",
+    "side": "zenith:block/ancient_debris_side"
+  }
+}

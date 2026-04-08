@@ -1,0 +1,82 @@
+{
+  "id": "zenith:stump",
+  "title": "journal.entry.stump.title",
+  "icon": "zenith:stump",
+  "elements": [
+    {
+      "type": "text",
+      "value": "journal.entry.stump.desc1"
+    },
+    {
+      "type": "tip",
+      "value": "journal.entry.stump.tip"
+    },
+    {
+      "type": "header",
+      "value": "journal.entry.stump.weaving"
+    },
+    {
+      "type": "recipe",
+      "value": "zenith:string"
+    },
+    {
+      "type": "text",
+      "value": "journal.entry.stump.weaving_desc"
+    },
+    {
+      "type": "header",
+      "value": "journal.entry.stump.sharpened_stick"
+    },
+    {
+      "type": "recipe",
+      "value": "zenith:sharpened_stick"
+    },
+    {
+      "type": "text",
+      "value": "journal.entry.stump.sharpened_stick_desc"
+    },
+    {
+      "type": "header",
+      "value": "journal.entry.stump.stone_axe"
+    },
+    {
+      "type": "recipe",
+      "value": "zenith:stone_axe"
+    },
+    {
+      "type": "text",
+      "value": "journal.entry.stump.stone_axe_desc"
+    },
+    {
+      "type": "header",
+      "value": "journal.entry.stump.pouch"
+    },
+    {
+      "type": "recipe",
+      "value": "zenith:pouch"
+    },
+    {
+      "type": "text",
+      "value": "journal.entry.stump.pouch_desc"
+    },
+    {
+      "type": "header",
+      "value": "journal.entry.fire_starter.crafting"
+    },
+    {
+      "type": "recipe",
+      "value": "zenith:fire_starter"
+    },
+    {
+      "type": "text",
+      "value": "journal.entry.fire_starter.desc2"
+    },
+    {
+      "type": "spacer"
+    },
+    {
+      "type": "text",
+      "value": "journal.entry.stump.note"
+    }
+  ]
+}

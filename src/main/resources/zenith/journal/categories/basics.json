@@ -1,0 +1,11 @@
+{
+  "id": "zenith:basics",
+  "name": "journal.category.basics",
+  "icon": "zenith:stick",
+  "entries": [
+    "zenith:scavenging",
+    "zenith:napping",
+    "zenith:stump",
+    "zenith:pottery"
+  ]
+}

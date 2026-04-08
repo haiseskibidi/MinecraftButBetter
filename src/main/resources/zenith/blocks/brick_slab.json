@@ -1,0 +1,14 @@
+{
+    "id":  27,
+    "identifier":  "zenith:brick_slab",
+    "translationKey":  "block.minecraft.brick_slab",
+    "solid":  true,
+    "transparent":  true,
+    "hardness":  2.0,
+    "type":  "slab",
+    "textures":  {
+                     "all":  "bricks.png"
+                 },
+    "requiredTool":  "axe",
+    "placement":  "slab"
+}

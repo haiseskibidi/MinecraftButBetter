@@ -1,0 +1,14 @@
+{
+  "id": 412,
+  "identifier": "zenith:scrap_pickaxe",
+  "translationKey": "item.minecraft.scrap_pickaxe",
+  "texture": "minecraft/textures/item/wooden_pickaxe.png",
+  "maxStackSize": 1,
+  "components": {
+    "zenith:tool": {
+      "type": "pickaxe",
+      "efficiency": 2.0,
+      "durability": 100
+    }
+  }
+}

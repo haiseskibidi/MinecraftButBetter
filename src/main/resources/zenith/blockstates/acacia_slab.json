@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/acacia_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/acacia_planks"
+    },
+    "type=top": {
+      "model": "zenith:block/acacia_slab_top"
+    }
+  }
+}

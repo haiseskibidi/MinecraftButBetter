@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/stem_fruit",
+  "textures": {
+    "stem": "zenith:block/pumpkin_stem",
+    "upperstem": "zenith:block/attached_pumpkin_stem"
+  }
+}

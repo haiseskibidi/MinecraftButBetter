@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/button_pressed",
+  "textures": {
+    "texture": "zenith:block/acacia_planks"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "variants": {
+    "bites=0": {
+      "model": "zenith:block/cake"
+    },
+    "bites=1": {
+      "model": "zenith:block/cake_slice1"
+    },
+    "bites=2": {
+      "model": "zenith:block/cake_slice2"
+    },
+    "bites=3": {
+      "model": "zenith:block/cake_slice3"
+    },
+    "bites=4": {
+      "model": "zenith:block/cake_slice4"
+    },
+    "bites=5": {
+      "model": "zenith:block/cake_slice5"
+    },
+    "bites=6": {
+      "model": "zenith:block/cake_slice6"
+    }
+  }
+}

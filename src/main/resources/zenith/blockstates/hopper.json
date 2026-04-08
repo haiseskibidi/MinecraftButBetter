@@ -1,0 +1,22 @@
+{
+  "variants": {
+    "facing=down": {
+      "model": "zenith:block/hopper"
+    },
+    "facing=east": {
+      "model": "zenith:block/hopper_side",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "zenith:block/hopper_side"
+    },
+    "facing=south": {
+      "model": "zenith:block/hopper_side",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "zenith:block/hopper_side",
+      "y": 270
+    }
+  }
+}

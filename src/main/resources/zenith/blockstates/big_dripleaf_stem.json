@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "zenith:block/big_dripleaf_stem",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "zenith:block/big_dripleaf_stem"
+    },
+    "facing=south": {
+      "model": "zenith:block/big_dripleaf_stem",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "zenith:block/big_dripleaf_stem",
+      "y": 270
+    }
+  }
+}

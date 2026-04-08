@@ -1,0 +1,15 @@
+{
+    "id": 130,
+    "identifier": "zenith:pit_kiln",
+    "translationKey": "block.minecraft.pit_kiln",
+    "solid": false,
+    "transparent": true,
+    "type": "pit_kiln",
+    "hardness": 0.2,
+    "textures": {
+        "all": "hay_block_side.png"
+    },
+    "shape": [
+        [0.1, 0.0, 0.1, 0.9, 0.8, 0.9]
+    ]
+}

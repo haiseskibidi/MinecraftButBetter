@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "half=lower": {
+      "model": "zenith:block/lilac_bottom"
+    },
+    "half=upper": {
+      "model": "zenith:block/lilac_top"
+    }
+  }
+}

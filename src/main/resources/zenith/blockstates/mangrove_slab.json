@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/mangrove_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/mangrove_planks"
+    },
+    "type=top": {
+      "model": "zenith:block/mangrove_slab_top"
+    }
+  }
+}

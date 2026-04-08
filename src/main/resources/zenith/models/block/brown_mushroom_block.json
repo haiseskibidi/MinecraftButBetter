@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_single_face",
+  "textures": {
+    "texture": "zenith:block/brown_mushroom_block"
+  }
+}

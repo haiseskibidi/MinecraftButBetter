@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "zenith:block/wall_torch"
+    },
+    "facing=north": {
+      "model": "zenith:block/wall_torch",
+      "y": 270
+    },
+    "facing=south": {
+      "model": "zenith:block/wall_torch",
+      "y": 90
+    },
+    "facing=west": {
+      "model": "zenith:block/wall_torch",
+      "y": 180
+    }
+  }
+}

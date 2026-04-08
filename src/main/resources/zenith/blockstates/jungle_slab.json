@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/jungle_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/jungle_planks"
+    },
+    "type=top": {
+      "model": "zenith:block/jungle_slab_top"
+    }
+  }
+}

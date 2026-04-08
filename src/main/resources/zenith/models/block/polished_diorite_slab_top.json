@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/slab_top",
+  "textures": {
+    "bottom": "zenith:block/polished_diorite",
+    "side": "zenith:block/polished_diorite",
+    "top": "zenith:block/polished_diorite"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_fence_gate_open",
+  "textures": {
+    "texture": "zenith:block/dark_oak_planks"
+  }
+}

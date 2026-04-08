@@ -1,0 +1,52 @@
+{
+  "variants": {
+    "level=0": {
+      "model": "zenith:block/light_00"
+    },
+    "level=1": {
+      "model": "zenith:block/light_01"
+    },
+    "level=10": {
+      "model": "zenith:block/light_10"
+    },
+    "level=11": {
+      "model": "zenith:block/light_11"
+    },
+    "level=12": {
+      "model": "zenith:block/light_12"
+    },
+    "level=13": {
+      "model": "zenith:block/light_13"
+    },
+    "level=14": {
+      "model": "zenith:block/light_14"
+    },
+    "level=15": {
+      "model": "zenith:block/light_15"
+    },
+    "level=2": {
+      "model": "zenith:block/light_02"
+    },
+    "level=3": {
+      "model": "zenith:block/light_03"
+    },
+    "level=4": {
+      "model": "zenith:block/light_04"
+    },
+    "level=5": {
+      "model": "zenith:block/light_05"
+    },
+    "level=6": {
+      "model": "zenith:block/light_06"
+    },
+    "level=7": {
+      "model": "zenith:block/light_07"
+    },
+    "level=8": {
+      "model": "zenith:block/light_08"
+    },
+    "level=9": {
+      "model": "zenith:block/light_09"
+    }
+  }
+}

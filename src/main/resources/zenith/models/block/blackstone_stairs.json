@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/stairs",
+  "textures": {
+    "bottom": "zenith:block/blackstone_top",
+    "side": "zenith:block/blackstone",
+    "top": "zenith:block/blackstone_top"
+  }
+}

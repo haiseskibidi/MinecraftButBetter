@@ -1,0 +1,34 @@
+{
+  "id": 205,
+  "identifier": "zenith:rusty_car_chassis",
+  "translationKey": "block.minecraft.rusty_car_chassis",
+  "solid": true,
+  "transparent": false,
+  "hardness": 6.0,
+  "requiredTool": "crowbar",
+  "breaking_pattern": "stone",
+  "healing_speed": 0.0,
+  "textures": {
+    "all": "lodestone_side.png"
+  },
+  "mining_logic": {
+    "strategy": "weak_spots",
+    "precision": 0.18,
+    "miss_multiplier": 0.2,
+    "weak_spot_color": [0.8, 0.4, 0.1]
+  },
+  "drops": [
+    {
+      "item": "zenith:scrap_metal",
+      "chance": 0.25,
+      "tool": "crowbar",
+      "drop_on_hit": true
+    },
+    {
+      "item": "zenith:copper_wire",
+      "chance": 0.10,
+      "tool": "none",
+      "drop_on_hit": true
+    }
+  ]
+}

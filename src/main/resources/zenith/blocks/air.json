@@ -1,0 +1,8 @@
+{
+    "id":  0,
+    "identifier":  "zenith:air",
+    "translationKey":  "block.minecraft.air",
+    "solid":  false,
+    "transparent":  false,
+    "replaceable": true
+}

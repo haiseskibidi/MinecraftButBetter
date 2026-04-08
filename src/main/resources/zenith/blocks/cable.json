@@ -1,0 +1,12 @@
+{
+    "id":  31,
+    "identifier":  "zenith:cable",
+    "translationKey":  "block.minecraft.cable",
+    "solid":  true,
+    "transparent":  false,
+    "type":  "cable",
+    "hardness":  1.0,
+    "textures":  {
+                     "all":  "black_concrete.png"
+                 }
+}

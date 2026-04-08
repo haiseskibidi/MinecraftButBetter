@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/orientable",
+  "textures": {
+    "front": "zenith:block/blast_furnace_front_on",
+    "side": "zenith:block/blast_furnace_side",
+    "top": "zenith:block/blast_furnace_top"
+  }
+}

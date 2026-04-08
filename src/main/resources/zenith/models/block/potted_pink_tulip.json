@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/flower_pot_cross",
+  "textures": {
+    "plant": "zenith:block/pink_tulip"
+  }
+}

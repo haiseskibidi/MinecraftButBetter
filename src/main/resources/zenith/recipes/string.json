@@ -1,0 +1,13 @@
+{
+  "identifier": "zenith:string",
+  "type": "in_world_crafting",
+  "tool": "zenith:hand",
+  "hits": 3,
+  "ingredients": [
+    "zenith:plant_fiber"
+  ],
+  "result": {
+    "item": "zenith:string",
+    "count": 1
+  }
+}

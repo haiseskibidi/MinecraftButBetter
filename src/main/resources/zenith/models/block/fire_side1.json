@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_fire_side",
+  "textures": {
+    "fire": "zenith:block/fire_1"
+  }
+}

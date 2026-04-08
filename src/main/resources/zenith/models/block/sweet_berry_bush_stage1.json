@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/cross",
+  "textures": {
+    "cross": "zenith:block/sweet_berry_bush_stage1"
+  }
+}

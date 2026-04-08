@@ -1,0 +1,23 @@
+{
+    "id": 183,
+    "identifier": "zenith:stripped_acacia_log",
+    "translationKey": "block.minecraft.stripped_acacia_log",
+    "solid": true,
+    "transparent": false,
+    "type": "log",
+    "breaking_pattern": "wood",
+    "hardness": 2.0,
+    "tags": [
+        "zenith:logs"
+    ],
+    "textures": {
+        "top": "stripped_acacia_log_top.png",
+        "bottom": "stripped_acacia_log_top.png",
+        "side": "stripped_acacia_log.png"
+    },
+    "mining_logic": {
+        "strategy": "weak_spots",
+        "precision": 0.2,
+        "miss_multiplier": 0.3
+    }
+}

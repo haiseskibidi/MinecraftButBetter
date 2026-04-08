@@ -1,0 +1,41 @@
+{
+  "identifier": "zenith:skyscraper_floor",
+  "palette": {
+    "M": "zenith:rusty_metal",
+    "G": "zenith:glass",
+    "F": "zenith:cobblestone",
+    "B": "zenith:bookshelf",
+    " ": "-1",
+    ".": "zenith:air"
+  },
+  "layers": [
+    [
+      "MMMMMMM",
+      "MFFFFFM",
+      "MFFFFFM",
+      "MFFFFFM",
+      "MMMMMMM"
+    ],
+    [
+      "MGGGGGM",
+      "G..B..G",
+      "G.....G",
+      "G..B..G",
+      "MGGGGGM"
+    ],
+    [
+      "MGGGGGM",
+      "G.....G",
+      "G.....G",
+      "G.....G",
+      "MGGGGGM"
+    ],
+    [
+      "MMMMMMM",
+      "M.....M",
+      "M.....M",
+      "M.....M",
+      "MMMMMMM"
+    ]
+  ]
+}

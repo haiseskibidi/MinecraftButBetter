@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/cross",
+  "textures": {
+    "cross": "zenith:block/brown_mushroom"
+  }
+}

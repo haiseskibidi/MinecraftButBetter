@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/door_top_left",
+  "textures": {
+    "bottom": "zenith:block/mangrove_door_bottom",
+    "top": "zenith:block/mangrove_door_top"
+  }
+}

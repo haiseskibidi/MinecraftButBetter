@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/cube_bottom_top",
+  "textures": {
+    "bottom": "zenith:block/netherrack",
+    "side": "zenith:block/warped_nylium_side",
+    "top": "zenith:block/warped_nylium"
+  }
+}

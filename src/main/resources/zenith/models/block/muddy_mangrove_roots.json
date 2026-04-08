@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/cube_column",
+  "textures": {
+    "end": "zenith:block/muddy_mangrove_roots_top",
+    "side": "zenith:block/muddy_mangrove_roots_side"
+  }
+}

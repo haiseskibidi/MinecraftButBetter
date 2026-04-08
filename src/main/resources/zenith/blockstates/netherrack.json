@@ -1,0 +1,78 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "zenith:block/netherrack"
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "x": 90
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "x": 180
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "x": 270
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "y": 90
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "x": 90,
+        "y": 90
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "x": 180,
+        "y": 90
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "x": 270,
+        "y": 90
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "y": 180
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "x": 90,
+        "y": 180
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "x": 180,
+        "y": 180
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "x": 270,
+        "y": 180
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "y": 270
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "x": 90,
+        "y": 270
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "x": 180,
+        "y": 270
+      },
+      {
+        "model": "zenith:block/netherrack",
+        "x": 270,
+        "y": 270
+      }
+    ]
+  }
+}

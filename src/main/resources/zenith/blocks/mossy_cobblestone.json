@@ -1,0 +1,12 @@
+{
+    "id":  15,
+    "identifier":  "zenith:mossy_cobblestone",
+    "translationKey":  "block.minecraft.mossy_cobblestone",
+    "solid":  true,
+    "transparent":  false,
+    "hardness":  2.0,
+    "textures":  {
+                     "all":  "mossy_cobblestone.png"
+                 },
+    "requiredTool":  "pickaxe"
+}

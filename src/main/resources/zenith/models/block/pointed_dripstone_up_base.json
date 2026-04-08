@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/pointed_dripstone",
+  "textures": {
+    "cross": "zenith:block/pointed_dripstone_up_base"
+  }
+}

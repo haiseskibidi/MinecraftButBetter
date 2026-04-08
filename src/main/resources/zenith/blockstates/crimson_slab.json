@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/crimson_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/crimson_planks"
+    },
+    "type=top": {
+      "model": "zenith:block/crimson_slab_top"
+    }
+  }
+}

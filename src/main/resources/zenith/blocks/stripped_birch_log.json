@@ -1,0 +1,23 @@
+{
+    "id": 180,
+    "identifier": "zenith:stripped_birch_log",
+    "translationKey": "block.minecraft.stripped_birch_log",
+    "solid": true,
+    "transparent": false,
+    "type": "log",
+    "breaking_pattern": "wood",
+    "hardness": 2.0,
+    "tags": [
+        "zenith:logs"
+    ],
+    "textures": {
+        "top": "stripped_birch_log_top.png",
+        "bottom": "stripped_birch_log_top.png",
+        "side": "stripped_birch_log.png"
+    },
+    "mining_logic": {
+        "strategy": "weak_spots",
+        "precision": 0.2,
+        "miss_multiplier": 0.3
+    }
+}

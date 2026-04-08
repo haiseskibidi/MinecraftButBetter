@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/dark_prismarine_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/dark_prismarine"
+    },
+    "type=top": {
+      "model": "zenith:block/dark_prismarine_slab_top"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/wall_inventory",
+  "textures": {
+    "wall": "zenith:block/cobbled_deepslate"
+  }
+}

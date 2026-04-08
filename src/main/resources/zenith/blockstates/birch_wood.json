@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "zenith:block/birch_wood",
+      "x": 90,
+      "y": 90
+    },
+    "axis=y": {
+      "model": "zenith:block/birch_wood"
+    },
+    "axis=z": {
+      "model": "zenith:block/birch_wood",
+      "x": 90
+    }
+  }
+}

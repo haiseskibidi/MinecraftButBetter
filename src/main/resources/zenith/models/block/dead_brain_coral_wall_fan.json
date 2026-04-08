@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/coral_wall_fan",
+  "textures": {
+    "fan": "zenith:block/dead_brain_coral_fan"
+  }
+}

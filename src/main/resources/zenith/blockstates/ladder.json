@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=east": {
+      "model": "zenith:block/ladder",
+      "y": 90
+    },
+    "facing=north": {
+      "model": "zenith:block/ladder"
+    },
+    "facing=south": {
+      "model": "zenith:block/ladder",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "zenith:block/ladder",
+      "y": 270
+    }
+  }
+}

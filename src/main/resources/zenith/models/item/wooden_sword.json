@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:item/handheld",
+  "textures": {
+    "layer0": "zenith:item/wooden_sword"
+  }
+}

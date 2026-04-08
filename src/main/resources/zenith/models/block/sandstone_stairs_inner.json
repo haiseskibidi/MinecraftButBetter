@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/inner_stairs",
+  "textures": {
+    "bottom": "zenith:block/sandstone_bottom",
+    "side": "zenith:block/sandstone",
+    "top": "zenith:block/sandstone_top"
+  }
+}

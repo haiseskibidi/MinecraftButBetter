@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_fire_side_alt",
+  "textures": {
+    "fire": "zenith:block/fire_0"
+  }
+}

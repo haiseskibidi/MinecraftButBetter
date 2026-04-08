@@ -1,0 +1,13 @@
+{
+  "id": 126,
+  "identifier": "zenith:water",
+  "translationKey": "block.minecraft.water",
+  "solid": false,
+  "transparent": true,
+  "replaceable": true,
+  "hardness": -1.0,
+  "cleaningAmount": 1.0,
+  "textures": {
+    "all": "water_still.png"
+  }
+}

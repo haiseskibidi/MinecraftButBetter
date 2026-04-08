@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/template_farmland",
+  "textures": {
+    "dirt": "zenith:block/dirt",
+    "top": "zenith:block/farmland_moist"
+  }
+}

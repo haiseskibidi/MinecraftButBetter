@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/stem_growth3",
+  "textures": {
+    "stem": "zenith:block/pumpkin_stem"
+  }
+}

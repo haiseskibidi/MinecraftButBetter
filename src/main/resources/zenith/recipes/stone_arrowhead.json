@@ -1,0 +1,16 @@
+{
+  "identifier": "zenith:stone_arrowhead",
+  "type": "napping",
+  "input": ["zenith:flint", "zenith:rock"],
+  "result": {
+    "item": "zenith:stone_arrowhead",
+    "count": 1
+  },
+  "pattern": [
+    "  #  ",
+    " ### ",
+    "     ",
+    "     ",
+    "     "
+  ]
+}

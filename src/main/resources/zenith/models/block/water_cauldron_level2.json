@@ -1,0 +1,11 @@
+{
+  "parent": "zenith:block/template_cauldron_level2",
+  "textures": {
+    "bottom": "zenith:block/cauldron_bottom",
+    "content": "zenith:block/water_still",
+    "inside": "zenith:block/cauldron_inner",
+    "particle": "zenith:block/cauldron_side",
+    "side": "zenith:block/cauldron_side",
+    "top": "zenith:block/cauldron_top"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "mode=corner": {
+      "model": "zenith:block/structure_block_corner"
+    },
+    "mode=data": {
+      "model": "zenith:block/structure_block_data"
+    },
+    "mode=load": {
+      "model": "zenith:block/structure_block_load"
+    },
+    "mode=save": {
+      "model": "zenith:block/structure_block_save"
+    }
+  }
+}

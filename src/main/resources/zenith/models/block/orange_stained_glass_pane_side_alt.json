@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/template_glass_pane_side_alt",
+  "textures": {
+    "edge": "zenith:block/orange_stained_glass_pane_top",
+    "pane": "zenith:block/orange_stained_glass"
+  }
+}

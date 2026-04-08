@@ -1,0 +1,16 @@
+{
+  "identifier": "zenith:unfired_vessel",
+  "type": "napping",
+  "input": "zenith:clay_ball",
+  "result": {
+    "item": "zenith:unfired_vessel",
+    "count": 1
+  },
+  "pattern": [
+    " ### ",
+    "#   #",
+    "#   #",
+    "#   #",
+    " ### "
+  ]
+}

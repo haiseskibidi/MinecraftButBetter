@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/slab_top",
+  "textures": {
+    "bottom": "zenith:block/prismarine",
+    "side": "zenith:block/prismarine",
+    "top": "zenith:block/prismarine"
+  }
+}

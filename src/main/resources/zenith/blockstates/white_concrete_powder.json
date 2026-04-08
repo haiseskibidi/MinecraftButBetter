@@ -1,0 +1,21 @@
+{
+  "variants": {
+    "": [
+      {
+        "model": "zenith:block/white_concrete_powder"
+      },
+      {
+        "model": "zenith:block/white_concrete_powder",
+        "y": 90
+      },
+      {
+        "model": "zenith:block/white_concrete_powder",
+        "y": 180
+      },
+      {
+        "model": "zenith:block/white_concrete_powder",
+        "y": 270
+      }
+    ]
+  }
+}

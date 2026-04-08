@@ -1,0 +1,12 @@
+{
+  "parent": "zenith:block/cube_directional",
+  "textures": {
+    "down": "zenith:block/jigsaw_side",
+    "east": "zenith:block/jigsaw_side",
+    "north": "zenith:block/jigsaw_top",
+    "particle": "zenith:block/jigsaw_top",
+    "south": "zenith:block/jigsaw_bottom",
+    "up": "zenith:block/jigsaw_lock",
+    "west": "zenith:block/jigsaw_side"
+  }
+}

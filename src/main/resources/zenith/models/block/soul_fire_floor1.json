@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_fire_floor",
+  "textures": {
+    "fire": "zenith:block/soul_fire_1"
+  }
+}

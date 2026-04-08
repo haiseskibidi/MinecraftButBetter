@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/mossy_cobblestone_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/mossy_cobblestone"
+    },
+    "type=top": {
+      "model": "zenith:block/mossy_cobblestone_slab_top"
+    }
+  }
+}

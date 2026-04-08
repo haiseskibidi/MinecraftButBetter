@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "lit=false": {
+      "model": "zenith:block/redstone_torch_off"
+    },
+    "lit=true": {
+      "model": "zenith:block/redstone_torch"
+    }
+  }
+}

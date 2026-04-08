@@ -1,0 +1,18 @@
+{
+  "parent": "zenith:item/generated",
+  "textures": {
+    "layer0": "zenith:item/pointed_dripstone"
+  },
+  "display": {
+    "thirdperson_righthand": {
+      "rotation": [ 0, 100, 0 ],
+      "translation": [ -1, -1, 0],
+      "scale": [ 0.9, 0.9, 0.9 ]
+    },
+    "firstperson_righthand": {
+      "rotation": [ 0, 100, 0 ],
+      "translation": [ 0, -2, 0],
+      "scale": [ 0.9, 0.9, 0.9 ]
+    }
+  }
+}

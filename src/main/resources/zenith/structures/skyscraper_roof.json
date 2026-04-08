@@ -1,0 +1,25 @@
+{
+  "identifier": "zenith:skyscraper_roof",
+  "palette": {
+    "M": "zenith:rusty_metal",
+    "G": "zenith:glass",
+    "F": "zenith:cobblestone",
+    " ": "-1"
+  },
+  "layers": [
+    [
+      "MMMMMMM",
+      "MFFFFFM",
+      "MF F FM",
+      "MFFFFFM",
+      "MMMMMMM"
+    ],
+    [
+      "M   G M",
+      "       ",
+      "       ",
+      "  G    ",
+      "M     M"
+    ]
+  ]
+}

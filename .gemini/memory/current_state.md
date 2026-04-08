@@ -1,4 +1,4 @@
-## Текущий статус проекта "MinecraftButBetter"
+## Текущий статус проекта "Zenith"
 
 ## Реализованные фичи
 - **Data-Driven Container System (NEW)**:

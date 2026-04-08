@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/slab",
+  "textures": {
+    "bottom": "zenith:block/sandstone_top",
+    "side": "zenith:block/cut_sandstone",
+    "top": "zenith:block/sandstone_top"
+  }
+}

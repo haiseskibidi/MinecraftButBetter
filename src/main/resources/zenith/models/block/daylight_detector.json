@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/template_daylight_detector",
+  "textures": {
+    "side": "zenith:block/daylight_detector_side",
+    "top": "zenith:block/daylight_detector_top"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "axis=x": {
+      "model": "zenith:block/hay_block_horizontal",
+      "x": 90,
+      "y": 90
+    },
+    "axis=y": {
+      "model": "zenith:block/hay_block"
+    },
+    "axis=z": {
+      "model": "zenith:block/hay_block_horizontal",
+      "x": 90
+    }
+  }
+}

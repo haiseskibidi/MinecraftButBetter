@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/template_potted_azalea_bush",
+  "textures": {
+    "side": "zenith:block/potted_flowering_azalea_bush_side",
+    "top": "zenith:block/potted_flowering_azalea_bush_top"
+  }
+}

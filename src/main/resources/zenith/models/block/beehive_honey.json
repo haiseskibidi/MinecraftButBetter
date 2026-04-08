@@ -1,0 +1,10 @@
+{
+  "parent": "zenith:block/orientable_with_bottom",
+  "textures": {
+    "bottom": "zenith:block/beehive_end",
+    "front": "zenith:block/beehive_front_honey",
+    "particle": "zenith:block/beehive_side",
+    "side": "zenith:block/beehive_side",
+    "top": "zenith:block/beehive_end"
+  }
+}

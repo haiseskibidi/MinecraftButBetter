@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_seagrass",
+  "textures": {
+    "texture": "zenith:block/seagrass"
+  }
+}

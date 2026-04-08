@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/template_azalea",
+  "textures": {
+    "side": "zenith:block/azalea_side",
+    "top": "zenith:block/azalea_top"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/cube_column",
+  "textures": {
+    "end": "zenith:block/crimson_stem_top",
+    "side": "zenith:block/crimson_stem"
+  }
+}

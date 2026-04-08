@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/cube_bottom_top",
+  "textures": {
+    "bottom": "zenith:block/dirt",
+    "side": "zenith:block/mycelium_side",
+    "top": "zenith:block/mycelium_top"
+  }
+}

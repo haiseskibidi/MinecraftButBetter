@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_chorus_flower",
+  "textures": {
+    "texture": "zenith:block/chorus_flower_dead"
+  }
+}

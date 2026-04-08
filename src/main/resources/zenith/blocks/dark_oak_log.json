@@ -1,0 +1,28 @@
+{
+    "id": 164,
+    "identifier": "zenith:dark_oak_log",
+    "translationKey": "block.minecraft.dark_oak_log",
+    "solid": true,
+    "transparent": false,
+    "type": "log",
+    "breaking_pattern": "wood",
+    "hardness": 2.0,
+    "textures": {
+        "top": "dark_oak_log_top.png",
+        "bottom": "dark_oak_log_top.png",
+        "side": "dark_oak_log.png"
+    },
+    "requiredTool": "axe",
+    "placement": "log",
+    "next_stage": "zenith:felling_stage_1",
+    "fellingStages": 5,
+    "tags": [
+        "treecapitator",
+        "zenith:logs"
+    ],
+    "mining_logic": {
+        "strategy": "weak_spots",
+        "precision": 0.2,
+        "miss_multiplier": 0.3
+    }
+}

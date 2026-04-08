@@ -1,0 +1,10 @@
+{
+  "parent": "zenith:block/orientable_with_bottom",
+  "textures": {
+    "bottom": "zenith:block/bee_nest_bottom",
+    "front": "zenith:block/bee_nest_front_honey",
+    "particle": "zenith:block/bee_nest_side",
+    "side": "zenith:block/bee_nest_side",
+    "top": "zenith:block/bee_nest_top"
+  }
+}

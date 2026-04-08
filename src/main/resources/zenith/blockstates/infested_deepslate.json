@@ -1,0 +1,62 @@
+{
+  "variants": {
+    "axis=x": [
+      {
+        "model": "zenith:block/deepslate",
+        "x": 90,
+        "y": 90
+      },
+      {
+        "model": "zenith:block/deepslate_mirrored",
+        "x": 90,
+        "y": 90
+      },
+      {
+        "model": "zenith:block/deepslate",
+        "x": 90,
+        "y": 90
+      },
+      {
+        "model": "zenith:block/deepslate_mirrored",
+        "x": 90,
+        "y": 90
+      }
+    ],
+    "axis=y": [
+      {
+        "model": "zenith:block/deepslate"
+      },
+      {
+        "model": "zenith:block/deepslate_mirrored"
+      },
+      {
+        "model": "zenith:block/deepslate",
+        "y": 180
+      },
+      {
+        "model": "zenith:block/deepslate_mirrored",
+        "y": 180
+      }
+    ],
+    "axis=z": [
+      {
+        "model": "zenith:block/deepslate",
+        "x": 90
+      },
+      {
+        "model": "zenith:block/deepslate_mirrored",
+        "x": 90
+      },
+      {
+        "model": "zenith:block/deepslate",
+        "x": 90,
+        "y": 180
+      },
+      {
+        "model": "zenith:block/deepslate_mirrored",
+        "x": 90,
+        "y": 180
+      }
+    ]
+  }
+}

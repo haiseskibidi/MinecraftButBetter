@@ -1,0 +1,9 @@
+{
+  "parent": "zenith:block/orientable_with_bottom",
+  "textures": {
+    "bottom": "zenith:block/smoker_bottom",
+    "front": "zenith:block/smoker_front",
+    "side": "zenith:block/smoker_side",
+    "top": "zenith:block/smoker_top"
+  }
+}

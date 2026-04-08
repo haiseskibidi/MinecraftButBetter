@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/cube_column",
+  "textures": {
+    "end": "zenith:block/jungle_log",
+    "side": "zenith:block/jungle_log"
+  }
+}

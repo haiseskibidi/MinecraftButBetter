@@ -1,0 +1,17 @@
+{
+    "targets": [
+        "swap"
+    ],
+    "passes": [
+        {
+            "name": "wobble",
+            "intarget": "zenith:main",
+            "outtarget": "swap"
+        },
+        {
+            "name": "blit",
+            "intarget": "swap",
+            "outtarget": "zenith:main"
+        }
+    ]
+}

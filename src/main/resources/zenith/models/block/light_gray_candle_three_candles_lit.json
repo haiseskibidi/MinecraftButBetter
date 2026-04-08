@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/template_three_candles",
+  "textures": {
+    "all": "zenith:block/light_gray_candle_lit",
+    "particle": "zenith:block/light_gray_candle_lit"
+  }
+}

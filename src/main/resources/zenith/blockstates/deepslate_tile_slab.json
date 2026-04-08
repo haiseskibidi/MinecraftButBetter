@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/deepslate_tile_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/deepslate_tiles"
+    },
+    "type=top": {
+      "model": "zenith:block/deepslate_tile_slab_top"
+    }
+  }
+}

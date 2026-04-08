@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/cube_column",
+  "textures": {
+    "end": "zenith:block/smooth_stone",
+    "side": "zenith:block/smooth_stone_slab_side"
+  }
+}

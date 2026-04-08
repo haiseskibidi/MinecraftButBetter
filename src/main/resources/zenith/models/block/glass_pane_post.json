@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/template_glass_pane_post",
+  "textures": {
+    "edge": "zenith:block/glass_pane_top",
+    "pane": "zenith:block/glass"
+  }
+}

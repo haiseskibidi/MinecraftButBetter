@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/door_bottom_right",
+  "textures": {
+    "bottom": "zenith:block/oak_door_bottom",
+    "top": "zenith:block/oak_door_top"
+  }
+}

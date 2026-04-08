@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/template_two_candles",
+  "textures": {
+    "all": "zenith:block/red_candle",
+    "particle": "zenith:block/red_candle"
+  }
+}

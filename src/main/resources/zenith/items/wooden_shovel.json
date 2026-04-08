@@ -1,0 +1,20 @@
+{
+  "id": 440,
+  "identifier": "zenith:wooden_shovel",
+  "translationKey": "item.minecraft.wooden_shovel",
+  "texture": "minecraft/textures/item/wooden_shovel.png",
+  "visualScale": 1.1,
+  "weight": 1.2,
+  "components": {
+    "viewmodel": {
+      "translation": [0.0, -0.1, 0.0],
+      "rotation": [0.0, 0.0, 0.0],
+      "scale": 0.85
+    },
+    "zenith:tool": {
+      "type": "shovel",
+      "efficiency": 1.5,
+      "durability": 60
+    }
+  }
+}

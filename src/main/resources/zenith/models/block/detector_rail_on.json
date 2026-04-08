@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/rail_flat",
+  "textures": {
+    "rail": "zenith:block/detector_rail_on"
+  }
+}

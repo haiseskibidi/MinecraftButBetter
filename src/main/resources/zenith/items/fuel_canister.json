@@ -1,0 +1,12 @@
+{
+  "id": 414,
+  "identifier": "zenith:fuel_canister",
+  "translationKey": "item.minecraft.fuel_canister",
+  "texture": "minecraft/textures/item/honey_bottle.png",
+  "maxStackSize": 1,
+  "components": {
+    "zenith:fuel": {
+      "fuelAmount": 100.0
+    }
+  }
+}

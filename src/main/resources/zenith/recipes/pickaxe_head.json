@@ -1,0 +1,16 @@
+{
+  "identifier": "zenith:pickaxe_head",
+  "type": "napping",
+  "input": ["zenith:flint", "zenith:rock"],
+  "result": {
+    "item": "zenith:pickaxe_head",
+    "count": 1
+  },
+  "pattern": [
+    "     ",
+    "#####",
+    " ### ",
+    "     ",
+    "     "
+  ]
+}

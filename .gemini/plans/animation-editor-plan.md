@@ -6,7 +6,7 @@
 ## 2. Архитектура системы
 
 ### 2.1. Базовый экран (`AnimationEditorScreen`)
-- Реализация интерфейса `com.za.minecraft.engine.graphics.ui.Screen`.
+- Реализация интерфейса `com.za.zenith.engine.graphics.ui.Screen`.
 - Изолированный рендеринг: отдельный `Framebuffer` для 3D-вьюпорта и оверлей для UI.
 - Состояние редактора: `ActiveAnimation`, `SelectedBone`, `CurrentTime`, `IsPlaying`.
 
@@ -39,7 +39,7 @@
 ## 5. Persistence (Сохранение и загрузка)
 
 ### 5.1. JSON Serializer
-- Конвертация структуры `AnimationProfile` в JSON, идентичный файлам в `resources/minecraft/animations/`.
+- Конвертация структуры `AnimationProfile` в JSON, идентичный файлам в `resources/zenith/animations/`.
 - Поддержка экспорта "на лету" (кнопка Save).
 
 ### 5.2. File Browser

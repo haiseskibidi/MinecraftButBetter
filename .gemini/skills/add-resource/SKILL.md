@@ -16,9 +16,9 @@ description: Навык для добавления новых игровых р
 
 ### 1. Создание JSON-файла
 - Определи тип ресурса (блок или предмет).
-- Создай соответствующий JSON-файл в `src/main/resources/minecraft/blocks/` или `src/main/resources/minecraft/items/`.
+- Создай соответствующий JSON-файл в `src/main/resources/zenith/blocks/` или `src/main/resources/zenith/items/`.
 - Используй свободный ID (проверь другие JSON в папке).
-- Убедись, что `identifier` соответствует формату `minecraft:name`.
+- Убедись, что `identifier` соответствует формату `zenith:name`.
 
 ### 2. Обновление индекса (.index)
 - **ЗАПРЕЩЕНО** использовать `write_file` или `replace` для прямой модификации `.index` файлов.
@@ -28,15 +28,15 @@ description: Навык для добавления новых игровых р
   - Пример: `node .gemini/skills/add_resource.js path/to/.index res1.json ; node .gemini/skills/add_resource.js path/to/.index res2.json`.
 
 ### 3. Регистрация в коде (Java)
-- Найди класс-холдер: `com.za.minecraft.world.blocks.Blocks` или `com.za.minecraft.world.items.Items`.
+- Найди класс-холдер: `com.za.zenith.world.blocks.Blocks` или `com.za.zenith.world.items.Items`.
 - Объяви `public static` поле с типом `BlockDefinition` или `Item` соответственно.
 - Имя поля должно быть в верхнем регистре (SNAKE_CASE) и совпадать с названием из JSON.
 - Поле заполнится автоматически при запуске через рефлексию.
 
 ### 4. Локализация
 - Добавь перевод для `translationKey` в файлы:
-    - `src/main/resources/minecraft/lang/ru_ru.json`
-    - `src/main/resources/minecraft/lang/en_us.json`
+    - `src/main/resources/zenith/lang/ru_ru.json`
+    - `src/main/resources/zenith/lang/en_us.json`
 
 ### 5. Верификация
 - Скомпилируй проект: `./gradlew build`.

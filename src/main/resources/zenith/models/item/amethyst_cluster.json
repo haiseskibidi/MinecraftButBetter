@@ -1,0 +1,11 @@
+{
+  "parent": "zenith:item/generated",
+  "textures": {
+    "layer0": "zenith:block/amethyst_cluster"
+  },
+  "display": {
+    "head": {
+      "translation": [ 0, 14, -5 ]
+    }
+  }
+}

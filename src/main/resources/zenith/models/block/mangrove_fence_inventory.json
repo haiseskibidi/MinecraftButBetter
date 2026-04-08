@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/fence_inventory",
+  "textures": {
+    "texture": "zenith:block/mangrove_planks"
+  }
+}

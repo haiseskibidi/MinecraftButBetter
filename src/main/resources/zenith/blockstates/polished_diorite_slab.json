@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/polished_diorite_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/polished_diorite"
+    },
+    "type=top": {
+      "model": "zenith:block/polished_diorite_slab_top"
+    }
+  }
+}

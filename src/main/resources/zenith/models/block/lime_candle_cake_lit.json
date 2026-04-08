@@ -1,0 +1,10 @@
+{
+  "parent": "zenith:block/template_cake_with_candle",
+  "textures": {
+    "bottom": "zenith:block/cake_bottom",
+    "candle": "zenith:block/lime_candle_lit",
+    "particle": "zenith:block/cake_side",
+    "side": "zenith:block/cake_side",
+    "top": "zenith:block/cake_top"
+  }
+}

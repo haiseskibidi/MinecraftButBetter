@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/fence_side",
+  "textures": {
+    "texture": "zenith:block/birch_planks"
+  }
+}

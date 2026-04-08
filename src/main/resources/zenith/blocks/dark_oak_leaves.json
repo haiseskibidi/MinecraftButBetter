@@ -1,0 +1,13 @@
+{
+    "id": 174,
+    "identifier": "zenith:dark_oak_leaves",
+    "translationKey": "block.minecraft.dark_oak_leaves",
+    "solid": true,
+    "transparent": true,
+    "hardness": 0.2,
+    "textures": {
+        "all": "dark_oak_leaves.png"
+    },
+    "requiredTool": "knife",
+    "tags": ["treecapitator", "zenith:tinted"]
+}

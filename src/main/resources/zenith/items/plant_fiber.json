@@ -1,0 +1,7 @@
+{
+  "id": 407,
+  "identifier": "zenith:plant_fiber",
+  "translationKey": "item.minecraft.plant_fiber",
+  "texture": "minecraft/textures/item/plant_fiber.png",
+  "weight": 0.3
+}

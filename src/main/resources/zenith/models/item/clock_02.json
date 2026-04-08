@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:item/generated",
+  "textures": {
+    "layer0": "zenith:item/clock_02"
+  }
+}

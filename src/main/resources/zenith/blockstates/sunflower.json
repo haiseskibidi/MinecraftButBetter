@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "half=lower": {
+      "model": "zenith:block/sunflower_bottom"
+    },
+    "half=upper": {
+      "model": "zenith:block/sunflower_top"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/rail_curved",
+  "textures": {
+    "rail": "zenith:block/rail_corner"
+  }
+}

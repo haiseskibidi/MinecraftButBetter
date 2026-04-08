@@ -1,0 +1,47 @@
+{
+  "identifier": "zenith:apartment_building",
+  "palette": {
+    "W": "zenith:white_concrete",
+    "F": "zenith:oak_planks",
+    "G": "zenith:glass",
+    "B": "zenith:bookshelf",
+    "O": "zenith:oak_log",
+    "L": "zenith:oak_leaves",
+    " ": "-1",
+    ".": "zenith:air"
+  },
+  "layers": [
+    [
+      "WWWWWWWWW",
+      "WFFFFFFFW",
+      "WFFFWFFFW",
+      "WFFFWFFFW",
+      "WFFFWFFFW",
+      "WWWW WWWW"
+    ],
+    [
+      "WGGGWGGGW",
+      "W.B.W.L.W",
+      "G...W...G",
+      "W...W...W",
+      "W.O...O.W",
+      "WWWW WWWW"
+    ],
+    [
+      "WWWWWWWWW",
+      "W...W...W",
+      "G...W...G",
+      "W...W...W",
+      "W.......W",
+      "WWWWWWWWW"
+    ],
+    [
+      "WWWWWWWWW",
+      "WFFFFFFFW",
+      "WFFFFFFFW",
+      "WFFFFFFFW",
+      "WFFFFFFFW",
+      "WWWWWWWWW"
+    ]
+  ]
+}

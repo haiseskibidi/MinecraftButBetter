@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_glass_pane_noside",
+  "textures": {
+    "pane": "zenith:block/pink_stained_glass"
+  }
+}

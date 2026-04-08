@@ -1,0 +1,10 @@
+{
+  "parent": "zenith:block/template_sculk_shrieker",
+  "textures": {
+    "bottom": "zenith:block/sculk_shrieker_bottom",
+    "inner_top": "zenith:block/sculk_shrieker_can_summon_inner_top",
+    "particle": "zenith:block/sculk_shrieker_bottom",
+    "side": "zenith:block/sculk_shrieker_side",
+    "top": "zenith:block/sculk_shrieker_top"
+  }
+}

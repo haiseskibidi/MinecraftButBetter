@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/pressure_plate_up",
+  "textures": {
+    "texture": "zenith:block/acacia_planks"
+  }
+}

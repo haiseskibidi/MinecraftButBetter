@@ -1,0 +1,12 @@
+{
+  "parent": "zenith:block/cube",
+  "textures": {
+    "down": "zenith:block/birch_planks",
+    "east": "zenith:block/fletching_table_side",
+    "north": "zenith:block/fletching_table_front",
+    "particle": "zenith:block/fletching_table_front",
+    "south": "zenith:block/fletching_table_front",
+    "up": "zenith:block/fletching_table_top",
+    "west": "zenith:block/fletching_table_side"
+  }
+}

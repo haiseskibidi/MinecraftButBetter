@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/leaves",
+  "textures": {
+    "all": "zenith:block/acacia_leaves"
+  }
+}

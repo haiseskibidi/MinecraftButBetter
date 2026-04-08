@@ -1,0 +1,16 @@
+{
+  "id": 415,
+  "identifier": "zenith:admin_hammer",
+  "translationKey": "item.minecraft.admin_hammer",
+  "texture": "minecraft/textures/item/nether_star.png",
+  "maxStackSize": 1,
+  "components": {
+    "zenith:tool": {
+      "type": "pickaxe",
+      "efficiency": 1000.0,
+      "durability": 9999,
+      "isEffectiveAgainstAll": true,
+      "orientation": "vertical"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "parent": "zenith:block/stairs",
+  "textures": {
+    "bottom": "zenith:block/deepslate_tiles",
+    "side": "zenith:block/deepslate_tiles",
+    "top": "zenith:block/deepslate_tiles"
+  }
+}

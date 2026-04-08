@@ -1,0 +1,5 @@
+[
+  { "block": "zenith:stick", "chance": 0.015 },
+  { "block": "zenith:rock", "chance": 0.01 },
+  { "block": "zenith:flint", "chance": 0.003 }
+]

@@ -1,0 +1,43 @@
+{
+  "identifier": "zenith:small_store",
+  "palette": {
+    "C": "zenith:cyan_concrete",
+    "W": "zenith:white_concrete",
+    "G": "zenith:glass",
+    "S": "zenith:stone_bricks",
+    "O": "zenith:oak_planks",
+    "L": "zenith:oak_leaves",
+    " ": "-1",
+    ".": "zenith:air"
+  },
+  "layers": [
+    [
+      "CCCCCCC",
+      "CSSSSSC",
+      "CSOOOSC",
+      "CSL..SC",
+      "CCGGGCC"
+    ],
+    [
+      "CCCCCCC",
+      "W.....W",
+      "W.....W",
+      "WL....W",
+      "CWGGGCW"
+    ],
+    [
+      "CCCCCCC",
+      "CW...WC",
+      "CW...WC",
+      "CW...WC",
+      "CCCCCCC"
+    ],
+    [
+      "CCCCCCC",
+      "CCCCCCC",
+      "C   CCC",
+      "CCCCCCC",
+      "CCCCCCC"
+    ]
+  ]
+}

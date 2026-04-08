@@ -1,0 +1,16 @@
+{
+  "identifier": "zenith:axe_head",
+  "type": "napping",
+  "input": ["zenith:flint", "zenith:rock"],
+  "result": {
+    "item": "zenith:axe_head", 
+    "count": 1
+  },
+  "pattern": [
+    "#### ",
+    "#### ",
+    " ### ",
+    "     ",
+    "     "
+  ]
+}

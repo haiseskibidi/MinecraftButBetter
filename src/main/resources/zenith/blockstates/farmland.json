@@ -1,0 +1,28 @@
+{
+  "variants": {
+    "moisture=0": {
+      "model": "zenith:block/farmland"
+    },
+    "moisture=1": {
+      "model": "zenith:block/farmland"
+    },
+    "moisture=2": {
+      "model": "zenith:block/farmland"
+    },
+    "moisture=3": {
+      "model": "zenith:block/farmland"
+    },
+    "moisture=4": {
+      "model": "zenith:block/farmland"
+    },
+    "moisture=5": {
+      "model": "zenith:block/farmland"
+    },
+    "moisture=6": {
+      "model": "zenith:block/farmland"
+    },
+    "moisture=7": {
+      "model": "zenith:block/farmland_moist"
+    }
+  }
+}

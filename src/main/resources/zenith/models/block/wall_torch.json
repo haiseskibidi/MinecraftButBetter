@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/template_torch_wall",
+  "textures": {
+    "torch": "zenith:block/torch"
+  }
+}

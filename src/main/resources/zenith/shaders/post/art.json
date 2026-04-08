@@ -1,0 +1,64 @@
+{
+    "targets": [
+        "0",
+        "1"
+    ],
+    "passes": [
+        {
+            "name": "blobs2",
+            "intarget": "zenith:main",
+            "outtarget": "0"
+        },
+        {
+            "name": "outline_watercolor",
+            "intarget": "0",
+            "outtarget": "zenith:main"
+        },
+        {
+            "name": "blur",
+            "intarget": "zenith:main",
+            "outtarget": "1",
+            "uniforms": [
+                {
+                    "name": "BlurDir",
+                    "values": [ 0.8, 0.0 ]
+                },
+                {
+                    "name": "Radius",
+                    "values": [ 20.0 ]
+                }
+            ]
+        },
+        {
+            "name": "blur",
+            "intarget": "1",
+            "outtarget": "zenith:main",
+            "uniforms": [
+                {
+                    "name": "BlurDir",
+                    "values": [ 0.0, 0.8 ]
+                },
+                {
+                    "name": "Radius",
+                    "values": [ 20.0 ]
+                }
+            ]
+        },
+        {
+            "name": "outline_combine",
+            "intarget": "0",
+            "outtarget": "1",
+            "auxtargets": [
+                {
+                    "name": "OutlineSampler",
+                    "id": "zenith:main"
+                }
+            ]
+        },
+        {
+            "name": "blit",
+            "intarget": "1",
+            "outtarget": "zenith:main"
+        }
+    ]
+}

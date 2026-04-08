@@ -1,0 +1,10 @@
+{
+  "variants": {
+    "lit=false": {
+      "model": "zenith:block/redstone_lamp"
+    },
+    "lit=true": {
+      "model": "zenith:block/redstone_lamp_on"
+    }
+  }
+}

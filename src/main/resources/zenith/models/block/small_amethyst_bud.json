@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/cross",
+  "textures": {
+    "cross": "zenith:block/small_amethyst_bud"
+  }
+}

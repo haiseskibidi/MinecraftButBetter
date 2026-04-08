@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "type=bottom": {
+      "model": "zenith:block/purpur_slab"
+    },
+    "type=double": {
+      "model": "zenith:block/purpur_block"
+    },
+    "type=top": {
+      "model": "zenith:block/purpur_slab_top"
+    }
+  }
+}

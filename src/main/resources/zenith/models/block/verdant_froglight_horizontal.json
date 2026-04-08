@@ -1,0 +1,7 @@
+{
+  "parent": "zenith:block/cube_column_horizontal",
+  "textures": {
+    "end": "zenith:block/verdant_froglight_top",
+    "side": "zenith:block/verdant_froglight_side"
+  }
+}

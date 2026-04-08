@@ -1,0 +1,6 @@
+{
+  "parent": "zenith:block/wall_inventory",
+  "textures": {
+    "wall": "zenith:block/end_stone_bricks"
+  }
+}
