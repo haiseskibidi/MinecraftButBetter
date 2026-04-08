@@ -153,16 +153,37 @@ public class InventoryScreenRenderer {
                 if (y + slotSize < bgY || y > bgY + devHeight) continue;
                 
                 if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
-                    String name = I18n.get(allItems.get(i).getName());
-                    int tx = (int)mx + 12;
-                    int ty = (int)my - 12;
-                    int textWidth = renderer.getFontRenderer().getStringWidth(name, 14);
-                    renderer.getPrimitivesRenderer().renderRect(tx, ty - 2, textWidth + 8, 20, sw, sh, 0.1f, 0.1f, 0.1f, 0.9f);
-                    renderer.getFontRenderer().drawString(name, tx + 4, ty, 14, sw, sh);
+                    renderTooltip(I18n.get(allItems.get(i).getName()), mx, my, sw, sh);
                     break;
                 }
             }
         }
+    }
+
+    private void renderTooltip(String text, float mx, float my, int sw, int sh) {
+        if (text == null || text.isEmpty()) return;
+
+        int textSize = 14;
+        int textWidth = renderer.getFontRenderer().getStringWidth(text, textSize);
+        int padding = 4;
+        int rectWidth = textWidth + padding * 2;
+        int rectHeight = textSize + padding * 2;
+
+        // Adaptive position logic
+        int tx = (int)mx + 12;
+        int ty = (int)my - 12;
+
+        // Flip to left if it would go off-screen on the right
+        if (tx + rectWidth > sw) {
+            tx = (int)mx - rectWidth - 12;
+        }
+        
+        // Ensure it doesn't go off-screen on the bottom or top
+        if (ty + rectHeight > sh) ty = sh - rectHeight - 2;
+        if (ty < 0) ty = 2;
+
+        renderer.getPrimitivesRenderer().renderRect(tx, ty - 2, rectWidth, rectHeight, sw, sh, 0.1f, 0.1f, 0.1f, 0.9f);
+        renderer.getFontRenderer().drawString(text, tx + padding, ty, textSize, sw, sh);
     }
 
     private void renderInventoryTooltip(InventoryScreen screen, int slotSize, Player player, int sw, int sh) {
@@ -173,15 +194,7 @@ public class InventoryScreenRenderer {
         if (hoveredUI != null) {
             ItemStack hovered = hoveredUI.getSlot().getStack();
             if (hovered != null) {
-                String name = I18n.get(hovered.getItem().getName());
-                int nameSize = 16;
-                int textWidth = renderer.getFontRenderer().getStringWidth(name, nameSize);
-                int tx = (int)mx + 12;
-                int ty = (int)my - 12;
-                
-                // Using highlight logic or rect logic for background
-                renderer.getPrimitivesRenderer().renderRect(tx, ty - nameSize/2, textWidth + 8, nameSize + 8, sw, sh, 0.1f, 0.1f, 0.1f, 0.9f);
-                renderer.getFontRenderer().drawString(name, tx + 4, ty + 4, nameSize, sw, sh);
+                renderTooltip(I18n.get(hovered.getItem().getName()), mx, my, sw, sh);
             }
         }
     }
