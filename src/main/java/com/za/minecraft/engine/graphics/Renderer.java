@@ -15,6 +15,7 @@ import com.za.minecraft.engine.graphics.model.Viewmodel;
 import com.za.minecraft.engine.graphics.model.ModelNode;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.joml.Vector4f;
 
 import com.za.minecraft.engine.core.GameLoop;
 import java.util.concurrent.ConcurrentHashMap;
@@ -60,7 +61,7 @@ public class Renderer {
     private Vector3f breakingHitPoint = new Vector3f();
     private Vector3f weakSpotPos = new Vector3f();
     private Vector3f weakSpotColor = new Vector3f(1.0f, 1.0f, 1.0f);
-    private final Vector3f[] hitHistory = new Vector3f[16];
+    private final Vector4f[] hitHistory = new Vector4f[16];
     private int hitCount = 0;
     private Mesh breakingMesh;
     private Mesh holeMesh;
@@ -77,7 +78,7 @@ public class Renderer {
         this.lightDirection = new Vector3f(0.2f, -1.0f, 0.2f).normalize();
     }
 
-    public void setBreakingBlock(com.za.minecraft.world.BlockPos pos, Block block, float progress, float timer, Vector3f localHitPoint, Vector3f localWeakSpot, Vector3f color, java.util.List<Vector3f> history) {
+    public void setBreakingBlock(com.za.minecraft.world.BlockPos pos, Block block, float progress, float timer, Vector3f localHitPoint, Vector3f localWeakSpot, Vector3f color, java.util.List<Vector4f> history) {
         if (block == null) {
             this.breakingPos = null;
             this.currentBreakingBlock = null;
@@ -101,7 +102,7 @@ public class Renderer {
         this.hitCount = history != null ? Math.min(16, history.size()) : 0;
         if (history != null) {
             for (int i = 0; i < hitCount; i++) {
-                if (hitHistory[i] == null) hitHistory[i] = new Vector3f();
+                if (hitHistory[i] == null) hitHistory[i] = new Vector4f();
                 hitHistory[i].set(history.get(i));
             }
         }
@@ -255,6 +256,8 @@ public class Renderer {
         blockShader.setBoolean("isHand", false); // Ensure world blocks are not masked as hands
         blockShader.setFloat("brightnessMultiplier", 1.0f);
         blockShader.setInt("highlightPass", 0);
+        blockShader.setBoolean("uIsProxy", false);
+        blockShader.setInt("uHitCount", 0);
         blockShader.setFloat("uBreakingProgress", 0.0f);
         blockShader.setInt("uBreakingPattern", 0);
         blockShader.setVector3f("uBreakingHitPoint", new Vector3f(0.5f));
@@ -307,10 +310,64 @@ public class Renderer {
         if (breakingPos != null && breakingMesh != null && currentBreakingBlock != null) {
             renderBreakingProxyBlock(camera, alpha);
         }
+
+        renderPersistentScars(camera, world, alpha);
         
         renderEntities(camera, world, alpha);
         renderBlockEntities(camera, world, alpha);
         renderPlayers(camera, networkClient, alpha);
+    }
+
+    private void renderPersistentScars(Camera camera, World world, float alpha) {
+        if (world.getBlockDamageMap().isEmpty()) return;
+        
+        blockShader.use();
+        glEnable(GL_POLYGON_OFFSET_FILL);
+        glPolygonOffset(-1.0f, -1.0f);
+
+        for (Map.Entry<com.za.minecraft.world.BlockPos, World.BlockDamageInstance> entry : world.getBlockDamageMap().entrySet()) {
+            com.za.minecraft.world.BlockPos pos = entry.getKey();
+            // Skip the block that is currently being broken with animations
+            if (breakingPos != null && pos.equals(breakingPos)) continue;
+
+            World.BlockDamageInstance info = entry.getValue();
+            com.za.minecraft.world.blocks.Block block = world.getBlock(pos);
+            int typeId = block.getType();
+            if (typeId == 0) continue; // Should not happen for damage map
+            
+            Mesh mesh = blockMeshCache.get(typeId);
+            if (mesh == null) {
+                mesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas);
+                if (mesh != null) blockMeshCache.put(typeId, mesh);
+            }
+
+            if (mesh != null) {
+                com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(typeId);
+                
+                blockShader.setBoolean("uIsProxy", true);
+                blockShader.setVector3f("uWobbleScale", new Vector3f(1.0f));
+                blockShader.setVector3f("uWobbleOffset", new Vector3f(0.0f));
+                blockShader.setFloat("uWobbleShake", 0.0f);
+                
+                float maxHealth = def.getHardness() * 10.0f;
+                blockShader.setFloat("uBreakingProgress", info.getDamage() / maxHealth);
+                blockShader.setInt("uBreakingPattern", def.getBreakingPattern());
+                blockShader.setVector3f("uWeakSpotPos", new Vector3f(0, -100, 0)); // No active weak spot
+                
+                int hitCount = Math.min(16, info.getHitHistory().size());
+                blockShader.setInt("uHitCount", hitCount);
+                for (int i = 0; i < hitCount; i++) {
+                    blockShader.setVector4f("uHitHistory[" + i + "]", info.getHitHistory().get(i));
+                }
+
+                modelMatrix.identity().translate(pos.x() + 0.5f, pos.y(), pos.z() + 0.5f);
+                blockShader.setMatrix4f("model", modelMatrix);
+                mesh.render();
+            }
+        }
+        
+        blockShader.setBoolean("uIsProxy", false);
+        glDisable(GL_POLYGON_OFFSET_FILL);
     }
 
     private void renderBreakingProxyBlock(Camera camera, float alpha) {
@@ -348,7 +405,7 @@ public class Renderer {
         blockShader.setVector3f("uWeakSpotColor", weakSpotColor);
         blockShader.setInt("uHitCount", hitCount);
         for (int i = 0; i < hitCount; i++) {
-            blockShader.setVector3f("uHitHistory[" + i + "]", hitHistory[i]);
+            blockShader.setVector4f("uHitHistory[" + i + "]", hitHistory[i]);
         }
         
         if (breakingMesh != null) {
@@ -404,40 +461,16 @@ public class Renderer {
 
                 if (mesh != null) {
                     float age = itemEntity.getAge() + alpha * 0.016f; 
-                    float bob = (float) (Math.sin(age * 2.5f) + 1.0f) * 0.025f; 
+                    float bob = (float) Math.sin(age * 2.5f) * 0.02f; 
                     float scale = item.isBlock() ? 0.25f : item.getVisualScale() * 0.45f;
                     Vector3f interpRot = entity.getInterpolatedRotation(alpha);
 
-                    // --- Динамический расчет высоты подъема (чтобы углы не тонули) ---
-                    float lift;
-                    if (item.isBlock()) {
-                        // Матрица вращения для расчета проекций осей блока
-                        org.joml.Matrix3f rotMat = new org.joml.Matrix3f().rotateXYZ(interpRot.x, interpRot.y, interpRot.z);
-                        Vector3f axisX = rotMat.transform(new Vector3f(0.5f, 0, 0));
-                        Vector3f axisY = rotMat.transform(new Vector3f(0, 0.5f, 0));
-                        Vector3f axisZ = rotMat.transform(new Vector3f(0, 0, 0.5f));
-                        // Максимальное отклонение по вертикали от центра
-                        float maxExtentY = Math.abs(axisX.y) + Math.abs(axisY.y) + Math.abs(axisZ.y);
-                        lift = (maxExtentY * scale) + bob;
-                    } else {
-                        lift = (scale * 0.5f) + bob;
-                    }
-
                     modelMatrix.identity()
-                        .translate(interpPos.x(), interpPos.y() + lift, interpPos.z())
+                        .translate(interpPos.x(), interpPos.y() + bob, interpPos.z())
                         .rotateX(interpRot.x)
                         .rotateY(interpRot.y)
                         .rotateZ(interpRot.z)
                         .scale(scale);
-
-                    if (item.isBlock()) {
-                        com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(item.getId());
-                        if (def.getPlacementType() == com.za.minecraft.world.blocks.PlacementType.CROSS_PLANE) {
-                            modelMatrix.translate(0, -0.5f, 0);
-                        } else {
-                            modelMatrix.translate(-0.5f, -0.5f, -0.5f);
-                        }
-                    }
 
                     blockShader.setMatrix4f("model", modelMatrix);
                     blockShader.setInt("highlightPass", 0);

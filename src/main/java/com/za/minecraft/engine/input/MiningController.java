@@ -15,6 +15,7 @@ import com.za.minecraft.world.items.ItemStack;
 import com.za.minecraft.world.physics.AABB;
 import com.za.minecraft.world.physics.VoxelShape;
 import org.joml.Vector3f;
+import org.joml.Vector4f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +31,7 @@ public class MiningController {
     private float wobbleTimer = 0.0f;
     private Vector3f currentWeakSpot = new Vector3f(0.5f);
     private Vector3f currentNormal = new Vector3f(0, 1, 0);
-    private final List<Vector3f> hitHistory = new ArrayList<>();
+    private final List<Vector4f> hitHistory = new ArrayList<>();
     
     private float breakDelayTimer = 0.0f;
 
@@ -119,11 +120,13 @@ public class MiningController {
                     Items.HAND.getMiningSpeed(blockType);
 
                 MiningSettings mSettings = blockDef.getMiningSettings();
+                boolean isWeakSpotHit = false;
                 if (mSettings.strategy().equals("weak_spots")) {
                     float dist = localHit.distance(currentWeakSpot);
                     if (dist < mSettings.precision()) {
+                        isWeakSpotHit = true;
                         currentDamage += miningDamage;
-                        hitHistory.add(new Vector3f(currentWeakSpot));
+                        hitHistory.add(new Vector4f(currentWeakSpot, 1.0f));
                         // Перегенерируем на ТОЙ ЖЕ грани, используя честную нормаль
                         currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), currentNormal); 
                         com.za.minecraft.utils.Logger.info("Weak spot HIT!");
@@ -153,6 +156,7 @@ public class MiningController {
                         }
                     } else {
                         currentDamage += miningDamage * mSettings.missMultiplier();
+                        // No hitHistory.add here anymore
                         
                         // Small chance to get loot even on MISS (5 times lower chance)
                         String currentToolStr = "none";
@@ -177,10 +181,11 @@ public class MiningController {
                     }
                 } else {
                     currentDamage += miningDamage;
+                    hitHistory.add(new Vector4f(localHit, 1.0f)); // General hit
                 }
 
                 breakingProgress = Math.min(1.0f, currentDamage / maxHealth);
-                world.setBlockDamage(hitPos, currentDamage);
+                world.setBlockDamage(hitPos, currentDamage, hitHistory);
 
                 hitCooldownTimer = interval;
                 wobbleTimer = 0.0f;

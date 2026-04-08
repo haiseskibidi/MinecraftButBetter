@@ -4,6 +4,7 @@ import com.za.minecraft.utils.Logger;
 import org.joml.Matrix4f;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
+import org.joml.Vector4f;
 import org.lwjgl.system.MemoryStack;
 
 import java.io.IOException;
@@ -103,6 +104,10 @@ public class Shader {
     
     public void setVector3f(String name, Vector3f vector) {
         glUniform3f(getUniformLocation(name), vector.x, vector.y, vector.z);
+    }
+    
+    public void setVector4f(String name, Vector4f vector) {
+        glUniform4f(getUniformLocation(name), vector.x, vector.y, vector.z, vector.w);
     }
     
     public void setVector2f(String name, Vector2f vector) {

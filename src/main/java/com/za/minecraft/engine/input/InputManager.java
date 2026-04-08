@@ -866,6 +866,7 @@ public class InputManager {
                                 resource.setRemoved();
                                 com.za.minecraft.utils.Logger.info("Picked up %s (RMB)", resource.getStack().getItem().getName());
                                 actionConsumed = true;
+                                placeDelayTimer = PLACE_COOLDOWN;
                             }
                         }
                     } else if (hitEntity instanceof com.za.minecraft.entities.ItemEntity itemEntity) {
@@ -876,6 +877,7 @@ public class InputManager {
                                 itemEntity.setRemoved();
                                 com.za.minecraft.utils.Logger.info("Picked up %s (RMB)", itemEntity.getStack().getItem().getName());
                                 actionConsumed = true;
+                                placeDelayTimer = PLACE_COOLDOWN;
                             }
                         }
                     }

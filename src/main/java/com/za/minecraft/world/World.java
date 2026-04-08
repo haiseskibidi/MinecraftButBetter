@@ -13,6 +13,7 @@ import com.za.minecraft.entities.Entity;
 import com.za.minecraft.entities.Player;
 import com.za.minecraft.entities.ScoutEntity;
 import org.joml.Vector3f;
+import org.joml.Vector4f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,16 +29,20 @@ public class World {
     
     public static class BlockDamageInstance {
         private float damage;
-        private final List<Vector3f> hitHistory;
+        private final List<Vector4f> hitHistory;
+        private long lastHitTime;
 
-        public BlockDamageInstance(float damage, List<Vector3f> hitHistory) {
+        public BlockDamageInstance(float damage, List<Vector4f> hitHistory) {
             this.damage = damage;
             this.hitHistory = new ArrayList<>(hitHistory);
+            this.lastHitTime = System.currentTimeMillis();
         }
 
         public float getDamage() { return damage; }
         public void setDamage(float damage) { this.damage = damage; }
-        public List<Vector3f> getHitHistory() { return hitHistory; }
+        public List<Vector4f> getHitHistory() { return hitHistory; }
+        public long getLastHitTime() { return lastHitTime; }
+        public void resetLastHitTime() { this.lastHitTime = System.currentTimeMillis(); }
     }
 
     private final Map<BlockPos, BlockDamageInstance> blockDamageMap = new ConcurrentHashMap<>();
@@ -206,11 +211,16 @@ public class World {
 
         // Heal blocks over time and fade scars
         if (!blockDamageMap.isEmpty()) {
+            long currentTime = System.currentTimeMillis();
             for (java.util.Map.Entry<BlockPos, BlockDamageInstance> entry : blockDamageMap.entrySet()) {
                 BlockPos pos = entry.getKey();
                 BlockDamageInstance info = entry.getValue();
-                float damage = info.getDamage();
                 
+                // --- HEALING DELAY ---
+                // Do not start healing if block was hit in the last 5 seconds
+                if (currentTime - info.getLastHitTime() < 5000) continue;
+
+                float damage = info.getDamage();
                 int blockType = getBlock(pos).getType();
                 com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(blockType);
                 
@@ -224,13 +234,28 @@ public class World {
                     } else {
                         info.setDamage(newDamage);
                         
-                        // Fade scars: remove oldest hits as the block heals
-                        List<Vector3f> history = info.getHitHistory();
+                        // --- SMOOTH SCAR FADING ---
+                        List<Vector4f> history = info.getHitHistory();
                         if (!history.isEmpty()) {
-                            // Link history size to current damage percentage (max 16 hits in shader)
-                            int targetHistorySize = (int) Math.ceil((newDamage / maxHealth) * 16);
-                            while (history.size() > targetHistorySize && !history.isEmpty()) {
-                                history.remove(0); // Remove oldest
+                            // Target total intensity across all scars based on health
+                            // 16 is max history size in shader. If damage is 50%, target total intensity is 8.0
+                            float targetTotalIntensity = (newDamage / maxHealth) * 16.0f;
+                            
+                            float currentTotalIntensity = 0;
+                            for (Vector4f hit : history) currentTotalIntensity += hit.w;
+
+                            if (currentTotalIntensity > targetTotalIntensity) {
+                                float toRemove = currentTotalIntensity - targetTotalIntensity;
+                                while (toRemove > 0 && !history.isEmpty()) {
+                                    Vector4f oldest = history.get(0);
+                                    if (oldest.w <= toRemove) {
+                                        toRemove -= oldest.w;
+                                        history.remove(0);
+                                    } else {
+                                        oldest.w -= toRemove;
+                                        toRemove = 0;
+                                    }
+                                }
                             }
                         }
                     }
@@ -254,7 +279,7 @@ public class World {
         return (info != null) ? info.getDamage() : 0.0f;
     }
 
-    public List<Vector3f> getBlockHitHistory(BlockPos pos) {
+    public List<Vector4f> getBlockHitHistory(BlockPos pos) {
         BlockDamageInstance info = blockDamageMap.get(pos);
         return (info != null) ? info.getHitHistory() : new ArrayList<>();
     }
@@ -263,21 +288,29 @@ public class World {
         setBlockDamage(pos, damage, new ArrayList<>());
     }
 
-    public void setBlockDamage(BlockPos pos, float damage, List<Vector3f> history) {
+    public void setBlockDamage(BlockPos pos, float damage, List<Vector4f> history) {
         if (damage <= 0.0f) {
             blockDamageMap.remove(pos);
         } else {
             BlockDamageInstance info = blockDamageMap.get(pos);
             if (info != null) {
                 info.setDamage(damage);
-                // Update history, keeping only the last 16 hits
-                List<Vector3f> targetHistory = info.getHitHistory();
-                targetHistory.clear();
-                for (int i = Math.max(0, history.size() - 16); i < history.size(); i++) {
-                    targetHistory.add(history.get(i));
+                info.resetLastHitTime(); // Refresh the delay on every hit
+                
+                // Update history smoothly: only add new ones that aren't already there
+                List<Vector4f> targetHistory = info.getHitHistory();
+                if (history.size() > targetHistory.size()) {
+                    for (int i = targetHistory.size(); i < history.size(); i++) {
+                        targetHistory.add(new Vector4f(history.get(i)));
+                    }
+                }
+                
+                // Cap at 16
+                while (targetHistory.size() > 16) {
+                    targetHistory.remove(0);
                 }
             } else {
-                blockDamageMap.put(pos, new BlockDamageInstance(damage, history));
+                blockDamageMap.put(pos, new BlockDamageInstance(damage, new ArrayList<>(history)));
             }
         }
     }

@@ -1,6 +1,16 @@
 // Procedural Material Breaking Patterns
 
-vec3 applyWoodNotch(vec3 color, vec3 localPos, vec3 notchPos, float progress, bool isFresh) {
+uniform vec4 uHitHistory[16];
+uniform int uHitCount;
+uniform float uBreakingProgress;
+uniform int uBreakingPattern;
+uniform vec3 uWeakSpotPos;
+uniform vec3 uWeakSpotColor;
+
+vec3 applyWoodNotch(vec3 color, vec3 localPos, vec4 notchPosAndIntensity, float progress, bool isFresh) {
+    vec3 notchPos = notchPosAndIntensity.xyz;
+    float intensityMultiplier = notchPosAndIntensity.w;
+
     // Localize the effect around the notch position
     float dist = distance(localPos, notchPos);
     if (dist > 0.25) return color; 
@@ -40,7 +50,7 @@ vec3 applyWoodNotch(vec3 color, vec3 localPos, vec3 notchPos, float progress, bo
     
     if (range > 0.0 && abs(pixelPos.x - cutV) < range) {
         float vDist = abs(pixelPos.x - cutV);
-        float intensity = (1.0 - (vDist / range)) * smoothstep(0.25, 0.0, horizDist);
+        float intensity = (1.0 - (vDist / range)) * smoothstep(0.25, 0.0, horizDist) * intensityMultiplier;
         
         if (isFresh) {
             // Restore bright white fresh cut for wood
@@ -54,7 +64,10 @@ vec3 applyWoodNotch(vec3 color, vec3 localPos, vec3 notchPos, float progress, bo
     return color;
 }
 
-vec3 applyStoneChip(vec3 color, vec3 localPos, vec3 notchPos, float progress, bool isFresh) {
+vec3 applyStoneChip(vec3 color, vec3 localPos, vec4 notchPosAndIntensity, float progress, bool isFresh) {
+    vec3 notchPos = notchPosAndIntensity.xyz;
+    float intensityMultiplier = notchPosAndIntensity.w;
+
     // Discritize coordinates to 16x16 grid immediately
     vec3 p16 = floor(localPos * 16.0) / 16.0;
     vec3 n16 = floor(notchPos * 16.0) / 16.0;
@@ -84,7 +97,7 @@ vec3 applyStoneChip(vec3 color, vec3 localPos, vec3 notchPos, float progress, bo
     if (star > 0.75 && d < 0.16 + progress * 0.05) mask = 1.0;
 
     if (mask > 0.5) {
-        float intensity = (1.0 - (d / 0.25)) * (0.8 + n * 0.2);
+        float intensity = (1.0 - (d / 0.25)) * (0.8 + n * 0.2) * intensityMultiplier;
         if (isFresh) {
             return mix(color, uWeakSpotColor, intensity);
         } else {
@@ -117,7 +130,7 @@ vec3 applyBreakingPattern(int patternId, vec3 color, vec3 localPos, float progre
         for (int i = 0; i < uHitCount; i++) {
             if (i < 16) result = applyWoodNotch(result, localPos, uHitHistory[i], progress, false);
         }
-        result = applyWoodNotch(result, localPos, uWeakSpotPos, progress, true);
+        result = applyWoodNotch(result, localPos, vec4(uWeakSpotPos, 1.0), progress, true);
     } else if (patternId == 2) { // STONE / ORE
         // Draw marker only for stone/ore pattern
         result = applyWeakSpotMarker(result, localPos, uWeakSpotPos, progress);
@@ -125,7 +138,7 @@ vec3 applyBreakingPattern(int patternId, vec3 color, vec3 localPos, float progre
         for (int i = 0; i < uHitCount; i++) {
             if (i < 16) result = applyStoneChip(result, localPos, uHitHistory[i], progress, false);
         }
-        result = applyStoneChip(result, localPos, uWeakSpotPos, progress, true);
+        result = applyStoneChip(result, localPos, vec4(uWeakSpotPos, 1.0), progress, true);
     }
     
     return result;
