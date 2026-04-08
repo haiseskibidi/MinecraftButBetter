@@ -120,7 +120,7 @@ public class InventoryLayout {
                 else if (groupCfg.type.equals("vertical")) row = i; else if (groupCfg.type.equals("horizontal")) col = i;
                 
                 Slot slot = targetSlots.get(i);
-                SlotUI slotUI = new SlotUI(slot, bounds.x + col * (slotSize + groupCfg.spacing), bounds.y + row * (slotSize + groupCfg.spacing));
+                SlotUI slotUI = new SlotUI(slot, bounds.x + col * (slotSize + groupCfg.spacing), bounds.y + row * (slotSize + groupCfg.spacing), groupCfg.id);
                 if (groupCfg.placeholders != null) {
                     String placeholder = groupCfg.placeholders.get(i);
                     if (placeholder != null) { slot.withPlaceholder(placeholder); slotUI.withPlaceholder(placeholder); }

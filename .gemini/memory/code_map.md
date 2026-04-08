@@ -25,9 +25,25 @@
 - **AnimationExporter.java**: Конвертация состояния в JSON формат движка.
 - **TransformController.java**: Низкоуровневая логика трансформаций. Реализует перемещение и вращение костей в 3D пространстве с учетом иерархии.
 
-### com.za.minecraft.engine.graphics.ui.Screen (UPDATED)
-Назначение: Базовый интерфейс окон.
-Функции: Добавлены методы `isScene()` (для изоляции), `handleMouseMove()` и `handleMouseRelease()` (для интерактивности).
+### com.za.minecraft.engine.graphics.ui.InventoryScreen (UPDATED)
+Назначение: Базовый класс для всех экранов с инвентарями.
+Функции: Реализует метод `handleQuickMove` — универсальную Data-Driven логику для Shift+Click, использующую правила из JSON. Содержит абстрактный метод `getScreenIdentifier()`.
+
+### com.za.minecraft.engine.graphics.ui.ChestScreen (UPDATED)
+Назначение: Универсальный экран для любых контейнеров.
+Функции: Принимает динамический `Identifier guiId` в конструкторе. Загружает разметку из соответствующего JSON файла через `InventoryLayout`. Поддерживает отображение нескольких инвентарей (контейнер + игрок).
+
+### com.za.minecraft.engine.graphics.ui.InventoryLayout (UPDATED)
+Назначение: Движок динамической разметки интерфейсов.
+Функции: Генерирует позиции слотов и групп на основе JSON. Поддерживает `Map<String, IInventory>` для работы с несколькими источниками данных одновременно. Реализует логику `relativeTo` (относительное позиционирование групп).
+
+### com.za.minecraft.engine.graphics.ui.SlotUI (UPDATED)
+Назначение: Визуальное представление слота.
+Функции: Содержит `groupId` для связи слота с правилами быстрого перемещения в JSON конфигурации.
+
+### com.za.minecraft.engine.graphics.ui.GUIConfig (UPDATED)
+Назначение: Модель данных для JSON-конфигураций интерфейса.
+Функции: Расширена полями `inventorySource`, `startIndex`, `slotsCount` и `quickMoveTo` для каждой группы.
 
 ### com.za.minecraft.engine.graphics.ui.UIRenderer (UPDATED)
 Назначение: Модульный рендерер интерфейса (Facade).

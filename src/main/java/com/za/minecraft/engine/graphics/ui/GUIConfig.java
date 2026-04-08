@@ -43,6 +43,7 @@ public class GUIConfig {
         public String inventorySource = "player"; // "player" or "container"
         public int startIndex = 0;
         public int slotsCount = -1; // -1 means use all available slots starting from startIndex
+        public java.util.List<String> quickMoveTo; // Target group IDs for Shift+Click
         public java.util.Map<Integer, String> placeholders; // Map slot index in group to placeholder texture
         public String condition;   // Optional condition (e.g., "has_pouch", "developer_mode")
     }

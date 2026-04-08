@@ -8,12 +8,18 @@ import com.za.minecraft.entities.inventory.Slot;
 public class SlotUI {
     private final Slot slot;
     private final int x, y;
+    private final String groupId;
     private String placeholderTexture;
 
-    public SlotUI(Slot slot, int x, int y) {
+    public SlotUI(Slot slot, int x, int y, String groupId) {
         this.slot = slot;
         this.x = x;
         this.y = y;
+        this.groupId = groupId;
+    }
+
+    public String getGroupId() {
+        return groupId;
     }
 
     public SlotUI withPlaceholder(String texture) {

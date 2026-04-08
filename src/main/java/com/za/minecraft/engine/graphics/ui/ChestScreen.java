@@ -11,14 +11,16 @@ import java.util.List;
 public class ChestScreen extends InventoryScreen {
     private final com.za.minecraft.world.inventory.IInventory containerInventory;
     private final com.za.minecraft.entities.Player player;
+    private final com.za.minecraft.utils.Identifier guiId;
     private final List<GroupUI> groups = new ArrayList<>();
     private GroupUI globalBackground;
     private GUIConfig.BackgroundConfig backgroundConfig;
 
-    public ChestScreen(com.za.minecraft.world.inventory.IInventory containerInventory, com.za.minecraft.entities.Player player) {
-        super("Chest");
+    public ChestScreen(com.za.minecraft.world.inventory.IInventory containerInventory, com.za.minecraft.entities.Player player, com.za.minecraft.utils.Identifier guiId) {
+        super("Container");
         this.containerInventory = containerInventory;
         this.player = player;
+        this.guiId = guiId;
     }
 
     @Override
@@ -28,7 +30,7 @@ public class ChestScreen extends InventoryScreen {
         int size = getSlotSize();
         int spacing = getSpacing();
 
-        GUIConfig config = GUIRegistry.get(com.za.minecraft.utils.Identifier.of("minecraft:chest"));
+        GUIConfig config = GUIRegistry.get(guiId);
         if (config != null) {
             java.util.Map<String, com.za.minecraft.world.inventory.IInventory> inventories = new java.util.HashMap<>();
             inventories.put("player", player.getInventory());
@@ -47,9 +49,14 @@ public class ChestScreen extends InventoryScreen {
             int startY = (sh - (rows + 4) * (size + spacing)) / 2;
             for (int i = 0; i < containerInventory.size(); i++) {
                 slots.add(new SlotUI(new com.za.minecraft.entities.inventory.Slot(containerInventory, i, "any"), 
-                                    startX + (i % cols) * (size + spacing), startY + (i / cols) * (size + spacing)));
+                                    startX + (i % cols) * (size + spacing), startY + (i / cols) * (size + spacing), "container"));
             }
         }
+    }
+
+    @Override
+    protected com.za.minecraft.utils.Identifier getScreenIdentifier() {
+        return guiId;
     }
 
     @Override

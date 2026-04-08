@@ -62,6 +62,11 @@ public class PlayerInventoryScreen extends InventoryScreen {
     }
 
     @Override
+    protected com.za.minecraft.utils.Identifier getScreenIdentifier() {
+        return com.za.minecraft.utils.Identifier.of("minecraft:player_inventory");
+    }
+
+    @Override
     public void render(UIRenderer renderer, int sw, int sh, com.za.minecraft.engine.graphics.DynamicTextureAtlas atlas) {
         // Universal dynamic update: check if any layout-affecting state changed
         String currentKey = calculateLayoutKey(sw, sh);

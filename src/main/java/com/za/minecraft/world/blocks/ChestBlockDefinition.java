@@ -45,7 +45,7 @@ public class ChestBlockDefinition extends BlockDefinition {
         
         GameLoop.getInstance().setInventoryOpen(true);
         GameLoop.getInstance().getInputManager().disableMouseCapture(GameLoop.getInstance().getWindow());
-        ScreenManager.getInstance().openChest(chest, player, sw, sh);
+        ScreenManager.getInstance().openChest(chest, player, com.za.minecraft.utils.Identifier.of("minecraft:chest"), sw, sh);
         return true;
     }
 }

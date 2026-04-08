@@ -4,6 +4,7 @@ import com.za.minecraft.engine.core.GameLoop;
 import com.za.minecraft.entities.Player;
 import com.za.minecraft.entities.inventory.Slot;
 import com.za.minecraft.world.items.ItemStack;
+import com.za.minecraft.utils.Identifier;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,6 +53,72 @@ public abstract class InventoryScreen implements Screen {
         }
         return null;
     }
+
+    /**
+     * Handles Shift+Click logic for this screen.
+     */
+    public void onQuickMove(SlotUI slotUI, com.za.minecraft.entities.Player player) {
+        handleQuickMove(slotUI, player);
+    }
+
+    private void handleQuickMove(SlotUI originUI, Player player) {
+        Slot originSlot = originUI.getSlot();
+        ItemStack stack = originSlot.getStack();
+        if (stack == null) return;
+
+        // Get the screen configuration
+        Identifier screenId = getScreenIdentifier();
+        GUIConfig config = GUIRegistry.get(screenId);
+        if (config == null) return;
+
+        // Find the group config for the origin slot
+        GUIConfig.GroupConfig originGroupCfg = null;
+        for (GUIConfig.GroupConfig g : config.groups) {
+            if (g.id.equals(originUI.getGroupId())) {
+                originGroupCfg = g;
+                break;
+            }
+        }
+        if (originGroupCfg == null || originGroupCfg.quickMoveTo == null) return;
+
+        // Target groups in priority order
+        for (String targetGroupId : originGroupCfg.quickMoveTo) {
+            // Find all slots belonging to this target group
+            List<Slot> targetSlots = new ArrayList<>();
+            for (SlotUI ui : slots) {
+                if (ui.getGroupId().equals(targetGroupId)) {
+                    targetSlots.add(ui.getSlot());
+                }
+            }
+
+            // 1. Try to stack
+            for (Slot target : targetSlots) {
+                ItemStack targetStack = target.getStack();
+                if (targetStack != null && targetStack.isStackableWith(stack) && !targetStack.isFull()) {
+                    int space = targetStack.getAvailableSpace();
+                    int toMove = Math.min(space, stack.getCount());
+                    targetStack.setCount(targetStack.getCount() + toMove);
+                    stack.setCount(stack.getCount() - toMove);
+                    if (stack.getCount() <= 0) {
+                        originSlot.setStack(null);
+                        return;
+                    }
+                }
+            }
+
+            // 2. Try empty slots
+            for (Slot target : targetSlots) {
+                if (target.getStack() == null && target.isItemValid(stack)) {
+                    target.setStack(stack.copy());
+                    stack.setCount(0);
+                    originSlot.setStack(null);
+                    return;
+                }
+            }
+        }
+    }
+
+    protected abstract Identifier getScreenIdentifier();
 
     protected int getSlotSize() {
         return (int)(18 * Hotbar.HOTBAR_SCALE);

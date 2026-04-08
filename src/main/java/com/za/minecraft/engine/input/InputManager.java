@@ -304,11 +304,17 @@ public class InputManager {
         lastClickSlot = slot.getIndex();
 
         if (shift && button == GLFW_MOUSE_BUTTON_1) {
-            if (player.getInventory() instanceof Inventory inv) {
-                if (doubleClick) {
-                    inv.collectAllTo(slot);
-                } else {
-                    inv.quickMove(slot);
+            com.za.minecraft.engine.graphics.ui.Screen activeScreen = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+            if (activeScreen instanceof com.za.minecraft.engine.graphics.ui.InventoryScreen invScreen) {
+                com.za.minecraft.engine.graphics.ui.SlotUI slotUI = invScreen.getSlotAt(currentPos.x, currentPos.y);
+                if (slotUI != null) {
+                    if (doubleClick) {
+                        if (player.getInventory() instanceof Inventory inv) {
+                            inv.collectAllTo(slot);
+                        }
+                    } else {
+                        invScreen.onQuickMove(slotUI, player);
+                    }
                 }
             }
             return;
@@ -560,18 +566,28 @@ public class InputManager {
             }
 
             if (inventoryOpen) {
-                com.za.minecraft.entities.inventory.Slot newHovered = getSlotAt(currentPos.x, currentPos.y);
+                com.za.minecraft.engine.graphics.ui.SlotUI slotUI = null;
+                com.za.minecraft.engine.graphics.ui.Screen active = com.za.minecraft.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+                if (active instanceof com.za.minecraft.engine.graphics.ui.InventoryScreen invScreen) {
+                    slotUI = invScreen.getSlotAt(currentPos.x, currentPos.y);
+                }
+                
+                com.za.minecraft.entities.inventory.Slot newHovered = slotUI != null ? slotUI.getSlot() : null;
                 if (newHovered != hoveredSlot) {
                     hoveredSlot = newHovered;
                     
                     // Mouse Tweaks: Shift + Drag quick move
                     if (window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1) && (window.isKeyPressed(GLFW_KEY_LEFT_SHIFT) || window.isKeyPressed(GLFW_KEY_RIGHT_SHIFT))) {
-                        if (hoveredSlot != null && hoveredSlot.getIndex() != lastQuickMovedSlot && heldStack == null) {
-                            if (player.getInventory() instanceof Inventory inv) {
-                                inv.quickMove(hoveredSlot);
-                                lastQuickMovedSlot = hoveredSlot.getIndex();
+                        if (slotUI != null && slotUI.getSlot() != null && heldStack == null) {
+                            // Use identity hash or similar to distinguish slots with same index in different inventories
+                            int slotKey = System.identityHashCode(slotUI.getSlot());
+                            if (slotKey != lastQuickMovedSlot) {
+                                if (active instanceof com.za.minecraft.engine.graphics.ui.InventoryScreen invScreen) {
+                                    invScreen.onQuickMove(slotUI, player);
+                                    lastQuickMovedSlot = slotKey;
+                                }
                             }
-                        } else if (hoveredSlot == null && player.getMode() == PlayerMode.DEVELOPER) {
+                        } else if (slotUI == null && player.getMode() == PlayerMode.DEVELOPER) {
                             Item devItem = getDevItemAt(currentPos.x, currentPos.y);
                             if (devItem != null && devItem.getId() != lastQuickCopiedDevItem) {
                                 // Find first free hotbar slot or overwrite if needed? 

@@ -461,13 +461,16 @@ public class Renderer {
 
                 if (mesh != null) {
                     float age = itemEntity.getAge() + alpha * 0.016f; 
-                    float bob = (float) Math.sin(age * 2.5f) * 0.02f; 
+                    float bob = (float) Math.sin(age * 2.5f) * 0.02f;
                     float scale = item.isBlock() ? 0.25f : item.getVisualScale() * 0.45f;
+
+                    // Items are centered at (0,0), so they sink by half. Blocks are 0..1, so they don't.
+                    float yOffset = item.isBlock() ? 0.0f : scale * 0.5f;
+
                     Vector3f interpRot = entity.getInterpolatedRotation(alpha);
 
                     modelMatrix.identity()
-                        .translate(interpPos.x(), interpPos.y() + bob, interpPos.z())
-                        .rotateX(interpRot.x)
+                        .translate(interpPos.x(), interpPos.y() + bob + yOffset, interpPos.z())                        .rotateX(interpRot.x)
                         .rotateY(interpRot.y)
                         .rotateZ(interpRot.z)
                         .scale(scale);
