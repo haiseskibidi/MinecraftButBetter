@@ -1,7 +1,7 @@
 {
     "id":  5,
     "identifier":  "zenith:oak_leaves",
-    "translationKey":  "block.minecraft.oak_leaves",
+    "translationKey":  "block.zenith.oak_leaves",
     "solid":  true,
     "transparent":  true,
     "hardness":  0.2,

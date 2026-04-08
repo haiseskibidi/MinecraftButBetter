@@ -11,3 +11,5 @@ public record ThermalComponent(
     public static final float DEFAULT_BURN_THRESHOLD = 55.0f;
     public static final float DEFAULT_SPECIFIC_HEAT = 1.0f;
 }
+
+

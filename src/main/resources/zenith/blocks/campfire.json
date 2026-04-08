@@ -1,7 +1,7 @@
 {
     "id":  29,
     "identifier":  "zenith:campfire",
-    "translationKey":  "block.minecraft.campfire",
+    "translationKey":  "block.zenith.campfire",
     "solid":  true,
     "transparent":  true,
     "type": "campfire",

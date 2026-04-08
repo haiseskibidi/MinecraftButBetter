@@ -8,3 +8,5 @@ public class LayoutResult {
     public final List<GroupUI> groups = new ArrayList<>();
     public GroupUI globalBackground;
 }
+
+

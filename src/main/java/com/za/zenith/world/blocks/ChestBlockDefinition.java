@@ -49,3 +49,5 @@ public class ChestBlockDefinition extends BlockDefinition {
         return true;
     }
 }
+
+

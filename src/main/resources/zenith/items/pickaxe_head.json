@@ -1,6 +1,6 @@
 {
   "id": 418,
   "identifier": "zenith:pickaxe_head",
-  "translationKey": "item.minecraft.pickaxe_head",
-  "texture": "minecraft/textures/item/stone_pickaxe.png"
+  "translationKey": "item.zenith.pickaxe_head",
+  "texture": "zenith/textures/item/stone_pickaxe.png"
 }

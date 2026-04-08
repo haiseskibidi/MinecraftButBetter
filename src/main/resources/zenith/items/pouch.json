@@ -1,8 +1,8 @@
 {
   "id": 409,
   "identifier": "zenith:pouch",
-  "translationKey": "item.minecraft.pouch",
-  "texture": "minecraft/textures/item/bundle.png",
+  "translationKey": "item.zenith.pouch",
+  "texture": "zenith/textures/item/bundle.png",
   "weight": 0.5,
   "visualScale": 0.8,
   "maxStackSize": 1,

@@ -11,3 +11,5 @@ public interface IRecipe {
     ItemStack getResult();
     String getType(); // "napping", "crafting", etc.
 }
+
+

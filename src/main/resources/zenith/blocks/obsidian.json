@@ -1,7 +1,7 @@
 {
     "id":  16,
     "identifier":  "zenith:obsidian",
-    "translationKey":  "block.minecraft.obsidian",
+    "translationKey":  "block.zenith.obsidian",
     "solid":  true,
     "transparent":  false,
     "hardness":  50.0,

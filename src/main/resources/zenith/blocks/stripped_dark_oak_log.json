@@ -1,7 +1,7 @@
 {
     "id": 184,
     "identifier": "zenith:stripped_dark_oak_log",
-    "translationKey": "block.minecraft.stripped_dark_oak_log",
+    "translationKey": "block.zenith.stripped_dark_oak_log",
     "solid": true,
     "transparent": false,
     "type": "log",

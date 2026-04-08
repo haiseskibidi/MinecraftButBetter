@@ -1,8 +1,8 @@
 {
   "id": 450,
   "identifier": "zenith:magnetite",
-  "translationKey": "item.minecraft.magnetite",
-  "texture": "minecraft/textures/item/magnetite.png",
+  "translationKey": "item.zenith.magnetite",
+  "texture": "zenith/textures/item/magnetite.png",
   "weight": 1.2,
   "visualScale": 1.0,
   "maxStackSize": 1,

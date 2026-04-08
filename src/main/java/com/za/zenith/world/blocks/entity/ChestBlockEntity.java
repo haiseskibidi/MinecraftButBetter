@@ -41,3 +41,5 @@ public class ChestBlockEntity extends BlockEntity implements IInventory {
         return inventory.isSlotActive(slot);
     }
 }
+
+

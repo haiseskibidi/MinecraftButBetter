@@ -33,3 +33,5 @@ public class DecorationEntity extends Entity {
         super.update(deltaTime, world);
     }
 }
+
+

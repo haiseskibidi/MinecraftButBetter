@@ -45,3 +45,5 @@ public class StairsBlockDefinition extends BlockDefinition {
         return false;
     }
 }
+
+

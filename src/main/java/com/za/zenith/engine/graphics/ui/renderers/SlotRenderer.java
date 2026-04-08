@@ -136,7 +136,7 @@ public class SlotRenderer {
         
         Texture tex = null;
         try {
-            String path = placeholder.contains("/") ? placeholder : "minecraft/textures/item/" + placeholder + ".png";
+            String path = placeholder.contains("/") ? placeholder : "zenith/textures/item/" + placeholder + ".png";
             if (!path.startsWith("src/")) path = "src/main/resources/" + path;
             int placeholderId = path.hashCode();
             tex = itemTextures.get(placeholderId);
@@ -199,3 +199,5 @@ public class SlotRenderer {
         uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
     }
 }
+
+

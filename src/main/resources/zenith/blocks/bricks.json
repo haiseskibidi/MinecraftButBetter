@@ -1,7 +1,7 @@
 {
     "id":  20,
     "identifier":  "zenith:bricks",
-    "translationKey":  "block.minecraft.bricks",
+    "translationKey":  "block.zenith.bricks",
     "solid":  true,
     "transparent":  false,
     "hardness":  2.0,

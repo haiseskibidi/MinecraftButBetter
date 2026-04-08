@@ -1,7 +1,7 @@
 {
     "id":  3,
     "identifier":  "zenith:stone",
-    "translationKey":  "block.minecraft.stone",
+    "translationKey":  "block.zenith.stone",
     "solid":  true,
     "transparent":  false,
     "hardness":  1.5,

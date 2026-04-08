@@ -35,3 +35,5 @@ public class CarvingRecipe implements IRecipe {
     @Override
     public ItemStack getResult() { return null; } // Не используется для этого типа
 }
+
+

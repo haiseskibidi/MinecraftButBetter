@@ -11,3 +11,5 @@ public record ToolComponent(ToolType type, float efficiency, int maxDurability, 
     public ToolComponent(ToolType type, float efficiency, int maxDurability, boolean isEffectiveAgainstAll) {
         this(type, efficiency, maxDurability, isEffectiveAgainstAll, 0.5f);
     }}
+
+

@@ -160,7 +160,7 @@ public class Renderer {
         blockShader.setVector3f("lightColor", new Vector3f(0.3f, 0.3f, 0.25f));
         blockShader.setVector3f("ambientLight", new Vector3f(0.85f, 0.85f, 0.9f));
         blockShader.setInt("textureSampler", 0);
-        float[] glassUV = atlas.uvFor("minecraft/textures/block/glass.png");
+        float[] glassUV = atlas.uvFor("zenith/textures/block/glass.png");
         blockShader.setFloat("glassLayer", glassUV[2]);
         framebuffer = new Framebuffer(windowWidth, windowHeight);
         postProcessor = new PostProcessor();
@@ -652,3 +652,5 @@ public class Renderer {
         if (blockShader != null) blockShader.cleanup();
     }
 }
+
+

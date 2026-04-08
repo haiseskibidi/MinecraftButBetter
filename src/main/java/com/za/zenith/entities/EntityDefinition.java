@@ -14,3 +14,5 @@ public record EntityDefinition(
     Vector3f visualScale,
     Vector3f hitboxSize
 ) {}
+
+

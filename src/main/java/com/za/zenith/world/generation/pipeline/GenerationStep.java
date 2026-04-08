@@ -20,3 +20,5 @@ public interface GenerationStep {
      */
     default void generateStructures(World world, Chunk chunk) {}
 }
+
+

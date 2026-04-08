@@ -158,7 +158,7 @@ public class EditorInputHandler {
             return true;
         }
 
-        if (key == GLFW_KEY_S && ctrl) { AnimationExporter.export(state, "src/main/resources/minecraft/animations/editor_output.json"); return true; }
+        if (key == GLFW_KEY_S && ctrl) { AnimationExporter.export(state, "src/main/resources/zenith/animations/editor_output.json"); return true; }
         if (key == GLFW_KEY_ESCAPE || key == GLFW_KEY_F8) {
             if (transformController.getCurrentMode() != TransformController.TransformMode.NONE) {
                 transformController.cancelTransform(state);
@@ -293,3 +293,5 @@ public class EditorInputHandler {
         }
     }
 }
+
+

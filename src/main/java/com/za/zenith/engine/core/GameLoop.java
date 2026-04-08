@@ -337,3 +337,5 @@ public class GameLoop {
     public boolean isPaused() { return paused; }
     public Window getWindow() { return window; }
 }
+
+

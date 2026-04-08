@@ -1,8 +1,8 @@
 {
   "id": 107,
   "identifier": "zenith:backpack",
-  "translationKey": "item.minecraft.backpack",
-  "texture": "minecraft/textures/item/bundle.png",
+  "translationKey": "item.zenith.backpack",
+  "texture": "zenith/textures/item/bundle.png",
   "type": "default",
   "maxStackSize": 1,
   "components": {

@@ -12,3 +12,5 @@ public class PlayerLeavePacket extends NetworkPacket {
         this.playerName = playerName;
     }
 }
+
+

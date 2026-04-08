@@ -1,6 +1,6 @@
 {
   "id": 416,
   "identifier": "zenith:stone_arrowhead",
-  "translationKey": "item.minecraft.stone_arrowhead",
-  "texture": "minecraft/textures/item/tipped_arrow_head.png"
+  "translationKey": "item.zenith.stone_arrowhead",
+  "texture": "zenith/textures/item/tipped_arrow_head.png"
 }

@@ -157,3 +157,5 @@ public class AnimationEditorScreen implements Screen {
         if (viewmodel != null) viewmodel.cleanup();
     }
 }
+
+

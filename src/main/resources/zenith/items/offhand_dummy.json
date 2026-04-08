@@ -1,8 +1,8 @@
 {
   "id": 410,
   "identifier": "zenith:offhand_dummy",
-  "translationKey": "item.minecraft.offhand_dummy",
-  "texture": "minecraft/textures/item/.png",
+  "translationKey": "item.zenith.offhand_dummy",
+  "texture": "zenith/textures/item/.png",
   "weight": 1.0,
   "visualScale": 1.0,
   "maxStackSize": 1,

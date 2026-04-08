@@ -1,7 +1,7 @@
 {
     "id": 170,
     "identifier": "zenith:birch_leaves",
-    "translationKey": "block.minecraft.birch_leaves",
+    "translationKey": "block.zenith.birch_leaves",
     "solid": true,
     "transparent": true,
     "hardness": 0.2,

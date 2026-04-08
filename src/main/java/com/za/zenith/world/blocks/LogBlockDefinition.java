@@ -116,3 +116,5 @@ public class LogBlockDefinition extends BlockDefinition {
         // Логика перенесена в onBlockBreak для постепенного срубания
     }
 }
+
+

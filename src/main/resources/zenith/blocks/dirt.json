@@ -1,7 +1,7 @@
 {
     "id":  2,
     "identifier":  "zenith:dirt",
-    "translationKey":  "block.minecraft.dirt",
+    "translationKey":  "block.zenith.dirt",
     "solid":  true,
     "transparent":  false,
     "hardness":  0.5,

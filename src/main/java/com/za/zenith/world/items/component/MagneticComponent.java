@@ -14,3 +14,5 @@ public class MagneticComponent implements ItemComponent {
         this.attractionForce = attractionForce;
     }
 }
+
+

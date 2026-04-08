@@ -37,3 +37,5 @@ public class BlockTypeRegistry {
         return factory.create(id, identifier, translationKey, solid, transparent);
     }
 }
+
+

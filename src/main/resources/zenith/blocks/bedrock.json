@@ -1,7 +1,7 @@
 {
     "id":  8,
     "identifier":  "zenith:bedrock",
-    "translationKey":  "block.minecraft.bedrock",
+    "translationKey":  "block.zenith.bedrock",
     "solid":  true,
     "transparent":  false,
     "hardness":  -1.0,

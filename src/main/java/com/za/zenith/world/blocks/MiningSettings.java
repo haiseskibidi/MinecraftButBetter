@@ -12,3 +12,5 @@ import org.joml.Vector3f;
 public record MiningSettings(String strategy, float precision, float missMultiplier, Vector3f weakSpotColor) {
     public static final MiningSettings DEFAULT = new MiningSettings("default", 0.2f, 1.0f, new Vector3f(1.0f, 1.0f, 1.0f));
 }
+
+

@@ -1,7 +1,7 @@
 {
   "id": 125,
   "identifier": "zenith:tall_grass",
-  "translationKey": "block.minecraft.tall_grass",
+  "translationKey": "block.zenith.tall_grass",
   "solid": false,
   "transparent": true,
   "placement": "DOUBLE_PLANT",

@@ -1,7 +1,7 @@
 {
     "id":  7,
     "identifier":  "zenith:cobblestone",
-    "translationKey":  "block.minecraft.cobblestone",
+    "translationKey":  "block.zenith.cobblestone",
     "solid":  true,
     "transparent":  false,
     "hardness":  2.0,

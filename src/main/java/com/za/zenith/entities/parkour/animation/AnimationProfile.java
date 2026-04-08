@@ -64,3 +64,5 @@ public class AnimationProfile {
     public float getJitterIntensity() { return jitterIntensity; }
     public void setJitterIntensity(float jitterIntensity) { this.jitterIntensity = jitterIntensity; }
 }
+
+

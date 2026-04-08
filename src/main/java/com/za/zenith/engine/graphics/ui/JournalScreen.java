@@ -379,3 +379,5 @@ public class JournalScreen implements Screen {
         return false;
     }
 }
+
+

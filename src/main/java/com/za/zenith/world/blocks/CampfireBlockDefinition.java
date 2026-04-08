@@ -26,3 +26,5 @@ public class CampfireBlockDefinition extends BlockDefinition {
         return false;
     }
 }
+
+

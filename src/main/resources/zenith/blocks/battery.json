@@ -1,7 +1,7 @@
 {
     "id":  33,
     "identifier":  "zenith:battery",
-    "translationKey":  "block.minecraft.battery",
+    "translationKey":  "block.zenith.battery",
     "solid":  true,
     "transparent":  false,
     "type":  "battery",

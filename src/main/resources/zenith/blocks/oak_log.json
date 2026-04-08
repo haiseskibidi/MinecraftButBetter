@@ -1,7 +1,7 @@
 {
     "id": 4,
     "identifier": "zenith:oak_log",
-    "translationKey": "block.minecraft.oak_log",
+    "translationKey": "block.zenith.oak_log",
     "solid": true,
     "transparent": false,
     "type": "log",

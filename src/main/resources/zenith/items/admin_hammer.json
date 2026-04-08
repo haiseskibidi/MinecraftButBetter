@@ -1,8 +1,8 @@
 {
   "id": 415,
   "identifier": "zenith:admin_hammer",
-  "translationKey": "item.minecraft.admin_hammer",
-  "texture": "minecraft/textures/item/nether_star.png",
+  "translationKey": "item.zenith.admin_hammer",
+  "texture": "zenith/textures/item/nether_star.png",
   "maxStackSize": 1,
   "components": {
     "zenith:tool": {

@@ -85,7 +85,7 @@ public class BlockTextureMapper {
 
         BlockTextures textures = BlockRegistry.getTextures(type);
         if (textures == null) {
-            return "minecraft/textures/block/dirt.png";
+            return "zenith/textures/block/dirt.png";
         }
 
         // --- DOUBLE_PLANT logic ---
@@ -109,5 +109,7 @@ public class BlockTextureMapper {
         return textures.getTextureForFace(face);
     }
 }
+
+
 
 

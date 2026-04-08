@@ -1,7 +1,7 @@
 {
     "id": 131,
     "identifier": "zenith:burning_pit_kiln",
-    "translationKey": "block.minecraft.burning_pit_kiln",
+    "translationKey": "block.zenith.burning_pit_kiln",
     "solid": false,
     "transparent": true,
     "alwaysRender": true,

@@ -1,6 +1,6 @@
 {
   "id": 402,
   "identifier": "zenith:clay_ball",
-  "translationKey": "item.minecraft.clay_ball",
-  "texture": "minecraft/textures/item/clay_ball.png"
+  "translationKey": "item.zenith.clay_ball",
+  "texture": "zenith/textures/item/clay_ball.png"
 }

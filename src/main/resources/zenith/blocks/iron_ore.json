@@ -1,7 +1,7 @@
 {
     "id": 12,
     "identifier": "zenith:iron_ore",
-    "translationKey": "block.minecraft.iron_ore",
+    "translationKey": "block.zenith.iron_ore",
     "solid": true,
     "transparent": false,
     "hardness": 3.0,

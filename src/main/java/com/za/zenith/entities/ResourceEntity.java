@@ -45,3 +45,5 @@ public class ResourceEntity extends Entity {
         // Статичные ресурсы не обновляются для экономии CPU
     }
 }
+
+

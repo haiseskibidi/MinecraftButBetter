@@ -19,3 +19,5 @@ public class CableBlockDefinition extends BlockDefinition {
         return new CableBlockEntity(pos);
     }
 }
+
+

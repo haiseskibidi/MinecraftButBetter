@@ -22,7 +22,7 @@ It's a game!
 Made in Sweden!
 Uses LWJGL!
 Reticulating splines!
-Minecraft!
+zenith!
 Yaaay!
 Singleplayer!
 Keyboard compatible!
@@ -164,7 +164,7 @@ Regional resources!
 Woo, facepunch!
 Woo, somethingawful!
 Woo, tigsource!
-Woo, worldofminecraft!
+Woo, worldofzenith!
 Woo, reddit!
 Woo, 2pp!
 Google anlyticsed!
@@ -194,7 +194,7 @@ Don't look directly at the bugs!
 Oh, ok, Pigmen!
 Finally with ladders!
 Scary!
-Play Minecraft, Watch Topgear, Get Pig!
+Play zenith, Watch Topgear, Get Pig!
 Twittered about!
 Jump up, jump up, and get down!
 Joel is neat!
@@ -373,7 +373,7 @@ Ph1lza had a good run!
 Ping the human!
 In case it isn't obvious, foxes aren't players.
 Buzzy Bees!
-Minecraft Java Edition presents: Disgusting Bugs
+zenith Java Edition presents: Disgusting Bugs
 Wash your hands!
 Soap and water!
 Support local businesses!
@@ -397,11 +397,11 @@ Edit is a name!
 From free range developers!
 Music by Lena Raine!
 Aww man!
-#minecraftfarms
+#zenithfarms
 And my pickaxe!
 Envision! Create! Share!
 Fabulous graphics!
-Also try Minecraft Dungeons!
+Also try zenith Dungeons!
 Vanilla!
 May contain traces of citrus!
 Zoglin!?

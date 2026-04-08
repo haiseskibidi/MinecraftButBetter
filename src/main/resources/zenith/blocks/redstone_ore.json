@@ -1,7 +1,7 @@
 {
     "id": 43,
     "identifier": "zenith:redstone_ore",
-    "translationKey": "block.minecraft.redstone_ore",
+    "translationKey": "block.zenith.redstone_ore",
     "solid": true,
     "transparent": false,
     "hardness": 3.0,

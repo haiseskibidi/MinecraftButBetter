@@ -1,5 +1,5 @@
 {
-  "texture": "minecraft/textures/default.png",
+  "texture": "zenith/textures/default.png",
   "bones": [
     {
       "name": "shoulder_r",

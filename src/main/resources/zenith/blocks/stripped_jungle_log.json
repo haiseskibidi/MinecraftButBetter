@@ -1,7 +1,7 @@
 {
     "id": 182,
     "identifier": "zenith:stripped_jungle_log",
-    "translationKey": "block.minecraft.stripped_jungle_log",
+    "translationKey": "block.zenith.stripped_jungle_log",
     "solid": true,
     "transparent": false,
     "type": "log",

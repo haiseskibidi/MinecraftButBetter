@@ -1,7 +1,7 @@
 {
   "id": 151,
   "identifier": "zenith:unfinished_stump",
-  "translationKey": "block.minecraft.unfinished_stump",
+  "translationKey": "block.zenith.unfinished_stump",
   "type": "stump",
   "solid": true,
   "transparent": false,

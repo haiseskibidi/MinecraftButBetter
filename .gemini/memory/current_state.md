@@ -96,3 +96,4 @@
 - [x] Milestone 2: Базовые механики выживания (Inventory v3, Hunger, Noise, Parkour v1).
 - [x] Milestone 3: Моддинг-API и Расширяемость (Registry Events, Data-Driven GUI, Physics Registry).
 - [ ] Milestone 4: Полноценный геймплей (Боевой ИИ, Металлургия, Прогрессия).
+

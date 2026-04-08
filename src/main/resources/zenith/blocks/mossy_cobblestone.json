@@ -1,7 +1,7 @@
 {
     "id":  15,
     "identifier":  "zenith:mossy_cobblestone",
-    "translationKey":  "block.minecraft.mossy_cobblestone",
+    "translationKey":  "block.zenith.mossy_cobblestone",
     "solid":  true,
     "transparent":  false,
     "hardness":  2.0,

@@ -16,3 +16,5 @@ public class ChatMessagePacket extends NetworkPacket {
         this.timestamp = System.currentTimeMillis();
     }
 }
+
+

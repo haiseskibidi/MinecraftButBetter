@@ -1,8 +1,8 @@
 {
     "id": 423,
     "identifier": "zenith:stick",
-    "translationKey": "item.minecraft.stick",
-    "texture": "minecraft/textures/item/stick.png",
+    "translationKey": "item.zenith.stick",
+    "texture": "zenith/textures/item/stick.png",
     "visualScale": 0.6,
     "interaction_cooldown": 0.5
 }

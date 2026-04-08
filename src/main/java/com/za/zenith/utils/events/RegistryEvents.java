@@ -23,3 +23,5 @@ public class RegistryEvents {
         ITEM_REGISTRATION_LISTENERS.forEach(Runnable::run);
     }
 }
+
+

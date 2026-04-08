@@ -20,3 +20,5 @@ public class ScavengeSettings {
         return ENTRIES;
     }
 }
+
+

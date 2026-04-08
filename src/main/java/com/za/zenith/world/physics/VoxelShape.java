@@ -47,3 +47,5 @@ public class VoxelShape {
     public static final VoxelShape SLAB_WEST = new VoxelShape(new AABB(0, 0, 0, 0.5f, 1, 1));
     public static final VoxelShape SLAB_EAST = new VoxelShape(new AABB(0.5f, 0, 0, 1, 1, 1));
 }
+
+

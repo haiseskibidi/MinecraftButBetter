@@ -56,3 +56,5 @@ public class GUIConfig {
         public List<String> includeGroups; // List of group IDs to encompass with this background
     }
 }
+
+

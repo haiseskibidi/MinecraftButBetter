@@ -1,7 +1,7 @@
 {
     "id":  18,
     "identifier":  "zenith:rusty_metal",
-    "translationKey":  "block.minecraft.rusty_metal",
+    "translationKey":  "block.zenith.rusty_metal",
     "solid":  true,
     "transparent":  false,
     "hardness":  5.0,

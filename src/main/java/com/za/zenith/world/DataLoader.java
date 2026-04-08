@@ -36,7 +36,7 @@ public class DataLoader {
 
     public static void loadAll() {
         // Гарантируем наличие AIR даже если загрузка из JSON не сработает
-        BlockDefinition airDef = new BlockDefinition(0, "block.minecraft.air", false, false);
+        BlockDefinition airDef = new BlockDefinition(0, "block.zenith.air", false, false);
         airDef.setReplaceable(true);
         BlockRegistry.registerBlock(airDef);
         
@@ -108,9 +108,9 @@ public class DataLoader {
     }
 
     private static void loadParkourAnimations() {
-        List<String> files = listResources("minecraft/animations");
+        List<String> files = listResources("zenith/animations");
         for (String fileName : files) {
-            String path = "minecraft/animations/" + fileName + ".json";
+            String path = "zenith/animations/" + fileName + ".json";
             try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path)) {
                 if (is == null) continue;
                 JsonObject animObj = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonObject.class);
@@ -169,7 +169,7 @@ public class DataLoader {
     }
 
     private static void loadPhysicsSettings() {
-        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("minecraft/registry/physics.json")) {
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("zenith/registry/physics.json")) {
             if (is == null) return;
             com.za.zenith.world.physics.PhysicsSettings settings = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), com.za.zenith.world.physics.PhysicsSettings.class);
             if (settings != null) {
@@ -318,7 +318,7 @@ public class DataLoader {
     }
 
     private static void loadScavengeSettings() {
-        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("minecraft/registry/scavenge.json")) {
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("zenith/registry/scavenge.json")) {
             if (is == null) return;
             JsonArray root = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonArray.class);
             for (JsonElement el : root) {
@@ -475,7 +475,7 @@ public class DataLoader {
 
     private static List<String> loadNamespaces() {
         List<String> namespaces = new ArrayList<>();
-        // По умолчанию всегда есть minecraft
+        // По умолчанию всегда есть zenith
         namespaces.add("zenith");
         
         try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("namespaces.index")) {
@@ -490,13 +490,13 @@ public class DataLoader {
                 }
             }
         } catch (Exception e) {
-            Logger.warn("Could not read namespaces.index, using default 'minecraft'");
+            Logger.warn("Could not read namespaces.index, using default 'zenith'");
         }
         return namespaces;
     }
 
     private static void loadWoodTypes() {
-        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("minecraft/registry/wood_types.json")) {
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("zenith/registry/wood_types.json")) {
             if (is == null) return;
             JsonArray root = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonArray.class);
             List<Identifier> types = new ArrayList<>();
@@ -668,7 +668,7 @@ public class DataLoader {
             if (obj.has("replaceable")) def.setReplaceable(obj.get("replaceable").getAsBoolean());
             
             if (obj.has("upperTexture")) {
-                def.setUpperTexture("minecraft/textures/block/" + obj.get("upperTexture").getAsString());
+                def.setUpperTexture("zenith/textures/block/" + obj.get("upperTexture").getAsString());
             }
 
             if (obj.has("placement")) {
@@ -709,7 +709,7 @@ public class DataLoader {
             }
             if (obj.has("textures")) {
                 JsonObject tex = obj.getAsJsonObject("textures");
-                String base = "minecraft/textures/block/";
+                String base = "zenith/textures/block/";
                 if (tex.has("all")) {
                     def.setTextures(new BlockTextures(base + tex.get("all").getAsString()));
                 } else {
@@ -890,3 +890,5 @@ public class DataLoader {
         return files;
     }
 }
+
+

@@ -9,3 +9,5 @@ public record JournalEntry(
     Identifier icon,
     List<JournalElement> elements
 ) {}
+
+

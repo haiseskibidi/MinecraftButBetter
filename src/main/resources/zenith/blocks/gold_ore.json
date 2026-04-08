@@ -1,7 +1,7 @@
 {
     "id": 11,
     "identifier": "zenith:gold_ore",
-    "translationKey": "block.minecraft.gold_ore",
+    "translationKey": "block.zenith.gold_ore",
     "solid": true,
     "transparent": false,
     "hardness": 3.0,

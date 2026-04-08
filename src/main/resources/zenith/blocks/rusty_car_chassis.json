@@ -1,7 +1,7 @@
 {
   "id": 205,
   "identifier": "zenith:rusty_car_chassis",
-  "translationKey": "block.minecraft.rusty_car_chassis",
+  "translationKey": "block.zenith.rusty_car_chassis",
   "solid": true,
   "transparent": false,
   "hardness": 6.0,

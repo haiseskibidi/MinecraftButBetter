@@ -63,3 +63,5 @@ public class MiningVFXManager {
     public float getHandHeat() { return handHeat; }
     public float getItemHeat() { return itemHeat; }
 }
+
+

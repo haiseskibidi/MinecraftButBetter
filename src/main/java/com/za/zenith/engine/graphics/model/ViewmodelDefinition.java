@@ -6,3 +6,5 @@ public class ViewmodelDefinition {
     public String texture;
     public List<BoneDefinition> bones;
 }
+
+

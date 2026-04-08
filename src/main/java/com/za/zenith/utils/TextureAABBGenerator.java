@@ -20,7 +20,7 @@ public class TextureAABBGenerator {
 
     /**
      * Генерирует AABB на основе непрозрачных пикселей текстуры.
-     * @param texturePath Путь к ресурсу текстуры (например, "minecraft/textures/item/stick.png")
+     * @param texturePath Путь к ресурсу текстуры (например, "zenith/textures/item/stick.png")
      * @return AABB в диапазоне [0.0, 1.0] или null при ошибке.
      */
     public static AABB generateAABB(String texturePath) {
@@ -106,3 +106,5 @@ public class TextureAABBGenerator {
         CACHE.clear();
     }
 }
+
+

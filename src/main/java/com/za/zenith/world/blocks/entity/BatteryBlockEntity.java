@@ -44,3 +44,5 @@ public class BatteryBlockEntity extends BlockEntity implements IEnergyStorage {
         return maxEnergy;
     }
 }
+
+

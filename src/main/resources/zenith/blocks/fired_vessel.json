@@ -1,7 +1,7 @@
 {
   "id": 122,
   "identifier": "zenith:fired_vessel",
-  "translationKey": "block.minecraft.fired_vessel",
+  "translationKey": "block.zenith.fired_vessel",
   "solid": true,
   "transparent": true,
   "hardness": 1.5,

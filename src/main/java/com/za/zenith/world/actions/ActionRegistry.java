@@ -19,3 +19,5 @@ public class ActionRegistry {
         registry.clear();
     }
 }
+
+

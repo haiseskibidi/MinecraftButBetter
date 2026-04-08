@@ -1,7 +1,7 @@
 {
     "id":  30,
     "identifier":  "zenith:generator",
-    "translationKey":  "block.minecraft.generator",
+    "translationKey":  "block.zenith.generator",
     "solid":  true,
     "transparent":  false,
     "type":  "generator",

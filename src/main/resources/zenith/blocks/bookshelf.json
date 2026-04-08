@@ -1,7 +1,7 @@
 {
     "id":  14,
     "identifier":  "zenith:bookshelf",
-    "translationKey":  "block.minecraft.bookshelf",
+    "translationKey":  "block.zenith.bookshelf",
     "solid":  true,
     "transparent":  false,
     "hardness":  1.5,

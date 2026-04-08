@@ -1,6 +1,6 @@
 {
   "id": 401,
   "identifier": "zenith:straw",
-  "translationKey": "item.minecraft.straw",
-  "texture": "minecraft/textures/item/wheat.png"
+  "translationKey": "item.zenith.straw",
+  "texture": "zenith/textures/item/wheat.png"
 }

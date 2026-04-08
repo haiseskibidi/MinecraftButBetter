@@ -40,3 +40,5 @@ public class CrosshairDefinition {
     public float getRecoilScale() { return recoilScale; }
     public float getSpreadScale() { return spreadScale; }
 }
+
+

@@ -1,7 +1,7 @@
 {
   "id": 105,
   "identifier": "zenith:scrap_metal",
-  "translationKey": "item.minecraft.scrap_metal",
-  "texture": "minecraft/textures/item/iron_ingot.png",
+  "translationKey": "item.zenith.scrap_metal",
+  "texture": "zenith/textures/item/iron_ingot.png",
   "type": "default"
 }

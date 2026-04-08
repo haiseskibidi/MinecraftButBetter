@@ -1,8 +1,8 @@
 {
     "id": 410,
     "identifier": "zenith:fire_starter",
-    "translationKey": "item.minecraft.fire_starter",
-    "texture": "minecraft/textures/item/flint_and_steel.png",
+    "translationKey": "item.zenith.fire_starter",
+    "texture": "zenith/textures/item/flint_and_steel.png",
     "maxStackSize": 1,
     "components": {
         "zenith:tool": {

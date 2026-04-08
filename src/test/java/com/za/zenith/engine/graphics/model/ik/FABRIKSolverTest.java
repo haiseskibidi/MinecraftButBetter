@@ -95,3 +95,5 @@ public class FABRIKSolverTest {
         assertTrue(angle >= -0.01f && angle <= 90.01f, "Angle should be clamped between 0 and 90. Got: " + angle);
     }
 }
+
+

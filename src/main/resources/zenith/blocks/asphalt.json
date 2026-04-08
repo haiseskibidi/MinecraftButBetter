@@ -1,7 +1,7 @@
 {
     "id":  17,
     "identifier":  "zenith:asphalt",
-    "translationKey":  "block.minecraft.asphalt",
+    "translationKey":  "block.zenith.asphalt",
     "solid":  true,
     "transparent":  false,
     "hardness":  2.0,

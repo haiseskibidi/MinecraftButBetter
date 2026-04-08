@@ -1,7 +1,7 @@
 {
     "id":  28,
     "identifier":  "zenith:brick_stairs",
-    "translationKey":  "block.minecraft.brick_stairs",
+    "translationKey":  "block.zenith.brick_stairs",
     "solid":  true,
     "transparent":  true,
     "hardness":  2.0,

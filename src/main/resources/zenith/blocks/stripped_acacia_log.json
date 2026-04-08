@@ -1,7 +1,7 @@
 {
     "id": 183,
     "identifier": "zenith:stripped_acacia_log",
-    "translationKey": "block.minecraft.stripped_acacia_log",
+    "translationKey": "block.zenith.stripped_acacia_log",
     "solid": true,
     "transparent": false,
     "type": "log",

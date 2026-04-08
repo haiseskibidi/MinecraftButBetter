@@ -1,7 +1,7 @@
 {
   "id": 150,
   "identifier": "zenith:stump",
-  "translationKey": "block.minecraft.stump",
+  "translationKey": "block.zenith.stump",
   "type": "stump",
   "breaking_pattern": "default",
   "solid": true,

@@ -1,7 +1,7 @@
 {
     "id":  26,
     "identifier":  "zenith:stone_stairs",
-    "translationKey":  "block.minecraft.stone_stairs",
+    "translationKey":  "block.zenith.stone_stairs",
     "solid":  true,
     "transparent":  true,
     "hardness":  1.5,

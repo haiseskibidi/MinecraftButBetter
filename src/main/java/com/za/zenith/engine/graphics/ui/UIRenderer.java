@@ -231,3 +231,5 @@ public class UIRenderer {
         glDeleteBuffers(quadEBO);
     }
 }
+
+

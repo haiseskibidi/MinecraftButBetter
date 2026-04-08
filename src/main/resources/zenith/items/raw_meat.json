@@ -1,8 +1,8 @@
 {
     "id":  419,
     "identifier":  "zenith:raw_meat",
-    "translationKey":  "item.minecraft.raw_meat",
-    "texture":  "minecraft/textures/item/beef.png",
+    "translationKey":  "item.zenith.raw_meat",
+    "texture":  "zenith/textures/item/beef.png",
     "type":  "food",
     "nutrition":  2.0,
     "saturation":  1.0

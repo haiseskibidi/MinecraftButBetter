@@ -123,3 +123,5 @@ public class InventoryBlockRenderer {
         if (inventoryShader != null) inventoryShader.cleanup();
     }
 }
+
+

@@ -1,7 +1,7 @@
 {
     "id":  27,
     "identifier":  "zenith:brick_slab",
-    "translationKey":  "block.minecraft.brick_slab",
+    "translationKey":  "block.zenith.brick_slab",
     "solid":  true,
     "transparent":  true,
     "hardness":  2.0,

@@ -1,7 +1,7 @@
 {
     "id": 162,
     "identifier": "zenith:jungle_log",
-    "translationKey": "block.minecraft.jungle_log",
+    "translationKey": "block.zenith.jungle_log",
     "solid": true,
     "transparent": false,
     "type": "log",

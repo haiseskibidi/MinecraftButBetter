@@ -27,8 +27,8 @@ public class CrosshairRegistry {
         try {
             Logger.info("Loading crosshairs...");
             // Try different paths for compatibility
-            var is = CrosshairRegistry.class.getResourceAsStream("/minecraft/gui/crosshairs/.index");
-            if (is == null) is = CrosshairRegistry.class.getResourceAsStream("minecraft/gui/crosshairs/.index");
+            var is = CrosshairRegistry.class.getResourceAsStream("/zenith/gui/crosshairs/.index");
+            if (is == null) is = CrosshairRegistry.class.getResourceAsStream("zenith/gui/crosshairs/.index");
             
             if (is == null) {
                 Logger.error("Crosshair index not found!");
@@ -41,7 +41,7 @@ public class CrosshairRegistry {
             
             for (String file : files) {
                 if (file.trim().isEmpty()) continue;
-                String path = "/minecraft/gui/crosshairs/" + file.trim();
+                String path = "/zenith/gui/crosshairs/" + file.trim();
                 var fileIs = CrosshairRegistry.class.getResourceAsStream(path);
                 if (fileIs == null) fileIs = CrosshairRegistry.class.getResourceAsStream(path.substring(1));
                 
@@ -65,3 +65,5 @@ public class CrosshairRegistry {
         return CROSSHAIRS;
     }
 }
+
+

@@ -53,7 +53,7 @@ public class FontRenderer {
         this.shader = shader;
         
         // Загружаем ширину для ASCII (fallback)
-        loadWidthMap("minecraft/textures/font/ascii.png", widthMap);
+        loadWidthMap("zenith/textures/font/ascii.png", widthMap);
         
         // Загружаем все маппинги из JSON
         loadJsonMapping();
@@ -62,7 +62,7 @@ public class FontRenderer {
     }
 
     private void loadJsonMapping() {
-        try (InputStream stream = FontRenderer.class.getClassLoader().getResourceAsStream("minecraft/font/default.json")) {
+        try (InputStream stream = FontRenderer.class.getClassLoader().getResourceAsStream("zenith/font/default.json")) {
             if (stream == null) return;
             String json = new String(stream.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
             com.google.gson.JsonObject root = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
@@ -72,7 +72,7 @@ public class FontRenderer {
                 com.google.gson.JsonObject provider = element.getAsJsonObject();
                 if ("bitmap".equals(provider.get("type").getAsString())) {
                     String file = provider.get("file").getAsString();
-                    String resourcePath = file.replace("zenith:", "minecraft/textures/");
+                    String resourcePath = file.replace("zenith:", "zenith/textures/");
                     
                     BufferedImage image = loadImage(resourcePath);
                     if (image == null) continue;
@@ -196,7 +196,7 @@ public class FontRenderer {
             } else {
                 int page = cp / 256;
                 if (page == 0 && cp < 128) {
-                    textureToBind = getOrLoadTexture("minecraft/textures/font/ascii.png");
+                    textureToBind = getOrLoadTexture("zenith/textures/font/ascii.png");
                 } else {
                     textureToBind = getUnicodePageTexture(page);
                 }
@@ -347,7 +347,7 @@ public class FontRenderer {
         }
         
         String pageHex = String.format("%02x", page);
-        String path = "minecraft/textures/font/unicode_page_" + pageHex + ".png";
+        String path = "zenith/textures/font/unicode_page_" + pageHex + ".png";
         loadUnicodeWidthMap(path, page * 256);
         
         int textureId = loadTexture(path);
@@ -549,3 +549,5 @@ public class FontRenderer {
         glDeleteBuffers(ebo);
     }
 }
+
+

@@ -272,3 +272,5 @@ public class ItemMeshGenerator {
         ind.add(start + 2); ind.add(start + 3); ind.add(start);
     }
 }
+
+

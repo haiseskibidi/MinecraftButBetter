@@ -1,7 +1,7 @@
 {
   "id": 123,
   "identifier": "zenith:clay",
-  "translationKey": "block.minecraft.clay",
+  "translationKey": "block.zenith.clay",
   "solid": true,
   "transparent": false,
   "hardness": 0.6,

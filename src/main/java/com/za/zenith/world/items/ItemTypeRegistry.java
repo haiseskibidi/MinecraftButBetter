@@ -27,3 +27,5 @@ public class ItemTypeRegistry {
         return factory.create(id, identifier, translationKey, texturePath);
     }
 }
+
+

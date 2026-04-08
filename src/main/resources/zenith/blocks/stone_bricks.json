@@ -1,7 +1,7 @@
 {
     "id":  21,
     "identifier":  "zenith:stone_bricks",
-    "translationKey":  "block.minecraft.stone_bricks",
+    "translationKey":  "block.zenith.stone_bricks",
     "solid":  true,
     "transparent":  false,
     "hardness":  2.0,

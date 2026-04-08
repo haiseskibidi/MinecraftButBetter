@@ -30,3 +30,5 @@ public class ItemStackingTest {
         assertEquals(1, nonStackable.getMaxStackSize(), "Explicitly set maxStackSize 1 should be respected");
     }
 }
+
+

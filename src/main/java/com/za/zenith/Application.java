@@ -7,7 +7,7 @@ public class Application {
         GameLoop game = new GameLoop();
         
         if (args.length == 0) {
-            System.out.println("=== MinecraftButBetter - Multiplayer Ready! ===");
+            System.out.println("=== zenithButBetter - Multiplayer Ready! ===");
             System.out.println("Usage examples:");
             System.out.println("  Single player:     java -jar game.jar singleplayer");
             System.out.println("  Host multiplayer:   java -jar game.jar host YourName");
@@ -33,3 +33,5 @@ public class Application {
         }
     }
 }
+
+

@@ -1,7 +1,7 @@
 {
   "id": 121,
   "identifier": "zenith:unfired_vessel",
-  "translationKey": "block.minecraft.unfired_vessel",
+  "translationKey": "block.zenith.unfired_vessel",
   "solid": true,
   "transparent": true,
   "type": "unfired_vessel",

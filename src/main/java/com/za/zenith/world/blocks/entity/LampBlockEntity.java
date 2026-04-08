@@ -61,3 +61,5 @@ public class LampBlockEntity extends BlockEntity implements ITickable, IEnergySt
         return false;
     }
 }
+
+

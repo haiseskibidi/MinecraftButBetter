@@ -67,3 +67,5 @@ public class StructureTemplate {
     public int getHeight() { return height; }
     public int getDepth() { return depth; }
 }
+
+

@@ -36,3 +36,5 @@ public record BlockPos(int x, int y, int z) {
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
 }
+
+

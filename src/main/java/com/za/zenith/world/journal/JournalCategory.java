@@ -9,3 +9,5 @@ public record JournalCategory(
     Identifier icon,
     List<Identifier> entries
 ) {}
+
+

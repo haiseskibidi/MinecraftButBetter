@@ -57,3 +57,5 @@ public class ViewmodelPhysics {
         angularVel.set(0, 0, 0);
     }
 }
+
+

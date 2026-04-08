@@ -238,3 +238,5 @@ public abstract class Entity {
     public void setFlying(boolean flying) { this.flying = flying; }
     public void setPosition(float x, float y, float z) { position.set(x, y, z); }
 }
+
+

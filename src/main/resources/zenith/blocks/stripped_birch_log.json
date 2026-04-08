@@ -1,7 +1,7 @@
 {
     "id": 180,
     "identifier": "zenith:stripped_birch_log",
-    "translationKey": "block.minecraft.stripped_birch_log",
+    "translationKey": "block.zenith.stripped_birch_log",
     "solid": true,
     "transparent": false,
     "type": "log",

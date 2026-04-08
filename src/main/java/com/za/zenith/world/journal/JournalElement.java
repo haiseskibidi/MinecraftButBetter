@@ -46,3 +46,5 @@ public record JournalElement(
         return new JournalElement(Type.SPACER, null, null, 0, null, null, "left");
     }
 }
+
+

@@ -1,7 +1,7 @@
 {
     "id": 454,
     "identifier": "zenith:felling_stage_4",
-    "translationKey": "block.minecraft.felling_log",
+    "translationKey": "block.zenith.felling_log",
     "solid": true,
     "transparent": true,
     "type": "felling_log",

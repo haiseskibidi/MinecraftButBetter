@@ -23,3 +23,5 @@ public interface IEnergyStorage {
     default boolean canExtract() { return true; }
     default boolean canReceive() { return true; }
 }
+
+

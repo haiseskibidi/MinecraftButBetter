@@ -1,7 +1,7 @@
 {
     "id": 163,
     "identifier": "zenith:acacia_log",
-    "translationKey": "block.minecraft.acacia_log",
+    "translationKey": "block.zenith.acacia_log",
     "solid": true,
     "transparent": false,
     "type": "log",

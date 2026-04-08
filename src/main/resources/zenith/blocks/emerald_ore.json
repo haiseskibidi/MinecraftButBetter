@@ -1,7 +1,7 @@
 {
     "id": 41,
     "identifier": "zenith:emerald_ore",
-    "translationKey": "block.minecraft.emerald_ore",
+    "translationKey": "block.zenith.emerald_ore",
     "solid": true,
     "transparent": false,
     "hardness": 3.0,

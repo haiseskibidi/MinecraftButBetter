@@ -19,3 +19,5 @@ public class LampBlockDefinition extends BlockDefinition {
         return new LampBlockEntity(pos);
     }
 }
+
+

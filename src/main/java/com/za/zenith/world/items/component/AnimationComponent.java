@@ -11,3 +11,5 @@ public record AnimationComponent(Map<String, String> overrides) implements ItemC
         return overrides.get(baseKey);
     }
 }
+
+

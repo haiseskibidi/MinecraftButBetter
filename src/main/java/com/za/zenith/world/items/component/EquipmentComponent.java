@@ -21,3 +21,5 @@ public class EquipmentComponent implements ItemComponent {
         return strict;
     }
 }
+
+

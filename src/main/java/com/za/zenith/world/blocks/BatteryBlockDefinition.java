@@ -19,3 +19,5 @@ public class BatteryBlockDefinition extends BlockDefinition {
         return new BatteryBlockEntity(pos);
     }
 }
+
+

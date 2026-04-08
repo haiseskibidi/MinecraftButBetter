@@ -1,8 +1,8 @@
 {
   "id": 440,
   "identifier": "zenith:wooden_shovel",
-  "translationKey": "item.minecraft.wooden_shovel",
-  "texture": "minecraft/textures/item/wooden_shovel.png",
+  "translationKey": "item.zenith.wooden_shovel",
+  "texture": "zenith/textures/item/wooden_shovel.png",
   "visualScale": 1.1,
   "weight": 1.2,
   "components": {

@@ -128,3 +128,5 @@ public class AnimationEditorState {
         for (ModelNode child : node.children) flatten(child, nextDepth, out);
     }
 }
+
+

@@ -31,3 +31,5 @@ public abstract class LivingEntity extends Entity {
     public float getHealth() { return health; }
     public float getMaxHealth() { return maxHealth; }
 }
+
+

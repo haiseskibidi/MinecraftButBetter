@@ -48,3 +48,5 @@ public class Registry<T> {
         return identifierMap.size();
     }
 }
+
+

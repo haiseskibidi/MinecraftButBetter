@@ -1,7 +1,7 @@
 {
   "id": 408,
   "identifier": "zenith:string",
-  "translationKey": "item.minecraft.string",
-  "texture": "minecraft/textures/item/string.png",
+  "translationKey": "item.zenith.string",
+  "texture": "zenith/textures/item/string.png",
   "weight": 0.3
 }

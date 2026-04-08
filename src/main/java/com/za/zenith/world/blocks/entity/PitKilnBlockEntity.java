@@ -66,3 +66,5 @@ public class PitKilnBlockEntity extends BlockEntity implements ITickable {
         return burning;
     }
 }
+
+

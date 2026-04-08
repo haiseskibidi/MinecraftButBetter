@@ -339,3 +339,5 @@ public class MiningController {
         return spot;
     }
 }
+
+

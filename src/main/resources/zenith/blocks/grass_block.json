@@ -1,7 +1,7 @@
 {
     "id":  1,
     "identifier":  "zenith:grass_block",
-    "translationKey":  "block.minecraft.grass_block",
+    "translationKey":  "block.zenith.grass_block",
     "solid":  true,
     "transparent":  false,
     "hardness":  0.6,

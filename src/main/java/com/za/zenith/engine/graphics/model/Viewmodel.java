@@ -56,9 +56,9 @@ public class Viewmodel {
     }
     
     public void initMeshes(DynamicTextureAtlas atlas) {
-        String texturePath = def.texture != null ? def.texture : "minecraft/textures/entity/hands.png";
+        String texturePath = def.texture != null ? def.texture : "zenith/textures/entity/hands.png";
         if (atlas.uvFor(texturePath) == null) {
-            texturePath = "minecraft/textures/default.png";
+            texturePath = "zenith/textures/default.png";
         }
         for (ModelNode node : nodesMap.values()) {
             if (node.def != null && node.def.cubes != null && !node.def.cubes.isEmpty()) {
@@ -75,3 +75,5 @@ public class Viewmodel {
         root.cleanup();
     }
 }
+
+

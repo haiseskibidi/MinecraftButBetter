@@ -52,3 +52,5 @@ public class Hotbar {
         return (int) (windowHeight - 22 * HOTBAR_SCALE - 20);
     }
 }
+
+

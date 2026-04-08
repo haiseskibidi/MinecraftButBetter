@@ -1,7 +1,7 @@
 {
     "id": 160,
     "identifier": "zenith:birch_log",
-    "translationKey": "block.minecraft.birch_log",
+    "translationKey": "block.zenith.birch_log",
     "solid": true,
     "transparent": false,
     "type": "log",

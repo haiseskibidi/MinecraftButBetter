@@ -59,3 +59,5 @@ public interface Screen {
         return false;
     }
 }
+
+

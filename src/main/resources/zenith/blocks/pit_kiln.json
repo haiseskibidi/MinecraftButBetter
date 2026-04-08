@@ -1,7 +1,7 @@
 {
     "id": 130,
     "identifier": "zenith:pit_kiln",
-    "translationKey": "block.minecraft.pit_kiln",
+    "translationKey": "block.zenith.pit_kiln",
     "solid": false,
     "transparent": true,
     "type": "pit_kiln",

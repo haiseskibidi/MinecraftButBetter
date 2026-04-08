@@ -67,3 +67,5 @@ public class CableBlockEntity extends BlockEntity implements ITickable, IEnergyS
         return maxEnergy;
     }
 }
+
+

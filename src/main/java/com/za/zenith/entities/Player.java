@@ -665,3 +665,5 @@ public class Player extends LivingEntity {
     public com.za.zenith.engine.core.PlayerMode getMode() { return mode; }
     public void setMode(com.za.zenith.engine.core.PlayerMode mode) { this.mode = mode; }
 }
+
+

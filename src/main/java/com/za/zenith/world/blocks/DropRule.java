@@ -8,3 +8,5 @@ public record DropRule(String requiredToolType, String dropItemIdentifier, float
      * @param dropOnHit Если true, предмет может выпасть при каждом ударе по блоку (например, ломиком), а не только при разрушении.
      */
 }
+
+

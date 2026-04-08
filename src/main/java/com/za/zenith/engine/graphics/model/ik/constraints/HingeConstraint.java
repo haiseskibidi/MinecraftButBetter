@@ -74,3 +74,5 @@ public class HingeConstraint implements IKConstraint {
         currentPos.set(boneVecLocal).mul(length).add(parentPos);
     }
 }
+
+

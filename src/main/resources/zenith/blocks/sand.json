@@ -1,7 +1,7 @@
 {
     "id":  9,
     "identifier":  "zenith:sand",
-    "translationKey":  "block.minecraft.sand",
+    "translationKey":  "block.zenith.sand",
     "solid":  true,
     "transparent":  false,
     "hardness":  0.5,

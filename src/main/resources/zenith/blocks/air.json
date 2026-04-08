@@ -1,7 +1,7 @@
 {
     "id":  0,
     "identifier":  "zenith:air",
-    "translationKey":  "block.minecraft.air",
+    "translationKey":  "block.zenith.air",
     "solid":  false,
     "transparent":  false,
     "replaceable": true

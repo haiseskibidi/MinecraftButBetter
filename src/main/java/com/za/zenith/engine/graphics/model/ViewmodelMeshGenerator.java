@@ -114,3 +114,5 @@ public class ViewmodelMeshGenerator {
         return new Mesh(posArr, texArr, normArr, blockTypes, indArr);
     }
 }
+
+

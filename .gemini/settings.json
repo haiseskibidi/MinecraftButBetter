@@ -13,7 +13,7 @@
       "args": [
         "-jar",
         "C:/Users/akopa/Documents/LSP4J-MCP-1.0.0/target/lsp4j-mcp-1.0.0-SNAPSHOT.jar",
-        "C:/Users/akopa/IdeaProjects/MinecraftButBetter",
+        "C:/Users/akopa/IdeaProjects/zenithButBetter",
         "jdtls"
       ]
     }

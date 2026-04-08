@@ -69,3 +69,5 @@ public class FellingLogBlockDefinition extends BlockDefinition {
         return false; // Блок уже удален внутри fellTree, возвращаем false чтобы не было двойного дропа
     }
 }
+
+

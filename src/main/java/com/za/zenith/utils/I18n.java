@@ -18,7 +18,7 @@ public class I18n {
     }
 
     public static void loadLanguage(String langCode) {
-        String path = "minecraft/lang/" + langCode + ".json";
+        String path = "zenith/lang/" + langCode + ".json";
         try (InputStream is = I18n.class.getClassLoader().getResourceAsStream(path)) {
             if (is != null) {
                 Gson gson = new Gson();
@@ -52,3 +52,5 @@ public class I18n {
         }
     }
 }
+
+

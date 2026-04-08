@@ -1,7 +1,7 @@
 {
   "id": 106,
   "identifier": "zenith:copper_wire",
-  "translationKey": "item.minecraft.copper_wire",
-  "texture": "minecraft/textures/item/string.png",
+  "translationKey": "item.zenith.copper_wire",
+  "texture": "zenith/textures/item/string.png",
   "type": "default"
 }

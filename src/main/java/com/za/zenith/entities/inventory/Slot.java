@@ -64,3 +64,5 @@ public class Slot {
         return validator.test(stack) && inventory.isItemValid(index, stack);
     }
 }
+
+

@@ -41,3 +41,5 @@ public class WoodTypeRegistry {
         return new ArrayList<>(WOOD_TYPES);
     }
 }
+
+

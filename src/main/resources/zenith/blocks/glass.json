@@ -1,7 +1,7 @@
 {
     "id":  19,
     "identifier":  "zenith:glass",
-    "translationKey":  "block.minecraft.glass",
+    "translationKey":  "block.zenith.glass",
     "solid":  true,
     "transparent":  true,
     "hardness":  0.3,

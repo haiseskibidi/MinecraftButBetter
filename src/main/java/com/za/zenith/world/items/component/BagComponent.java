@@ -21,3 +21,5 @@ public class BagComponent implements ItemComponent {
         return dropOnUnequip;
     }
 }
+
+

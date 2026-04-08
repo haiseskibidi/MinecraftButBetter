@@ -1,7 +1,7 @@
 {
     "id":  10,
     "identifier":  "zenith:gravel",
-    "translationKey":  "block.minecraft.gravel",
+    "translationKey":  "block.zenith.gravel",
     "solid":  true,
     "transparent":  false,
     "hardness":  0.6,

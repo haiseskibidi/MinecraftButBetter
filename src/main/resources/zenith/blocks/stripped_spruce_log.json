@@ -1,7 +1,7 @@
 {
     "id": 181,
     "identifier": "zenith:stripped_spruce_log",
-    "translationKey": "block.minecraft.stripped_spruce_log",
+    "translationKey": "block.zenith.stripped_spruce_log",
     "solid": true,
     "transparent": false,
     "type": "log",

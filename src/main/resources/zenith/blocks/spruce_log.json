@@ -1,7 +1,7 @@
 {
     "id": 161,
     "identifier": "zenith:spruce_log",
-    "translationKey": "block.minecraft.spruce_log",
+    "translationKey": "block.zenith.spruce_log",
     "solid": true,
     "transparent": false,
     "type": "log",

@@ -1,8 +1,8 @@
 {
     "id": 424,
     "identifier": "zenith:rock",
-    "translationKey": "item.minecraft.rock",
-    "texture": "minecraft/textures/block/cobblestone.png",
+    "translationKey": "item.zenith.rock",
+    "texture": "zenith/textures/block/cobblestone.png",
     "visualScale": 0.55,
     "interaction_cooldown": 0.5
 }
