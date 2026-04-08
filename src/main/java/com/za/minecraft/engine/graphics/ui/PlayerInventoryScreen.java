@@ -7,6 +7,7 @@ import com.za.minecraft.entities.inventory.SlotGroup;
 import java.util.Map;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
 
 /**
  * Main player inventory screen.
@@ -47,13 +48,17 @@ public class PlayerInventoryScreen extends InventoryScreen {
 
         GUIConfig config = GUIRegistry.get(com.za.minecraft.utils.Identifier.of("minecraft:player_inventory"));
         if (config != null) {
-            LayoutResult result = InventoryLayout.generateLayout(sw, sh, slotSize, spacing, player, config);
+            Map<String, com.za.minecraft.world.inventory.IInventory> inventories = new HashMap<>();
+            inventories.put("player", player.getInventory());
+
+            LayoutResult result = InventoryLayout.generateLayout(sw, sh, slotSize, spacing, player, config, inventories);
             slots.addAll(result.slots);
             groups.addAll(result.groups);
             this.globalBackground = result.globalBackground;
             this.backgroundConfig = config.background;
-            this.lastLayoutKey = calculateLayoutKey(sw, sh);
         }
+        
+        this.lastLayoutKey = calculateLayoutKey(sw, sh);
     }
 
     @Override
@@ -74,7 +79,6 @@ public class PlayerInventoryScreen extends InventoryScreen {
             if (backgroundConfig != null && backgroundConfig.includeGroups != null && backgroundConfig.includeGroups.contains(group.getConfig().id)) {
                 continue; // Already covered by global background
             }
-            // Add check for group-specific background if we decide to keep them in GroupConfig (but we moved it to root)
         }
         
         super.render(renderer, sw, sh, atlas);

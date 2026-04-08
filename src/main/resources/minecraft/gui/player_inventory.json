@@ -5,12 +5,15 @@
     "type": "solid",
     "color": [0.05, 0.05, 0.05, 0.8],
     "padding": 8,
-    "includeGroups": ["equipment", "offhand", "pockets", "pouch"]
+    "includeGroups": ["equipment", "pockets", "pouch"]
   },
   "groups": [
     {
       "id": "equipment",
       "type": "vertical",
+      "inventorySource": "player",
+      "startIndex": 17,
+      "slotsCount": 6,
       "relativeTo": "pockets",
       "relativeAlign": "left",
       "relativeAlignY": "bottom",
@@ -18,7 +21,6 @@
       "y": "-5%",
       "rows": 4,
       "spacing": 4,
-      "condition": "is_armor",
       "placeholders": {
         "0": "empty_armor_slot_helmet",
         "1": "empty_armor_slot_chestplate",
@@ -28,23 +30,11 @@
       }
     },
     {
-      "id": "offhand",
-      "type": "grid",
-      "relativeTo": "pockets",
-      "relativeAlign": "left",
-      "relativeAlignY": "top",
-      "snapToGrid": true,
-      "y": "-4%",
-      "cols": 1,
-      "rows": 1,
-      "condition": "is_offhand",
-      "placeholders": {
-        "0": "empty_armor_slot_shield"
-      }
-    },
-    {
       "id": "pockets",
       "type": "grid",
+      "inventorySource": "player",
+      "startIndex": 9,
+      "slotsCount": 8,
       "relativeTo": "hotbar",
       "relativeAlign": "top",
       "relativeAlignX": "center",
@@ -58,6 +48,7 @@
     {
       "id": "pouch",
       "type": "grid",
+      "inventorySource": "player",
       "relativeTo": "pockets",
       "relativeAlign": "right",
       "relativeAlignY": "bottom",
@@ -71,20 +62,19 @@
     {
       "id": "hotbar",
       "type": "horizontal",
+      "inventorySource": "player",
+      "startIndex": 0,
+      "slotsCount": 9,
       "anchor": "center",
       "x": "0%",
       "y": "15%",
       "cols": 9,
-      "spacing": 4,
-      "background": {
-        "type": "solid",
-        "color": [0.05, 0.05, 0.05, 0.8],
-        "padding": 6
-      }
+      "spacing": 4
     },
     {
       "id": "developer_panel",
       "type": "grid",
+      "inventorySource": "player",
       "anchor": "top-right",
       "alignX": "right",
       "alignY": "top",

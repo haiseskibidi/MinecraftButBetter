@@ -40,6 +40,9 @@ public class GUIConfig {
         public int cols = 1;       // For grid type
         public int rows = 1;       // For grid type (can be auto if -1)
         public int spacing = 2;
+        public String inventorySource = "player"; // "player" or "container"
+        public int startIndex = 0;
+        public int slotsCount = -1; // -1 means use all available slots starting from startIndex
         public java.util.Map<Integer, String> placeholders; // Map slot index in group to placeholder texture
         public String condition;   // Optional condition (e.g., "has_pouch", "developer_mode")
     }

@@ -41,7 +41,10 @@ public class HUDRenderer {
         
         int slotSize = (int)(20 * Hotbar.HOTBAR_SCALE);
         int spacing = (int)(2 * Hotbar.HOTBAR_SCALE);
-        LayoutResult layout = InventoryLayout.generateLayout(screenWidth, screenHeight, slotSize, spacing, hotbar.getPlayer(), config);
+        java.util.Map<String, com.za.minecraft.world.inventory.IInventory> inventories = new java.util.HashMap<>();
+        inventories.put("player", hotbar.getPlayer().getInventory());
+        
+        LayoutResult layout = InventoryLayout.generateLayout(screenWidth, screenHeight, slotSize, spacing, hotbar.getPlayer(), config, inventories);
         List<SlotUI> slots = layout.slots;
 
         if (layout.globalBackground != null) {

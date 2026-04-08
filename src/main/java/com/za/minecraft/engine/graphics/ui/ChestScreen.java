@@ -10,15 +10,15 @@ import java.util.List;
  */
 public class ChestScreen extends InventoryScreen {
     private final com.za.minecraft.world.inventory.IInventory containerInventory;
-    private final com.za.minecraft.world.inventory.IInventory playerInventory;
+    private final com.za.minecraft.entities.Player player;
     private final List<GroupUI> groups = new ArrayList<>();
     private GroupUI globalBackground;
     private GUIConfig.BackgroundConfig backgroundConfig;
 
-    public ChestScreen(com.za.minecraft.world.inventory.IInventory containerInventory, com.za.minecraft.world.inventory.IInventory playerInventory) {
+    public ChestScreen(com.za.minecraft.world.inventory.IInventory containerInventory, com.za.minecraft.entities.Player player) {
         super("Chest");
         this.containerInventory = containerInventory;
-        this.playerInventory = playerInventory;
+        this.player = player;
     }
 
     @Override
@@ -29,41 +29,26 @@ public class ChestScreen extends InventoryScreen {
         int spacing = getSpacing();
 
         GUIConfig config = GUIRegistry.get(com.za.minecraft.utils.Identifier.of("minecraft:chest"));
-        if (config == null) {
-            // Fallback to old hardcoded logic if no config found
-            int cols = 9;
-            int rows = containerInventory.size() / cols;
-            int totalWidth = cols * (size + spacing);
-            int totalHeight = (rows + 4) * (size + spacing) + spacing * 4;
-            int startX = (sw - totalWidth) / 2;
-            int startY = (sh - totalHeight) / 2;
-
-            for (int i = 0; i < containerInventory.size(); i++) {
-                int col = i % cols;
-                int row = i / cols;
-                slots.add(new SlotUI(new com.za.minecraft.entities.inventory.Slot(containerInventory, i, "any"), 
-                                    startX + col * (size + spacing), 
-                                    startY + row * (size + spacing)));
-            }
-            int playerPocketsStart = startY + (rows + 1) * (size + spacing);
-            for (int i = 0; i < 9; i++) {
-                slots.add(new SlotUI(new com.za.minecraft.entities.inventory.Slot(playerInventory, 9 + i, "any"), 
-                                    startX + i * (size + spacing), 
-                                    playerPocketsStart));
-            }
-            int hotbarY = playerPocketsStart + 2 * (size + spacing);
-            for (int i = 0; i < 9; i++) {
-                slots.add(new SlotUI(new com.za.minecraft.entities.inventory.Slot(playerInventory, i, "any"), 
-                                    startX + i * (size + spacing), 
-                                    hotbarY));
-            }
-        } else {
-            // Use flex layout system
-            LayoutResult result = InventoryLayout.generateLayout(sw, sh, size, spacing, null, config);
+        if (config != null) {
+            java.util.Map<String, com.za.minecraft.world.inventory.IInventory> inventories = new java.util.HashMap<>();
+            inventories.put("player", player.getInventory());
+            inventories.put("container", containerInventory);
+            
+            LayoutResult result = InventoryLayout.generateLayout(sw, sh, size, spacing, player, config, inventories);
             slots.addAll(result.slots);
             groups.addAll(result.groups);
             this.globalBackground = result.globalBackground;
             this.backgroundConfig = config.background;
+        } else {
+            // Absolute fallback if JSON missing (9x3 chest)
+            int cols = 9;
+            int rows = containerInventory.size() / cols;
+            int startX = (sw - cols * (size + spacing)) / 2;
+            int startY = (sh - (rows + 4) * (size + spacing)) / 2;
+            for (int i = 0; i < containerInventory.size(); i++) {
+                slots.add(new SlotUI(new com.za.minecraft.entities.inventory.Slot(containerInventory, i, "any"), 
+                                    startX + (i % cols) * (size + spacing), startY + (i / cols) * (size + spacing)));
+            }
         }
     }
 

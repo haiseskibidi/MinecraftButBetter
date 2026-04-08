@@ -30,26 +30,49 @@ public class InventoryLayout {
         }
     }
 
-    public static LayoutResult generateLayout(int sw, int sh, int slotSize, int spacing, Player player, GUIConfig config) {
+    public static LayoutResult generateLayout(int sw, int sh, int slotSize, int spacing, Player player, GUIConfig config, Map<String, IInventory> inventories) {
         LayoutResult result = new LayoutResult();
-        Inventory inv = player.getInventory();
         Map<String, GroupBounds> basicBoundsMap = new HashMap<>();
         Map<String, GroupBounds> finalBoundsMap = new HashMap<>();
         
-        // Pass 1: Calculate basic dimensions for all active groups
+        // Cache for resolved slots per group to avoid re-calculation
+        Map<String, List<Slot>> resolvedSlots = new HashMap<>();
+
+        // Pass 1: Resolve slots and calculate basic dimensions
         for (GUIConfig.GroupConfig groupCfg : config.groups) {
             if (groupCfg.condition != null) {
+                Inventory pinv = player.getInventory();
                 if (groupCfg.condition.equals("has_pouch")) {
-                    ItemStack acc = inv.getStack(Inventory.SLOT_ACCESSORY);
+                    ItemStack acc = pinv.getStack(Inventory.SLOT_ACCESSORY);
                     if (acc == null || !acc.getItem().hasComponent(com.za.minecraft.world.items.component.BagComponent.class)) continue;
                 } else if (groupCfg.condition.equals("developer_mode")) {
                     if (player.getMode() != PlayerMode.DEVELOPER) continue;
                 }
             }
 
-            SlotGroup group = inv.getGroup(groupCfg.id);
-            List<Slot> targetSlots = (group != null) ? group.getSlots() : null;
-            if (targetSlots == null || targetSlots.isEmpty()) continue;
+            IInventory sourceInv = inventories.getOrDefault(groupCfg.inventorySource, player.getInventory());
+            List<Slot> targetSlots = new ArrayList<>();
+
+            // If it's a named group from Player Inventory (legacy compatibility + power)
+            if (groupCfg.inventorySource.equals("player") && sourceInv instanceof Inventory pInv) {
+                SlotGroup group = pInv.getGroup(groupCfg.id);
+                if (group != null) targetSlots.addAll(group.getSlots());
+            }
+
+            // Fallback: use index range from the source inventory
+            // Only do this if slotsCount is explicitly set, OR if it's a container (where we want to see everything by default)
+            if (targetSlots.isEmpty() && (groupCfg.slotsCount != -1 || !groupCfg.inventorySource.equals("player"))) {
+                int start = groupCfg.startIndex;
+                int count = groupCfg.slotsCount;
+                if (count == -1) count = sourceInv.size() - start;
+                
+                for (int i = 0; i < count && (start + i) < sourceInv.size(); i++) {
+                    targetSlots.add(new Slot(sourceInv, start + i, "any"));
+                }
+            }
+
+            if (targetSlots.isEmpty()) continue;
+            resolvedSlots.put(groupCfg.id, targetSlots);
 
             int groupWidth = 0, groupHeight = 0;
             if (groupCfg.type.equals("grid")) {
@@ -67,7 +90,7 @@ public class InventoryLayout {
             basicBoundsMap.put(groupCfg.id, new GroupBounds(0, 0, groupWidth, groupHeight));
         }
 
-        // Pass 2: Calculate combined dimensions for centerCombined groups
+        // Pass 2 & 3: Positioning (Same logic as before)
         Map<String, GroupBounds> combinedBoundsMap = new HashMap<>();
         for (GUIConfig.GroupConfig groupCfg : config.groups) {
             if (!basicBoundsMap.containsKey(groupCfg.id)) continue;
@@ -78,21 +101,19 @@ public class InventoryLayout {
             }
         }
 
-        // Pass 3: Final Positioning with Recursive Resolution
         java.util.Set<String> resolving = new java.util.HashSet<>();
         for (GUIConfig.GroupConfig groupCfg : config.groups) {
             resolveGroupBounds(groupCfg.id, config, basicBoundsMap, combinedBoundsMap, finalBoundsMap, resolving, sw, sh, slotSize, spacing);
         }
 
-        // Final Pass: Create GroupUI and SlotUI objects
+        // Final Pass: Create objects
         for (GUIConfig.GroupConfig groupCfg : config.groups) {
             GroupBounds bounds = finalBoundsMap.get(groupCfg.id);
             if (bounds == null) continue;
 
             result.groups.add(new GroupUI(bounds.x, bounds.y, bounds.width, bounds.height, groupCfg));
             
-            SlotGroup group = inv.getGroup(groupCfg.id);
-            List<Slot> targetSlots = group.getSlots();
+            List<Slot> targetSlots = resolvedSlots.get(groupCfg.id);
             for (int i = 0; i < targetSlots.size(); i++) {
                 int col = 0, row = 0;
                 if (groupCfg.type.equals("grid")) { col = i % groupCfg.cols; row = i / groupCfg.cols; }

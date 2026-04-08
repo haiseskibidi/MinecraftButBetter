@@ -4,23 +4,37 @@
     {
       "id": "container",
       "type": "grid",
+      "inventorySource": "container",
       "cols": 9,
+      "spacing": 4,
       "anchor": "center",
-      "fixedOffsetY": -60
+      "centerCombined": true
     },
     {
       "id": "player_pockets",
       "type": "grid",
-      "cols": 9,
-      "anchor": "center",
-      "fixedOffsetY": 40
+      "inventorySource": "player",
+      "startIndex": 9,
+      "slotsCount": 8,
+      "cols": 8,
+      "spacing": 4,
+      "relativeTo": "container",
+      "relativeAlign": "bottom",
+      "relativeAlignX": "center",
+      "fixedOffsetY": "1s"
     },
     {
       "id": "player_hotbar",
       "type": "grid",
+      "inventorySource": "player",
+      "startIndex": 0,
+      "slotsCount": 9,
       "cols": 9,
-      "anchor": "center",
-      "fixedOffsetY": 110
+      "spacing": 4,
+      "relativeTo": "player_pockets",
+      "relativeAlign": "bottom",
+      "relativeAlignX": "center",
+      "fixedOffsetY": "1s"
     }
   ],
   "background": {

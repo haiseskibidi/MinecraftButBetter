@@ -22,8 +22,8 @@ public class ScreenManager {
         activeScreen.init(sw, sh);
     }
 
-    public void openChest(com.za.minecraft.world.inventory.IInventory container, com.za.minecraft.world.inventory.IInventory playerInv, int sw, int sh) {
-        activeScreen = new ChestScreen(container, playerInv);
+    public void openChest(com.za.minecraft.world.inventory.IInventory container, com.za.minecraft.entities.Player player, int sw, int sh) {
+        activeScreen = new ChestScreen(container, player);
         activeScreen.init(sw, sh);
     }
 
