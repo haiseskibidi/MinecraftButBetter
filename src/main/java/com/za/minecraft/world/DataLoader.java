@@ -616,6 +616,7 @@ public class DataLoader {
             
             if (obj.has("wobble_animation")) def.setWobbleAnimation(obj.get("wobble_animation").getAsString());
             if (obj.has("interaction_cooldown")) def.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());
+            if (obj.has("healing_speed")) def.setHealingSpeed(obj.get("healing_speed").getAsFloat());
             
             if (obj.has("breaking_pattern")) {
                 String pattern = obj.get("breaking_pattern").getAsString().toLowerCase();

@@ -26,7 +26,6 @@ public class MiningController {
     private BlockPos breakingBlockPos = null;
     private float breakingProgress = 0.0f;
     private float hitPulse = 0.0f; // 0 to 1 pulse on hit
-    private float blockAccumulatedDamage = 0.0f;
     private float hitCooldownTimer = 0.0f;
     private float wobbleTimer = 0.0f;
     private Vector3f currentWeakSpot = new Vector3f(0.5f);
@@ -54,10 +53,10 @@ public class MiningController {
 
     public void startMining(BlockPos hitPos, BlockDefinition blockDef, World world, Vector3f normal) {
         breakingBlockPos = hitPos;
-        breakingProgress = 0.0f;
-        blockAccumulatedDamage = 0.0f;
+        breakingProgress = world.getBlockDamage(hitPos) / (blockDef.getHardness() * 10.0f);
         wobbleTimer = 1.0f; // Prevent animation leaking to new blocks
         hitHistory.clear();
+        hitHistory.addAll(world.getBlockHitHistory(hitPos));
         this.currentNormal.set(normal);
         currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), normal);
         
@@ -71,7 +70,6 @@ public class MiningController {
         if (breakingBlockPos != null) {
             breakingBlockPos = null;
             breakingProgress = 0.0f;
-            blockAccumulatedDamage = 0.0f;
             if (renderer != null) renderer.setBreakingBlock(null, null, 0.0f, 0.0f, null, null, null, null);
         }
     }
@@ -96,6 +94,8 @@ public class MiningController {
         boolean isInstantBreak = maxHealth <= 0.1f;
         boolean shouldHit = false;
 
+        float currentDamage = world.getBlockDamage(hitPos);
+
         float interval = blockDef.getInteractionCooldown();
         if (currentItem != null) {
             com.za.minecraft.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
@@ -107,7 +107,7 @@ public class MiningController {
             // Instant break: Always respect breakDelayTimer, NO bypass with clicks
             if (breakDelayTimer <= 0.0f) {
                 breakingProgress = 1.0f;
-                blockAccumulatedDamage = maxHealth;
+                currentDamage = maxHealth;
                 shouldHit = true;
             }
         } else {
@@ -122,7 +122,7 @@ public class MiningController {
                 if (mSettings.strategy().equals("weak_spots")) {
                     float dist = localHit.distance(currentWeakSpot);
                     if (dist < mSettings.precision()) {
-                        blockAccumulatedDamage += miningDamage;
+                        currentDamage += miningDamage;
                         hitHistory.add(new Vector3f(currentWeakSpot));
                         // Перегенерируем на ТОЙ ЖЕ грани, используя честную нормаль
                         currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), currentNormal); 
@@ -144,18 +144,43 @@ public class MiningController {
                                         dropEntity.getVelocity().set(normal.x * 2.0f, Math.max(1.0f, normal.y * 2.0f), normal.z * 2.0f);
                                         world.spawnEntity(dropEntity);
                                         com.za.minecraft.utils.Logger.info("Progressive drop spawned: " + rule.dropItemIdentifier());
+                                        
+                                        // Softened penalty: tearing off a piece damages the block by roughly half of the drop chance
+                                        currentDamage += maxHealth * rule.chance() * 0.6f;
                                     }
                                 }
                             }
                         }
                     } else {
-                        blockAccumulatedDamage += miningDamage * mSettings.missMultiplier();
+                        currentDamage += miningDamage * mSettings.missMultiplier();
+                        
+                        // Small chance to get loot even on MISS (5 times lower chance)
+                        String currentToolStr = "none";
+                        if (currentItem != null && currentItem.isTool()) {
+                            com.za.minecraft.world.items.component.ToolComponent toolComp = currentItem.getComponent(com.za.minecraft.world.items.component.ToolComponent.class);
+                            if (toolComp != null) currentToolStr = toolComp.type().name().toLowerCase();
+                        }
+                        for (com.za.minecraft.world.blocks.DropRule rule : blockDef.getDropRules()) {
+                            if (rule.dropOnHit() && (rule.requiredToolType().equalsIgnoreCase("none") || rule.requiredToolType().equalsIgnoreCase(currentToolStr))) {
+                                if (Math.random() <= rule.chance() * 0.2f) { // 20% of original chance on miss
+                                    Item dropItem = com.za.minecraft.world.items.ItemRegistry.getItem(com.za.minecraft.utils.Identifier.of(rule.dropItemIdentifier()));
+                                    if (dropItem != null) {
+                                        Vector3f spawnPos = new Vector3f(hitPos.x() + 0.5f + normal.x * 0.5f, hitPos.y() + 0.5f + normal.y * 0.5f, hitPos.z() + 0.5f + normal.z * 0.5f);
+                                        com.za.minecraft.entities.ItemEntity dropEntity = new com.za.minecraft.entities.ItemEntity(spawnPos, new ItemStack(dropItem, 1));
+                                        dropEntity.getVelocity().set(normal.x * 1.5f, 0.8f, normal.z * 1.5f);
+                                        world.spawnEntity(dropEntity);
+                                        currentDamage += maxHealth * rule.chance() * 0.3f;
+                                    }
+                                }
+                            }
+                        }
                     }
                 } else {
-                    blockAccumulatedDamage += miningDamage;
+                    currentDamage += miningDamage;
                 }
 
-                breakingProgress = Math.min(1.0f, blockAccumulatedDamage / maxHealth);
+                breakingProgress = Math.min(1.0f, currentDamage / maxHealth);
+                world.setBlockDamage(hitPos, currentDamage);
 
                 hitCooldownTimer = interval;
                 wobbleTimer = 0.0f;
@@ -197,7 +222,7 @@ public class MiningController {
                         }
                         
                         for (com.za.minecraft.world.blocks.DropRule rule : rules) {
-                            if (rule.requiredToolType().equalsIgnoreCase("none") || rule.requiredToolType().equalsIgnoreCase(currentToolStr)) {
+                            if (!rule.dropOnHit() && (rule.requiredToolType().equalsIgnoreCase("none") || rule.requiredToolType().equalsIgnoreCase(currentToolStr))) {
                                 if (Math.random() <= rule.chance()) {
                                     Item itemToGive = com.za.minecraft.world.items.ItemRegistry.getItem(com.za.minecraft.utils.Identifier.of(rule.dropItemIdentifier()));
                                     if (itemToGive != null) {
@@ -246,6 +271,7 @@ public class MiningController {
             }
 
             stopMining();
+            world.setBlockDamage(hitPos, 0); // Clear damage once broken
             breakDelayTimer = interval; // Use global interval instead of BREAK_COOLDOWN
             hitCooldownTimer = interval;
             if (currentStack != null && currentItem.isTool()) {

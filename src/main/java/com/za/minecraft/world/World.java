@@ -25,6 +25,27 @@ public class World {
     private final List<Entity> entities;
     private final Map<BlockPos, BlockEntity> blockEntities;
     private final List<ITickable> tickableBlockEntities;
+    
+    public static class BlockDamageInstance {
+        private float damage;
+        private final List<Vector3f> hitHistory;
+
+        public BlockDamageInstance(float damage, List<Vector3f> hitHistory) {
+            this.damage = damage;
+            this.hitHistory = new ArrayList<>(hitHistory);
+        }
+
+        public float getDamage() { return damage; }
+        public void setDamage(float damage) { this.damage = damage; }
+        public List<Vector3f> getHitHistory() { return hitHistory; }
+    }
+
+    private final Map<BlockPos, BlockDamageInstance> blockDamageMap = new ConcurrentHashMap<>();
+
+    public Map<BlockPos, BlockDamageInstance> getBlockDamageMap() {
+        return blockDamageMap;
+    }
+
     private Player player;
     private final TerrainGenerator terrainGenerator;
     private final long seed;
@@ -182,6 +203,40 @@ public class World {
         if (player != null) {
             player.update(deltaTime, this);
         }
+
+        // Heal blocks over time and fade scars
+        if (!blockDamageMap.isEmpty()) {
+            for (java.util.Map.Entry<BlockPos, BlockDamageInstance> entry : blockDamageMap.entrySet()) {
+                BlockPos pos = entry.getKey();
+                BlockDamageInstance info = entry.getValue();
+                float damage = info.getDamage();
+                
+                int blockType = getBlock(pos).getType();
+                com.za.minecraft.world.blocks.BlockDefinition def = com.za.minecraft.world.blocks.BlockRegistry.getBlock(blockType);
+                
+                if (def.getHealingSpeed() > 0) {
+                    float maxHealth = def.getHardness() * 10.0f;
+                    float healAmount = def.getHealingSpeed() * maxHealth * deltaTime;
+                    float newDamage = damage - healAmount;
+                    
+                    if (newDamage <= 0) {
+                        blockDamageMap.remove(pos);
+                    } else {
+                        info.setDamage(newDamage);
+                        
+                        // Fade scars: remove oldest hits as the block heals
+                        List<Vector3f> history = info.getHitHistory();
+                        if (!history.isEmpty()) {
+                            // Link history size to current damage percentage (max 16 hits in shader)
+                            int targetHistorySize = (int) Math.ceil((newDamage / maxHealth) * 16);
+                            while (history.size() > targetHistorySize && !history.isEmpty()) {
+                                history.remove(0); // Remove oldest
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public void registerTickable(ITickable tickable) {
@@ -192,6 +247,39 @@ public class World {
 
     public void unregisterTickable(ITickable tickable) {
         tickableBlockEntities.remove(tickable);
+    }
+
+    public float getBlockDamage(BlockPos pos) {
+        BlockDamageInstance info = blockDamageMap.get(pos);
+        return (info != null) ? info.getDamage() : 0.0f;
+    }
+
+    public List<Vector3f> getBlockHitHistory(BlockPos pos) {
+        BlockDamageInstance info = blockDamageMap.get(pos);
+        return (info != null) ? info.getHitHistory() : new ArrayList<>();
+    }
+
+    public void setBlockDamage(BlockPos pos, float damage) {
+        setBlockDamage(pos, damage, new ArrayList<>());
+    }
+
+    public void setBlockDamage(BlockPos pos, float damage, List<Vector3f> history) {
+        if (damage <= 0.0f) {
+            blockDamageMap.remove(pos);
+        } else {
+            BlockDamageInstance info = blockDamageMap.get(pos);
+            if (info != null) {
+                info.setDamage(damage);
+                // Update history, keeping only the last 16 hits
+                List<Vector3f> targetHistory = info.getHitHistory();
+                targetHistory.clear();
+                for (int i = Math.max(0, history.size() - 16); i < history.size(); i++) {
+                    targetHistory.add(history.get(i));
+                }
+            } else {
+                blockDamageMap.put(pos, new BlockDamageInstance(damage, history));
+            }
+        }
     }
 
     public void spawnEntity(Entity entity) {

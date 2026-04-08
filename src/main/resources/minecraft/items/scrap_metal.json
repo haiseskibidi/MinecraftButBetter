@@ -2,6 +2,6 @@
   "id": 105,
   "identifier": "minecraft:scrap_metal",
   "translationKey": "item.minecraft.scrap_metal",
-  "texture": "minecraft/textures/item/scrap_metal.png",
+  "texture": "minecraft/textures/item/iron_ingot.png",
   "type": "default"
 }

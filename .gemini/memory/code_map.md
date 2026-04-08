@@ -34,13 +34,21 @@
 Функции: Является точкой входа для рендеринга всего UI, но делегирует работу специализированным суб-рендерерам: `UIPrimitives` (базовые формы), `SlotRenderer` (предметы/слоты), `HUDRenderer` (игровой оверлей, стамина, голод), `InventoryScreenRenderer` (инвентарь и dev-панель) и `MenuRenderer`.
 
 ## World & Items (UPDATED)
+### com.za.minecraft.world.World (UPDATED)
+Назначение: Управление состоянием мира, сущностями и чанками.
+Функции: Хранит `blockDamageMap` с объектами `BlockDamageInstance` (урон + история шрамов). Реализует логику регенерации блоков и постепенного удаления шрамов в методе `update()`.
+
 ### com.za.minecraft.world.actions (NEW)
 Назначение: Data-Driven система действий игрока (бег, прыжок, добыча, паркур).
 Функции: `ActionDefinition` парсит JSON-файлы с параметрами шума, выносливости и голода. `ActionRegistry` хранит их для использования в `Player` и `ParkourHandler`.
 
 ### com.za.minecraft.world.blocks.BlockDefinition (UPDATED)
 Назначение: Физические и визуальные свойства блока.
-Функции: Хранит `interaction_cooldown` для настройки скорости сбора.
+Функции: Хранит `interaction_cooldown` и `healing_speed` (скорость регенерации).
+
+### com.za.minecraft.engine.input.MiningController (UPDATED)
+Назначение: Контроллер процесса добычи блоков.
+Функции: Синхронизирует прогресс разрушения и историю ударов (`hitHistory`) с данными из `World`. Обрабатывает механику `drop_on_hit` (выпадение лута при ударе) и штрафы к прочности.
 
 ### com.za.minecraft.world.items.Item (UPDATED)
 Назначение: Базовый класс предмета.

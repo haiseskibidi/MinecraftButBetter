@@ -44,6 +44,16 @@ public class BlockDefinition {
     private int breakingPattern = 0; // 0=Generic, 1=Wood, 2=Stone, etc.
     private MiningSettings miningSettings = MiningSettings.DEFAULT;
     private float interactionCooldown = -1.0f; // -1 means use PhysicsSettings.baseMiningCooldown
+    private float healingSpeed = 0.1f; // Default: heals 10% of max health per second
+
+    public float getHealingSpeed() {
+        return healingSpeed;
+    }
+
+    public BlockDefinition setHealingSpeed(float healingSpeed) {
+        this.healingSpeed = healingSpeed;
+        return this;
+    }
 
     public float getInteractionCooldown() {
         if (interactionCooldown < 0) {
