@@ -618,6 +618,12 @@ public class DataLoader {
             if (obj.has("interaction_cooldown")) def.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());
             if (obj.has("healing_speed")) def.setHealingSpeed(obj.get("healing_speed").getAsFloat());
             
+            if (def instanceof com.za.minecraft.world.blocks.ChestBlockDefinition chestDef) {
+                if (obj.has("inventory_size")) {
+                    chestDef.setInventorySize(obj.get("inventory_size").getAsInt());
+                }
+            }
+            
             if (obj.has("breaking_pattern")) {
                 String pattern = obj.get("breaking_pattern").getAsString().toLowerCase();
                 int patternId = switch(pattern) {

@@ -1,0 +1,32 @@
+{
+  "id": "minecraft:chest",
+  "groups": [
+    {
+      "id": "container",
+      "type": "grid",
+      "cols": 9,
+      "anchor": "center",
+      "fixedOffsetY": -60
+    },
+    {
+      "id": "player_pockets",
+      "type": "grid",
+      "cols": 9,
+      "anchor": "center",
+      "fixedOffsetY": 40
+    },
+    {
+      "id": "player_hotbar",
+      "type": "grid",
+      "cols": 9,
+      "anchor": "center",
+      "fixedOffsetY": 110
+    }
+  ],
+  "background": {
+    "type": "solid",
+    "color": [0.1, 0.1, 0.1, 0.8],
+    "padding": 12,
+    "includeGroups": ["container", "player_pockets", "player_hotbar"]
+  }
+}

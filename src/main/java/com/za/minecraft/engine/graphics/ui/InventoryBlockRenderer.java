@@ -68,8 +68,35 @@ public class InventoryBlockRenderer {
             inventoryShader.setMatrix4f("model", modelMatrix);
 
             // Scissor и очистка глубины для изоляции слота
+            // Сохраняем текущее состояние Scissor, чтобы не ломать родительские контейнеры (ScrollPanel)
+            boolean wasScissor = glIsEnabled(GL_SCISSOR_TEST);
+            int[] oldScissor = new int[4];
+            if (wasScissor) {
+                glGetIntegerv(GL_SCISSOR_BOX, oldScissor);
+            }
+
             glEnable(GL_SCISSOR_TEST);
-            glScissor((int)x, screenHeight - (int)(y + size), (int)size, (int)size);
+            
+            // Текущий прямоугольник слота в координатах OpenGL (Y от низа)
+            int slotX = (int)x;
+            int slotY = screenHeight - (int)(y + size);
+            int slotW = (int)size;
+            int slotH = (int)size;
+
+            if (wasScissor) {
+                // Вычисляем пересечение с существующей областью (для вложенности в ScrollPanel)
+                int interX = Math.max(slotX, oldScissor[0]);
+                int interY = Math.max(slotY, oldScissor[1]);
+                int interRight = Math.min(slotX + slotW, oldScissor[0] + oldScissor[2]);
+                int interTop = Math.min(slotY + slotH, oldScissor[1] + oldScissor[3]);
+                
+                int interW = Math.max(0, interRight - interX);
+                int interH = Math.max(0, interTop - interY);
+                
+                glScissor(interX, interY, interW, interH);
+            } else {
+                glScissor(slotX, slotY, slotW, slotH);
+            }
             
             glEnable(GL_DEPTH_TEST);
             glDepthFunc(GL_LEQUAL);
@@ -78,7 +105,13 @@ public class InventoryBlockRenderer {
             mesh.render();
             
             glDisable(GL_DEPTH_TEST);
-            glDisable(GL_SCISSOR_TEST);
+            
+            // Восстанавливаем предыдущее состояние Scissor
+            if (wasScissor) {
+                glScissor(oldScissor[0], oldScissor[1], oldScissor[2], oldScissor[3]);
+            } else {
+                glDisable(GL_SCISSOR_TEST);
+            }
         }
     }
 

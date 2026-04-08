@@ -37,6 +37,7 @@ public class Items {
     public static Item OFFHAND_DUMMY;
     public static Item SCRAP_METAL;
     public static Item COPPER_WIRE;
+    public static Item BACKPACK;
 
     public static void init() {        for (java.lang.reflect.Field field : Items.class.getFields()) {
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {

@@ -40,6 +40,7 @@ public class InventoryScreenRenderer {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
+        // Restore full-screen dimming (helps visibility of placeholders)
         renderer.getPrimitivesRenderer().renderDarkenedBackground();
         
         ScreenManager screenManager = ScreenManager.getInstance();
@@ -61,13 +62,13 @@ public class InventoryScreenRenderer {
 
         if (activeScreen instanceof InventoryScreen invScreen) {
             int slotSize = (int)(18 * Hotbar.HOTBAR_SCALE);
-
             float hmx = GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
             float hmy = GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
             SlotUI hoveredUI = invScreen.getSlotAt(hmx, hmy);
             java.util.Set<com.za.minecraft.entities.inventory.Slot> dragged = GameLoop.getInstance().getInputManager().getDraggedSlots();
             
-            for (SlotUI ui : invScreen.getSlots()) {
+            List<SlotUI> slots = invScreen.getSlots();
+            for (SlotUI ui : slots) {
                 if (dragged.contains(ui.getSlot())) {
                     renderer.getPrimitivesRenderer().renderHighlight(ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, 0.2f, 0.6f, 1.0f, 0.4f);
                 } else if (ui == hoveredUI) {
@@ -78,7 +79,7 @@ public class InventoryScreenRenderer {
             if (player.getMode() == PlayerMode.DEVELOPER) {
                 int spacing = (int)(2 * Hotbar.HOTBAR_SCALE);
                 int devX = screenWidth - (7 * (slotSize + spacing)) - 25;
-                renderDeveloperPanel(devX, 40, slotSize, spacing, screenWidth, screenHeight, atlas);
+                renderDeveloperPanel(devX, 64, slotSize, spacing, screenWidth, screenHeight, atlas);
             }
 
             ItemStack held = GameLoop.getInstance().getInputManager().getHeldStack();
@@ -112,8 +113,12 @@ public class InventoryScreenRenderer {
 
         devScroller.setBounds(bgX, bgY, devWidth, devHeight);
         List<Item> allItems = new ArrayList<>(ItemRegistry.getAllItems().values());
+        allItems.sort(java.util.Comparator.comparingInt(Item::getId));
+        
         int totalRows = (allItems.size() + cols - 1) / cols;
-        devScroller.updateContentHeight(totalRows * (slotSize + spacing));
+        // Content height: padding top + slots height + padding bottom
+        int slotsHeight = totalRows * (slotSize + spacing) - spacing;
+        devScroller.updateContentHeight(slotsHeight + padding * 2);
 
         devScroller.begin(sw, sh);
         float offset = devScroller.getOffset();
@@ -127,7 +132,8 @@ public class InventoryScreenRenderer {
             int x = devX + col * (slotSize + spacing);
             int y = startY + row * (slotSize + spacing) - (int)offset;
             
-            if (y + slotSize < startY || y > startY + devHeight) continue;
+            // CPU Culling (Match glScissor area)
+            if (y + slotSize < bgY || y > bgY + devHeight) continue;
             
             boolean isHovered = mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize;
             renderer.getSlotRenderer().renderSlot(x, y, slotSize, new ItemStack(allItems.get(i)), null, sw, sh, atlas, isHovered, "dev_" + i, true);
@@ -142,6 +148,9 @@ public class InventoryScreenRenderer {
                 int row = i / cols;
                 int x = devX + col * (slotSize + spacing);
                 int y = startY + row * (slotSize + spacing) - (int)offset;
+                
+                // Tooltip culling: only show for visible items
+                if (y + slotSize < bgY || y > bgY + devHeight) continue;
                 
                 if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
                     String name = I18n.get(allItems.get(i).getName());

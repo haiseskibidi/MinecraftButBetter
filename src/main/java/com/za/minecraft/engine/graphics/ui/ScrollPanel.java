@@ -28,7 +28,7 @@ public class ScrollPanel {
      */
     public void updateContentHeight(float totalH) {
         this.contentHeight = totalH;
-        this.maxScroll = Math.max(0, contentHeight - height + 40);
+        this.maxScroll = Math.max(0, contentHeight - height);
         
         // Коррекция, если контент уменьшился
         if (scrollOffset > maxScroll) scrollOffset = maxScroll;

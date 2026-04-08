@@ -400,15 +400,18 @@ public class InputManager {
         
         if (!scroller.isMouseOver(mx, my)) return null;
 
-        // Dev Panel metrics (MUST match UIRenderer.renderDeveloperPanel)
+        // Dev Panel metrics (MUST match InventoryScreenRenderer.renderDeveloperPanel)
         int cols = 7;
         int slotSize = (int)(18 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
         int spacing = (int)(2 * com.za.minecraft.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
         int sw = GameLoop.getInstance().getWindow().getWidth();
         int devX = sw - (cols * (slotSize + spacing)) - 25;
-        int startY = 40;
+        int startY = 64; 
+        int padding = 12;
+        int bgY = startY - padding;
 
         java.util.List<Item> allItems = new java.util.ArrayList<>(ItemRegistry.getAllItems().values());
+        allItems.sort(java.util.Comparator.comparingInt(Item::getId));
         float offset = scroller.getOffset();
 
         for (int i = 0; i < allItems.size(); i++) {
@@ -419,7 +422,7 @@ public class InputManager {
             int y = startY + row * (slotSize + spacing) - (int)offset;
             
             // Only handle clicks on visible items (inside scroller bounds)
-            if (my >= startY && my <= startY + scroller.getHeight()) {
+            if (my >= scroller.getY() && my <= scroller.getY() + scroller.getHeight()) {
                 if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
                     return allItems.get(i);
                 }

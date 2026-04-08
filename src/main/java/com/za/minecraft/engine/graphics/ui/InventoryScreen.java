@@ -64,4 +64,8 @@ public abstract class InventoryScreen implements Screen {
     public List<SlotUI> getSlots() {
         return slots;
     }
+
+    public String getTitle() {
+        return title;
+    }
 }
