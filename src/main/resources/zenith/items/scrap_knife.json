@@ -1,0 +1,21 @@
+{
+  "id": 426,
+  "identifier": "zenith:scrap_knife",
+  "translationKey": "item.zenith.scrap_knife",
+  "texture": "zenith/textures/item/stone_sword.png",
+  "maxStackSize": 1,
+  "visualScale": 1.0,
+  "weight": 1.0,
+  "components": {
+    "zenith:tool": {
+      "type": "knife",
+      "efficiency": 3.0,
+      "durability": 100
+    },
+    "zenith:thermal": {
+      "initialTemperature": 20.0,
+      "specificHeatCapacity": 0.05,
+      "burnThreshold": 60.0
+    }
+  }
+}

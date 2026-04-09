@@ -1,0 +1,7 @@
+{
+  "id": 109,
+  "identifier": "zenith:rusty_pipe",
+  "translationKey": "item.zenith.rusty_pipe",
+  "texture": "zenith/textures/item/stick.png",
+  "type": "default"
+}

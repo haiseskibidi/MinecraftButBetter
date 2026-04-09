@@ -1,0 +1,15 @@
+{
+  "identifier": "zenith:scrap_axe",
+  "type": "in_world_crafting",
+  "tool": "zenith:rock",
+  "hits": 4,
+  "ingredients": [
+    "zenith:rusty_pipe",
+    "zenith:metal_sheet",
+    "zenith:duct_tape"
+  ],
+  "result": {
+    "item": "zenith:scrap_axe",
+    "count": 1
+  }
+}

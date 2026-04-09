@@ -112,6 +112,16 @@
 - **ViewmodelRenderer**: Теперь принимает `heat` и распределяет его между руками и инструментами. Доступен геттер для `heldItemRenderer`.
 - **HeldItemRenderer**: Реализует точечную передачу уровня жара инструменту. Метод `getOrGenerateMesh` сделан публичным для системы выбора.
 
+### com.za.zenith.world.blocks (UPDATED)
+- **CarTireBlockDefinition.java**: Базовый декоративный блок покрышки. Поддерживает трансформацию в `TireWithBoard` при Shift+ПКМ досками.
+- **TireWithBoardBlockDefinition.java**: Промежуточная стадия сборки стола. Трансформируется в `ScavengerTable` при Shift+ПКМ листом металла.
+- **ScavengerTableBlockDefinition.java**: Блок Стола Мусорщика. Делегирует взаимодействие `ScavengerTableBlockEntity`.
+- **StumpBlockDefinition.java**: Определение блока для пня (Stump).
+
+### com.za.zenith.world.blocks.entity (UPDATED)
+- **ScavengerTableBlockEntity.java**: Сущность Стола Мусорщика. Реализует `ICraftingSurface`. Хранит 9 слотов инвентаря и прогресс крафта.
+- **StumpBlockEntity.java**: Сущность блока для пня (Stump).
+
 ## Animation & Locomotion System (v4.5 UPDATED)
 ### com.za.zenith.entities.Player (UPDATED)
 Назначение: Главная сущность игрока.

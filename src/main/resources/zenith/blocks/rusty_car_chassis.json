@@ -20,19 +20,37 @@
   "drops": [
     {
       "item": "zenith:scrap_metal",
-      "chance": 0.25,
+      "chance": 0.20,
       "tool": "crowbar",
+      "drop_on_hit": true
+    },
+    {
+      "item": "zenith:scrap_metal",
+      "chance": 0.05,
+      "tool": "none",
       "drop_on_hit": true
     },
     {
       "item": "zenith:copper_wire",
       "chance": 0.10,
+      "tool": "crowbar",
+      "drop_on_hit": true
+    },
+    {
+      "item": "zenith:copper_wire",
+      "chance": 0.03,
       "tool": "none",
       "drop_on_hit": true
     },
     {
       "item": "zenith:car_tire",
       "chance": 0.05,
+      "tool": "crowbar",
+      "drop_on_hit": true
+    },
+    {
+      "item": "zenith:car_tire",
+      "chance": 0.01,
       "tool": "none",
       "drop_on_hit": true
     },
@@ -40,6 +58,36 @@
       "item": "zenith:metal_sheet",
       "chance": 0.10,
       "tool": "crowbar",
+      "drop_on_hit": true
+    },
+    {
+      "item": "zenith:metal_sheet",
+      "chance": 0.02,
+      "tool": "none",
+      "drop_on_hit": true
+    },
+    {
+      "item": "zenith:rusty_pipe",
+      "chance": 0.15,
+      "tool": "crowbar",
+      "drop_on_hit": true
+    },
+    {
+      "item": "zenith:rusty_pipe",
+      "chance": 0.03,
+      "tool": "none",
+      "drop_on_hit": true
+    },
+    {
+      "item": "zenith:duct_tape",
+      "chance": 0.10,
+      "tool": "crowbar",
+      "drop_on_hit": true
+    },
+    {
+      "item": "zenith:duct_tape",
+      "chance": 0.02,
+      "tool": "none",
       "drop_on_hit": true
     }
   ]

@@ -1,0 +1,7 @@
+{
+  "id": 110,
+  "identifier": "zenith:duct_tape",
+  "translationKey": "item.zenith.duct_tape",
+  "texture": "zenith/textures/item/bundle.png",
+  "type": "default"
+}

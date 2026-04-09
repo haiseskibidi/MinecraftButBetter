@@ -1,0 +1,13 @@
+{
+  "identifier": "zenith:scrap_knife",
+  "type": "in_world_crafting",
+  "hits": 2,
+  "ingredients": [
+    "zenith:scrap_metal",
+    "zenith:duct_tape"
+  ],
+  "result": {
+    "item": "zenith:scrap_knife",
+    "count": 1
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "identifier": "zenith:scrap_pickaxe",
+  "type": "in_world_crafting",
+  "tool": "zenith:rock",
+  "hits": 5,
+  "ingredients": [
+    "zenith:rusty_pipe",
+    "zenith:scrap_metal",
+    "zenith:scrap_metal",
+    "zenith:duct_tape"
+  ],
+  "result": {
+    "item": "zenith:scrap_pickaxe",
+    "count": 1
+  }
+}

@@ -37,6 +37,10 @@ public class Items {
     public static Item OFFHAND_DUMMY;
     public static Item SCRAP_METAL;
     public static Item COPPER_WIRE;
+    public static Item RUSTY_PIPE;
+    public static Item DUCT_TAPE;
+    public static Item SCRAP_AXE;
+    public static Item SCRAP_KNIFE;
     public static Item METAL_SHEET;
     public static Item BACKPACK;
 
