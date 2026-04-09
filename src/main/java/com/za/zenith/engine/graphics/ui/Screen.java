@@ -45,6 +45,14 @@ public interface Screen {
     }
 
     /**
+     * Handles character input (typing).
+     * @return true if the input was consumed.
+     */
+    default boolean handleChar(int codepoint) {
+        return false;
+    }
+
+    /**
      * Handles mouse scroll.
      * @return true if the scroll was consumed.
      */

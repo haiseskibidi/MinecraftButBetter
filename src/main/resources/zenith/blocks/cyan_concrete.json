@@ -1,11 +1,10 @@
 {
-    "id":  22,
-    "identifier":  "zenith:cyan_concrete",
-    "translationKey":  "block.zenith.cyan_concrete",
-    "solid":  true,
-    "transparent":  false,
-    "hardness":  1.8,
-    "textures":  {
-                     "all":  "cyan_concrete.png"
-                 }
+  "identifier": "zenith:cyan_concrete",
+  "translationKey": "block.zenith.cyan_concrete",
+  "solid": true,
+  "transparent": false,
+  "hardness": 1.8,
+  "textures": {
+    "all": "cyan_concrete.png"
+  }
 }

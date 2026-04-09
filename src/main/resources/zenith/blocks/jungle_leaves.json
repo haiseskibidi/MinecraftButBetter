@@ -1,13 +1,15 @@
 {
-    "id": 172,
-    "identifier": "zenith:jungle_leaves",
-    "translationKey": "block.zenith.jungle_leaves",
-    "solid": true,
-    "transparent": true,
-    "hardness": 0.2,
-    "textures": {
-        "all": "jungle_leaves.png"
-    },
-    "requiredTool": "knife",
-    "tags": ["treecapitator", "zenith:tinted"]
+  "identifier": "zenith:jungle_leaves",
+  "translationKey": "block.zenith.jungle_leaves",
+  "solid": true,
+  "transparent": true,
+  "hardness": 0.2,
+  "textures": {
+    "all": "jungle_leaves.png"
+  },
+  "requiredTool": "knife",
+  "tags": [
+    "treecapitator",
+    "zenith:tinted"
+  ]
 }

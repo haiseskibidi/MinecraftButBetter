@@ -1,13 +1,12 @@
 {
-    "id":  3,
-    "identifier":  "zenith:stone",
-    "translationKey":  "block.zenith.stone",
-    "solid":  true,
-    "transparent":  false,
-    "hardness":  1.5,
-    "textures":  {
-                     "all":  "stone.png"
-                 },
-    "requiredTool":  "pickaxe",
-    "supportScavenge":  true
+  "identifier": "zenith:stone",
+  "translationKey": "block.zenith.stone",
+  "solid": true,
+  "transparent": false,
+  "hardness": 1.5,
+  "textures": {
+    "all": "stone.png"
+  },
+  "requiredTool": "pickaxe",
+  "supportScavenge": true
 }

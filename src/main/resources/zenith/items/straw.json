@@ -1,5 +1,4 @@
 {
-  "id": 401,
   "identifier": "zenith:straw",
   "translationKey": "item.zenith.straw",
   "texture": "zenith/textures/item/wheat.png"

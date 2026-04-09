@@ -1,13 +1,15 @@
 {
-    "id": 173,
-    "identifier": "zenith:acacia_leaves",
-    "translationKey": "block.zenith.acacia_leaves",
-    "solid": true,
-    "transparent": true,
-    "hardness": 0.2,
-    "textures": {
-        "all": "acacia_leaves.png"
-    },
-    "requiredTool": "knife",
-    "tags": ["treecapitator", "zenith:tinted"]
+  "identifier": "zenith:acacia_leaves",
+  "translationKey": "block.zenith.acacia_leaves",
+  "solid": true,
+  "transparent": true,
+  "hardness": 0.2,
+  "textures": {
+    "all": "acacia_leaves.png"
+  },
+  "requiredTool": "knife",
+  "tags": [
+    "treecapitator",
+    "zenith:tinted"
+  ]
 }

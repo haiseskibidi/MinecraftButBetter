@@ -1,13 +1,12 @@
 {
-    "id":  6,
-    "identifier":  "zenith:oak_planks",
-    "translationKey":  "block.zenith.oak_planks",
-    "solid":  true,
-    "transparent":  false,
-    "breaking_pattern": "default",
-    "hardness":  2.0,
-    "textures":  {
-                     "all":  "oak_planks.png"
-                 },
-    "requiredTool":  "axe"
+  "identifier": "zenith:oak_planks",
+  "translationKey": "block.zenith.oak_planks",
+  "solid": true,
+  "transparent": false,
+  "breaking_pattern": "default",
+  "hardness": 2.0,
+  "textures": {
+    "all": "oak_planks.png"
+  },
+  "requiredTool": "axe"
 }

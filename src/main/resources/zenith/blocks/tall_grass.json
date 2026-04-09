@@ -1,5 +1,4 @@
 {
-  "id": 125,
   "identifier": "zenith:tall_grass",
   "translationKey": "block.zenith.tall_grass",
   "solid": false,
@@ -14,8 +13,18 @@
     "all": "tall_grass_bottom.png"
   },
   "drops": [
-    { "tool": "knife", "item": "zenith:plant_fiber", "chance": 1.0 },
-    { "tool": "none", "item": "zenith:straw", "chance": 0.3 }
+    {
+      "tool": "knife",
+      "item": "zenith:plant_fiber",
+      "chance": 1.0
+    },
+    {
+      "tool": "none",
+      "item": "zenith:straw",
+      "chance": 0.3
+    }
   ],
-  "tags": ["zenith:tinted"]
+  "tags": [
+    "zenith:tinted"
+  ]
 }

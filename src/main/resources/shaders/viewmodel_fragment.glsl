@@ -24,6 +24,7 @@ uniform float uAlpha = 1.0;
 // Modular Includes
 #include "include/noise.glsl"
 #include "include/hand_conditions.glsl"
+#include "include/block_features.glsl"
 #include "include/lighting.glsl"
 
 void main() {
@@ -32,6 +33,8 @@ void main() {
 
     vec3 baseColor = textureColor.rgb;
     float alpha = textureColor.a;
+
+    BlockInfo info = decodeBlockInfo(blockType);
 
     // 1. Apply Hand Conditions (Dirt, Blood)
     if (isHand) {
@@ -65,7 +68,7 @@ void main() {
     vec3 lighting = calculateLighting(fragNormal, lightDirection, lightColor, ambientLight);
     
     // 4. Tinting (Leaves/Grass)
-    if (blockType < -0.5) {
+    if (info.isTinted) {
         baseColor *= vec3(0.486, 0.784, 0.314);
     }
 

@@ -1,19 +1,22 @@
 {
-    "id": 44,
-    "identifier": "zenith:copper_ore",
-    "translationKey": "block.zenith.copper_ore",
-    "solid": true,
-    "transparent": false,
-    "hardness": 3.0,
-    "textures": {
-        "all": "copper_ore.png"
-    },
-    "requiredTool": "pickaxe",
-    "breaking_pattern": "stone",
-    "mining_logic": {
-        "strategy": "weak_spots",
-        "precision": 0.15,
-        "miss_multiplier": 0.15,
-        "weak_spot_color": [1.0, 0.9, 0.4]
-    }
+  "identifier": "zenith:copper_ore",
+  "translationKey": "block.zenith.copper_ore",
+  "solid": true,
+  "transparent": false,
+  "hardness": 3.0,
+  "textures": {
+    "all": "copper_ore.png"
+  },
+  "requiredTool": "pickaxe",
+  "breaking_pattern": "stone",
+  "mining_logic": {
+    "strategy": "weak_spots",
+    "precision": 0.15,
+    "miss_multiplier": 0.15,
+    "weak_spot_color": [
+      1.0,
+      0.9,
+      0.4
+    ]
+  }
 }

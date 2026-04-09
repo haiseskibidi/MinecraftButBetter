@@ -1,12 +1,11 @@
 {
-    "id":  15,
-    "identifier":  "zenith:mossy_cobblestone",
-    "translationKey":  "block.zenith.mossy_cobblestone",
-    "solid":  true,
-    "transparent":  false,
-    "hardness":  2.0,
-    "textures":  {
-                     "all":  "mossy_cobblestone.png"
-                 },
-    "requiredTool":  "pickaxe"
+  "identifier": "zenith:mossy_cobblestone",
+  "translationKey": "block.zenith.mossy_cobblestone",
+  "solid": true,
+  "transparent": false,
+  "hardness": 2.0,
+  "textures": {
+    "all": "mossy_cobblestone.png"
+  },
+  "requiredTool": "pickaxe"
 }

@@ -1,12 +1,11 @@
 {
-    "id":  32,
-    "identifier":  "zenith:electric_lamp",
-    "translationKey":  "block.zenith.electric_lamp",
-    "solid":  true,
-    "transparent":  false,
-    "type":  "lamp",
-    "hardness":  0.5,
-    "textures":  {
-                     "all":  "sea_lantern.png"
-                 }
+  "identifier": "zenith:electric_lamp",
+  "translationKey": "block.zenith.electric_lamp",
+  "solid": true,
+  "transparent": false,
+  "type": "lamp",
+  "hardness": 0.5,
+  "textures": {
+    "all": "sea_lantern.png"
+  }
 }

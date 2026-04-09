@@ -10,6 +10,8 @@ uniform sampler2DArray textureSampler;
 uniform float brightnessMultiplier = 1.0;
 uniform vec3 tintColor = vec3(0.486, 0.784, 0.314); 
 
+#include "include/block_features.glsl"
+
 // Константы для освещения
 const vec3 TOP_LIGHT_DIR = vec3(0.0, 1.0, 0.0);
 const vec3 SIDE_LIGHT_DIR = normalize(vec3(0.5, 0.2, 0.5)); // Мягкий свет спереди-справа
@@ -20,7 +22,9 @@ void main() {
     
     vec3 baseColor = textureColor.rgb;
 
-    if (blockType < -0.5) {
+    BlockInfo info = decodeBlockInfo(blockType);
+
+    if (info.isTinted) {
         baseColor *= tintColor;
     }
 

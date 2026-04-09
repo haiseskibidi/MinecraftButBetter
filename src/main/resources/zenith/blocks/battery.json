@@ -1,14 +1,13 @@
 {
-    "id":  33,
-    "identifier":  "zenith:battery",
-    "translationKey":  "block.zenith.battery",
-    "solid":  true,
-    "transparent":  false,
-    "type":  "battery",
-    "hardness":  3.0,
-    "textures":  {
-                     "top":  "blast_furnace_top.png",
-                     "bottom":  "blast_furnace_top.png",
-                     "side":  "iron_block.png"
-                 }
+  "identifier": "zenith:battery",
+  "translationKey": "block.zenith.battery",
+  "solid": true,
+  "transparent": false,
+  "type": "battery",
+  "hardness": 3.0,
+  "textures": {
+    "top": "blast_furnace_top.png",
+    "bottom": "blast_furnace_top.png",
+    "side": "iron_block.png"
+  }
 }

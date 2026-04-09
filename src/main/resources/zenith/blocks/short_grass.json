@@ -1,5 +1,4 @@
 {
-  "id": 124,
   "identifier": "zenith:short_grass",
   "translationKey": "block.zenith.short_grass",
   "solid": false,
@@ -14,5 +13,7 @@
   "textures": {
     "all": "grass.png"
   },
-  "tags": ["zenith:tinted"]
+  "tags": [
+    "zenith:tinted"
+  ]
 }

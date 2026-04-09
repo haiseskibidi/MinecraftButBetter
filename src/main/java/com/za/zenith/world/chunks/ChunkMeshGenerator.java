@@ -121,6 +121,8 @@ public class ChunkMeshGenerator {
         MeshData data = new MeshData();
         com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
         
+        boolean isTranslucent = def != null && def.hasTag("zenith:glass");
+        
         float finalBlockType = (float)block.getType();
         if (def != null && def.isTinted()) {
             finalBlockType = -(finalBlockType + 1.0f);
@@ -147,7 +149,9 @@ public class ChunkMeshGenerator {
             };
             for (int face = 0; face < 6; face++) {
                 float faceBlockType = (float)block.getType();
-                if (def != null && def.isTinted()) {
+                if (isTranslucent) {
+                    faceBlockType = -(faceBlockType + 2000.0f);
+                } else if (def != null && def.isTinted()) {
                     boolean isGrassBlock = def.getIdentifier().getPath().contains("grass_block");
                     if (!isGrassBlock || face == 4) {
                         faceBlockType = -(faceBlockType + 1.0f);
@@ -264,7 +268,7 @@ public class ChunkMeshGenerator {
                     VoxelShape shape = block.getShape();
                     if (shape == null) continue;
 
-                    boolean isTranslucent = (block.getType() == com.za.zenith.world.blocks.Blocks.GLASS.getId());
+                    boolean isTranslucent = def != null && def.hasTag("zenith:glass");
                     MeshData current = isTranslucent ? translucent : opaque;
 
                     int worldX = chunk.getPosition().x() * Chunk.CHUNK_SIZE + x;
@@ -306,7 +310,7 @@ public class ChunkMeshGenerator {
                             drawFace = true;
                         } else if (neighbor.isFullCube() && !neighbor.isTransparent() && !neighborDef.isAlwaysRender()) {
                             drawFace = false;
-                        } else if (isTranslucent && neighbor.getType() == block.getType()) {
+                        } else if (isTranslucent && neighborDef != null && neighborDef.hasTag("zenith:glass")) {
                             drawFace = false;
                         } else {
                             drawFace = true;
@@ -317,15 +321,20 @@ public class ChunkMeshGenerator {
                             if (isTranslucent) {
                                 for (int i = 0; i < 4; i++) {
                                     Block n = world.getBlock(worldX + faceNeighbors[face][i][0], worldY + faceNeighbors[face][i][1], worldZ + faceNeighbors[face][i][2]);
-                                    if (n.getType() == block.getType()) {
+                                    com.za.zenith.world.blocks.BlockDefinition nDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(n.getType());
+                                    if (nDef != null && nDef.hasTag("zenith:glass")) {
                                         neighborMask += (float)Math.pow(2, i);
                                     }
                                 }
                             }
                             
-                            // APPLY TINT: Only top face for grass blocks, all faces for others (like leaves)
+                            // APPLY TINT & GLASS FLAGS for shader
                             float faceBlockType = (float)block.getType();
-                            if (def != null && def.isTinted()) {
+                            if (isTranslucent) {
+                                // Glass flag: offset by -2000
+                                faceBlockType = -(faceBlockType + 2000.0f);
+                            } else if (def != null && def.isTinted()) {
+                                // Tint flag: offset by -1
                                 boolean isGrassBlock = def.getIdentifier().getPath().contains("grass_block");
                                 if (!isGrassBlock || face == 4) {
                                     faceBlockType = -(faceBlockType + 1.0f);

@@ -1,14 +1,13 @@
 {
-    "id":  29,
-    "identifier":  "zenith:campfire",
-    "translationKey":  "block.zenith.campfire",
-    "solid":  true,
-    "transparent":  true,
-    "type": "campfire",
-    "hardness":  1.0,
-    "textures":  {
-                     "top":  "cobblestone.png",
-                     "bottom":  "cobblestone.png",
-                     "side":  "oak_log.png"
-                 }
+  "identifier": "zenith:campfire",
+  "translationKey": "block.zenith.campfire",
+  "solid": true,
+  "transparent": true,
+  "type": "campfire",
+  "hardness": 1.0,
+  "textures": {
+    "top": "cobblestone.png",
+    "bottom": "cobblestone.png",
+    "side": "oak_log.png"
+  }
 }

@@ -127,6 +127,7 @@
   "block.zenith.copper_ore": "Медная руда",
   "gui.firing_progress": "Обжиг: %d%%",
   "gui.developer_panel": "Панель разработчика",
+  "gui.search_placeholder": "Поиск...",
   "journal.category.basics": "Основы выживания",
   "journal.entry.scavenging.title": "Сбор ресурсов",
   "journal.entry.scavenging.desc1": "В этом суровом мире всё начинается с земли. Ищите палки и камни прямо под ногами.",

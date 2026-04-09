@@ -1,23 +1,22 @@
 {
-    "id": 182,
-    "identifier": "zenith:stripped_jungle_log",
-    "translationKey": "block.zenith.stripped_jungle_log",
-    "solid": true,
-    "transparent": false,
-    "type": "log",
-    "breaking_pattern": "wood",
-    "hardness": 2.0,
-    "tags": [
-        "zenith:logs"
-    ],
-    "textures": {
-        "top": "stripped_jungle_log_top.png",
-        "bottom": "stripped_jungle_log_top.png",
-        "side": "stripped_jungle_log.png"
-    },
-    "mining_logic": {
-        "strategy": "weak_spots",
-        "precision": 0.2,
-        "miss_multiplier": 0.3
-    }
+  "identifier": "zenith:stripped_jungle_log",
+  "translationKey": "block.zenith.stripped_jungle_log",
+  "solid": true,
+  "transparent": false,
+  "type": "log",
+  "breaking_pattern": "wood",
+  "hardness": 2.0,
+  "tags": [
+    "zenith:logs"
+  ],
+  "textures": {
+    "top": "stripped_jungle_log_top.png",
+    "bottom": "stripped_jungle_log_top.png",
+    "side": "stripped_jungle_log.png"
+  },
+  "mining_logic": {
+    "strategy": "weak_spots",
+    "precision": 0.2,
+    "miss_multiplier": 0.3
+  }
 }

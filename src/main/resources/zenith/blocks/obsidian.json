@@ -1,12 +1,11 @@
 {
-    "id":  16,
-    "identifier":  "zenith:obsidian",
-    "translationKey":  "block.zenith.obsidian",
-    "solid":  true,
-    "transparent":  false,
-    "hardness":  50.0,
-    "textures":  {
-                     "all":  "obsidian.png"
-                 },
-    "requiredTool":  "pickaxe"
+  "identifier": "zenith:obsidian",
+  "translationKey": "block.zenith.obsidian",
+  "solid": true,
+  "transparent": false,
+  "hardness": 50.0,
+  "textures": {
+    "all": "obsidian.png"
+  },
+  "requiredTool": "pickaxe"
 }

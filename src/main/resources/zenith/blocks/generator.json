@@ -1,17 +1,16 @@
 {
-    "id":  30,
-    "identifier":  "zenith:generator",
-    "translationKey":  "block.zenith.generator",
-    "solid":  true,
-    "transparent":  false,
-    "type":  "generator",
-    "hardness":  3.5,
-    "textures":  {
-                     "top":  "blast_furnace_top.png",
-                     "bottom":  "blast_furnace_top.png",
-                     "north":  "blast_furnace_front.png",
-                     "south":  "blast_furnace_front.png",
-                     "east":  "blast_furnace_side.png",
-                     "west":  "blast_furnace_side.png"
-                 }
+  "identifier": "zenith:generator",
+  "translationKey": "block.zenith.generator",
+  "solid": true,
+  "transparent": false,
+  "type": "generator",
+  "hardness": 3.5,
+  "textures": {
+    "top": "blast_furnace_top.png",
+    "bottom": "blast_furnace_top.png",
+    "north": "blast_furnace_front.png",
+    "south": "blast_furnace_front.png",
+    "east": "blast_furnace_side.png",
+    "west": "blast_furnace_side.png"
+  }
 }

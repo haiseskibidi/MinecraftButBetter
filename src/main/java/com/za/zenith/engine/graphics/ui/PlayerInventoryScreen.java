@@ -1,5 +1,7 @@
 package com.za.zenith.engine.graphics.ui;
 
+import com.za.zenith.engine.core.GameLoop;
+import com.za.zenith.engine.graphics.ui.renderers.InventoryScreenRenderer;
 import com.za.zenith.entities.Player;
 import com.za.zenith.engine.core.PlayerMode;
 import com.za.zenith.entities.inventory.Slot;
@@ -62,11 +64,6 @@ public class PlayerInventoryScreen extends InventoryScreen {
     }
 
     @Override
-    protected com.za.zenith.utils.Identifier getScreenIdentifier() {
-        return com.za.zenith.utils.Identifier.of("zenith:player_inventory");
-    }
-
-    @Override
     public void render(UIRenderer renderer, int sw, int sh, com.za.zenith.engine.graphics.DynamicTextureAtlas atlas) {
         // Universal dynamic update: check if any layout-affecting state changed
         String currentKey = calculateLayoutKey(sw, sh);
@@ -87,6 +84,39 @@ public class PlayerInventoryScreen extends InventoryScreen {
         }
         
         super.render(renderer, sw, sh, atlas);
+    }
+
+    @Override
+    public boolean handleMouseClick(float mx, float my, int button) {
+        InventoryScreenRenderer invRenderer = GameLoop.getInstance().getRenderer().getUIRenderer().getInventoryScreenRenderer();
+        // Use the actual current window size
+        if (invRenderer.handleMouseClick(mx, my, button)) {
+            return true;
+        }
+        return super.handleMouseClick(mx, my, button);
+    }
+
+    @Override
+    public boolean handleKeyPress(int key) {
+        InventoryScreenRenderer invRenderer = GameLoop.getInstance().getRenderer().getUIRenderer().getInventoryScreenRenderer();
+        if (invRenderer.handleKeyPress(key)) {
+            return true;
+        }
+        return super.handleKeyPress(key);
+    }
+
+    @Override
+    public boolean handleChar(int codepoint) {
+        InventoryScreenRenderer invRenderer = GameLoop.getInstance().getRenderer().getUIRenderer().getInventoryScreenRenderer();
+        if (invRenderer.handleChar(codepoint)) {
+            return true;
+        }
+        return super.handleChar(codepoint);
+    }
+
+    @Override
+    protected com.za.zenith.utils.Identifier getScreenIdentifier() {
+        return com.za.zenith.utils.Identifier.of("zenith:player_inventory");
     }
 }
 

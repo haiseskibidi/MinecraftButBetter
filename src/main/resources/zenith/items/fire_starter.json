@@ -1,14 +1,13 @@
 {
-    "id": 410,
-    "identifier": "zenith:fire_starter",
-    "translationKey": "item.zenith.fire_starter",
-    "texture": "zenith/textures/item/flint_and_steel.png",
-    "maxStackSize": 1,
-    "components": {
-        "zenith:tool": {
-            "type": "NONE",
-            "efficiency": 1.0,
-            "durability": 8
-        }
+  "identifier": "zenith:fire_starter",
+  "translationKey": "item.zenith.fire_starter",
+  "texture": "zenith/textures/item/flint_and_steel.png",
+  "maxStackSize": 1,
+  "components": {
+    "zenith:tool": {
+      "type": "NONE",
+      "efficiency": 1.0,
+      "durability": 8
     }
+  }
 }

@@ -1,5 +1,4 @@
 {
-  "id": 441,
   "identifier": "zenith:stone_shovel",
   "translationKey": "item.zenith.stone_shovel",
   "texture": "zenith/textures/item/stone_shovel.png",
@@ -7,8 +6,16 @@
   "weight": 2.0,
   "components": {
     "viewmodel": {
-      "translation": [0.0, -0.1, 0.0],
-      "rotation": [0.0, 0.0, 0.0],
+      "translation": [
+        0.0,
+        -0.1,
+        0.0
+      ],
+      "rotation": [
+        0.0,
+        0.0,
+        0.0
+      ],
       "scale": 0.85
     },
     "zenith:tool": {

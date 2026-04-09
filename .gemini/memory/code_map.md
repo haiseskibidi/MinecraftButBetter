@@ -70,6 +70,15 @@
 Назначение: Базовый класс предмета.
 Функции: Управление компонентами и индивидуальным `interaction_cooldown`.
 
+### com.za.zenith.world.items (UPDATED)
+- **ItemSearchEngine.java**: Универсальный движок фильтрации. Поддерживает поиск по локализованным именам, ID и путям.
+- **Item.java**: Базовый класс предмета.
+- **ItemRegistry.java**: Центральный реестр предметов.
+
+### com.za.zenith.engine.graphics.ui (UPDATED)
+- **UISearchBar.java**: Переиспользуемый компонент поисковой строки. Реализует логику курсора, выделения и работы с буфером обмена.
+- **InventoryScreen.java**: Базовый класс экранов инвентаря.
+
 ## Entity System (v5.6 NEW)
 ### com.za.zenith.entities.Entity (UPDATED)
 Назначение: Базовый класс для всех сущностей (игрок, мобы, предметы).

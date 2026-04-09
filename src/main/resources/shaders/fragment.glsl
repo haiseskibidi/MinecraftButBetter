@@ -67,11 +67,11 @@ void main() {
         }
 
         // Handle specific block logic
-        float actualBlockType = (blockType < -0.5) ? abs(blockType) - 1.0 : blockType;
+        BlockInfo info = decodeBlockInfo(blockType);
         
         // Glass connectivity
-        if (abs(actualBlockType - 19.0) < 0.1) {
-            textureColor = applyGlassConnections(textureColor, fragTexCoord.xy, neighborData, glassLayer, textureSampler);
+        if (info.isGlass) {
+            textureColor = applyGlassConnections(textureColor, fragTexCoord.xy, neighborData, fragTexCoord.z, textureSampler);
         }
 
         if (textureColor.a < 0.5) discard;
@@ -85,10 +85,10 @@ void main() {
         }
 
         // Feature: Brighten Stump tops
-        baseColor = brightenTopFace(baseColor, actualBlockType, fragNormal);
+        baseColor = brightenTopFace(baseColor, info.type, fragNormal);
 
         // Tinting (Leaves/Grass) - Apply after everything else to ensure color
-        if (blockType < -0.5) {
+        if (info.isTinted) {
             baseColor *= vec3(0.486, 0.784, 0.314);
         }
 

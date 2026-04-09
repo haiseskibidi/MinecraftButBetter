@@ -1,5 +1,4 @@
 {
-  "id": 105,
   "identifier": "zenith:scrap_metal",
   "translationKey": "item.zenith.scrap_metal",
   "texture": "zenith/textures/item/iron_ingot.png",

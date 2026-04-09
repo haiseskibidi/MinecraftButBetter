@@ -35,8 +35,8 @@ public class DataLoader {
     private static final Gson GSON = new Gson();
 
     public static void loadAll() {
-        // Гарантируем наличие AIR даже если загрузка из JSON не сработает
-        BlockDefinition airDef = new BlockDefinition(0, "block.zenith.air", false, false);
+        // Гарантируем наличие AIR как ID 0
+        BlockDefinition airDef = new BlockDefinition(0, Identifier.of("zenith:air"), "block.zenith.air", false, false);
         airDef.setReplaceable(true);
         BlockRegistry.registerBlock(airDef);
         
@@ -596,8 +596,20 @@ public class DataLoader {
     private static void parseBlock(JsonElement el) {
         try {
             JsonObject obj = el.getAsJsonObject();
-            int id = obj.get("id").getAsInt();
             Identifier identifier = Identifier.of(obj.get("identifier").getAsString());
+            
+            int id;
+            if (obj.has("id")) {
+                id = obj.get("id").getAsInt();
+            } else {
+                int existingId = BlockRegistry.getRegistry().getId(identifier);
+                if (existingId != -1) {
+                    id = existingId;
+                } else {
+                    id = BlockRegistry.getRegistry().getNextAvailableId();
+                }
+            }
+            
             String translationKey = obj.get("translationKey").getAsString();
             boolean solid = obj.get("solid").getAsBoolean();
             boolean transparent = obj.get("transparent").getAsBoolean();
@@ -738,8 +750,20 @@ public class DataLoader {
     private static void parseItem(JsonElement el) {
         try {
             JsonObject obj = el.getAsJsonObject();
-            int id = obj.get("id").getAsInt();
             Identifier identifier = Identifier.of(obj.get("identifier").getAsString());
+            
+            int id;
+            if (obj.has("id")) {
+                id = obj.get("id").getAsInt();
+            } else {
+                int existingId = ItemRegistry.getRegistry().getId(identifier);
+                if (existingId != -1) {
+                    id = existingId;
+                } else {
+                    id = ItemRegistry.getRegistry().getNextAvailableId();
+                }
+            }
+            
             String translationKey = obj.get("translationKey").getAsString();
             String texture = obj.get("texture").getAsString();
             String type = obj.has("type") ? obj.get("type").getAsString() : "default";

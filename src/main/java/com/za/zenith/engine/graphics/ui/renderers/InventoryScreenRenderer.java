@@ -9,11 +9,13 @@ import com.za.zenith.engine.graphics.ui.ScreenManager;
 import com.za.zenith.engine.graphics.ui.ScrollPanel;
 import com.za.zenith.engine.graphics.ui.SlotUI;
 import com.za.zenith.engine.graphics.ui.UIRenderer;
+import com.za.zenith.engine.graphics.ui.UISearchBar;
 import com.za.zenith.entities.Player;
 import com.za.zenith.utils.I18n;
 import com.za.zenith.world.items.Item;
 import com.za.zenith.world.items.ItemRegistry;
 import com.za.zenith.world.items.ItemStack;
+import com.za.zenith.world.items.ItemSearchEngine;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +27,8 @@ public class InventoryScreenRenderer {
     private final ScrollPanel devScroller = new ScrollPanel();
     private int lastSw = 0, lastSh = 0;
     private PlayerMode lastMode = null;
+
+    private final UISearchBar devSearchBar = new UISearchBar("gui.search_placeholder");
 
     public InventoryScreenRenderer(UIRenderer renderer) {
         this.renderer = renderer;
@@ -101,19 +105,41 @@ public class InventoryScreenRenderer {
         int cols = 7;
         int rows = 14; 
         int padding = 12;
+        int searchHeight = 24;
+        
         int slotsWidth = cols * (slotSize + spacing) - spacing; 
         int devWidth = slotsWidth + padding * 2;
         int devHeight = rows * (slotSize + spacing) - spacing + padding * 2;
         
         int bgX = devX - padding;
         int bgY = startY - padding;
-        renderer.getPrimitivesRenderer().renderRect(bgX, bgY - 24, devWidth, devHeight + 24, sw, sh, 0.05f, 0.05f, 0.05f, 0.95f); 
-        renderer.getPrimitivesRenderer().renderRect(bgX, bgY - 24, devWidth, 24, sw, sh, 0.15f, 0.15f, 0.15f, 1.0f); 
-        renderer.getFontRenderer().drawString(I18n.get("gui.developer_panel").toUpperCase(), devX, bgY - 18, 14, sw, sh, 0.0f, 0.6f, 1.0f, 1.0f);
+        
+        // 1. Panel Background
+        renderer.getPrimitivesRenderer().renderRect(bgX, bgY - 24 - searchHeight - 4, devWidth, devHeight + 24 + searchHeight + 4, sw, sh, 0.05f, 0.05f, 0.05f, 0.95f); 
+        
+        // 2. Title
+        renderer.getPrimitivesRenderer().renderRect(bgX, bgY - 24 - searchHeight - 4, devWidth, 24, sw, sh, 0.15f, 0.15f, 0.15f, 1.0f); 
+        renderer.getFontRenderer().drawString(I18n.get("gui.developer_panel").toUpperCase(), devX, bgY - 18 - searchHeight - 4, 14, sw, sh, 0.0f, 0.6f, 1.0f, 1.0f);
 
+        // 3. Search Box
+        devSearchBar.setBounds(bgX + 2, bgY - searchHeight - 2, devWidth - 4, searchHeight);
+        devSearchBar.render(renderer, sw, sh);
+
+        // 4. Item List
         devScroller.setBounds(bgX, bgY, devWidth, devHeight);
         List<Item> allItems = new ArrayList<>(ItemRegistry.getAllItems().values());
-        allItems.sort(java.util.Comparator.comparingInt(Item::getId));
+        
+        // Apply Search Filter
+        allItems = com.za.zenith.world.items.ItemSearchEngine.filter(allItems, devSearchBar.getQuery());
+        
+        allItems.sort((a, b) -> {
+            // Blocks first
+            if (a.isBlock() != b.isBlock()) {
+                return a.isBlock() ? -1 : 1;
+            }
+            // Then alphabetical by identifier
+            return a.getIdentifier().toString().compareTo(b.getIdentifier().toString());
+        });
         
         int totalRows = (allItems.size() + cols - 1) / cols;
         // Content height: padding top + slots height + padding bottom
@@ -158,6 +184,21 @@ public class InventoryScreenRenderer {
                 }
             }
         }
+    }
+
+    public boolean handleMouseClick(float mx, float my, int button) {
+        if (lastMode != PlayerMode.DEVELOPER) return false;
+        return devSearchBar.handleMouseClick(mx, my, button);
+    }
+
+    public boolean handleKeyPress(int key) {
+        if (lastMode != PlayerMode.DEVELOPER) return false;
+        return devSearchBar.handleKeyPress(key);
+    }
+
+    public boolean handleChar(int codepoint) {
+        if (lastMode != PlayerMode.DEVELOPER) return false;
+        return devSearchBar.handleChar(codepoint);
     }
 
     private void renderTooltip(String text, float mx, float my, int sw, int sh) {

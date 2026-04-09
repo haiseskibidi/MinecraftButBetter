@@ -1,14 +1,13 @@
 {
-    "id":  25,
-    "identifier":  "zenith:stone_slab",
-    "translationKey":  "block.zenith.stone_slab",
-    "solid":  true,
-    "transparent":  true,
-    "hardness":  1.5,
-    "type":  "slab",
-    "textures":  {
-                     "all":  "stone.png"
-                 },
-    "requiredTool":  "pickaxe",
-    "placement":  "slab"
+  "identifier": "zenith:stone_slab",
+  "translationKey": "block.zenith.stone_slab",
+  "solid": true,
+  "transparent": true,
+  "hardness": 1.5,
+  "type": "slab",
+  "textures": {
+    "all": "stone.png"
+  },
+  "requiredTool": "pickaxe",
+  "placement": "slab"
 }

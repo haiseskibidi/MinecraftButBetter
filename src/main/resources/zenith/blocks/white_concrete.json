@@ -1,11 +1,10 @@
 {
-    "id":  24,
-    "identifier":  "zenith:white_concrete",
-    "translationKey":  "block.zenith.white_concrete",
-    "solid":  true,
-    "transparent":  false,
-    "hardness":  1.8,
-    "textures":  {
-                     "all":  "white_concrete.png"
-                 }
+  "identifier": "zenith:white_concrete",
+  "translationKey": "block.zenith.white_concrete",
+  "solid": true,
+  "transparent": false,
+  "hardness": 1.8,
+  "textures": {
+    "all": "white_concrete.png"
+  }
 }

@@ -1,4 +1,27 @@
-// Specialized block-specific logic (connected textures, brightening, etc.)
+// Unified block type decoding
+struct BlockInfo {
+    float type;
+    bool isTinted;
+    bool isGlass;
+};
+
+BlockInfo decodeBlockInfo(float blockTypeAttr) {
+    BlockInfo info;
+    info.isTinted = false;
+    info.isGlass = false;
+    
+    if (blockTypeAttr < -1500.0) {
+        info.type = abs(blockTypeAttr) - 2000.0;
+        info.isGlass = true;
+    } else if (blockTypeAttr < -0.5) {
+        info.type = abs(blockTypeAttr) - 1.0;
+        info.isTinted = true;
+    } else {
+        info.type = blockTypeAttr;
+    }
+    
+    return info;
+}
 
 // Brighten top face of specific blocks (like stumps)
 vec3 brightenTopFace(vec3 color, float type, vec3 normal) {

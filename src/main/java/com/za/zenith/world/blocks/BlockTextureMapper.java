@@ -85,7 +85,7 @@ public class BlockTextureMapper {
 
         BlockTextures textures = BlockRegistry.getTextures(type);
         if (textures == null) {
-            return "zenith/textures/block/dirt.png";
+            return "zenith/textures/default.png";
         }
 
         // --- DOUBLE_PLANT logic ---

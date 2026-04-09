@@ -1,5 +1,4 @@
 {
-  "id": 900,
   "identifier": "zenith:hand",
   "translationKey": "item.zenith.hand",
   "texture": "zenith:textures/item/hand.png",

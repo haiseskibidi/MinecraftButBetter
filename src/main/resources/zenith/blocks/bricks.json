@@ -1,11 +1,10 @@
 {
-    "id":  20,
-    "identifier":  "zenith:bricks",
-    "translationKey":  "block.zenith.bricks",
-    "solid":  true,
-    "transparent":  false,
-    "hardness":  2.0,
-    "textures":  {
-                     "all":  "bricks.png"
-                 }
+  "identifier": "zenith:bricks",
+  "translationKey": "block.zenith.bricks",
+  "solid": true,
+  "transparent": false,
+  "hardness": 2.0,
+  "textures": {
+    "all": "bricks.png"
+  }
 }

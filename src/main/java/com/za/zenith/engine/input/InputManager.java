@@ -112,11 +112,18 @@ public class InputManager {
         });
 
         glfwSetKeyCallback(window.getWindowHandle(), (windowHandle, key, scancode, action, mods) -> {
-            if (action == GLFW_PRESS) {
+            if (action == GLFW_PRESS || action == GLFW_REPEAT) {
                 com.za.zenith.engine.graphics.ui.Screen active = com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
                 if (active != null && active.handleKeyPress(key)) {
                     markKeyHandled(key);
                 }
+            }
+        });
+
+        glfwSetCharCallback(window.getWindowHandle(), (windowHandle, codepoint) -> {
+            com.za.zenith.engine.graphics.ui.Screen active = com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+            if (active != null) {
+                active.handleChar(codepoint);
             }
         });
         
@@ -417,7 +424,12 @@ public class InputManager {
         int bgY = startY - padding;
 
         java.util.List<Item> allItems = new java.util.ArrayList<>(ItemRegistry.getAllItems().values());
-        allItems.sort(java.util.Comparator.comparingInt(Item::getId));
+        allItems.sort((a, b) -> {
+            if (a.isBlock() != b.isBlock()) {
+                return a.isBlock() ? -1 : 1;
+            }
+            return a.getIdentifier().toString().compareTo(b.getIdentifier().toString());
+        });
         float offset = scroller.getOffset();
 
         for (int i = 0; i < allItems.size(); i++) {

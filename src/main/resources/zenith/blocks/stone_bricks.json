@@ -1,12 +1,11 @@
 {
-    "id":  21,
-    "identifier":  "zenith:stone_bricks",
-    "translationKey":  "block.zenith.stone_bricks",
-    "solid":  true,
-    "transparent":  false,
-    "hardness":  2.0,
-    "textures":  {
-                     "all":  "stone_bricks.png"
-                 },
-    "requiredTool":  "pickaxe"
+  "identifier": "zenith:stone_bricks",
+  "translationKey": "block.zenith.stone_bricks",
+  "solid": true,
+  "transparent": false,
+  "hardness": 2.0,
+  "textures": {
+    "all": "stone_bricks.png"
+  },
+  "requiredTool": "pickaxe"
 }

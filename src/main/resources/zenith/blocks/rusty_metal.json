@@ -1,12 +1,11 @@
 {
-    "id":  18,
-    "identifier":  "zenith:rusty_metal",
-    "translationKey":  "block.zenith.rusty_metal",
-    "solid":  true,
-    "transparent":  false,
-    "hardness":  5.0,
-    "textures":  {
-                     "all":  "oxidized_copper.png"
-                 },
-    "requiredTool":  "crowbar"
+  "identifier": "zenith:rusty_metal",
+  "translationKey": "block.zenith.rusty_metal",
+  "solid": true,
+  "transparent": false,
+  "hardness": 5.0,
+  "textures": {
+    "all": "oxidized_copper.png"
+  },
+  "requiredTool": "crowbar"
 }

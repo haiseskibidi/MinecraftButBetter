@@ -1,12 +1,11 @@
 {
-    "id":  17,
-    "identifier":  "zenith:asphalt",
-    "translationKey":  "block.zenith.asphalt",
-    "solid":  true,
-    "transparent":  false,
-    "hardness":  2.0,
-    "textures":  {
-                     "all":  "gray_concrete.png"
-                 },
-    "requiredTool":  "crowbar"
+  "identifier": "zenith:asphalt",
+  "translationKey": "block.zenith.asphalt",
+  "solid": true,
+  "transparent": false,
+  "hardness": 2.0,
+  "textures": {
+    "all": "gray_concrete.png"
+  },
+  "requiredTool": "crowbar"
 }

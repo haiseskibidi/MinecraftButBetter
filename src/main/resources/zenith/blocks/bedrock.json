@@ -1,11 +1,10 @@
 {
-    "id":  8,
-    "identifier":  "zenith:bedrock",
-    "translationKey":  "block.zenith.bedrock",
-    "solid":  true,
-    "transparent":  false,
-    "hardness":  -1.0,
-    "textures":  {
-                     "all":  "bedrock.png"
-                 }
+  "identifier": "zenith:bedrock",
+  "translationKey": "block.zenith.bedrock",
+  "solid": true,
+  "transparent": false,
+  "hardness": -1.0,
+  "textures": {
+    "all": "bedrock.png"
+  }
 }

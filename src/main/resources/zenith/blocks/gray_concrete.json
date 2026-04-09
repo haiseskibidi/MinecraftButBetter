@@ -1,11 +1,10 @@
 {
-    "id":  23,
-    "identifier":  "zenith:gray_concrete",
-    "translationKey":  "block.zenith.gray_concrete",
-    "solid":  true,
-    "transparent":  false,
-    "hardness":  1.8,
-    "textures":  {
-                     "all":  "gray_concrete.png"
-                 }
+  "identifier": "zenith:gray_concrete",
+  "translationKey": "block.zenith.gray_concrete",
+  "solid": true,
+  "transparent": false,
+  "hardness": 1.8,
+  "textures": {
+    "all": "gray_concrete.png"
+  }
 }

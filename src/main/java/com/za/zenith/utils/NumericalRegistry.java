@@ -24,19 +24,43 @@ public class NumericalRegistry<T> extends Registry<T> {
      */
     @Override
     public void register(Identifier id, T value) {
-        register(id, nextId++, value);
+        register(id, getNextAvailableId(), value);
     }
 
     /**
      * Регистрирует объект с конкретным ID.
      */
     public void register(Identifier id, int numericalId, T value) {
+        if (idToIdentifier.containsKey(numericalId)) {
+            Identifier existingId = idToIdentifier.get(numericalId);
+            if (existingId.equals(id)) {
+                // Тот же идентификатор, просто обновляем значение в базовом реестре
+                super.register(id, value);
+                return;
+            }
+            Logger.warn("Numerical ID collision! ID " + numericalId + " is already taken by " + existingId + ". " + id + " will be assigned a new ID.");
+            register(id, value);
+            return;
+        }
+        
         super.register(id, value);
         idToIdentifier.put(numericalId, id);
         identifierToId.put(id, numericalId);
+        
+        // Обновляем nextId если нужно, чтобы не предлагать занятые ID
         if (numericalId >= nextId) {
             nextId = numericalId + 1;
         }
+    }
+
+    /**
+     * Находит следующий свободный числовой ID.
+     */
+    public int getNextAvailableId() {
+        while (idToIdentifier.containsKey(nextId)) {
+            nextId++;
+        }
+        return nextId;
     }
 
     public int getId(Identifier id) {

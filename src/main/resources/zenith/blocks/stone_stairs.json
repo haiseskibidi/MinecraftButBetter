@@ -1,14 +1,13 @@
 {
-    "id":  26,
-    "identifier":  "zenith:stone_stairs",
-    "translationKey":  "block.zenith.stone_stairs",
-    "solid":  true,
-    "transparent":  true,
-    "hardness":  1.5,
-    "type":  "stairs",
-    "textures":  {
-                     "all":  "stone.png"
-                 },
-    "requiredTool":  "pickaxe",
-    "placement":  "stairs"
+  "identifier": "zenith:stone_stairs",
+  "translationKey": "block.zenith.stone_stairs",
+  "solid": true,
+  "transparent": true,
+  "hardness": 1.5,
+  "type": "stairs",
+  "textures": {
+    "all": "stone.png"
+  },
+  "requiredTool": "pickaxe",
+  "placement": "stairs"
 }

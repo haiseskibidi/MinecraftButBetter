@@ -1,8 +1,7 @@
 {
-    "id":  0,
-    "identifier":  "zenith:air",
-    "translationKey":  "block.zenith.air",
-    "solid":  false,
-    "transparent":  false,
-    "replaceable": true
+  "identifier": "zenith:air",
+  "translationKey": "block.zenith.air",
+  "solid": false,
+  "transparent": false,
+  "replaceable": true
 }
