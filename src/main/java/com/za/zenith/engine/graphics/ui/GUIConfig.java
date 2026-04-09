@@ -1,12 +1,14 @@
 package com.za.zenith.engine.graphics.ui;
 
+import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
 /**
  * Configuration for a GUI screen loaded from JSON.
  */
 public class GUIConfig {
-    public String id;
+    @SerializedName(value = "identifier", alternate = {"id"})
+    public String identifier;
     public String title;
     public boolean hudVisible = false; // If true, this GUI can be rendered as part of the HUD
     public List<GroupConfig> groups;

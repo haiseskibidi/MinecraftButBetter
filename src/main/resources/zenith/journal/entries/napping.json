@@ -1,5 +1,4 @@
 {
-  "id": "zenith:napping",
   "title": "journal.entry.napping.title",
   "icon": "zenith:rock",
   "elements": [
@@ -45,5 +44,6 @@
       "type": "text",
       "value": "journal.entry.napping.note"
     }
-  ]
+  ],
+  "identifier": "zenith:napping"
 }

@@ -1,11 +1,28 @@
 {
-  "id": "zenith:scavenging",
   "title": "journal.entry.scavenging.title",
   "icon": "zenith:rock",
   "elements": [
-    { "type": "text", "value": "journal.entry.scavenging.desc1" },
-    { "type": "header", "value": "journal.entry.scavenging.tools" },
-    { "type": "item_row", "items": ["zenith:stick", "zenith:rock", "zenith:flint"] },
-    { "type": "text", "value": "journal.entry.scavenging.desc2", "color": "#AAAAAA" }
-  ]
+    {
+      "type": "text",
+      "value": "journal.entry.scavenging.desc1"
+    },
+    {
+      "type": "header",
+      "value": "journal.entry.scavenging.tools"
+    },
+    {
+      "type": "item_row",
+      "items": [
+        "zenith:stick",
+        "zenith:rock",
+        "zenith:flint"
+      ]
+    },
+    {
+      "type": "text",
+      "value": "journal.entry.scavenging.desc2",
+      "color": "#AAAAAA"
+    }
+  ],
+  "identifier": "zenith:scavenging"
 }

@@ -1,5 +1,4 @@
 {
-  "id": "zenith:basics",
   "name": "journal.category.basics",
   "icon": "zenith:stick",
   "entries": [
@@ -7,5 +6,6 @@
     "zenith:napping",
     "zenith:stump",
     "zenith:pottery"
-  ]
+  ],
+  "identifier": "zenith:basics"
 }

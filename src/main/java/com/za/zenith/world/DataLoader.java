@@ -205,7 +205,8 @@ public class DataLoader {
                 String json = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
                 JsonObject obj = GSON.fromJson(json, JsonObject.class);
                 
-                Identifier id = Identifier.of(obj.get("id").getAsString());
+                String idStr = obj.has("identifier") ? obj.get("identifier").getAsString() : obj.get("id").getAsString();
+                Identifier id = Identifier.of(idStr);
                 String name = obj.get("name").getAsString();
                 Identifier icon = Identifier.of(obj.get("icon").getAsString());
                 
@@ -234,7 +235,8 @@ public class DataLoader {
                 String json = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
                 JsonObject obj = GSON.fromJson(json, JsonObject.class);
                 
-                Identifier id = Identifier.of(obj.get("id").getAsString());
+                String idStr = obj.has("identifier") ? obj.get("identifier").getAsString() : obj.get("id").getAsString();
+                Identifier id = Identifier.of(idStr);
                 String title = obj.get("title").getAsString();
                 Identifier icon = obj.has("icon") ? Identifier.of(obj.get("icon").getAsString()) : null;
                 
@@ -288,7 +290,7 @@ public class DataLoader {
         try {
             JsonObject obj = el.getAsJsonObject();
             GUIConfig config = GSON.fromJson(obj, GUIConfig.class);
-            com.za.zenith.engine.graphics.ui.GUIRegistry.register(Identifier.of(config.id), config);
+            com.za.zenith.engine.graphics.ui.GUIRegistry.register(Identifier.of(config.identifier), config);
         } catch (Exception e) {
             Logger.error("Failed to parse GUI: " + e.getMessage());
         }

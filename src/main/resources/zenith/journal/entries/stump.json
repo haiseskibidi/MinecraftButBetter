@@ -1,5 +1,4 @@
 {
-  "id": "zenith:stump",
   "title": "journal.entry.stump.title",
   "icon": "zenith:stump",
   "elements": [
@@ -78,5 +77,6 @@
       "type": "text",
       "value": "journal.entry.stump.note"
     }
-  ]
+  ],
+  "identifier": "zenith:stump"
 }

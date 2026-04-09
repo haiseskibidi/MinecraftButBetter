@@ -1,5 +1,4 @@
 {
-  "id": "zenith:pottery",
   "title": "journal.entry.pottery.title",
   "icon": "zenith:fired_vessel",
   "elements": [
@@ -41,11 +40,15 @@
     },
     {
       "type": "item_row",
-      "items": ["zenith:fire_starter", "zenith:burning_pit_kiln"]
+      "items": [
+        "zenith:fire_starter",
+        "zenith:burning_pit_kiln"
+      ]
     },
     {
       "type": "text",
       "value": "journal.entry.pottery.desc5"
     }
-  ]
+  ],
+  "identifier": "zenith:pottery"
 }
