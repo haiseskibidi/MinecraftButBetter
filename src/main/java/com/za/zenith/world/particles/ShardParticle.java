@@ -1,93 +1,56 @@
 package com.za.zenith.world.particles;
 
 import org.joml.Vector3f;
+import org.joml.Vector2f;
 
 /**
- * Осколок блока. Обладает информацией о своем положении в сетке разрушения.
+ * Классический воксельный осколок. 
+ * Использует билбординг и микро-текстуры (snippets).
  */
 public class ShardParticle extends Particle {
     public static final int MAT_GENERIC = 0;
     public static final int MAT_WOOD = 1;
     public static final int MAT_LEAVES = 2;
 
-    private final int blockType;
-    private final int materialType;
     private final int textureLayer;
-    private final boolean tinted;
-    private final byte gx, gy, gz; // Координаты в сетке (0..gridSize-1)
-    private final byte gridSize;   // Размер сетки (например, 3)
-    private final float baseScale;
-    private final float seed; // Для случайных UV и формы
-    private boolean grounded = false;
-    private float flutterTimer = 0;
+    private final org.joml.Vector3f color = new org.joml.Vector3f(1, 1, 1);
+    private final org.joml.Vector2f snippetOffset = new org.joml.Vector2f();
 
-    public ShardParticle(Vector3f pos, Vector3f vel, float life, int blockType, int materialType, int textureLayer, boolean tinted, int gx, int gy, int gz, int gridSize, float baseScale) {
+    public ShardParticle(Vector3f pos, Vector3f vel, float life, float scale, int textureLayer, org.joml.Vector3f color) {
         super(pos, vel, life);
-        this.blockType = blockType;
-        this.materialType = materialType;
+        this.scale = scale;
         this.textureLayer = textureLayer;
-        this.tinted = tinted;
-        this.gx = (byte)gx;
-        this.gy = (byte)gy;
-        this.gz = (byte)gz;
-        this.gridSize = (byte)gridSize;
-        this.baseScale = baseScale;
-        this.seed = (float)Math.random();
-        this.flutterTimer = (float)(Math.random() * Math.PI * 2.0);
+        if (color != null) this.color.set(color);
         
-        // Рандомное вращение при спавне
-        this.angularVelocity.set(
-            (float)(Math.random() - 0.5) * 15.0f,
-            (float)(Math.random() - 0.5) * 15.0f,
-            (float)(Math.random() - 0.5) * 15.0f
+        // Выбираем случайный кусок 4x4 внутри текстуры 16x16
+        // Смещение в долях 0..1 (шаг 1/4 = 0.25)
+        this.snippetOffset.set(
+            (float)Math.floor(Math.random() * 4) * 0.25f,
+            (float)Math.floor(Math.random() * 4) * 0.25f
         );
         
-        // Уменьшаем базовый масштаб в 2 раза (0.5f), чтобы осколки были мелкими
-        this.scale = (baseScale / gridSize) * 0.5f;
+        // Случайное вращение и скорость вращения
+        this.roll = (float)(Math.random() * Math.PI * 2.0);
+        this.rollVelocity = (float)(Math.random() - 0.5) * 10.0f;
     }
-
-    public float getSeed() { return seed; }
-    public int getMaterialType() { return materialType; }
-    public int getTextureLayer() { return textureLayer; }
-    public boolean isTinted() { return tinted; }
 
     @Override
     public void update(float deltaTime) {
-        if (!grounded) {
-            if (materialType == MAT_LEAVES) {
-                // Листва: планирует в воздухе
-                velocity.y -= 4.0f * deltaTime; // Медленное падение
-                velocity.mul(0.95f); // Сопротивление воздуха
-                
-                flutterTimer += deltaTime * 5.0f;
-                position.x += (float)Math.sin(flutterTimer + seed * 10.0f) * 0.5f * deltaTime;
-                position.z += (float)Math.cos(flutterTimer * 0.7f + seed * 5.0f) * 0.5f * deltaTime;
-            } else {
-                // Дерево/Камень: стандартная гравитация
-                velocity.y -= 15.0f * deltaTime;
-            }
-            super.update(deltaTime);
-        } else {
-            lifeTime -= deltaTime;
-            if (lifeTime <= 0) removed = true;
-        }
+        // Гравитация
+        velocity.y -= 18.0f * deltaTime;
         
-        // Плавное уменьшение перед исчезновением
-        float ratio = Math.max(0, lifeTime / maxLifeTime);
-        this.scale = (ratio * (baseScale / gridSize) * 0.5f) * (grounded ? 0.7f : 1.0f); 
-    }
-
-    public void setGrounded(boolean grounded) {
-        this.grounded = grounded;
-        if (grounded) {
-            velocity.set(0);
-            angularVelocity.set(0);
+        // Сопротивление воздуха (плавное замедление)
+        velocity.mul(0.98f);
+        
+        super.update(deltaTime);
+        
+        // Дополнительное уменьшение в самом конце
+        if (getLifeRatio() < 0.2f) {
+            scale *= 0.95f;
         }
     }
 
-    public int getBlockType() { return blockType; }
-    public byte getGx() { return gx; }
-    public byte getGy() { return gy; }
-    public byte getGz() { return gz; }
-    public byte getGridSize() { return gridSize; }
+    public int getTextureLayer() { return textureLayer; }
+    public org.joml.Vector3f getColor() { return color; }
+    public Vector2f getSnippetOffset() { return snippetOffset; }
 }

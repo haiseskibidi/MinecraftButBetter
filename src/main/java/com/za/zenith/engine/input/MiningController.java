@@ -127,6 +127,17 @@ public class MiningController {
                         isWeakSpotHit = true;
                         currentDamage += miningDamage;
                         hitHistory.add(new Vector4f(currentWeakSpot, 1.0f));
+                        
+                        // СПАВН ЧАСТИЦ ПРИ УДАРЕ В ВИК СПОТ
+                        com.za.zenith.world.particles.ParticleManager.getInstance().spawnImpact(
+                            new Vector3f(hitPos.x() + 0.5f + currentWeakSpot.x, hitPos.y() + currentWeakSpot.y, hitPos.z() + 0.5f + currentWeakSpot.z),
+                            normal,
+                            blockDef,
+                            world.getBlock(hitPos).getMetadata(),
+                            blockDef.getWeakSpotParticles(),
+                            miningDamage
+                        );
+
                         // Перегенерируем на ТОЙ ЖЕ грани, используя честную нормаль
                         currentWeakSpot = generateRandomWeakSpot(blockDef.getShape(world.getBlock(hitPos).getMetadata()), currentNormal); 
                         com.za.zenith.utils.Logger.info("Weak spot HIT!");

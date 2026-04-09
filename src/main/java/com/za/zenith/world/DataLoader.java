@@ -627,20 +627,36 @@ public class DataLoader {
             if (obj.has("soilingAmount")) def.setSoilingAmount(obj.get("soilingAmount").getAsFloat());
             if (obj.has("cleaningAmount")) def.setCleaningAmount(obj.get("cleaningAmount").getAsFloat());
             if (obj.has("firingTemperature")) def.setFiringTemperature(obj.get("firingTemperature").getAsFloat());
-            if (obj.has("requiredTool")) def.setRequiredTool(obj.get("requiredTool").getAsString());            if (obj.has("dropItem")) def.setDropItem(obj.get("dropItem").getAsString());
+            if (obj.has("requiredTool")) def.setRequiredTool(obj.get("requiredTool").getAsString());
+            if (obj.has("dropItem")) def.setDropItem(obj.get("dropItem").getAsString());
             if (obj.has("dropChance")) def.setDropChance(obj.get("dropChance").getAsFloat());
             
             if (obj.has("wobble_animation")) def.setWobbleAnimation(obj.get("wobble_animation").getAsString());
             if (obj.has("interaction_cooldown")) def.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());
             if (obj.has("healing_speed")) def.setHealingSpeed(obj.get("healing_speed").getAsFloat());
             if (obj.has("particle_grid")) def.setParticleGridSize(obj.get("particle_grid").getAsInt());
-            
+            if (obj.has("particle_scale")) def.setParticleScale(obj.get("particle_scale").getAsFloat());
+            if (obj.has("weak_spot_particles")) def.setWeakSpotParticles(obj.get("weak_spot_particles").getAsInt());
+            if (obj.has("weak_spot_particle_scale")) def.setWeakSpotParticleScale(obj.get("weak_spot_particle_scale").getAsFloat());
+
+            if (obj.has("particle_material")) {
+                String mat = obj.get("particle_material").getAsString().toLowerCase();
+                int matId = switch(mat) {
+                    case "wood" -> com.za.zenith.world.particles.ShardParticle.MAT_WOOD;
+                    case "leaves", "grass", "plant" -> com.za.zenith.world.particles.ShardParticle.MAT_LEAVES;
+                    default -> com.za.zenith.world.particles.ShardParticle.MAT_GENERIC;
+                };
+                def.setParticleMaterial(matId);
+            } else if (def.isTinted()) {
+                def.setParticleMaterial(com.za.zenith.world.particles.ShardParticle.MAT_LEAVES);
+            }
+
             if (def instanceof com.za.zenith.world.blocks.ChestBlockDefinition chestDef) {
                 if (obj.has("inventory_size")) {
                     chestDef.setInventorySize(obj.get("inventory_size").getAsInt());
                 }
             }
-            
+
             if (obj.has("breaking_pattern")) {
                 String pattern = obj.get("breaking_pattern").getAsString().toLowerCase();
                 int patternId = switch(pattern) {
@@ -663,11 +679,9 @@ public class DataLoader {
                     JsonArray col = ml.getAsJsonArray("weak_spot_color");
                     wsColor.set(col.get(0).getAsFloat(), col.get(1).getAsFloat(), col.get(2).getAsFloat());
                 }
-                
                 def.setMiningSettings(new MiningSettings(strategy, precision, multiplier, wsColor));
             }
 
-            // Расширенная система дропа (DropRule)
             if (obj.has("drops")) {
                 JsonArray dropsArr = obj.getAsJsonArray("drops");
                 for (JsonElement dropEl : dropsArr) {
@@ -683,7 +697,7 @@ public class DataLoader {
             if (obj.has("supportScavenge")) def.setSupportScavenge(obj.get("supportScavenge").getAsBoolean());
             if (obj.has("alwaysRender")) def.setAlwaysRender(obj.get("alwaysRender").getAsBoolean());
             if (obj.has("replaceable")) def.setReplaceable(obj.get("replaceable").getAsBoolean());
-            
+
             if (obj.has("upperTexture")) {
                 def.setUpperTexture("zenith/textures/block/" + obj.get("upperTexture").getAsString());
             }
@@ -719,7 +733,6 @@ public class DataLoader {
                     }
                     def.setShape(voxelShape);
                 } else {
-                    // Пустой массив - полное отсутствие хитбоксов (даже для выделения)
                     def.setShape(voxelShape);
                     def.setFullCube(false);
                 }
@@ -743,6 +756,20 @@ public class DataLoader {
                 }
             }
             
+            // --- FINAL PARTICLE MATERIAL RESOLVE (AFTER TAGS) ---
+            if (obj.has("particle_material")) {
+                String mat = obj.get("particle_material").getAsString().toLowerCase();
+                int matId = switch(mat) {
+                    case "wood" -> com.za.zenith.world.particles.ShardParticle.MAT_WOOD;
+                    case "leaves", "grass", "plant" -> com.za.zenith.world.particles.ShardParticle.MAT_LEAVES;
+                    default -> com.za.zenith.world.particles.ShardParticle.MAT_GENERIC;
+                };
+                def.setParticleMaterial(matId);
+            } else if (def.isTinted()) {
+                // Если блок тонируемый, он по умолчанию считается растительностью
+                def.setParticleMaterial(com.za.zenith.world.particles.ShardParticle.MAT_LEAVES);
+            }
+
             // Если форма не задана явно, и блок прозрачный - пробуем автогенерацию
             if (!obj.has("shape") && transparent) {
                 def.autoGenerateShape();
@@ -921,5 +948,3 @@ public class DataLoader {
         return files;
     }
 }
-
-

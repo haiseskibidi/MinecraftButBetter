@@ -47,6 +47,21 @@ public class BlockDefinition {
     private float healingSpeed = 0.1f; // Default: heals 10% of max health per second
     private int particleGridSize = 2; // Default 2x2x2 shards for cleaner look
     private int innerTextureIndex = -1;
+    private int weakSpotParticles = 2; // Default particles on weak spot hit
+    private float particleScale = 1.0f; // Multiplier for destruction shards
+    private float weakSpotParticleScale = 1.0f; // Multiplier for impact shards
+    private int particleMaterial = com.za.zenith.world.particles.ShardParticle.MAT_GENERIC;
+
+    public int getParticleMaterial() { return particleMaterial; }
+    public void setParticleMaterial(int material) { this.particleMaterial = material; }
+
+    public float getParticleScale() { return particleScale; }
+    public void setParticleScale(float scale) { this.particleScale = scale; }
+    public float getWeakSpotParticleScale() { return weakSpotParticleScale; }
+    public void setWeakSpotParticleScale(float scale) { this.weakSpotParticleScale = scale; }
+
+    public int getWeakSpotParticles() { return weakSpotParticles; }
+    public void setWeakSpotParticles(int count) { this.weakSpotParticles = count; }
 
     public int getParticleGridSize() { return particleGridSize; }
     public void setParticleGridSize(int size) { this.particleGridSize = size; }
