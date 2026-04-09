@@ -1,6 +1,7 @@
 {
   "identifier": "zenith:scrap_knife",
   "type": "in_world_crafting",
+  "required_surface": "zenith:scavenger_table",
   "hits": 2,
   "ingredients": [
     "zenith:scrap_metal",

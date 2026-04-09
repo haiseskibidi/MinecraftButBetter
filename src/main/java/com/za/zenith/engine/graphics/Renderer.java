@@ -462,7 +462,17 @@ public class Renderer {
                 if (mesh != null) {
                     float age = itemEntity.getAge() + alpha * 0.016f; 
                     float bob = (float) Math.sin(age * 2.5f) * 0.02f;
-                    float scale = item.isBlock() ? 0.25f : item.getVisualScale() * 0.45f;
+                    
+                    float baseScale = 0.45f;
+                    if (item.isBlock()) {
+                        com.za.zenith.world.blocks.BlockDefinition bDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(item.getIdentifier());
+                        if (bDef != null && bDef.isFullCube()) {
+                            baseScale = 0.25f;
+                        } else {
+                            baseScale = 0.8f; // Крупный размер для сосудов и мелких блоков
+                        }
+                    }
+                    float scale = item.getVisualScale() * baseScale;
 
                     // Items are centered at (0,0), so they sink by half. Blocks are 0..1, so they don't.
                     float yOffset = item.isBlock() ? 0.0f : scale * 0.5f;
@@ -470,7 +480,8 @@ public class Renderer {
                     Vector3f interpRot = entity.getInterpolatedRotation(alpha);
 
                     modelMatrix.identity()
-                        .translate(interpPos.x(), interpPos.y() + bob + yOffset, interpPos.z())                        .rotateX(interpRot.x)
+                        .translate(interpPos.x(), interpPos.y() + bob + yOffset, interpPos.z())
+                        .rotateX(interpRot.x)
                         .rotateY(interpRot.y)
                         .rotateZ(interpRot.z)
                         .scale(scale);
@@ -524,14 +535,8 @@ public class Renderer {
                     org.joml.Vector3f scale = def.visualScale();
                     modelMatrix.identity()
                         .translate(interpPos.x(), interpPos.y(), interpPos.z())
-                        .rotateY(entity.getRotation().y);
-
-                    if ("block".equals(def.modelType())) {
-                        modelMatrix.scale(scale.x, scale.y, scale.z)
-                                   .translate(-0.5f, 0, -0.5f);
-                    } else {
-                        modelMatrix.scale(scale.x, scale.y, scale.z);
-                    }
+                        .rotateY(entity.getRotation().y)
+                        .scale(scale.x, scale.y, scale.z);
 
                     blockShader.setMatrix4f("model", modelMatrix);
                     blockShader.setInt("highlightPass", 0);

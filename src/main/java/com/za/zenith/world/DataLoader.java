@@ -47,14 +47,15 @@ public class DataLoader {
         loadWoodTypes();
         com.za.zenith.utils.events.RegistryEvents.fireBlockRegistration();
         
+        // --- Essential Initialization Order ---
+        // 1. Map blocks to items automatically (BEFORE loading JSON items to reserve IDs)
+        com.za.zenith.world.items.ItemRegistry.init();
+        
         for (String ns : namespaces) {
             loadItems(ns);
         }
         com.za.zenith.utils.events.RegistryEvents.fireItemRegistration();
         
-        // --- Essential Initialization Order ---
-        // 1. Map blocks to items automatically
-        com.za.zenith.world.items.ItemRegistry.init();
         // 2. Fill static holder classes via reflection
         com.za.zenith.world.blocks.Blocks.init();
         com.za.zenith.world.items.Items.init();
@@ -408,6 +409,7 @@ public class DataLoader {
                 }
 
                 Identifier tool = obj.has("tool") ? Identifier.of(obj.get("tool").getAsString()) : null;
+                Identifier requiredSurface = obj.has("required_surface") ? Identifier.of(obj.get("required_surface").getAsString()) : null;
                 int hits = obj.get("hits").getAsInt();
 
                 JsonObject resObj = obj.getAsJsonObject("result");
@@ -416,7 +418,7 @@ public class DataLoader {
 
                 com.za.zenith.world.items.Item resItem = com.za.zenith.world.items.ItemRegistry.getItem(resId);
                 if (resItem != null) {
-                    RecipeRegistry.register(new com.za.zenith.world.recipes.InWorldRecipe(id, ingredients, tool, hits, new ItemStack(resItem, count)));
+                    RecipeRegistry.register(new com.za.zenith.world.recipes.InWorldRecipe(id, ingredients, tool, requiredSurface, hits, new ItemStack(resItem, count)));
                 } else {
                     Logger.error("Failed to parse in_world recipe " + id + ": Result item " + resId + " not found!");
                 }

@@ -13,13 +13,19 @@ public class InWorldRecipe implements IRecipe {
     private final Identifier id;
     private final List<Identifier> ingredients;
     private final Identifier toolId;
+    private final Identifier requiredSurface; // Опционально: ID блока (пень, стол и т.д.)
     private final int requiredHits;
     private final ItemStack result;
 
     public InWorldRecipe(Identifier id, List<Identifier> ingredients, Identifier toolId, int requiredHits, ItemStack result) {
+        this(id, ingredients, toolId, null, requiredHits, result);
+    }
+
+    public InWorldRecipe(Identifier id, List<Identifier> ingredients, Identifier toolId, Identifier requiredSurface, int requiredHits, ItemStack result) {
         this.id = id;
         this.ingredients = ingredients;
         this.toolId = toolId;
+        this.requiredSurface = requiredSurface;
         this.requiredHits = requiredHits;
         this.result = result;
     }
@@ -47,6 +53,10 @@ public class InWorldRecipe implements IRecipe {
         return toolId;
     }
 
+    public Identifier getRequiredSurface() {
+        return requiredSurface;
+    }
+
     public int getRequiredHits() {
         return requiredHits;
     }
@@ -55,26 +65,30 @@ public class InWorldRecipe implements IRecipe {
      * Проверяет, соответствует ли набор предметов на поверхности этому рецепту.
      * Не учитывает порядок, только состав.
      */
-    public boolean matches(List<ItemStack> currentItems, Identifier tool) {
-        if (toolId != null && !toolId.equals(tool)) {
-            // com.za.zenith.utils.Logger.info("Tool mismatch: expected %s, got %s", toolId, tool);
+    public boolean matches(List<ItemStack> currentItems, Identifier tool, Identifier surfaceId) {
+        // 1. Проверка поверхности (если задана)
+        if (requiredSurface != null && !requiredSurface.equals(surfaceId)) {
             return false;
         }
 
+        // 2. Проверка инструмента
+        if (toolId != null && !toolId.equals(tool)) {
+            return false;
+        }
+
+        // 3. Проверка состава ингредиентов
         List<Identifier> currentIds = new ArrayList<>();
         for (ItemStack s : currentItems) {
             if (s != null) currentIds.add(s.getItem().getIdentifier());
         }
 
         if (currentIds.size() != ingredients.size()) {
-            // com.za.zenith.utils.Logger.info("Size mismatch: expected %d, got %d", ingredients.size(), currentIds.size());
             return false;
         }
 
         List<Identifier> needed = new ArrayList<>(ingredients);
         for (Identifier id : currentIds) {
             if (!needed.remove(id)) {
-                // com.za.zenith.utils.Logger.info("Ingredient mismatch: %s not in recipe", id);
                 return false;
             }
         }

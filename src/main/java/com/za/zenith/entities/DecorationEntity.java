@@ -30,7 +30,12 @@ public class DecorationEntity extends Entity {
 
     @Override
     public void update(float deltaTime, com.za.zenith.world.World world) {
-        super.update(deltaTime, world);
+        // Сохраняем состояние для интерполяции рендеринга
+        prevPosition.set(position);
+        prevRotation.set(rotation);
+        
+        // DecorationEntity не имеет физики, не падает и не сталкивается с блоками.
+        // Это предотвращает "подпрыгивание" бревен при установке блоков рядом.
     }
 }
 

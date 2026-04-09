@@ -2,6 +2,7 @@
   "identifier": "zenith:scrap_axe",
   "type": "in_world_crafting",
   "tool": "zenith:rock",
+  "required_surface": "zenith:scavenger_table",
   "hits": 4,
   "ingredients": [
     "zenith:rusty_pipe",

@@ -88,6 +88,10 @@ public class ScavengerTableBlockDefinition extends BlockDefinition {
     }
 
     private boolean tryCraft(ICraftingSurface surface, Player player, ItemStack tool) {
+        // Всегда визуализируем удар
+        player.swing();
+        player.performDiscreteAction(com.za.zenith.utils.Identifier.of("zenith:mine"));
+
         Identifier toolId = (tool != null) ? tool.getItem().getIdentifier() : com.za.zenith.world.items.Items.HAND.getIdentifier();
         
         List<ItemStack> currentItems = new ArrayList<>();
@@ -100,10 +104,8 @@ public class ScavengerTableBlockDefinition extends BlockDefinition {
 
         for (com.za.zenith.world.recipes.IRecipe r : recipes) {
             InWorldRecipe recipe = (InWorldRecipe) r;
-            if (recipe.matches(currentItems, toolId)) {
+            if (recipe.matches(currentItems, toolId, this.getIdentifier())) {
                 surface.incrementProgress();
-                player.swing();
-                player.performDiscreteAction(com.za.zenith.utils.Identifier.of("zenith:mine"));
 
                 if (surface.getCraftingProgress() >= recipe.getRequiredHits()) {
                     for (int i = 0; i < 9; i++) surface.setStackInSlot(i, null);

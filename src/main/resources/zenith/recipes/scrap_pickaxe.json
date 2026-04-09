@@ -2,6 +2,7 @@
   "identifier": "zenith:scrap_pickaxe",
   "type": "in_world_crafting",
   "tool": "zenith:rock",
+  "required_surface": "zenith:scavenger_table",
   "hits": 5,
   "ingredients": [
     "zenith:rusty_pipe",

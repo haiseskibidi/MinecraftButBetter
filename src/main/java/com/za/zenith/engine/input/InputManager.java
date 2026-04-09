@@ -408,8 +408,8 @@ public class InputManager {
     }
 
     private Item getDevItemAt(float mx, float my) {
-        com.za.zenith.engine.graphics.ui.UIRenderer uiRenderer = GameLoop.getInstance().getRenderer().getUIRenderer();
-        com.za.zenith.engine.graphics.ui.ScrollPanel scroller = uiRenderer.getDevScroller();
+        com.za.zenith.engine.graphics.ui.renderers.InventoryScreenRenderer invRenderer = GameLoop.getInstance().getRenderer().getUIRenderer().getInventoryScreenRenderer();
+        com.za.zenith.engine.graphics.ui.ScrollPanel scroller = invRenderer.getDevScroller();
         
         if (!scroller.isMouseOver(mx, my)) return null;
 
@@ -421,15 +421,8 @@ public class InputManager {
         int devX = sw - (cols * (slotSize + spacing)) - 25;
         int startY = 64; 
         int padding = 12;
-        int bgY = startY - padding;
 
-        java.util.List<Item> allItems = new java.util.ArrayList<>(ItemRegistry.getAllItems().values());
-        allItems.sort((a, b) -> {
-            if (a.isBlock() != b.isBlock()) {
-                return a.isBlock() ? -1 : 1;
-            }
-            return a.getIdentifier().toString().compareTo(b.getIdentifier().toString());
-        });
+        java.util.List<Item> allItems = invRenderer.getFilteredDevItems();
         float offset = scroller.getOffset();
 
         for (int i = 0; i < allItems.size(); i++) {
@@ -1028,13 +1021,29 @@ public class InputManager {
 
     private boolean isSpecialInteracting(Player player, RaycastResult raycast, ItemStack currentStack) {
         if (!player.isSneaking() || !raycast.isHit() || currentStack == null) return false;
-        int hitBlockType = GameLoop.getInstance().getWorld().getBlock(raycast.getBlockPos()).getType();
+        
+        Block hitBlock = GameLoop.getInstance().getWorld().getBlock(raycast.getBlockPos());
+        BlockDefinition hitDef = BlockRegistry.getBlock(hitBlock.getType());
+        if (hitDef == null) return false;
+        
+        Identifier hitId = hitDef.getIdentifier();
         Item currentItem = currentStack.getItem();
-        if (hitBlockType == Blocks.UNFIRED_VESSEL.getId() && currentItem.getId() == Items.STRAW.getId()) return true;
-        if (hitBlockType == Blocks.PIT_KILN.getId()) {
-            if (currentItem.getIdentifier().getPath().contains("log")) return true;
-            if (currentItem.getId() == Items.FIRE_STARTER.getId()) return true;
+        Identifier itemId = currentItem.getIdentifier();
+        Vector3f normal = raycast.getNormal();
+
+        // 1. Unfired Vessel + Straw (Only from top)
+        if (hitId.equals(Blocks.UNFIRED_VESSEL.getIdentifier()) && itemId.equals(Items.STRAW.getIdentifier())) {
+            return normal.y > 0.5f;
         }
+        
+        // 2. Pit Kiln (Normal or Burning) + Logs/Fire Starter
+        if (hitId.equals(Blocks.PIT_KILN.getIdentifier()) || hitId.equals(Blocks.BURNING_PIT_KILN.getIdentifier())) {
+            if (itemId.getPath().contains("log") || itemId.equals(Items.FIRE_STARTER.getIdentifier())) {
+                // Возвращаем true для всех сторон, чтобы заблокировать превью блока при шифте
+                return true;
+            }
+        }
+        
         return false;
     }
     

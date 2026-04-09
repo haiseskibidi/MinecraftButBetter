@@ -24,13 +24,14 @@
     - **Skeletal Animation**: Иерархия костей (Shoulder -> Forearm -> Hand) для органичных движений.
     - **Spring Physics**: Инерция рук и предметов на основе пружинного симулятора.
 
-### Data-Driven Development (v3.4 UPDATED)
+### Data-Driven Development (v3.5 UPDATED)
 1.  **JSON Schema**: Все игровые параметры (блоки, предметы, анимации, рецепты) загружаются из ресурсов.
 2.  **Identifier-First Dynamic ID System (NEW)**:
+    - **Load Sequencing**: Жёсткая последовательность загрузки: 1. Блоки -> 2. Резервация ID в `ItemRegistry` -> 3. JSON-предметы. Это гарантирует консистентность связей Block <-> Item и предотвращает коллизии текстур.
     - **Dynamic Registration**: Отказ от статических `id` в JSON. Движок автоматически назначает числовые ID при загрузке на основе `Identifier`.
     - **Persistence**: Порядок регистрации (через `.index` файлы) гарантирует стабильность ID.
-    - **Collision Safety**: `NumericalRegistry` автоматически разрешает конфликты и позволяет переопределять контент без сдвига индексов.
-3.  **Interaction Tuning**: Поле `interaction_cooldown` в JSON позволяет переопределять глобальный интервал добычи для конкретных объектов (например, быстрый сбор растений vs медленная рубка камня).
+    - **Collision Safety**: `NumericalRegistry` корректно обрабатывает повторную регистрацию того же `Identifier`, предотвращая сдвиги индексов при перезаписи контента.
+3.  **Interaction Tuning**: Поле `interaction_cooldown` в JSON позволяет переопределять глобальный интервал добычи для конкретных объектов.
 
 ### Mining & Interaction System (v2.1 UPDATED)
 1.  **Mining Strategy**: Поддерживаются стратегии `instant` (трава) и `weak_spots` (дерево). 

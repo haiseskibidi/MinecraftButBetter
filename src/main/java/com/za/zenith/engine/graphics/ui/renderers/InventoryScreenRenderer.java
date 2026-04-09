@@ -101,6 +101,23 @@ public class InventoryScreenRenderer {
         glDisable(GL_BLEND);
     }
 
+    public List<Item> getFilteredDevItems() {
+        List<Item> allItems = new ArrayList<>(ItemRegistry.getAllItems().values());
+        
+        // Apply Search Filter
+        allItems = com.za.zenith.world.items.ItemSearchEngine.filter(allItems, devSearchBar.getQuery());
+        
+        allItems.sort((a, b) -> {
+            // Blocks first
+            if (a.isBlock() != b.isBlock()) {
+                return a.isBlock() ? -1 : 1;
+            }
+            // Then alphabetical by identifier
+            return a.getIdentifier().toString().compareTo(b.getIdentifier().toString());
+        });
+        return allItems;
+    }
+
     public void renderDeveloperPanel(int devX, int startY, int slotSize, int spacing, int sw, int sh, com.za.zenith.engine.graphics.DynamicTextureAtlas atlas) {
         int cols = 7;
         int rows = 14; 
@@ -127,19 +144,7 @@ public class InventoryScreenRenderer {
 
         // 4. Item List
         devScroller.setBounds(bgX, bgY, devWidth, devHeight);
-        List<Item> allItems = new ArrayList<>(ItemRegistry.getAllItems().values());
-        
-        // Apply Search Filter
-        allItems = com.za.zenith.world.items.ItemSearchEngine.filter(allItems, devSearchBar.getQuery());
-        
-        allItems.sort((a, b) -> {
-            // Blocks first
-            if (a.isBlock() != b.isBlock()) {
-                return a.isBlock() ? -1 : 1;
-            }
-            // Then alphabetical by identifier
-            return a.getIdentifier().toString().compareTo(b.getIdentifier().toString());
-        });
+        List<Item> allItems = getFilteredDevItems();
         
         int totalRows = (allItems.size() + cols - 1) / cols;
         // Content height: padding top + slots height + padding bottom
