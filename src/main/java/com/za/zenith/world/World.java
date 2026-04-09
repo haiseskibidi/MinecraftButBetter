@@ -408,6 +408,8 @@ public class World {
         com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
         def.onDestroyed(this, pos, block, player);
 
+        com.za.zenith.world.particles.ParticleManager.getInstance().spawnShatter(pos, block);
+
         setBlock(pos, new Block(Blocks.AIR.getId()));
     }
 

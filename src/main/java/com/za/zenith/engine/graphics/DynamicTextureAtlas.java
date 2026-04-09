@@ -175,6 +175,11 @@ public class DynamicTextureAtlas {
         }
     }
 
+    public float getLayer(String key) {
+        Integer layer = keyToLayer.get(key);
+        return (layer != null) ? (float) layer : 0.0f;
+    }
+
     public float[] uvFor(String key) {
         Integer layer = keyToLayer.get(key);
         float l = (layer != null) ? (float) layer : 0.0f;

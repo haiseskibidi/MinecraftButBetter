@@ -633,6 +633,7 @@ public class DataLoader {
             if (obj.has("wobble_animation")) def.setWobbleAnimation(obj.get("wobble_animation").getAsString());
             if (obj.has("interaction_cooldown")) def.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());
             if (obj.has("healing_speed")) def.setHealingSpeed(obj.get("healing_speed").getAsFloat());
+            if (obj.has("particle_grid")) def.setParticleGridSize(obj.get("particle_grid").getAsInt());
             
             if (def instanceof com.za.zenith.world.blocks.ChestBlockDefinition chestDef) {
                 if (obj.has("inventory_size")) {
@@ -726,17 +727,19 @@ public class DataLoader {
             if (obj.has("textures")) {
                 JsonObject tex = obj.getAsJsonObject("textures");
                 String base = "zenith/textures/block/";
+                String innerTex = tex.has("inner") ? base + tex.get("inner").getAsString() : null;
+
                 if (tex.has("all")) {
-                    def.setTextures(new BlockTextures(base + tex.get("all").getAsString()));
+                    String all = base + tex.get("all").getAsString();
+                    def.setTextures(new BlockTextures(all, all, all, all, all, all, innerTex != null ? innerTex : all));
                 } else {
-                    def.setTextures(new BlockTextures(
-                        base + tex.get("top").getAsString(),
-                        base + tex.get("bottom").getAsString(),
-                        base + (tex.has("north") ? tex.get("north").getAsString() : tex.get("side").getAsString()),
-                        base + (tex.has("south") ? tex.get("south").getAsString() : tex.get("side").getAsString()),
-                        base + (tex.has("east") ? tex.get("east").getAsString() : tex.get("side").getAsString()),
-                        base + (tex.has("west") ? tex.get("west").getAsString() : tex.get("side").getAsString())
-                    ));
+                    String top = base + tex.get("top").getAsString();
+                    String bottom = base + tex.get("bottom").getAsString();
+                    String north = base + (tex.has("north") ? tex.get("north").getAsString() : tex.get("side").getAsString());
+                    String south = base + (tex.has("south") ? tex.get("south").getAsString() : tex.get("side").getAsString());
+                    String east = base + (tex.has("east") ? tex.get("east").getAsString() : tex.get("side").getAsString());
+                    String west = base + (tex.has("west") ? tex.get("west").getAsString() : tex.get("side").getAsString());
+                    def.setTextures(new BlockTextures(top, bottom, north, south, east, west, innerTex != null ? innerTex : north));
                 }
             }
             

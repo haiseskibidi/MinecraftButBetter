@@ -7,6 +7,7 @@ public class BlockTextures {
     private final String south;
     private final String east;
     private final String west;
+    private final String inner;
     
     // Constructor for single texture (all faces same)
     public BlockTextures(String texture) {
@@ -16,6 +17,7 @@ public class BlockTextures {
         this.south = texture;
         this.east = texture;
         this.west = texture;
+        this.inner = texture;
     }
     
     // Constructor for top/bottom/sides pattern (like grass, wood)
@@ -26,20 +28,22 @@ public class BlockTextures {
         this.south = sides;
         this.east = sides;
         this.west = sides;
+        this.inner = sides;
     }
     
-    // Constructor for full control over each face
-    public BlockTextures(String top, String bottom, String north, String south, String east, String west) {
+    // Constructor for full control over each face + inner
+    public BlockTextures(String top, String bottom, String north, String south, String east, String west, String inner) {
         this.top = top;
         this.bottom = bottom;
         this.north = north;
         this.south = south;
         this.east = east;
         this.west = west;
+        this.inner = inner;
     }
     
     // Get texture for specific face (ChunkMeshGenerator face order)
-    // 0:+Z(front/south), 1:-Z(back/north), 2:+X(right/east), 3:-X(left/west), 4:+Y(top), 5:-Y(bottom)
+    // 0:+Z(front/south), 1:-Z(back/north), 2:+X(right/east), 3:-X(left/west), 4:+Y(top), 5:-Y(bottom), 6:INNER
     public String getTextureForFace(int face) {
         return switch (face) {
             case 0 -> south;  // +Z front
@@ -48,9 +52,12 @@ public class BlockTextures {
             case 3 -> west;   // -X left
             case 4 -> top;    // +Y top
             case 5 -> bottom; // -Y bottom
+            case 6 -> inner;  // Internal fragmentation texture
             default -> top;
         };
     }
+    
+    public String getInner() { return inner; }
     
     public String getTop() { return top; }
     public String getBottom() { return bottom; }

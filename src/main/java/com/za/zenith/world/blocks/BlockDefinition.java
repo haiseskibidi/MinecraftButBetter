@@ -45,6 +45,13 @@ public class BlockDefinition {
     private MiningSettings miningSettings = MiningSettings.DEFAULT;
     private float interactionCooldown = -1.0f; // -1 means use PhysicsSettings.baseMiningCooldown
     private float healingSpeed = 0.1f; // Default: heals 10% of max health per second
+    private int particleGridSize = 2; // Default 2x2x2 shards for cleaner look
+    private int innerTextureIndex = -1;
+
+    public int getParticleGridSize() { return particleGridSize; }
+    public void setParticleGridSize(int size) { this.particleGridSize = size; }
+    public int getInnerTextureIndex() { return innerTextureIndex; }
+    public void setInnerTextureIndex(int index) { this.innerTextureIndex = index; }
 
     public float getHealingSpeed() {
         return healingSpeed;

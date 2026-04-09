@@ -62,6 +62,22 @@
     - **FXAA + Stylized effects**: Combined anti-aliasing with Vignette, Fog, and Vibrance in a single pass.
     - **Viewmodel Depth Mapping**: Uses `glDepthRange` to overlay hands into the depth-aware post-stack without clearing buffer.
 
+### Particle & Shard System (v1.0 NEW)
+1. **Procedural Triangular Sharding**:
+    - **Geometric Primitive**: Система использует одиночные треугольники как базовый элемент осколков.
+    - **Procedural Shaping**: Вершины каждого треугольника смещаются в шейдере на основе уникального `seed` и типа материала (`materialType`). Это создает бесконечное разнообразие форм без затрат на CPU.
+2. **Camera-Facing Billboarding**:
+    - Осколки ориентируются лицом к камере, используя базисные векторы матрицы вида (`camRight`, `camUp`). Это обеспечивает 100% читаемость частиц в 3D и избавляет от артефактов исчезновения при вращении "ребром".
+3. **Material Personalities**:
+    - **WOOD**: Процедурное удлинение вершин вдоль локальной оси Y для создания острых игловидных щеп.
+    - **LEAVES**: Мелкие фрагменты с поддержкой биомного тинта и процедурной анимации "покачивания" (fluttering) в воздухе.
+    - **STONE/GENERIC**: Неправильные, рваные треугольные формы.
+4. **Instanced Rendering Pipeline**:
+    - Использование `glDrawElementsInstanced` позволяет отрисовывать тысячи процедурных осколков за один вызов отрисовки.
+    - Данные инстанса включают позицию, кватернион вращения, сетку, индекс слоя текстуры, сид и тип материала.
+5. **Pixel-Perfect Texturing**:
+    - Реализовано честное 1:1 UV-мапирование. Осколок берет случайный фрагмент текстуры материала без масштабирования, что сохраняет оригинальную плотность пикселей блока.
+
 ### Locomotion & Animation Engine (v4.0 UPDATED)
 1. **Hybrid Update Architecture**:
     - **Fixed Physical Locomotion (170Hz)**: Физические таймеры анимаций и `movementAlpha` обновляются на фиксированной частоте в `Player.update()`. Это гарантирует консистентную скорость покачивания головы и рук независимо от FPS.

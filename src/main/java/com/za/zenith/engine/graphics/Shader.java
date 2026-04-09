@@ -109,6 +109,14 @@ public class Shader {
     public void setVector4f(String name, Vector4f vector) {
         glUniform4f(getUniformLocation(name), vector.x, vector.y, vector.z, vector.w);
     }
+
+    public void setVector4fv(String name, float[] values) {
+        glUniform4fv(getUniformLocation(name), values);
+    }
+
+    public void setFloatArray(String name, float[] values) {
+        glUniform1fv(getUniformLocation(name), values);
+    }
     
     public void setVector2f(String name, Vector2f vector) {
         glUniform2f(getUniformLocation(name), vector.x, vector.y);

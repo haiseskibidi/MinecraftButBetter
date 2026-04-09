@@ -14,7 +14,8 @@
   "textures": {
     "top": "oak_log_top.png",
     "bottom": "oak_log_top.png",
-    "side": "oak_log.png"
+    "side": "oak_log.png",
+    "inner": "stripped_oak_log.png"
   },
   "requiredTool": "axe",
   "placement": "log",

@@ -34,6 +34,7 @@ public class Renderer {
     private UIRenderer uiRenderer;
     private CarvingRenderer carvingRenderer;
     private BlockHighlightRenderer highlightRenderer;
+    private final ParticleRenderer particleRenderer = new ParticleRenderer();
     private boolean fxaaEnabled = false;
     private Mesh playerMesh;
     private Mesh previewMesh;
@@ -131,7 +132,7 @@ public class Renderer {
         atlas = new DynamicTextureAtlas(16);
         for (com.za.zenith.world.blocks.BlockDefinition def : com.za.zenith.world.blocks.BlockRegistry.getRegistry().values()) {
             if (def.getTextures() != null) {
-                for (int face = 0; face < 6; face++) {
+                for (int face = 0; face < 7; face++) {
                     String key = def.getTextures().getTextureForFace(face);
                     if (key != null) atlas.add(key, "src/main/resources/" + key);
                 }
@@ -170,6 +171,7 @@ public class Renderer {
         viewmodelShader = new Shader("src/main/resources/shaders/viewmodel_vertex.glsl", "src/main/resources/shaders/viewmodel_fragment.glsl");
         carvingRenderer = new CarvingRenderer();
         highlightRenderer = new BlockHighlightRenderer();
+        particleRenderer.init();
     }
     
     public void render(Window window, Camera camera, World world, RaycastResult highlightedBlock, com.za.zenith.network.GameClient networkClient, float alpha, float deltaTime) {
@@ -185,6 +187,9 @@ public class Renderer {
         if (previewPos != null && previewMesh != null) renderPreviewBlock(camera, alpha);
 
         renderViewModel(camera, world.getPlayer());
+        
+        // Render Particles
+        particleRenderer.render(camera, com.za.zenith.world.particles.ParticleManager.getInstance().getActiveParticles(), atlas, alpha, lightDirection, lightColor, ambientLight);
 
         framebuffer.unbind();
         glViewport(0, 0, window.getWidth(), window.getHeight());
@@ -466,10 +471,20 @@ public class Renderer {
                     float baseScale = 0.45f;
                     if (item.isBlock()) {
                         com.za.zenith.world.blocks.BlockDefinition bDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(item.getIdentifier());
-                        if (bDef != null && bDef.isFullCube()) {
-                            baseScale = 0.25f;
-                        } else {
-                            baseScale = 0.8f; // Крупный размер для сосудов и мелких блоков
+                        if (bDef != null) {
+                            // Вычисляем объем хитбокса
+                            float volume = 0;
+                            for (com.za.zenith.world.physics.AABB box : bDef.getShape((byte)0).getBoxes()) {
+                                volume += (box.getMax().x - box.getMin().x) * 
+                                          (box.getMax().y - box.getMin().y) * 
+                                          (box.getMax().z - box.getMin().z);
+                            }
+
+                            if (volume > 0.5f) {
+                                baseScale = 0.25f; // Полноразмерные блоки (в т.ч. листва) - маленькие
+                            } else {
+                                baseScale = 0.7f;  // Мелкие блоки (кувшины, свечи) - крупные
+                            }
                         }
                     }
                     float scale = item.getVisualScale() * baseScale;
@@ -653,6 +668,7 @@ public class Renderer {
         for (var m : blockMeshCache.values()) m.cleanup();
         for (var m : itemMeshCache.values()) m.cleanup();
         if (carvingRenderer != null) carvingRenderer.cleanup();
+        particleRenderer.cleanup();
         if (atlas != null) atlas.cleanup();
         if (blockShader != null) blockShader.cleanup();
     }

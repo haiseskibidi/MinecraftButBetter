@@ -259,6 +259,7 @@ public class GameLoop {
         if (active != null && active.isScene()) return;
         
         world.update(interval); // Fixed Physics
+        com.za.zenith.world.particles.ParticleManager.getInstance().update(interval, world);
         
         // Fixed Camera Position (Physics Based)
         camera.setPosition(player.getPosition().x, player.getPosition().y + player.getEyeHeight(), player.getPosition().z);
