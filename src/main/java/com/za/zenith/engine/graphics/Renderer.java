@@ -558,7 +558,7 @@ public class Renderer {
         for (com.za.zenith.world.blocks.entity.BlockEntity be : world.getBlockEntities().values()) {
             carvingRenderer.render(be, atlas, blockShader, modelMatrix, this, breakingPos, wobbleTimer);
 
-            if (be instanceof com.za.zenith.world.blocks.entity.StumpBlockEntity stump) {
+            if (be instanceof com.za.zenith.world.blocks.entity.ICraftingSurface stump) {
                 int totalItems = stump.getActiveSlotsCount();
                 if (totalItems == 0) continue;
 

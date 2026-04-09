@@ -21,7 +21,7 @@
       "y": "-5%",
       "rows": 4,
       "spacing": 4,
-      "quickMoveTo": ["pockets", "hotbar"],
+      "quickMoveTo": ["pouch", "pockets", "hotbar"],
       "placeholders": {
         "0": "empty_armor_slot_helmet",
         "1": "empty_armor_slot_chestplate",
@@ -45,7 +45,7 @@
       "cols": 4,
       "rows": 2,
       "spacing": 4,
-      "quickMoveTo": ["equipment", "hotbar"]
+      "quickMoveTo": ["pouch", "hotbar", "equipment"]
     },
     {
       "id": "pouch",
@@ -60,7 +60,7 @@
       "rows": 4,
       "spacing": 4,
       "condition": "has_pouch",
-      "quickMoveTo": ["pockets", "hotbar"]
+      "quickMoveTo": ["hotbar", "pockets"]
     },
     {
       "id": "hotbar",
@@ -73,7 +73,7 @@
       "y": "15%",
       "cols": 9,
       "spacing": 4,
-      "quickMoveTo": ["equipment", "pockets"]
+      "quickMoveTo": ["pockets", "pouch", "equipment"]
     },
     {
       "id": "developer_panel",

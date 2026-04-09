@@ -1,0 +1,7 @@
+{
+  "id": 108,
+  "identifier": "zenith:metal_sheet",
+  "translationKey": "item.zenith.metal_sheet",
+  "texture": "zenith/textures/item/iron_nugget.png",
+  "type": "default"
+}

@@ -1,0 +1,13 @@
+{
+  "id": 208,
+  "identifier": "zenith:car_tire",
+  "translationKey": "block.zenith.car_tire",
+  "solid": true,
+  "transparent": false,
+  "hardness": 1.0,
+  "requiredTool": "none",
+  "type": "car_tire",
+  "textures": {
+    "all": "black_concrete.png"
+  }
+}

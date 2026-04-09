@@ -1,0 +1,15 @@
+{
+  "id": 209,
+  "identifier": "zenith:tire_with_board",
+  "translationKey": "block.zenith.tire_with_board",
+  "solid": true,
+  "transparent": false,
+  "hardness": 2.0,
+  "requiredTool": "axe",
+  "type": "tire_with_board",
+  "textures": {
+    "top": "oak_planks.png",
+    "bottom": "black_concrete.png",
+    "side": "oak_planks.png"
+  }
+}

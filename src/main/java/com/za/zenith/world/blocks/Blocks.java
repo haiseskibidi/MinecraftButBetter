@@ -75,6 +75,9 @@ public class Blocks {
     public static BlockDefinition STUMP;
     public static BlockDefinition UNFINISHED_STUMP;
     public static BlockDefinition RUSTY_CAR_CHASSIS;
+    public static BlockDefinition CAR_TIRE;
+    public static BlockDefinition TIRE_WITH_BOARD;
+    public static BlockDefinition SCAVENGER_TABLE;
     public static BlockDefinition CHEST;
     
     public static void init() {

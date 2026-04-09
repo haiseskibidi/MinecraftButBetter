@@ -29,6 +29,18 @@
       "chance": 0.10,
       "tool": "none",
       "drop_on_hit": true
+    },
+    {
+      "item": "zenith:car_tire",
+      "chance": 0.05,
+      "tool": "none",
+      "drop_on_hit": true
+    },
+    {
+      "item": "zenith:metal_sheet",
+      "chance": 0.10,
+      "tool": "crowbar",
+      "drop_on_hit": true
     }
   ]
 }

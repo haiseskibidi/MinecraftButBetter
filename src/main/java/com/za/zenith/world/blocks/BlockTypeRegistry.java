@@ -20,6 +20,9 @@ public class BlockTypeRegistry {
         register("lamp", LampBlockDefinition::new);
         register("battery", BatteryBlockDefinition::new);
         register("stump", StumpBlockDefinition::new);
+        register("car_tire", CarTireBlockDefinition::new);
+        register("tire_with_board", TireWithBoardBlockDefinition::new);
+        register("scavenger_table", ScavengerTableBlockDefinition::new);
         register("campfire", CampfireBlockDefinition::new);
         register("pit_kiln", PitKilnBlockDefinition::new);
         register("unfired_vessel", UnfiredVesselBlockDefinition::new);

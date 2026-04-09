@@ -1,0 +1,15 @@
+{
+  "id": 210,
+  "identifier": "zenith:scavenger_table",
+  "translationKey": "block.zenith.scavenger_table",
+  "solid": true,
+  "transparent": false,
+  "hardness": 2.5,
+  "requiredTool": "axe",
+  "type": "scavenger_table",
+  "textures": {
+    "top": "stonecutter_top.png",
+    "bottom": "black_concrete.png",
+    "side": "oak_planks.png"
+  }
+}

@@ -12,7 +12,7 @@
       "relativeAlign": "left",
       "relativeAlignY": "top",
       "fixedOffsetX": "-1s",
-      "quickMoveTo": ["pockets", "hotbar"],
+      "quickMoveTo": ["pouch", "pockets", "hotbar"],
       "placeholders": {
         "0": "empty_armor_slot_helmet",
         "1": "empty_armor_slot_chestplate",
@@ -29,7 +29,7 @@
       "spacing": 4,
       "anchor": "center",
       "centerCombined": true,
-      "quickMoveTo": ["equipment", "hotbar", "pockets"]
+      "quickMoveTo": ["pouch", "equipment", "hotbar", "pockets"]
     },
     {
       "id": "pockets",
@@ -43,7 +43,7 @@
       "relativeAlign": "right",
       "relativeAlignY": "top",
       "fixedOffsetX": "1s",
-      "quickMoveTo": ["container"]
+      "quickMoveTo": ["container", "pouch", "hotbar", "equipment"]
     },
     {
       "id": "hotbar",
@@ -57,13 +57,13 @@
       "relativeAlign": "bottom",
       "relativeAlignX": "left",
       "fixedOffsetY": "1s",
-      "quickMoveTo": ["container"]
+      "quickMoveTo": ["container", "pockets", "pouch", "equipment"]
     }
   ],
   "background": {
     "type": "solid",
     "color": [0.1, 0.1, 0.1, 0.8],
     "padding": 12,
-    "includeGroups": ["container", "hotbar", "pockets", "equipment"]
+    "includeGroups": ["container", "hotbar", "pockets", "equipment", "pouch"]
   }
 }
