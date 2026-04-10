@@ -13,13 +13,15 @@ public class ShardParticle extends Particle {
     public static final int MAT_LEAVES = 2;
 
     private final int textureLayer;
+    private final int overlayLayer;
     private final org.joml.Vector3f color = new org.joml.Vector3f(1, 1, 1);
     private final org.joml.Vector2f snippetOffset = new org.joml.Vector2f();
 
-    public ShardParticle(Vector3f pos, Vector3f vel, float life, float scale, int textureLayer, org.joml.Vector3f color) {
+    public ShardParticle(Vector3f pos, Vector3f vel, float life, float scale, int textureLayer, int overlayLayer, org.joml.Vector3f color) {
         super(pos, vel, life);
         this.scale = scale;
         this.textureLayer = textureLayer;
+        this.overlayLayer = overlayLayer;
         if (color != null) this.color.set(color);
         
         // Выбираем случайный кусок 4x4 внутри текстуры 16x16
@@ -51,6 +53,7 @@ public class ShardParticle extends Particle {
     }
 
     public int getTextureLayer() { return textureLayer; }
+    public int getOverlayLayer() { return overlayLayer; }
     public org.joml.Vector3f getColor() { return color; }
     public Vector2f getSnippetOffset() { return snippetOffset; }
 }

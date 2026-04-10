@@ -8,7 +8,8 @@
   "textures": {
     "top": "grass_block_top.png",
     "bottom": "dirt.png",
-    "side": "grass_block_side.png"
+    "side": "dirt.png",
+    "inner": "grass_block_side_overlay.png"
   },
   "requiredTool": "shovel",
   "supportScavenge": true,

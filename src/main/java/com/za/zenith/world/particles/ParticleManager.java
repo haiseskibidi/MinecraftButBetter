@@ -97,12 +97,20 @@ public class ParticleManager {
             }
         }
 
-        // 3. ВЫБОР ЦВЕТА (Тинтовка)
+        // 3. ВЫБОР ЦВЕТА И ОВЕРЛЕЯ
         Vector3f color = new Vector3f(1, 1, 1);
+        int overlayLayer = -1;
+        
         if (def.isTinted()) {
-            // Если это листва или удар пришелся по верхней грани (трава)
-            if (def.getParticleMaterial() == ShardParticle.MAT_LEAVES || faceIndex == 4) {
-                color.set(0.486f, 0.784f, 0.314f); 
+            color.set(com.za.zenith.engine.graphics.ColorProvider.getGrassColor());
+            
+            // Если у нас боковая грань и есть оверлей (как у травы)
+            if (faceIndex < 4 && tex != null) {
+                String innerKey = tex.getInner();
+                String sideKey = tex.getTextureForFace(faceIndex);
+                if (innerKey != null && !innerKey.equals(sideKey)) {
+                    overlayLayer = (int)atlas.getLayer(innerKey);
+                }
             }
         }
 
@@ -123,7 +131,7 @@ public class ParticleManager {
             );
             vel.normalize().mul(1.5f + (float)Math.random() * 2.5f);
 
-            pendingAdd.add(new ShardParticle(pPos, vel, 0.4f + (float)Math.random() * 0.4f, scale, texLayer, color));
+            pendingAdd.add(new ShardParticle(pPos, vel, 0.4f + (float)Math.random() * 0.4f, scale, texLayer, overlayLayer, color));
         }
     }
 
@@ -164,19 +172,24 @@ public class ParticleManager {
                         if (y == grid - 1 && !tex.getTop().equals(tex.getNorth())) texKey = tex.getTop();
                         else if (y == 0 && !tex.getBottom().equals(tex.getNorth())) texKey = tex.getBottom();
                         else if (def instanceof FellingLogBlockDefinition) texKey = getStrippedTexture(def, block.getMetadata(), tex);
-                        else texKey = (def.getInnerTextureIndex() != -1) ? tex.getInner() : tex.getSouth();
+                        else texKey = tex.getSouth(); // Always use base side texture for shatter particles to avoid spawning overlay particles
                     }
 
-                    // 2. ВЫБОР ЦВЕТА
+                    // 2. ВЫБОР ЦВЕТА И ОВЕРЛЕЯ
                     Vector3f color = new Vector3f(1, 1, 1);
+                    int overlayLayer = -1;
                     if (def.isTinted()) {
-                        // Листва красится вся, земля с травой — только верхний слой
-                        if (def.getParticleMaterial() == ShardParticle.MAT_LEAVES || y == grid - 1) {
-                            color.set(0.486f, 0.784f, 0.314f);
+                        color.set(com.za.zenith.engine.graphics.ColorProvider.getGrassColor());
+                        // Оверлей для боковых частиц (если это трава)
+                        if (y < grid - 1 && tex != null) {
+                            String innerKey = tex.getInner();
+                            if (innerKey != null && !innerKey.equals(tex.getSouth())) {
+                                overlayLayer = (int)atlas.getLayer(innerKey);
+                            }
                         }
                     }
 
-                    pendingAdd.add(new ShardParticle(pPos, vel, 0.6f + (float)Math.random() * 0.6f, baseScale, (int)atlas.getLayer(texKey), color));
+                    pendingAdd.add(new ShardParticle(pPos, vel, 0.6f + (float)Math.random() * 0.6f, baseScale, (int)atlas.getLayer(texKey), overlayLayer, color));
                 }
             }
         }

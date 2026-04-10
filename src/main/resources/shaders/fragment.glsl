@@ -1,6 +1,6 @@
 #version 330 core
 
-in vec3 fragTexCoord;
+in vec4 fragTexCoord;
 in vec3 fragNormal;
 in vec3 fragPos;
 in float blockType;
@@ -27,6 +27,7 @@ uniform float overlayLayer;
 uniform float uWobbleTime;
 uniform vec3 uHiddenBlockPos;
 uniform bool uIsProxy;
+uniform vec3 uGrassColor = vec3(0.486, 0.784, 0.314);
 
 uniform vec3 uCondition; // x=dirt, y=blood, z=wetness
 uniform bool isHand = false;
@@ -63,7 +64,7 @@ void main() {
             if (((faceMask >> bit) & 1) == 0) discard;
             textureColor = texture(textureSampler, vec3(localUV, overlayLayer));
         } else {
-            textureColor = texture(textureSampler, fragTexCoord);
+            textureColor = texture(textureSampler, fragTexCoord.xyz);
         }
 
         // Handle specific block logic
@@ -87,9 +88,16 @@ void main() {
         // Feature: Brighten Stump tops
         baseColor = brightenTopFace(baseColor, info.type, fragNormal);
 
-        // Tinting (Leaves/Grass) - Apply after everything else to ensure color
+        // Unified Tinting (Leaves/Grass)
         if (info.isTinted) {
-            baseColor *= vec3(0.486, 0.784, 0.314);
+            if (fragTexCoord.w >= 0.0 && !info.isGlass) {
+                vec4 overlayTex = texture(textureSampler, vec3(fragTexCoord.xy, fragTexCoord.w));
+                if (overlayTex.a > 0.1) {
+                    baseColor = mix(baseColor, overlayTex.rgb * uGrassColor, overlayTex.a);
+                }
+            } else {
+                baseColor *= uGrassColor;
+            }
         }
 
         // Apply Breaking Patterns

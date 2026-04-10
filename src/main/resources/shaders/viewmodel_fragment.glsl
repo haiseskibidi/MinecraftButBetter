@@ -1,10 +1,11 @@
 #version 330 core
 
-in vec3 fragTexCoord;
+in vec4 fragTexCoord;
 in vec3 fragNormal;
 in vec3 fragPos;
 in vec3 vLocalPos;
 in float blockType;
+in float neighborData;
 
 out vec4 fragColor;
 
@@ -12,6 +13,7 @@ uniform sampler2DArray textureSampler;
 uniform vec3 lightDirection;
 uniform vec3 lightColor;
 uniform vec3 ambientLight;
+uniform vec3 uGrassColor = vec3(0.486, 0.784, 0.314);
 
 uniform vec3 uCondition; // x=dirt, y=blood, z=wetness
 uniform bool isHand = false;
@@ -28,7 +30,7 @@ uniform float uAlpha = 1.0;
 #include "include/lighting.glsl"
 
 void main() {
-    vec4 textureColor = texture(textureSampler, fragTexCoord);
+    vec4 textureColor = texture(textureSampler, fragTexCoord.xyz);
     if (textureColor.a < 0.5) discard;
 
     vec3 baseColor = textureColor.rgb;
@@ -67,9 +69,16 @@ void main() {
     // 3. Apply Lighting
     vec3 lighting = calculateLighting(fragNormal, lightDirection, lightColor, ambientLight);
     
-    // 4. Tinting (Leaves/Grass)
+    // 4. Unified Tinting (Leaves/Grass)
     if (info.isTinted) {
-        baseColor *= vec3(0.486, 0.784, 0.314);
+        if (fragTexCoord.w >= 0.0 && !info.isGlass) {
+            vec4 overlayTex = texture(textureSampler, vec3(fragTexCoord.xy, fragTexCoord.w));
+            if (overlayTex.a > 0.1) {
+                baseColor = mix(baseColor, overlayTex.rgb * uGrassColor, overlayTex.a);
+            }
+        } else {
+            baseColor *= uGrassColor;
+        }
     }
 
     fragColor = vec4(lighting * baseColor, alpha * uAlpha);

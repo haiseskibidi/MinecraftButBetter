@@ -85,11 +85,11 @@ public class ViewmodelMeshGenerator {
         float u1 = (u + w) / texSize;
         float v1 = (v + h) / texSize;
 
-        // Note: Engine expects (u, v, layer)
-        tex.add(u0); tex.add(v0); tex.add(layer);
-        tex.add(u1); tex.add(v0); tex.add(layer);
-        tex.add(u1); tex.add(v1); tex.add(layer);
-        tex.add(u0); tex.add(v1); tex.add(layer);
+        // Note: Engine expects (u, v, layer, overlayLayer)
+        tex.add(u0); tex.add(v0); tex.add(layer); tex.add(-1.0f);
+        tex.add(u1); tex.add(v0); tex.add(layer); tex.add(-1.0f);
+        tex.add(u1); tex.add(v1); tex.add(layer); tex.add(-1.0f);
+        tex.add(u0); tex.add(v1); tex.add(layer); tex.add(-1.0f);
 
         for (int i = 0; i < 4; i++) {
             norm.add(nx); norm.add(ny); norm.add(nz);

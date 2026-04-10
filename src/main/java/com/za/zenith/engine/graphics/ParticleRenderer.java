@@ -32,8 +32,8 @@ public class ParticleRenderer {
     private static final int[] QUAD_INDICES = { 0, 1, 2, 2, 3, 0 };
 
     // Данные инстанса: 
-    // Pos(3), Roll(1), Scale(1), Alpha(1), TexLayer(1), SnippetOffset(2), Color(3) = 12 float
-    private static final int INSTANCE_DATA_SIZE = 12;
+    // Pos(3), Roll(1), Scale(1), Alpha(1), OverlayLayer(1), TexLayer(1), SnippetOffset(2), Color(3) = 13 float
+    private static final int INSTANCE_DATA_SIZE = 13;
     private FloatBuffer instanceBuffer;
 
     public void init() {
@@ -67,19 +67,19 @@ public class ParticleRenderer {
         glVertexAttribPointer(2, 4, GL_FLOAT, false, INSTANCE_DATA_SIZE * 4, 0);
         glVertexAttribDivisor(2, 1);
         
-        // instVisual (2): scale, alpha - location 3
+        // instVisual (3): scale, alpha, overlayLayer - location 3
         glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 2, GL_FLOAT, false, INSTANCE_DATA_SIZE * 4, 4 * 4);
+        glVertexAttribPointer(3, 3, GL_FLOAT, false, INSTANCE_DATA_SIZE * 4, 4 * 4);
         glVertexAttribDivisor(3, 1);
-        
-        // instTexData (3): layer, snippetX, snippetY - location 4
+
+        // instColor (3): r, g, b - location 4
         glEnableVertexAttribArray(4);
-        glVertexAttribPointer(4, 3, GL_FLOAT, false, INSTANCE_DATA_SIZE * 4, 6 * 4);
+        glVertexAttribPointer(4, 3, GL_FLOAT, false, INSTANCE_DATA_SIZE * 4, 10 * 4);
         glVertexAttribDivisor(4, 1);
 
-        // instColor (3): r, g, b - location 5
+        // instTexData (3): texLayer, snipU, snipV - location 5
         glEnableVertexAttribArray(5);
-        glVertexAttribPointer(5, 3, GL_FLOAT, false, INSTANCE_DATA_SIZE * 4, 9 * 4);
+        glVertexAttribPointer(5, 3, GL_FLOAT, false, INSTANCE_DATA_SIZE * 4, 7 * 4);
         glVertexAttribDivisor(5, 1);
 
         instanceBuffer = BufferUtils.createFloatBuffer(5000 * INSTANCE_DATA_SIZE);
@@ -96,6 +96,7 @@ public class ParticleRenderer {
         shader.setVector3f("lightDirection", lightDir);
         shader.setVector3f("lightColor", lightCol);
         shader.setVector3f("ambientLight", ambient);
+        shader.setVector3f("uGrassColor", ColorProvider.getGrassColor());
         
         // Обычный блендинг. Выключаем Culling!
         glDisable(GL_CULL_FACE);
@@ -112,8 +113,8 @@ public class ParticleRenderer {
             if (p instanceof ShardParticle shard) {
                 // Pos(3), Roll(1)
                 instanceBuffer.put(p.getPosition().x).put(p.getPosition().y).put(p.getPosition().z()).put(p.getRoll());
-                // Scale(1), Alpha(1)
-                instanceBuffer.put(p.getScale()).put(p.getAlpha());
+                // Scale(1), Alpha(1), OverlayLayer(1)
+                instanceBuffer.put(p.getScale()).put(p.getAlpha()).put((float)shard.getOverlayLayer());
                 // Layer(1), Snippet(2)
                 instanceBuffer.put((float)shard.getTextureLayer()).put(shard.getSnippetOffset().x).put(shard.getSnippetOffset().y);
                 // Color(3)

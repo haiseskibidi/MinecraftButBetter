@@ -1,7 +1,15 @@
  # Архитектура проекта "Zenith"
 
-### UI & Interaction Systems
-1.  **Animation Studio (v2.1 Stable)**:
+### Core Graphics Systems
+1.  **Unified Coloring System (v1.0)**:
+    - **Single Source of Truth**: Класс `ColorProvider` централизованно хранит цвета биома (трава, листва).
+    - **Smart Overlays**: Вместо проверки пикселей шейдер использует 4-ю текстурную координату (`OverlayLayer`) для наложения окрашиваемых масок поверх базовых текстур.
+    - **Cross-System Consistency**: Единые шейдеры для мира, viewmodel, инвентаря и частиц гарантируют идентичное отображение цветов.
+
+2.  **Advanced Rendering Architecture**:
+    - **Extended Vertex Format**: Вершины поддерживают `vec4 texCoord` (U, V, BaseLayer, OverlayLayer).
+    - **Double-Texturing Shader**: Шейдеры автоматически смешивают базовый слой с оверлеем, если `OverlayLayer >= 0`.
+    - **Instance-Based Particles**: Система частиц расширена для поддержки оверлеев на уровне инстансов.
     - **Modular Separation**: Система разделена на 4 автономных модуля: `AnimationEditorState` (данные), `AnimationEditorRenderer` (3D/Gizmos), `EditorInputHandler` (трансформации/picking) и `EditorUI` (интерфейс).
     - **Pure FK Core**: Манипуляция костями осуществляется через прямую кинематику (Forward Kinematics). Математика IK вынесена в отдельный план для реализации универсального солвера FABRIK.
     - **Synchronous Transform Core**: Манипуляция костями через Гизмо использует handle-offset и обратную трансформацию из мировых координат в локальное пространство родительской кости.

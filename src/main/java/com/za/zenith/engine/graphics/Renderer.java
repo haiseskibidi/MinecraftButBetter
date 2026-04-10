@@ -216,6 +216,7 @@ public class Renderer {
         viewmodelShader.setVector3f("lightDirection", new Vector3f(0.4f, -0.8f, 0.4f).normalize());
         viewmodelShader.setVector3f("lightColor", lightColor);
         viewmodelShader.setVector3f("ambientLight", ambientLight);
+        viewmodelShader.setVector3f("uGrassColor", ColorProvider.getGrassColor());
         viewmodelShader.setFloat("uTime", (float)org.lwjgl.glfw.GLFW.glfwGetTime());
         
         // Состояние рук

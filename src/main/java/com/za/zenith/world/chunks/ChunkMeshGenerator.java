@@ -43,7 +43,7 @@ public class ChunkMeshGenerator {
         List<Integer> indices = new ArrayList<>();
         int vertexIndex = 0;
 
-        void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask) {
+        void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask, float overlayLayer) {
             for (int v = 0; v < 4; v++) {
                 positions.add(fp[v*3] + ox);
                 positions.add(fp[v*3+1] + oy);
@@ -67,18 +67,17 @@ public class ChunkMeshGenerator {
                     case 4: lu = vx; lv = 1.0f - vz; break;
                     case 5: lu = vx; lv = vz; break;
                 }
-                // fullUv now contains 12 values: U, V, W for 4 vertices
-                // index: 0,1,2 (V0), 3,4,5 (V1), 6,7,8 (V2), 9,10,11 (V3)
                 float topU = fullUv[0] * (1 - lu) + fullUv[3] * lu;
                 float topV = fullUv[1] * (1 - lu) + fullUv[4] * lu;
                 float botU = fullUv[9] * (1 - lu) + fullUv[6] * lu;
                 float botV = fullUv[10] * (1 - lu) + fullUv[7] * lu;
                 
-                float layer = fullUv[2]; // Layer is constant for all vertices of one face
+                float layer = fullUv[2]; 
 
                 texCoords.add(topU * (1 - lv) + botU * lv);
                 texCoords.add(topV * (1 - lv) + botV * lv);
                 texCoords.add(layer);
+                texCoords.add(overlayLayer);
             }
             for (int idx : FACE_INDICES) indices.add(vertexIndex + idx);
             vertexIndex += 4;
@@ -92,10 +91,12 @@ public class ChunkMeshGenerator {
                 normals.add(fn[v*3]);
                 normals.add(fn[v*3+1]);
                 normals.add(fn[v*3+2]);
-                // uv is now 12 values (UVW per vertex)
+                
                 texCoords.add(uv[v*3]);
                 texCoords.add(uv[v*3+1]);
                 texCoords.add(uv[v*3+2]);
+                texCoords.add(-1.0f); // No overlay for raw quads
+                
                 blockTypes.add(blockTypeId);
                 neighborData.add(0.0f);
             }
@@ -152,12 +153,22 @@ public class ChunkMeshGenerator {
                 if (isTranslucent) {
                     faceBlockType = -(faceBlockType + 2000.0f);
                 } else if (def != null && def.isTinted()) {
-                    boolean isGrassBlock = def.getIdentifier().getPath().contains("grass_block");
-                    if (!isGrassBlock || face == 4) {
-                        faceBlockType = -(faceBlockType + 1.0f);
+                    faceBlockType = -(faceBlockType + 1.0f);
+                }
+                float overlayLayer = -1.0f;
+                if (def != null && def.isTinted()) {
+                    if (def.getTextures() != null) {
+                        String innerKey = def.getTextures().getInner();
+                        String sideKey = def.getTextures().getTextureForFace(face);
+                        if (face < 4 && innerKey != null && !innerKey.equals(sideKey)) {
+                            float[] innerUv = atlas.uvFor(innerKey);
+                            if (innerUv != null) {
+                                overlayLayer = innerUv[2];
+                            }
+                        }
                     }
                 }
-                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0);
+                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0, overlayLayer);
             }
         }
         return data.build();
@@ -175,7 +186,7 @@ public class ChunkMeshGenerator {
             {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
         };
         for (int face = 0; face < 6; face++) {
-            data.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0);
+            data.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0, -1.0f);
         }
         return data.build();
     }
@@ -207,10 +218,18 @@ public class ChunkMeshGenerator {
                     };
                     
                     float faceBlockType = (float)nBlock.getType();
+                    float overlayLayer = -1.0f;
                     if (nDef.isTinted()) {
-                        boolean isGrassBlock = nDef.getIdentifier().getPath().contains("grass_block");
-                        if (!isGrassBlock || oppFace == 4) {
-                            faceBlockType = -(faceBlockType + 1.0f);
+                        faceBlockType = -(faceBlockType + 1.0f);
+                        if (nDef.getTextures() != null) {
+                            String innerKey = nDef.getTextures().getInner();
+                            String sideKey = nDef.getTextures().getTextureForFace(oppFace);
+                            if (oppFace < 4 && innerKey != null && !innerKey.equals(sideKey)) {
+                                float[] innerUv = atlas.uvFor(innerKey);
+                                if (innerUv != null) {
+                                    overlayLayer = innerUv[2];
+                                }
+                            }
                         }
                     }
                     
@@ -219,7 +238,7 @@ public class ChunkMeshGenerator {
                     float oy = dir.getDy();
                     float oz = dir.getDz();
                     
-                    data.addFace(facePositions[oppFace], FACE_NORMALS[oppFace], faceBlockType, BlockTextureMapper.uvFor(nBlock, oppFace, atlas), oppFace, ox, oy, oz, 0);
+                    data.addFace(facePositions[oppFace], FACE_NORMALS[oppFace], faceBlockType, BlockTextureMapper.uvFor(nBlock, oppFace, atlas), oppFace, ox, oy, oz, 0, overlayLayer);
                 }
             }
         }
@@ -330,18 +349,25 @@ public class ChunkMeshGenerator {
                             
                             // APPLY TINT & GLASS FLAGS for shader
                             float faceBlockType = (float)block.getType();
+                            float overlayLayer = -1.0f;
                             if (isTranslucent) {
                                 // Glass flag: offset by -2000
                                 faceBlockType = -(faceBlockType + 2000.0f);
                             } else if (def != null && def.isTinted()) {
-                                // Tint flag: offset by -1
-                                boolean isGrassBlock = def.getIdentifier().getPath().contains("grass_block");
-                                if (!isGrassBlock || face == 4) {
-                                    faceBlockType = -(faceBlockType + 1.0f);
+                                faceBlockType = -(faceBlockType + 1.0f);
+                                if (def.getTextures() != null) {
+                                    String innerKey = def.getTextures().getInner();
+                                    String sideKey = def.getTextures().getTextureForFace(face);
+                                    if (face < 4 && innerKey != null && !innerKey.equals(sideKey)) {
+                                        float[] innerUv = atlas.uvFor(innerKey);
+                                        if (innerUv != null) {
+                                            overlayLayer = innerUv[2];
+                                        }
+                                    }
                                 }
                             }
                             
-                            current.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask);
+                            current.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask, overlayLayer);
                         }
                     }
                     }

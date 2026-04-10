@@ -5,14 +5,15 @@ layout (location = 1) in vec2 aTexCoord;
 
 // Instance data
 layout (location = 2) in vec4 instPosRoll; // x, y, z, roll
-layout (location = 3) in vec2 instVisual;  // scale, alpha
-layout (location = 4) in vec3 instTexData; // layer, snippetX, snippetY
-layout (location = 5) in vec3 instColor;
+layout (location = 3) in vec3 instVisual;  // scale, alpha, overlayLayer
+layout (location = 4) in vec3 instColor;
+layout (location = 5) in vec3 instTexData; // layer, snippetX, snippetY
 
 out vec3 fragTexCoord;
 out float fragAlpha;
 out vec3 vColor;
 out vec3 vNormal;
+out float overlayLayer;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -42,6 +43,7 @@ void main() {
     // Pass to fragment
     fragTexCoord = vec3(aTexCoord * 0.25 + instTexData.yz, instTexData.x);
     fragAlpha = instVisual.y;
+    overlayLayer = instVisual.z;
     vColor = instColor;
     
     // Normal for billboards is always facing camera

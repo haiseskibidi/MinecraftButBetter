@@ -73,13 +73,12 @@ public class CarvingRenderer {
             -0.5f, 1.001f, -0.5f  // Top-Left
         };
         float[] normals = { 0, 1, 0,  0, 1, 0,  0, 1, 0,  0, 1, 0 };
-        float[] texCoords = { 
-            0, 1, 0, // BL
-            1, 1, 0, // BR
-            1, 0, 0, // TR
-            0, 0, 0  // TL
-        };
-        float[] blockTypes = { 150, 150, 150, 150 }; 
+        float[] texCoords = {
+            0, 1, 0, -1.0f, // BL
+            1, 1, 0, -1.0f, // BR
+            1, 0, 0, -1.0f, // TR
+            0, 0, 0, -1.0f  // TL
+        };        float[] blockTypes = { 150, 150, 150, 150 }; 
         float[] neighborData = { 0, 0, 0, 0 };
         int[] indices = { 0, 1, 2, 2, 3, 0 };
 

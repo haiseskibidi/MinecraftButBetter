@@ -64,7 +64,8 @@ public class Mesh {
         texBuffer.put(texCoords).flip();
         glBindBuffer(GL_ARRAY_BUFFER, texVboId);
         glBufferData(GL_ARRAY_BUFFER, texBuffer, GL_STATIC_DRAW);
-        glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, 0);
+        int texComponents = (texCoords.length * 3) / positions.length;
+        glVertexAttribPointer(1, texComponents, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(1);
         memFree(texBuffer);
         

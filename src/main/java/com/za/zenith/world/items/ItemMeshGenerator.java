@@ -261,10 +261,10 @@ public class ItemMeshGenerator {
         pos.add(x1); pos.add(y1); pos.add(z1);
         pos.add(x2); pos.add(y2); pos.add(z2);
         pos.add(x3); pos.add(y3); pos.add(z3);
-        tex.add(u0); tex.add(v0); tex.add(w0);
-        tex.add(u1); tex.add(v1); tex.add(w1);
-        tex.add(u2); tex.add(v2); tex.add(w2);
-        tex.add(u3); tex.add(v3); tex.add(w3);
+        tex.add(u0); tex.add(v0); tex.add(w0); tex.add(-1.0f);
+        tex.add(u1); tex.add(v1); tex.add(w1); tex.add(-1.0f);
+        tex.add(u2); tex.add(v2); tex.add(w2); tex.add(-1.0f);
+        tex.add(u3); tex.add(v3); tex.add(w3); tex.add(-1.0f);
         for (int i = 0; i < 4; i++) {
             norm.add(nx); norm.add(ny); norm.add(nz);
         }

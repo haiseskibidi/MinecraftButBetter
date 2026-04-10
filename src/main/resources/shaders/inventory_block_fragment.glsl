@@ -1,14 +1,15 @@
 #version 330 core
 
-in vec3 fragTexCoord;
+in vec4 fragTexCoord;
 in vec3 fragNormal;
 in float blockType;
+in float neighborData;
 
 out vec4 fragColor;
 
 uniform sampler2DArray textureSampler;
 uniform float brightnessMultiplier = 1.0;
-uniform vec3 tintColor = vec3(0.486, 0.784, 0.314); 
+uniform vec3 uGrassColor = vec3(0.486, 0.784, 0.314); 
 
 #include "include/block_features.glsl"
 
@@ -17,7 +18,7 @@ const vec3 TOP_LIGHT_DIR = vec3(0.0, 1.0, 0.0);
 const vec3 SIDE_LIGHT_DIR = normalize(vec3(0.5, 0.2, 0.5)); // Мягкий свет спереди-справа
 
 void main() {
-    vec4 textureColor = texture(textureSampler, fragTexCoord);
+    vec4 textureColor = texture(textureSampler, fragTexCoord.xyz);
     if (textureColor.a < 0.5) discard;
     
     vec3 baseColor = textureColor.rgb;
@@ -25,7 +26,14 @@ void main() {
     BlockInfo info = decodeBlockInfo(blockType);
 
     if (info.isTinted) {
-        baseColor *= tintColor;
+        if (fragTexCoord.w >= 0.0 && !info.isGlass) {
+            vec4 overlayTex = texture(textureSampler, vec3(fragTexCoord.xy, fragTexCoord.w));
+            if (overlayTex.a > 0.1) {
+                baseColor = mix(baseColor, overlayTex.rgb * uGrassColor, overlayTex.a);
+            }
+        } else {
+            baseColor *= uGrassColor;
+        }
     }
 
     // 1. Базовая яркость (теплый ambient)
