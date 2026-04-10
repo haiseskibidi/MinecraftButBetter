@@ -19,6 +19,24 @@ public class Item {
     protected float miningSpeed = 0.1f;
     protected int maxStackSize = -1; // -1 means use type default
     protected float interactionCooldown = -1.0f; 
+    protected com.za.zenith.utils.Identifier defaultRarity = com.za.zenith.world.items.stats.RarityRegistry.COMMON;
+    protected final com.za.zenith.world.items.stats.StatContainer baseStats = new com.za.zenith.world.items.stats.StatContainer();
+
+    public com.za.zenith.utils.Identifier getDefaultRarity() {
+        return defaultRarity;
+    }
+
+    public void setDefaultRarity(com.za.zenith.utils.Identifier rarity) {
+        this.defaultRarity = rarity;
+    }
+
+    public com.za.zenith.world.items.stats.StatContainer getBaseStats() {
+        return baseStats;
+    }
+
+    public float getStat(com.za.zenith.utils.Identifier id) {
+        return baseStats.get(id);
+    }
 
     public float getInteractionCooldown() {
         if (interactionCooldown < 0) {

@@ -48,6 +48,14 @@ public class DataLoader {
         com.za.zenith.utils.events.RegistryEvents.fireBlockRegistration();
         
         // --- Essential Initialization Order ---
+        com.za.zenith.world.items.stats.StatRegistry.getAll(); // Ensure class loaded
+        com.za.zenith.world.items.stats.RarityRegistry.init();
+        
+        for (String ns : namespaces) {
+            loadStats(ns);
+            loadRarities(ns);
+        }
+
         // 1. Map blocks to items automatically (BEFORE loading JSON items to reserve IDs)
         com.za.zenith.world.items.ItemRegistry.init();
         
@@ -914,6 +922,47 @@ public class DataLoader {
             ItemRegistry.registerItem(item);
         } catch (Exception e) {
             Logger.error("Failed to parse item: " + e.getMessage());
+        }
+    }
+
+    private static void loadStats(String namespace) {
+        String path = namespace + "/registry/stats";
+        List<String> files = listResources(path);
+        for (String file : files) {
+            loadResource(path + "/" + file, el -> {
+                JsonObject obj = el.getAsJsonObject();
+                Identifier id = Identifier.of(obj.get("identifier").getAsString());
+                com.za.zenith.world.items.stats.StatRegistry.register(new com.za.zenith.world.items.stats.StatDefinition(
+                    id,
+                    obj.get("translationKey").getAsString(),
+                    obj.get("defaultValue").getAsFloat(),
+                    obj.get("minValue").getAsFloat(),
+                    obj.get("maxValue").getAsFloat(),
+                    com.za.zenith.world.items.stats.StatDefinition.DisplayType.valueOf(obj.get("displayType").getAsString().toUpperCase()),
+                    com.za.zenith.world.items.stats.StatDefinition.Category.valueOf(obj.get("category").getAsString().toUpperCase())
+                ));
+            });
+        }
+    }
+
+    private static void loadRarities(String namespace) {
+        String path = namespace + "/registry/rarities";
+        List<String> files = listResources(path);
+        for (String file : files) {
+            loadResource(path + "/" + file, el -> {
+                JsonObject obj = el.getAsJsonObject();
+                Identifier id = Identifier.of(obj.get("identifier").getAsString());
+                JsonArray col = obj.getAsJsonArray("color");
+                org.joml.Vector3f color = new org.joml.Vector3f(col.get(0).getAsFloat(), col.get(1).getAsFloat(), col.get(2).getAsFloat());
+                
+                com.za.zenith.world.items.stats.RarityRegistry.register(new com.za.zenith.world.items.stats.RarityDefinition(
+                    id,
+                    obj.get("translationKey").getAsString(),
+                    color,
+                    obj.get("affixSlots").getAsInt(),
+                    obj.get("weight").getAsInt()
+                ));
+            });
         }
     }
 

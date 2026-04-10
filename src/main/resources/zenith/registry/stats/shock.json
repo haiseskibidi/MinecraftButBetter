@@ -1,0 +1,9 @@
+{
+  "identifier": "zenith:shock",
+  "translationKey": "stat.zenith.shock",
+  "defaultValue": 0.0,
+  "minValue": 0.0,
+  "maxValue": 100.0,
+  "displayType": "NUMBER",
+  "category": "COMBAT"
+}

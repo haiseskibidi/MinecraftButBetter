@@ -6,7 +6,9 @@ public class ItemStack {
     private final Item item;
     private int count;
     private int durability;
-    private ItemInventory itemInventory;
+    private com.za.zenith.utils.Identifier rarity;
+    private final com.za.zenith.world.items.stats.StatContainer stats = new com.za.zenith.world.items.stats.StatContainer();
+    private com.za.zenith.world.inventory.ItemInventory itemInventory;
     private float temperature;
 
     public ItemStack(Item item) {
@@ -16,6 +18,7 @@ public class ItemStack {
     public ItemStack(Item item, int count) {
         this.item = item;
         this.count = count;
+        this.rarity = item.getDefaultRarity();
         
         // Инициализация прочности из компонентов
         com.za.zenith.world.items.component.ToolComponent toolComp = item.getComponent(com.za.zenith.world.items.component.ToolComponent.class);
@@ -33,8 +36,42 @@ public class ItemStack {
 
         com.za.zenith.world.items.component.BagComponent bagComp = item.getComponent(com.za.zenith.world.items.component.BagComponent.class);
         if (bagComp != null) {
-            this.itemInventory = new ItemInventory(bagComp.getSlots());
+            this.itemInventory = new com.za.zenith.world.inventory.ItemInventory(bagComp.getSlots());
         }
+    }
+
+    public com.za.zenith.utils.Identifier getRarity() {
+        return rarity;
+    }
+
+    public void setRarity(com.za.zenith.utils.Identifier rarity) {
+        this.rarity = rarity;
+    }
+
+    public com.za.zenith.world.items.stats.StatContainer getStats() {
+        return stats;
+    }
+
+    /**
+     * Gets the total stat value, combining base item stats and this stack's modifiers.
+     */
+    public float getStat(com.za.zenith.utils.Identifier statId) {
+        float baseValue = item.getStat(statId);
+        // We use a temporary container to combine base item stats with stack modifiers
+        com.za.zenith.world.items.stats.StatContainer temp = new com.za.zenith.world.items.stats.StatContainer();
+        temp.setBase(statId, baseValue);
+        
+        // Add all modifiers from this stack to the calculation
+        java.util.Map<com.za.zenith.utils.Identifier, Float> stackStats = stats.getAllStats();
+        if (stackStats.containsKey(statId)) {
+            temp.addModifier(statId, new com.za.zenith.world.items.stats.StatModifier(
+                com.za.zenith.utils.Identifier.of("zenith:stack_modifiers"),
+                com.za.zenith.world.items.stats.StatModifier.Operation.ADD,
+                stackStats.get(statId)
+            ));
+        }
+        
+        return temp.get(statId);
     }
 
     public float getTemperature() {

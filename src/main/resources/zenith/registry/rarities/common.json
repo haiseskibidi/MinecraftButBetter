@@ -1,0 +1,7 @@
+{
+  "identifier": "zenith:common",
+  "translationKey": "rarity.zenith.common",
+  "color": [1.0, 1.0, 1.0],
+  "affixSlots": 0,
+  "weight": 100
+}

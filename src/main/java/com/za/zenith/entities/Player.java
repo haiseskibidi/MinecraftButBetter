@@ -112,6 +112,9 @@ public class Player extends LivingEntity {
         
         super.update(deltaTime, world);
 
+        // Update RPG stats from equipment
+        updateEquipmentStats();
+
         // Impulse Trigger: Landing (Moved from updateAnimations for physical accuracy)
         if (onGround && !wasOnGround && preUpdateVelocityY < -1.5f) {
             landingTimer = 0.0f;
@@ -664,6 +667,47 @@ public class Player extends LivingEntity {
     public Inventory getInventory() { return inventory; }
     public com.za.zenith.engine.core.PlayerMode getMode() { return mode; }
     public void setMode(com.za.zenith.engine.core.PlayerMode mode) { this.mode = mode; }
+
+    private void updateEquipmentStats() {
+        // Clear old equipment modifiers
+        stats.removeModifiersFrom(com.za.zenith.utils.Identifier.of("zenith:equipment"));
+
+        // Sum stats from all equipment slots
+        for (int i = Inventory.START_EQUIPMENT; i < Inventory.START_EQUIPMENT + Inventory.EQUIPMENT_SIZE; i++) {
+            ItemStack stack = inventory.getStack(i);
+            if (stack != null) {
+                // For each loaded stat, check if the item has it
+                for (com.za.zenith.world.items.stats.StatDefinition def : com.za.zenith.world.items.stats.StatRegistry.getAll()) {
+                    float value = stack.getStat(def.identifier());
+                    if (value != 0) {
+                        stats.addModifier(def.identifier(), new com.za.zenith.world.items.stats.StatModifier(
+                            com.za.zenith.utils.Identifier.of("zenith:equipment"),
+                            com.za.zenith.world.items.stats.StatModifier.Operation.ADD,
+                            value
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    public float getImpact() {
+        float impact = stats.get(com.za.zenith.world.items.stats.StatRegistry.IMPACT);
+        ItemStack held = inventory.getSelectedItemStack();
+        if (held != null) {
+            impact += held.getStat(com.za.zenith.world.items.stats.StatRegistry.IMPACT);
+        }
+        return impact;
+    }
+
+    public float getAttackDamage() {
+        // Base punch damage (1.0) + Impact bonus
+        return 1.0f + (getImpact() / 10.0f);
+    }
+
+    public float getMobilityMultiplier() {
+        return stats.get(com.za.zenith.world.items.stats.StatRegistry.MOBILITY) / 100.0f;
+    }
 }
 
 

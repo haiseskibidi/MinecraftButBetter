@@ -1,0 +1,7 @@
+{
+  "identifier": "zenith:epic",
+  "translationKey": "rarity.zenith.epic",
+  "color": [0.7, 0.2, 1.0],
+  "affixSlots": 3,
+  "weight": 5
+}

@@ -1,0 +1,9 @@
+{
+  "identifier": "zenith:constitution",
+  "translationKey": "stat.zenith.constitution",
+  "defaultValue": 100.0,
+  "minValue": 0.0,
+  "maxValue": 1000.0,
+  "displayType": "NUMBER",
+  "category": "GLOBAL"
+}
