@@ -7,9 +7,10 @@
     - **Cross-System Consistency**: Единые шейдеры для мира, viewmodel, инвентаря и частиц гарантируют идентичное отображение цветов.
 
 2.  **Advanced Rendering Architecture**:
-    - **Extended Vertex Format**: Вершины поддерживают `vec4 texCoord` (U, V, BaseLayer, OverlayLayer).
+    - **Extended Vertex Format**: Вершины поддерживают `vec4 texCoord` (U, V, BaseLayer, OverlayLayer) и `float verticalWeight` (локация 5).
     - **Double-Texturing Shader**: Шейдеры автоматически смешивают базовый слой с оверлеем, если `OverlayLayer >= 0`.
-    - **Instance-Based Particles**: Система частиц расширена для поддержки оверлеев на уровне инстансов.
+    - **Procedural Wind System**: Модульная система анимации (`foliage_animation.glsl`), использующая веса вершин для создания эффекта качания на ветру без деформации основания блоков.
+    - **Additive Weighting**: Поддержка многоблочных растений через смещение весов (`weightOffset`), обеспечивающая бесшовную анимацию высоких объектов (0.0 -> 1.0 -> 2.0).
     - **Modular Separation**: Система разделена на 4 автономных модуля: `AnimationEditorState` (данные), `AnimationEditorRenderer` (3D/Gizmos), `EditorInputHandler` (трансформации/picking) и `EditorUI` (интерфейс).
     - **Pure FK Core**: Манипуляция костями осуществляется через прямую кинематику (Forward Kinematics). Математика IK вынесена в отдельный план для реализации универсального солвера FABRIK.
     - **Synchronous Transform Core**: Манипуляция костями через Гизмо использует handle-offset и обратную трансформацию из мировых координат в локальное пространство родительской кости.

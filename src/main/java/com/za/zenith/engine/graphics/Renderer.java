@@ -257,6 +257,9 @@ public class Renderer {
         atlas.bind();
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
         blockShader.setMatrix4f("view", camera.getViewMatrix(alpha));
+        blockShader.setFloat("uTime", (float)org.lwjgl.glfw.GLFW.glfwGetTime());
+        blockShader.setFloat("uSwayOverride", -1.0f);
+        blockShader.setVector3f("uGrassColor", ColorProvider.getGrassColor());
         blockShader.setBoolean("useMask", false);
         blockShader.setBoolean("previewPass", false);
         blockShader.setBoolean("isHand", false); // Ensure world blocks are not masked as hands

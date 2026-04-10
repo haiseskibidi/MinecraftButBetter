@@ -46,6 +46,9 @@ public class BlockHighlightRenderer {
         blockShader.setInt("highlightPass", 1);
         blockShader.setVector3f("highlightColor", new Vector3f(0.2f, 0.2f, 0.2f));
         
+        com.za.zenith.world.blocks.BlockDefinition blockDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
+        blockShader.setFloat("uSwayOverride", (blockDef != null && blockDef.isSway()) ? 1.0f : 0.0f);
+        
         boolean isProxy = false;
         if (pos.equals(breakingPos) && currentBreakingBlock != null) {
             isProxy = true;
@@ -179,11 +182,27 @@ public class BlockHighlightRenderer {
         for (int i = 0; i < indicesList.size(); i++) indArray[i] = indicesList.get(i);
 
         int numVerts = vertexOffset; 
-        float[] tcArray = new float[numVerts * 2];
+        float[] tcArray = new float[numVerts * 4];
+        float[] wArray = new float[numVerts];
+        
+        // Calculate maxY for the entire shape to determine weights
+        float shapeMaxY = -1e9f;
+        for (AABB box : shape.getBoxes()) shapeMaxY = Math.max(shapeMaxY, box.getMax().y);
+
+        for (int i = 0; i < numVerts; i++) {
+            tcArray[i * 4 + 0] = 0.0f;
+            tcArray[i * 4 + 1] = 0.0f;
+            tcArray[i * 4 + 2] = 0.0f;
+            tcArray[i * 4 + 3] = 1.0f; // Enable swaying in attribute, control by uniform
+            
+            // Weight is 1.0 if the vertex is at the top of the block
+            float vy = posArray[i * 3 + 1];
+            wArray[i] = (vy > 0.5f) ? 1.0f : 0.0f;
+        }
         float[] nArray = new float[numVerts * 3];
         float[] btArray = new float[numVerts];
 
-        return new Mesh(posArray, tcArray, nArray, btArray, indArray);
+        return new Mesh(posArray, tcArray, nArray, btArray, new float[numVerts], wArray, indArray);
     }
 
     private boolean contains(VoxelShape shape, float x, float y, float z) {

@@ -5,6 +5,7 @@ layout(location = 1) in vec4 texCoord;
 layout(location = 2) in vec3 normal;
 layout(location = 3) in float blockTypeAttr;
 layout(location = 4) in float neighborDataAttr;
+layout(location = 5) in float verticalWeightAttr;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -16,6 +17,11 @@ uniform vec3 uWobbleScale;
 uniform vec3 uWobbleOffset;
 uniform float uWobbleShake;
 uniform float uWobbleTime;
+uniform float uTime;
+uniform float uSwayOverride; // -1.0 = use attribute, 0.0 = force static, 1.0 = force sway
+
+// Include external modules
+#include "include/foliage_animation.glsl"
 
 out vec4 fragTexCoord;
 out vec3 fragNormal;
@@ -62,6 +68,10 @@ void main() {
         vBreakingIntensity = 1.0;
     }
     
+    // Apply wind swaying for grass (texCoord.w is overlayLayer, verticalWeightAttr is weight)
+    float swayIntense = (uSwayOverride < 0.0) ? 1.0 : uSwayOverride;
+    worldPos = applyFoliageWind(worldPos, position, texCoord.w, uTime, uIsProxy, verticalWeightAttr, swayIntense);
+
     fragPos = worldPos;
     blockType = blockTypeAttr;
     neighborData = neighborDataAttr;

@@ -16,6 +16,7 @@ public class Mesh {
     private final int normalVboId;
     private final int blockTypeVboId;
     private final int neighborDataVboId;
+    private final int weightVboId;
     private final int eboId;
     private final int vertexCount;
     private final float[] positions;
@@ -25,14 +26,18 @@ public class Mesh {
     public org.joml.Vector3f getGraspOffset() { return graspOffset; }
     
     public Mesh(float[] positions, float[] texCoords, float[] normals, int[] indices) {
-        this(positions, texCoords, normals, new float[positions.length / 3], new float[positions.length / 3], indices);
+        this(positions, texCoords, normals, new float[positions.length / 3], new float[positions.length / 3], new float[positions.length / 3], indices);
     }
     
     public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, int[] indices) {
-        this(positions, texCoords, normals, blockTypes, new float[positions.length / 3], indices);
+        this(positions, texCoords, normals, blockTypes, new float[positions.length / 3], new float[positions.length / 3], indices);
     }
 
     public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, int[] indices) {
+        this(positions, texCoords, normals, blockTypes, neighborData, new float[positions.length / 3], indices);
+    }
+
+    public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, float[] weights, int[] indices) {
         this.positions = positions;
         if (indices.length == 0 || positions.length == 0) {
             this.vertexCount = 0;
@@ -42,6 +47,7 @@ public class Mesh {
             this.normalVboId = -1;
             this.blockTypeVboId = -1;
             this.neighborDataVboId = -1;
+            this.weightVboId = -1;
             this.eboId = -1;
             return;
         }
@@ -95,6 +101,15 @@ public class Mesh {
         glVertexAttribPointer(4, 1, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(4);
         memFree(neighborDataBuffer);
+
+        weightVboId = glGenBuffers();
+        FloatBuffer weightBuffer = memAllocFloat(weights.length);
+        weightBuffer.put(weights).flip();
+        glBindBuffer(GL_ARRAY_BUFFER, weightVboId);
+        glBufferData(GL_ARRAY_BUFFER, weightBuffer, GL_STATIC_DRAW);
+        glVertexAttribPointer(5, 1, GL_FLOAT, false, 0, 0);
+        glEnableVertexAttribArray(5);
+        memFree(weightBuffer);
         
         eboId = glGenBuffers();
         IntBuffer indicesBuffer = memAllocInt(indices.length);

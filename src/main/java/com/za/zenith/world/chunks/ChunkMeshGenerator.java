@@ -39,20 +39,40 @@ public class ChunkMeshGenerator {
         List<Float> texCoords = new ArrayList<>();
         List<Float> normals = new ArrayList<>();
         List<Float> blockTypes = new ArrayList<>();
-        List<Float> neighborData = new ArrayList<>(); // Packed: 4-bits neighbor info
+        List<Float> neighborData = new ArrayList<>(); 
+        List<Float> weights = new ArrayList<>();
         List<Integer> indices = new ArrayList<>();
         int vertexIndex = 0;
 
-        void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask, float overlayLayer) {
+        void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask, float overlayLayer, boolean canSway) {
+            float minY = fp[1], maxY = fp[1];
+            for (int v = 1; v < 4; v++) {
+                minY = Math.min(minY, fp[v*3+1]);
+                maxY = Math.max(maxY, fp[v*3+1]);
+            }
+
             for (int v = 0; v < 4; v++) {
-                positions.add(fp[v*3] + ox);
-                positions.add(fp[v*3+1] + oy);
-                positions.add(fp[v*3+2] + oz);
+                float px = fp[v*3] + ox;
+                float py = fp[v*3+1] + oy;
+                float pz = fp[v*3+2] + oz;
+                positions.add(px);
+                positions.add(py);
+                positions.add(pz);
                 normals.add(fn[v*3]);
                 normals.add(fn[v*3+1]);
                 normals.add(fn[v*3+2]);
                 blockTypes.add(blockTypeId);
                 neighborData.add(neighborMask);
+                
+                float weight = 0.0f;
+                if (canSway) {
+                    if (maxY > minY) {
+                        weight = (fp[v*3+1] > minY + 0.001f) ? 1.0f : 0.0f;
+                    } else {
+                        weight = (face == 4) ? 1.0f : 0.0f;
+                    }
+                }
+                weights.add(weight);
             }
             for (int v = 0; v < 4; v++) {
                 float vx = fp[v*3];
@@ -83,7 +103,13 @@ public class ChunkMeshGenerator {
             vertexIndex += 4;
         }
 
-        void addRawQuad(float[] fp, float[] uv, float[] fn, float blockTypeId) {
+        void addRawQuad(float[] fp, float[] uv, float[] fn, float blockTypeId, float overlayLayer, boolean canSway, float weightOffset) {
+            float minY = fp[1], maxY = fp[1];
+            for (int v = 1; v < 4; v++) {
+                minY = Math.min(minY, fp[v*3+1]);
+                maxY = Math.max(maxY, fp[v*3+1]);
+            }
+
             for (int v = 0; v < 4; v++) {
                 positions.add(fp[v*3]);
                 positions.add(fp[v*3+1]);
@@ -95,10 +121,16 @@ public class ChunkMeshGenerator {
                 texCoords.add(uv[v*3]);
                 texCoords.add(uv[v*3+1]);
                 texCoords.add(uv[v*3+2]);
-                texCoords.add(-1.0f); // No overlay for raw quads
+                texCoords.add(overlayLayer); 
                 
                 blockTypes.add(blockTypeId);
                 neighborData.add(0.0f);
+                
+                float weight = 0.0f;
+                if (canSway) {
+                    weight = weightOffset + ((fp[v*3+1] > minY + 0.001f) ? 1.0f : 0.0f);
+                }
+                weights.add(weight);
             }
             for (int idx : FACE_INDICES) indices.add(vertexIndex + idx);
             vertexIndex += 4;
@@ -106,15 +138,16 @@ public class ChunkMeshGenerator {
 
         Mesh build() {
             if (positions.isEmpty()) return null;
-            float[] p = new float[positions.size()], t = new float[texCoords.size()], n = new float[normals.size()], b = new float[blockTypes.size()], nd = new float[neighborData.size()];
+            float[] p = new float[positions.size()], t = new float[texCoords.size()], n = new float[normals.size()], b = new float[blockTypes.size()], nd = new float[neighborData.size()], w = new float[weights.size()];
             int[] ind = new int[indices.size()];
             for(int i=0; i<p.length; i++) p[i]=positions.get(i);
             for(int i=0; i<t.length; i++) t[i]=texCoords.get(i);
             for(int i=0; i<n.length; i++) n[i]=normals.get(i);
             for(int i=0; i<b.length; i++) b[i]=blockTypes.get(i);
             for(int i=0; i<nd.length; i++) nd[i]=neighborData.get(i);
+            for(int i=0; i<w.length; i++) w[i]=weights.get(i);
             for(int i=0; i<ind.length; i++) ind[i]=indices.get(i);
-            return new Mesh(p, t, n, b, nd, ind); // Added neighborData attribute to Mesh
+            return new Mesh(p, t, n, b, nd, w, ind); 
         }
     }
 
@@ -131,8 +164,10 @@ public class ChunkMeshGenerator {
 
         if (def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DOUBLE_PLANT) {
             float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
-            addCrossPlane(data, -0.5f, 0, -0.5f, 0, 0, 1, 1, uvs, finalBlockType);
-            addCrossPlane(data, -0.5f, 0, -0.5f, 0, 1, 1, 0, uvs, finalBlockType);
+            float overlayLayer = uvs[2];
+            float weightOffset = (def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DOUBLE_PLANT && block.getMetadata() == 1) ? 1.0f : 0.0f;
+            addCrossPlane(data, -0.5f, 0, -0.5f, 0, 0, 1, 1, uvs, finalBlockType, overlayLayer, weightOffset);
+            addCrossPlane(data, -0.5f, 0, -0.5f, 0, 1, 1, 0, uvs, finalBlockType, overlayLayer, weightOffset);
             return data.build();
         }
 
@@ -168,7 +203,7 @@ public class ChunkMeshGenerator {
                         }
                     }
                 }
-                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0, overlayLayer);
+                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0, overlayLayer, def.isSway());
             }
         }
         return data.build();
@@ -176,6 +211,8 @@ public class ChunkMeshGenerator {
 
     public static Mesh generateCustomAABBMesh(Block block, AABB box, DynamicTextureAtlas atlas) {
         MeshData data = new MeshData();
+        com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
+        boolean canSway = def != null && def.isSway();
         Vector3f min = box.getMin(), max = box.getMax();
         float[][] facePositions = new float[][]{
             {min.x, min.y, max.z,  max.x, min.y, max.z,  max.x, max.y, max.z,  min.x, max.y, max.z},
@@ -186,7 +223,7 @@ public class ChunkMeshGenerator {
             {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
         };
         for (int face = 0; face < 6; face++) {
-            data.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0, -1.0f);
+            data.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0, -1.0f, canSway);
         }
         return data.build();
     }
@@ -238,7 +275,7 @@ public class ChunkMeshGenerator {
                     float oy = dir.getDy();
                     float oz = dir.getDz();
                     
-                    data.addFace(facePositions[oppFace], FACE_NORMALS[oppFace], faceBlockType, BlockTextureMapper.uvFor(nBlock, oppFace, atlas), oppFace, ox, oy, oz, 0, overlayLayer);
+                    data.addFace(facePositions[oppFace], FACE_NORMALS[oppFace], faceBlockType, BlockTextureMapper.uvFor(nBlock, oppFace, atlas), oppFace, ox, oy, oz, 0, overlayLayer, nDef.isSway());
                 }
             }
         }
@@ -279,8 +316,10 @@ public class ChunkMeshGenerator {
 
                     if (def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DOUBLE_PLANT) {
                         float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
-                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 0, 1, 1, uvs, finalBlockType);
-                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 1, 1, 0, uvs, finalBlockType);
+                        float overlayLayer = uvs[2]; // Для травы используем её основной слой как оверлей для анимации
+                        float weightOffset = (def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DOUBLE_PLANT && block.getMetadata() == 1) ? 1.0f : 0.0f;
+                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 0, 1, 1, uvs, finalBlockType, overlayLayer, weightOffset);
+                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 1, 1, 0, uvs, finalBlockType, overlayLayer, weightOffset);
                         continue;
                     }
 
@@ -358,7 +397,10 @@ public class ChunkMeshGenerator {
                                 if (def.getTextures() != null) {
                                     String innerKey = def.getTextures().getInner();
                                     String sideKey = def.getTextures().getTextureForFace(face);
-                                    if (face < 4 && innerKey != null && !innerKey.equals(sideKey)) {
+                                    if (face == 4) {
+                                        // Top face always sways if tinted
+                                        overlayLayer = BlockTextureMapper.uvFor(block, face, atlas)[2];
+                                    } else if (face < 4 && innerKey != null && !innerKey.equals(sideKey)) {
                                         float[] innerUv = atlas.uvFor(innerKey);
                                         if (innerUv != null) {
                                             overlayLayer = innerUv[2];
@@ -367,7 +409,7 @@ public class ChunkMeshGenerator {
                                 }
                             }
                             
-                            current.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask, overlayLayer);
+                            current.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask, overlayLayer, def.isSway());
                         }
                     }
                     }
@@ -377,7 +419,7 @@ public class ChunkMeshGenerator {
         return new ChunkMeshResult(opaque.build(), translucent.build());
     }
 
-    private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float z0, float x1, float z1, float[] uvs, float blockTypeId) {
+    private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float z0, float x1, float z1, float[] uvs, float blockTypeId, float overlayLayer, float weightOffset) {
         float l = uvs[2];
         data.addRawQuad(
             new float[]{ox+x0, oy, oz+z0,  ox+x1, oy, oz+z1,  ox+x1, oy+1.0f, oz+z1,  ox+x0, oy+1.0f, oz+z0},
@@ -388,7 +430,10 @@ public class ChunkMeshGenerator {
                 uvs[0], uvs[10], l
             },
             new float[]{0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0},
-            blockTypeId
+            blockTypeId,
+            overlayLayer,
+            true,
+            weightOffset
         );
         data.addRawQuad(
             new float[]{ox+x0, oy+1.0f, oz+z0,  ox+x1, oy+1.0f, oz+z1,  ox+x1, oy, oz+z1,  ox+x0, oy, oz+z0},
@@ -399,7 +444,10 @@ public class ChunkMeshGenerator {
                 uvs[0], uvs[1], l
             },
             new float[]{0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0},
-            blockTypeId
+            blockTypeId,
+            overlayLayer,
+            true,
+            weightOffset
         );
     }
 }

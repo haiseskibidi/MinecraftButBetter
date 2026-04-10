@@ -32,6 +32,7 @@ public class BlockDefinition {
     private boolean alwaysRender = false;
     private boolean replaceable = false;
     private boolean tinted = false;
+    private boolean sway = false;
     private String upperTexture = null;
  // Текстура для верхней части DOUBLE_PLANT
     private PlacementType placementType = PlacementType.DEFAULT;
@@ -317,6 +318,15 @@ public class BlockDefinition {
 
     public BlockDefinition setReplaceable(boolean replaceable) {
         this.replaceable = replaceable;
+        return this;
+    }
+
+    public boolean isSway() {
+        return sway;
+    }
+
+    public BlockDefinition setSway(boolean sway) {
+        this.sway = sway;
         return this;
     }
 

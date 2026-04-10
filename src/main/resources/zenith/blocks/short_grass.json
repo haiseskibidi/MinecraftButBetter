@@ -5,6 +5,7 @@
   "transparent": true,
   "placement": "CROSS_PLANE",
   "replaceable": true,
+  "sway": true,
   "hardness": 0.01,
   "interaction_cooldown": 0.5,
   "cleaningAmount": 0.25,
