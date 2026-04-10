@@ -1,0 +1,11 @@
+{
+  "identifier": "zenith:reinforced",
+  "translationKey": "affix.zenith.reinforced",
+  "rarityId": "zenith:basic",
+  "type": "PREFIX",
+  "stats": {
+    "zenith:defense": 5.0,
+    "zenith:constitution": 5.0
+  },
+  "applicableTo": ["tag:zenith:armor", "tag:zenith:tools"]
+}

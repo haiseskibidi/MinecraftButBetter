@@ -271,12 +271,30 @@ public class InventoryScreenRenderer {
     private java.util.List<String> generateItemTooltip(ItemStack stack, Player player) {
         java.util.List<String> lines = new java.util.ArrayList<>();
         Item item = stack.getItem();
+        int maxTooltipWidth = 360;
+        int textSize = 14;
         
         // 1. Name with Rarity Color
         com.za.zenith.world.items.stats.RarityDefinition rarity = com.za.zenith.world.items.stats.RarityRegistry.get(stack.getRarity());
         String rarityColor = (rarity != null) ? rarity.colorCode() : "$f";
         
-        lines.add(rarityColor + "$l" + stack.getDisplayName());
+        String fullName = rarityColor + "$l" + stack.getDisplayName();
+        if (renderer.getFontRenderer().getStringWidth(fullName, textSize) > maxTooltipWidth) {
+            String[] parts = stack.getDisplayName().split(" ");
+            StringBuilder current = new StringBuilder(rarityColor + "$l");
+            for (int i = 0; i < parts.length; i++) {
+                String test = current.toString() + parts[i] + " ";
+                if (renderer.getFontRenderer().getStringWidth(test, textSize) > maxTooltipWidth && i > 0) {
+                    lines.add(current.toString().trim());
+                    current = new StringBuilder(rarityColor + "$l" + parts[i] + " ");
+                } else {
+                    current.append(parts[i]).append(" ");
+                }
+            }
+            lines.add(current.toString().trim());
+        } else {
+            lines.add(fullName);
+        }
         
         // 2. Rarity Title
         if (rarity != null && (!item.isBlock() || !stack.getRarity().getPath().equals("common"))) {
@@ -311,8 +329,8 @@ public class InventoryScreenRenderer {
                 if (value != 0) {
                     if (!hasStats) { lines.add(""); hasStats = true; }
                     
-                    String sign = value > 0 ? "+" : "";
                     String color = value > 0 ? "$a" : "$c";
+                    String sign = value > 0 ? "+" : "";
                     String line = "$7" + I18n.get(stat.translationKey()) + ": " + color + sign + (int)value;
                     
                     if (equipped != null) {
@@ -329,7 +347,7 @@ public class InventoryScreenRenderer {
         com.za.zenith.world.items.component.LootboxComponent box = item.getComponent(com.za.zenith.world.items.component.LootboxComponent.class);
         if (box != null) {
             lines.add("");
-            lines.add("$e$lEXPECTED CONTENTS:");
+            lines.add("$e$l" + com.za.zenith.utils.I18n.get("ui.expected_contents"));
             com.za.zenith.world.items.loot.LootTable table = com.za.zenith.world.items.loot.LootTableRegistry.get(box.lootTable());
             if (table != null) {
                 for (com.za.zenith.world.items.loot.LootTable.Pool pool : table.pools()) {

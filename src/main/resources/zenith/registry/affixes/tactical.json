@@ -1,0 +1,12 @@
+{
+  "identifier": "zenith:tactical",
+  "translationKey": "affix.zenith.tactical",
+  "rarityId": "zenith:elite",
+  "type": "PREFIX",
+  "stats": {
+    "zenith:handling": 20.0,
+    "zenith:mobility": 5.0,
+    "zenith:penetration": 5.0
+  },
+  "applicableTo": ["tag:zenith:tools", "tag:zenith:melee", "tag:zenith:armor"]
+}

@@ -1,0 +1,11 @@
+{
+  "identifier": "zenith:light",
+  "translationKey": "affix.zenith.light",
+  "rarityId": "zenith:basic",
+  "type": "PREFIX",
+  "stats": {
+    "zenith:mobility": 10.0,
+    "zenith:impact": -5.0
+  },
+  "applicableTo": ["tag:zenith:tools", "tag:zenith:melee", "tag:zenith:armor"]
+}

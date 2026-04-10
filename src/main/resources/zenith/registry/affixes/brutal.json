@@ -1,0 +1,12 @@
+{
+  "identifier": "zenith:brutal",
+  "translationKey": "affix.zenith.brutal",
+  "rarityId": "zenith:elite",
+  "type": "PREFIX",
+  "stats": {
+    "zenith:impact": 25.0,
+    "zenith:shock": 10.0,
+    "zenith:mobility": -5.0
+  },
+  "applicableTo": ["tag:zenith:melee", "tag:zenith:tools"]
+}

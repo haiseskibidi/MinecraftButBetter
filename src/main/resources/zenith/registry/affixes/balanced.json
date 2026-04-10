@@ -1,0 +1,11 @@
+{
+  "identifier": "zenith:balanced",
+  "translationKey": "affix.zenith.balanced",
+  "rarityId": "zenith:advanced",
+  "type": "PREFIX",
+  "stats": {
+    "zenith:balance": 15.0,
+    "zenith:handling": 10.0
+  },
+  "applicableTo": ["tag:zenith:melee", "tag:zenith:tools"]
+}

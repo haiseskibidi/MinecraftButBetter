@@ -8,7 +8,7 @@
   "components": {
     "lootbox": {
       "loot_table": "zenith:equipment",
-      "opening_time": 1.0,
+      "opening_time": 0.001,
       "rarity_weights": {
         "zenith:common": 40,
         "zenith:uncommon": 50,
