@@ -859,6 +859,7 @@ public class DataLoader {
             if (obj.has("maxStackSize")) item.setMaxStackSize(obj.get("maxStackSize").getAsInt());
             if (obj.has("interaction_cooldown")) item.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());
             if (obj.has("gender")) item.setGender(Item.Gender.valueOf(obj.get("gender").getAsString().toUpperCase()));
+            if (obj.has("rarity")) item.setDefaultRarity(Identifier.of(obj.get("rarity").getAsString()));
 
             if (obj.has("tags")) {
                 JsonArray tagsArr = obj.getAsJsonArray("tags");

@@ -128,7 +128,7 @@ public class HUDRenderer {
         int barWidth = 100;
         int barHeight = 4;
         int x = (sw - barWidth) / 2;
-        int y = (sh / 2) + 20;
+        int y = (sh / 2) + 80;
 
         // Background
         renderer.getPrimitivesRenderer().renderRect(x, y, barWidth, barHeight, sw, sh, 0.1f, 0.1f, 0.1f, 0.5f);
