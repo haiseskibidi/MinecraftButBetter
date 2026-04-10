@@ -109,6 +109,42 @@ public class HUDRenderer {
         glDisable(GL_BLEND);
     }
 
+    public void renderLootboxOpening(int sw, int sh) {
+        float timer = GameLoop.getInstance().getInputManager().getLootboxOpeningTimer();
+        if (timer <= 0) return;
+
+        ItemStack stack = GameLoop.getInstance().getInputManager().getLootboxStack();
+        if (stack == null) return;
+
+        com.za.zenith.world.items.component.LootboxComponent comp = stack.getItem().getComponent(com.za.zenith.world.items.component.LootboxComponent.class);
+        if (comp == null) return;
+
+        float progress = timer / comp.openingTime();
+        
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        int barWidth = 100;
+        int barHeight = 4;
+        int x = (sw - barWidth) / 2;
+        int y = (sh / 2) + 20;
+
+        // Background
+        renderer.getPrimitivesRenderer().renderRect(x, y, barWidth, barHeight, sw, sh, 0.1f, 0.1f, 0.1f, 0.5f);
+        // Progress
+        renderer.getPrimitivesRenderer().renderRect(x, y, (int)(barWidth * progress), barHeight, sw, sh, 1.0f, 1.0f, 1.0f, 0.9f);
+
+        // Text
+        String text = I18n.get("ui.opening_case") + " " + (int)(progress * 100) + "%";
+        int textSize = 14;
+        int textWidth = renderer.getFontRenderer().getStringWidth(text, textSize);
+        renderer.getFontRenderer().drawString(text, (sw - textWidth) / 2, y - 18, textSize, sw, sh, 1.0f, 1.0f, 1.0f, 1.0f);
+
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
+    }
+
     public void renderHunger(Hotbar hotbar, int screenWidth, int screenHeight, float hunger) {
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);

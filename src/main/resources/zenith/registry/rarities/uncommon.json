@@ -2,6 +2,7 @@
   "identifier": "zenith:uncommon",
   "translationKey": "rarity.zenith.uncommon",
   "color": [0.1, 0.8, 0.1],
+  "colorCode": "$a",
   "affixSlots": 1,
   "weight": 50
 }

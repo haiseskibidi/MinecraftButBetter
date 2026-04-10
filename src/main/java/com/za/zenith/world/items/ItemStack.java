@@ -99,7 +99,7 @@ public class ItemStack {
         for (com.za.zenith.utils.Identifier affixId : activeAffixes) {
             com.za.zenith.world.items.stats.AffixDefinition affix = com.za.zenith.world.items.stats.AffixRegistry.get(affixId);
             if (affix != null && affix.type() == com.za.zenith.world.items.stats.AffixDefinition.Type.PREFIX) {
-                name.append(com.za.zenith.utils.I18n.get(affix.translationKey())).append(" ");
+                name.append(com.za.zenith.utils.I18n.get(getGenderedTranslationKey(affix.translationKey()))).append(" ");
             }
         }
 
@@ -110,11 +110,19 @@ public class ItemStack {
         for (com.za.zenith.utils.Identifier affixId : activeAffixes) {
             com.za.zenith.world.items.stats.AffixDefinition affix = com.za.zenith.world.items.stats.AffixRegistry.get(affixId);
             if (affix != null && affix.type() == com.za.zenith.world.items.stats.AffixDefinition.Type.SUFFIX) {
-                name.append(" ").append(com.za.zenith.utils.I18n.get(affix.translationKey()));
+                name.append(" ").append(com.za.zenith.utils.I18n.get(getGenderedTranslationKey(affix.translationKey())));
             }
         }
 
         return name.toString();
+    }
+
+    private String getGenderedTranslationKey(String baseKey) {
+        return switch (item.getGender()) {
+            case MASCULINE -> baseKey + ".m";
+            case FEMININE -> baseKey + ".f";
+            case NEUTER -> baseKey + ".n";
+        };
     }
 
     public float getTemperature() {
@@ -164,6 +172,10 @@ public class ItemStack {
     public ItemStack copy() {
         ItemStack copy = new ItemStack(item, count);
         copy.setDurability(durability);
+        copy.setRarity(rarity);
+        for (com.za.zenith.utils.Identifier affixId : activeAffixes) {
+            copy.addAffix(affixId);
+        }
         if (this.itemInventory != null) {
             copy.itemInventory = this.itemInventory.copy();
         }
@@ -180,10 +192,15 @@ public class ItemStack {
         int toTake = Math.min(amount, count);
         ItemStack newStack = new ItemStack(item, toTake);
         newStack.setDurability(durability);
+        newStack.setRarity(rarity);
+        for (com.za.zenith.utils.Identifier affixId : activeAffixes) {
+            newStack.addAffix(affixId);
+        }
         // Note: Splitting bags should probably not be possible if they have inventory, 
         // but since their maxStackSize is 1, it only copies the reference/data when amount is 1.
         if (this.itemInventory != null && toTake == this.count) {
              newStack.itemInventory = this.itemInventory;
+             this.itemInventory = null;
         } else if (this.itemInventory != null) {
              newStack.itemInventory = this.itemInventory.copy();
         }

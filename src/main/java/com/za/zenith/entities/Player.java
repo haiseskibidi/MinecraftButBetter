@@ -668,15 +668,42 @@ public class Player extends LivingEntity {
     public com.za.zenith.engine.core.PlayerMode getMode() { return mode; }
     public void setMode(com.za.zenith.engine.core.PlayerMode mode) { this.mode = mode; }
 
+    public float getStat(com.za.zenith.utils.Identifier statId) {
+        float total = stats.get(statId);
+        
+        // Add active hand item bonus
+        ItemStack held = inventory.getSelectedItemStack();
+        if (held != null) {
+            total += held.getStat(statId);
+        }
+        
+        // Weight penalty for mobility: every 10kg above 5kg reduces mobility by 5
+        if (statId.equals(com.za.zenith.world.items.stats.StatRegistry.MOBILITY)) {
+            float totalWeight = 0;
+            for (int i = 0; i < inventory.size(); i++) {
+                ItemStack stack = inventory.getStack(i);
+                if (stack != null) {
+                    totalWeight += stack.getItem().getWeight() * stack.getCount();
+                }
+            }
+            float penalty = Math.max(0, (totalWeight - 5.0f) * 0.5f); // 5kg free, then 0.5 mobility per kg
+            total = Math.max(1, total - penalty); // Never drop below 1 mobility
+        }
+
+        return total;
+    }
+
     private void updateEquipmentStats() {
         // Clear old equipment modifiers
         stats.removeModifiersFrom(com.za.zenith.utils.Identifier.of("zenith:equipment"));
 
-        // Sum stats from all equipment slots
-        for (int i = Inventory.START_EQUIPMENT; i < Inventory.START_EQUIPMENT + Inventory.EQUIPMENT_SIZE; i++) {
+        // 1. Sum stats from all equipment slots (PASSIVE bonuses)
+        for (int i = 0; i < inventory.size(); i++) {
             ItemStack stack = inventory.getStack(i);
-            if (stack != null) {
-                // For each loaded stat, check if the item has it
+            if (stack == null) continue;
+
+            // Stats from EQUIPMENT slots apply fully
+            if (i >= Inventory.START_EQUIPMENT && i < Inventory.START_EQUIPMENT + Inventory.EQUIPMENT_SIZE) {
                 for (com.za.zenith.world.items.stats.StatDefinition def : com.za.zenith.world.items.stats.StatRegistry.getAll()) {
                     float value = stack.getStat(def.identifier());
                     if (value != 0) {
@@ -692,21 +719,21 @@ public class Player extends LivingEntity {
     }
 
     public float getImpact() {
-        float impact = stats.get(com.za.zenith.world.items.stats.StatRegistry.IMPACT);
-        ItemStack held = inventory.getSelectedItemStack();
-        if (held != null) {
-            impact += held.getStat(com.za.zenith.world.items.stats.StatRegistry.IMPACT);
-        }
-        return impact;
+        return getStat(com.za.zenith.world.items.stats.StatRegistry.IMPACT);
     }
 
     public float getAttackDamage() {
-        // Base punch damage (1.0) + Impact bonus
+        // Base punch damage (1.0) + Impact bonus (1.0 per 10 impact)
         return 1.0f + (getImpact() / 10.0f);
     }
 
     public float getMobilityMultiplier() {
-        return stats.get(com.za.zenith.world.items.stats.StatRegistry.MOBILITY) / 100.0f;
+        // 10 mobility = 1.0 speed, 20 = 2.0 speed (scaled for zero-to-hero)
+        return getStat(com.za.zenith.world.items.stats.StatRegistry.MOBILITY) / 10.0f;
+    }
+
+    public float getDefense() {
+        return getStat(com.za.zenith.world.items.stats.StatRegistry.DEFENSE);
     }
 }
 

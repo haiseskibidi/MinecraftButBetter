@@ -2,8 +2,10 @@ package com.za.zenith.engine.graphics.ui.renderers;
 
 import com.za.zenith.engine.core.GameLoop;
 import com.za.zenith.engine.core.PlayerMode;
+import com.za.zenith.engine.graphics.ui.GroupUI;
 import com.za.zenith.engine.graphics.ui.Hotbar;
 import com.za.zenith.engine.graphics.ui.InventoryScreen;
+import com.za.zenith.engine.graphics.ui.PlayerInventoryScreen;
 import com.za.zenith.engine.graphics.ui.Screen;
 import com.za.zenith.engine.graphics.ui.ScreenManager;
 import com.za.zenith.engine.graphics.ui.ScrollPanel;
@@ -65,6 +67,16 @@ public class InventoryScreenRenderer {
         activeScreen.render(renderer, screenWidth, screenHeight, atlas);
 
         if (activeScreen instanceof InventoryScreen invScreen) {
+            // Step 1: Handle character stats panel and its tooltip
+            List<String> statsTooltip = null;
+            if (activeScreen instanceof PlayerInventoryScreen pScreen) {
+                for (com.za.zenith.engine.graphics.ui.GroupUI group : pScreen.getGroupsUI()) {
+                    if ("stats".equals(group.getConfig().type)) {
+                        statsTooltip = renderCharacterStats(group, player, screenWidth, screenHeight);
+                    }
+                }
+            }
+            
             int slotSize = (int)(18 * Hotbar.HOTBAR_SCALE);
             float hmx = GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
             float hmy = GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
@@ -94,6 +106,10 @@ public class InventoryScreenRenderer {
                 renderer.getSlotRenderer().renderSlot((int)mx - slotSize/2, (int)my - slotSize/2, slotSize, held, null, screenWidth, screenHeight, atlas, false, animId, false);
             }
             
+            // Step 2: Render Tooltips LAST (Z-Order top)
+            if (statsTooltip != null) {
+                renderTooltip(statsTooltip, hmx, hmy, screenWidth, screenHeight);
+            }
             renderInventoryTooltip(invScreen, slotSize, player, screenWidth, screenHeight);
         }
         
@@ -184,7 +200,7 @@ public class InventoryScreenRenderer {
                 if (y + slotSize < bgY || y > bgY + devHeight) continue;
                 
                 if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
-                    renderTooltip(I18n.get(allItems.get(i).getName()), mx, my, sw, sh);
+                    renderTooltip(java.util.List.of(I18n.get(allItems.get(i).getName())), mx, my, sw, sh);
                     break;
                 }
             }
@@ -206,30 +222,36 @@ public class InventoryScreenRenderer {
         return devSearchBar.handleChar(codepoint);
     }
 
-    private void renderTooltip(String text, float mx, float my, int sw, int sh) {
-        if (text == null || text.isEmpty()) return;
+    private void renderTooltip(java.util.List<String> lines, float mx, float my, int sw, int sh) {
+        if (lines == null || lines.isEmpty()) return;
 
         int textSize = 14;
-        int textWidth = renderer.getFontRenderer().getStringWidth(text, textSize);
-        int padding = 4;
-        int rectWidth = textWidth + padding * 2;
-        int rectHeight = textSize + padding * 2;
+        int maxLineWidth = 0;
+        for (String line : lines) {
+            maxLineWidth = Math.max(maxLineWidth, renderer.getFontRenderer().getStringWidth(line, textSize));
+        }
+
+        int padding = 6;
+        int rectWidth = maxLineWidth + padding * 2;
+        int lineHeight = (int)(textSize * 1.2f);
+        int rectHeight = lines.size() * lineHeight + padding * 2;
 
         // Adaptive position logic
         int tx = (int)mx + 12;
         int ty = (int)my - 12;
 
-        // Flip to left if it would go off-screen on the right
-        if (tx + rectWidth > sw) {
-            tx = (int)mx - rectWidth - 12;
-        }
-        
-        // Ensure it doesn't go off-screen on the bottom or top
+        if (tx + rectWidth > sw) tx = (int)mx - rectWidth - 12;
         if (ty + rectHeight > sh) ty = sh - rectHeight - 2;
         if (ty < 0) ty = 2;
 
-        renderer.getPrimitivesRenderer().renderRect(tx, ty - 2, rectWidth, rectHeight, sw, sh, 0.1f, 0.1f, 0.1f, 0.9f);
-        renderer.getFontRenderer().drawString(text, tx + padding, ty, textSize, sw, sh);
+        // Border (slightly larger rect)
+        renderer.getPrimitivesRenderer().renderRect(tx - 1, ty - 3, rectWidth + 2, rectHeight + 2, sw, sh, 0.2f, 0.2f, 0.2f, 1.0f);
+        // Background (opaque and slightly lighter than the panel)
+        renderer.getPrimitivesRenderer().renderRect(tx, ty - 2, rectWidth, rectHeight, sw, sh, 0.08f, 0.08f, 0.08f, 1.0f);
+        
+        for (int i = 0; i < lines.size(); i++) {
+            renderer.getFontRenderer().drawString(lines.get(i), tx + padding, ty + padding + i * lineHeight, textSize, sw, sh);
+        }
     }
 
     private void renderInventoryTooltip(InventoryScreen screen, int slotSize, Player player, int sw, int sh) {
@@ -240,14 +262,137 @@ public class InventoryScreenRenderer {
         if (hoveredUI != null) {
             ItemStack hovered = hoveredUI.getSlot().getStack();
             if (hovered != null) {
-                renderTooltip(I18n.get(hovered.getItem().getName()), mx, my, sw, sh);
+                java.util.List<String> lines = generateItemTooltip(hovered, player);
+                renderTooltip(lines, mx, my, sw, sh);
             }
         }
+    }
+
+    private java.util.List<String> generateItemTooltip(ItemStack stack, Player player) {
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        Item item = stack.getItem();
+        
+        // 1. Name with Rarity Color
+        com.za.zenith.world.items.stats.RarityDefinition rarity = com.za.zenith.world.items.stats.RarityRegistry.get(stack.getRarity());
+        String rarityColor = (rarity != null) ? rarity.colorCode() : "$f";
+        
+        lines.add(rarityColor + "$l" + stack.getDisplayName());
+        
+        // 2. Rarity Title
+        if (rarity != null && (!item.isBlock() || !stack.getRarity().getPath().equals("common"))) {
+            lines.add("$7" + I18n.get(rarity.translationKey()));
+        }
+
+        // 3. Affixes (SHOW FIRST)
+        if (!stack.getActiveAffixes().isEmpty()) {
+            lines.add("");
+            lines.add("$b$l" + I18n.get("ui.affixes").toUpperCase() + ":");
+            for (com.za.zenith.utils.Identifier affId : stack.getActiveAffixes()) {
+                com.za.zenith.world.items.stats.AffixDefinition aff = com.za.zenith.world.items.stats.AffixRegistry.get(affId);
+                if (aff != null) {
+                    lines.add(" $f> " + I18n.get(aff.translationKey()));
+                }
+            }
+        }
+
+        // 4. Stats and Comparison
+        com.za.zenith.world.items.component.EquipmentComponent equip = item.getComponent(com.za.zenith.world.items.component.EquipmentComponent.class);
+        
+        if (!item.isBlock() || !stack.getActiveAffixes().isEmpty()) {
+            ItemStack equipped = null;
+            if (equip != null && player.getInventory() != null) {
+                equipped = player.getInventory().getEquippedItem(equip.getSlotType());
+            }
+
+            boolean hasStats = false;
+            for (com.za.zenith.world.items.stats.StatDefinition stat : com.za.zenith.world.items.stats.StatRegistry.getAll()) {
+                float value = stack.getStat(stat.identifier());
+                // Only show if the item actually contributes to this stat
+                if (value != 0) {
+                    if (!hasStats) { lines.add(""); hasStats = true; }
+                    
+                    String sign = value > 0 ? "+" : "";
+                    String color = value > 0 ? "$a" : "$c";
+                    String line = "$7" + I18n.get(stat.translationKey()) + ": " + color + sign + (int)value;
+                    
+                    if (equipped != null) {
+                        float diff = value - equipped.getStat(stat.identifier());
+                        if (diff > 0) line += " (+$a" + (int)diff + "$f)";
+                        else if (diff < 0) line += " (-$c" + (int)Math.abs(diff) + "$f)";
+                    }
+                    lines.add(line);
+                }
+            }
+        }
+
+        // 5. Loot Preview (if case)
+        com.za.zenith.world.items.component.LootboxComponent box = item.getComponent(com.za.zenith.world.items.component.LootboxComponent.class);
+        if (box != null) {
+            lines.add("");
+            lines.add("$e$lEXPECTED CONTENTS:");
+            com.za.zenith.world.items.loot.LootTable table = com.za.zenith.world.items.loot.LootTableRegistry.get(box.lootTable());
+            if (table != null) {
+                for (com.za.zenith.world.items.loot.LootTable.Pool pool : table.pools()) {
+                    for (com.za.zenith.world.items.loot.LootTable.Entry entry : pool.entries()) {
+                        Item entryItem = ItemRegistry.getItem(entry.item());
+                        if (entryItem != null) {
+                            lines.add(" $7- " + entryItem.getName());
+                        }
+                    }
+                }
+            }
+        }
+
+        return lines;
+    }
+
+    private List<String> renderCharacterStats(com.za.zenith.engine.graphics.ui.GroupUI group, Player player, int sw, int sh) {
+        int padding = group.getConfig().padding;
+        int width = group.getWidth();
+        int height = group.getHeight();
+        int textSize = group.getConfig().textSize;
+
+        int x = group.getX();
+        int y = group.getY();
+
+        // Background
+        if (group.getConfig().background != null && "solid".equals(group.getConfig().background.type)) {
+            renderer.renderGroupBackground(x, y, width, height, group.getConfig().background);
+        } else {
+            // Fallback to default if not configured
+            renderer.getPrimitivesRenderer().renderRect(x, y, width, height, sw, sh, 0.05f, 0.05f, 0.05f, 0.8f);
+        }
+
+        // Title
+        renderer.getFontRenderer().drawString("$b$l" + I18n.get("ui.stats").toUpperCase(), x + padding, y + padding, textSize + 2, sw, sh);
+
+        int startY = y + padding + 25;
+        int spacing = group.getConfig().spacing;
+        int i = 0;
+
+        float hmx = GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
+        float hmy = GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
+        List<String> activeTooltip = null;
+
+        for (com.za.zenith.world.items.stats.StatDefinition stat : com.za.zenith.world.items.stats.StatRegistry.getAll()) {
+            float value = player.getStat(stat.identifier());
+            int lineY = startY + i * spacing;
+
+            String text = "$7" + I18n.get(stat.translationKey()) + ": $f" + (int)value;
+            renderer.getFontRenderer().drawString(text, x + padding, lineY, textSize, sw, sh);
+
+            // Capture tooltip instead of rendering it immediately
+            if (hmx >= x && hmx <= x + width && hmy >= lineY && hmy <= lineY + spacing) {
+                String descKey = stat.translationKey() + ".desc";
+                activeTooltip = java.util.List.of("$b" + I18n.get(stat.translationKey()), "$7" + I18n.get(descKey));
+            }
+            
+            i++;
+        }
+        return activeTooltip;
     }
 
     public ScrollPanel getDevScroller() {
         return devScroller;
     }
 }
-
-

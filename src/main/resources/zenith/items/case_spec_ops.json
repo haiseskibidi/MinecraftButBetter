@@ -1,0 +1,25 @@
+{
+  "identifier": "zenith:case_spec_ops",
+  "translationKey": "item.zenith.case_spec_ops",
+  "texture": "zenith:textures/item/case_spec_ops",
+  "type": "default",
+  "maxStackSize": 1,
+  "rarity": "zenith:epic",
+  "components": {
+    "lootbox": {
+      "loot_table": "zenith:equipment",
+      "opening_time": 1.0,
+      "rarity_weights": {
+        "zenith:uncommon": 20,
+        "zenith:rare": 50,
+        "zenith:epic": 25,
+        "zenith:legendary": 5
+      },
+      "affix_weights": {
+        "zenith:basic": 20,
+        "zenith:advanced": 50,
+        "zenith:elite": 30
+      }
+    }
+  }
+}

@@ -1,0 +1,1400 @@
+Output: diff --git a/src/main/java/com/za/zenith/engine/core/GameLoop.java b/src/main/java/com/za/zenith/engine/core/GameLoop.java
+index 63cb8a2..45fbc06 100644
+--- a/src/main/java/com/za/zenith/engine/core/GameLoop.java
++++ b/src/main/java/com/za/zenith/engine/core/GameLoop.java
+@@ -315,6 +315,7 @@ public class GameLoop {
+         renderer.getUIRenderer().renderHunger(window.getWidth(), window.getHeight(), player.getHunger());
+         renderer.getUIRenderer().renderStamina(window.getWidth(), window.getHeight(), player.getStamina());
+         renderer.getUIRenderer().renderNoise(window.getWidth(), window.getHeight(), player.getNoiseLevel());
++        renderer.getUIRenderer().renderLootboxOpening(window.getWidth(), window.getHeight());
+         renderer.renderDebug(currentFps, window.getWidth(), window.getHeight());
+
+         window.update();
+diff --git a/src/main/java/com/za/zenith/engine/graphics/ui/FontRenderer.java b/src/main/java/com/za/zenith/engine/graphics/ui/FontRenderer.java
+index 7333b44..370b467 100644
+--- a/src/main/java/com/za/zenith/engine/graphics/ui/FontRenderer.java
++++ b/src/main/java/com/za/zenith/engine/graphics/ui/FontRenderer.java
+@@ -49,9 +49,11 @@ public class FontRenderer {
+     private int vbo;
+     private int ebo;
+
++    private final float[][] colorCodes = new float[32][3];
++
+     public void init(Shader shader) {
+         this.shader = shader;
+-
++        setupColorCodes();
+         // тХи╨зтХитЦСтХитФВтХд╨РтХд╨УтХитХвтХитЦСтХитХбтХитХЭ тХд╨ШтХитХХтХд╨РтХитХХтХитХЬтХд╨У тХитФдтХитХЧтХд╨Я ASCII (fallback)
+         loadWidthMap("zenith/textures/font/ascii.png", widthMap);
+
+@@ -61,6 +63,20 @@ public class FontRenderer {
+         createQuad();
+     }
+
++    private void setupColorCodes() {
++        for (int i = 0; i < 32; ++i) {
++            int j = (i >> 3 & 1) * 85;
++            int k = (i >> 2 & 1) * 170 + j;
++            int l = (i >> 1 & 1) * 170 + j;
++            int m = (i & 1) * 170 + j;
++            if (i == 6) k += 85;
++            if (i >= 16) { k /= 4; l /= 4; m /= 4; }
++            colorCodes[i][0] = (float)k / 255.0F;
++            colorCodes[i][1] = (float)l / 255.0F;
++            colorCodes[i][2] = (float)m / 255.0F;
++        }
++    }
++
+     private void loadJsonMapping() {
+         try (InputStream stream = FontRenderer.class.getClassLoader().getResourceAsStream("zenith/font/default.json")) {
+             if (stream == null) return;
+@@ -171,7 +187,9 @@ public class FontRenderer {
+         shader.use();
+         shader.setInt("useTexture", 1);
+         shader.setInt("useArray", 0);
+-        shader.setUniform("tintColor", r, g, b, a);
++        
++        float currentR = r, currentG = g, currentB = b;
++        boolean bold = false;
+
+         glActiveTexture(GL_TEXTURE0);
+         glBindVertexArray(vao);
+@@ -183,11 +201,29 @@ public class FontRenderer {
+             int cp = text.codePointAt(i);
+             int charCount = Character.charCount(cp);
+
+-            if (cp == '\u00a7' && i + charCount < text.length()) { // тХд╨ЦтХитЦУтХитХбтХд╨ТтХитХЫтХитЦУтХд╨ЫтХитХб тХитХСтХитХЫтХитФдтХд╨Ы
+-                i += charCount + Character.charCount(text.codePointAt(i + charCount));
++            // тХи╨отХитЦТтХд╨РтХитЦСтХитЦТтХитХЫтХд╨ТтХитХСтХитЦС тХитХСтХитХЫтХитФдтХитХЫтХитЦУ тХд╨ФтХитХЫтХд╨РтХитХЭтХитЦСтХд╨ТтХитХХтХд╨РтХитХЫтХитЦУтХитЦСтХитХЬтХитХХтХд╨Я тХд╨ЧтХитХбтХд╨РтХитХбтХитХЦ $
++            if (cp == '$' && i + charCount < text.length()) {
++                int nextCp = text.codePointAt(i + charCount);
++                int codeIndex = "0123456789abcdefklmnor".indexOf(Character.toLowerCase(nextCp));
++
++                if (codeIndex >= 0 && codeIndex < 16) { // тХи╨╢тХитЦУтХитХбтХд╨Т
++                    currentR = colorCodes[codeIndex][0];
++                    currentG = colorCodes[codeIndex][1];
++                    currentB = colorCodes[codeIndex][2];
++                } else if (codeIndex == 16) { // k - magic (skip for now)
++                } else if (codeIndex == 17) { // l - bold
++                    bold = true;
++                } else if (codeIndex == 21) { // r - reset
++                    currentR = r; currentG = g; currentB = b;
++                    bold = false;
++                }
++
++                i += charCount + Character.charCount(nextCp);
+                 continue;
+             }
+
++            shader.setUniform("tintColor", currentR, currentG, currentB, a);
++
+             int textureToBind;
+             GlyphInfo custom = glyphCustomMap.get(cp);
+
+@@ -216,17 +252,19 @@ public class FontRenderer {
+
+             float advance = glyphWidth * scale;
+
+-            if (custom != null) {
++                if (custom != null) {
+                 renderCustomGlyph(custom, drawX, y, size, screenWidth, screenHeight);
++                if (bold) renderCustomGlyph(custom, drawX + Math.round(0.5f * scale), y, size, screenWidth, screenHeight);
+                 drawX += Math.round(advance + scale);
+             } else {
+                 int page = cp / 256;
+                 if (page != 0 || cp >= 128) {
+                     renderGlyph((char)cp, drawX, y, size, screenWidth, screenHeight);
+-                    renderGlyph((char)cp, drawX + Math.round(0.5f * scale), y, size, screenWidth, screenHeight);
++                    if (bold) renderGlyph((char)cp, drawX + Math.round(0.5f * scale), y, size, screenWidth, screenHeight);
+                     drawX += Math.round(advance);
+                 } else {
+                     renderGlyph((char)cp, drawX, y, size, screenWidth, screenHeight);
++                    if (bold) renderGlyph((char)cp, drawX + Math.round(0.5f * scale), y, size, screenWidth, screenHeight);
+                     drawX += Math.round(advance + scale);
+                 }
+             }
+@@ -321,8 +359,9 @@ public class FontRenderer {
+             int cp = text.codePointAt(i);
+             int charCount = Character.charCount(cp);
+
+-            if (cp == '\u00a7' && i + charCount < text.length()) {
+-                i += charCount + Character.charCount(text.codePointAt(i + charCount));
++            if (cp == '$' && i + charCount < text.length()) {
++                int nextCp = text.codePointAt(i + charCount);
++                i += charCount + Character.charCount(nextCp);
+                 continue;
+             }
+             GlyphInfo custom = glyphCustomMap.get(cp);
+diff --git a/src/main/java/com/za/zenith/engine/graphics/ui/GUIConfig.java b/src/main/java/com/za/zenith/engine/graphics/ui/GUIConfig.java
+index 264629a..969d1a7 100644
+--- a/src/main/java/com/za/zenith/engine/graphics/ui/GUIConfig.java
++++ b/src/main/java/com/za/zenith/engine/graphics/ui/GUIConfig.java
+@@ -48,6 +48,13 @@ public class GUIConfig {
+         public java.util.List<String> quickMoveTo; // Target group IDs for Shift+Click
+         public java.util.Map<Integer, String> placeholders; // Map slot index in group to placeholder texture
+         public String condition;   // Optional condition (e.g., "has_pouch", "developer_mode")
++        
++        // Custom dimensions for special group types
++        public int width = 0;
++        public int height = 0;
++        public int padding = 0;
++        public int textSize = 14;
++        public BackgroundConfig background;
+     }
+
+     public static class BackgroundConfig {
+diff --git a/src/main/java/com/za/zenith/engine/graphics/ui/InventoryLayout.java b/src/main/java/com/za/zenith/engine/graphics/ui/InventoryLayout.java
+index 3b2de68..eda89cb 100644
+--- a/src/main/java/com/za/zenith/engine/graphics/ui/InventoryLayout.java
++++ b/src/main/java/com/za/zenith/engine/graphics/ui/InventoryLayout.java
+@@ -71,11 +71,25 @@ public class InventoryLayout {
+                 }
+             }
+
+-            if (targetSlots.isEmpty()) continue;
++            if (targetSlots.isEmpty() && !groupCfg.type.equals("stats")) continue;
+             resolvedSlots.put(groupCfg.id, targetSlots);
+
+             int groupWidth = 0, groupHeight = 0;
+-            if (groupCfg.type.equals("grid")) {
++            if (groupCfg.type.equals("stats")) {
++                // Calculate actual width based on content if not specified or as a minimum
++                int maxLineWidth = 0;
++                int textSize = groupCfg.textSize;
++                for (com.za.zenith.world.items.stats.StatDefinition stat : com.za.zenith.world.items.stats.StatRegistry.getAll()) {
++                     float value = player.getStat(stat.identifier());
++                     String text = "$7" + com.za.zenith.utils.I18n.get(stat.translationKey()) + ": $f" + (int)value;
++                     maxLineWidth = Math.max(maxLineWidth, com.za.zenith.engine.core.GameLoop.getInstance().getRenderer().getUIRenderer().getFontRenderer().getStringWidth(text, textSize));
++                }
++                String title = "$b$l" + com.za.zenith.utils.I18n.get("ui.stats").toUpperCase();
++                maxLineWidth = Math.max(maxLineWidth, com.za.zenith.engine.core.GameLoop.getInstance().getRenderer().getUIRenderer().getFontRenderer().getStringWidth(title, 16));
++
++                groupWidth = Math.max(groupCfg.width, maxLineWidth + groupCfg.padding * 2 + 10); // Added slight extra buffer
++                groupHeight = groupCfg.height;
++            } else if (groupCfg.type.equals("grid")) {
+                 int cols = groupCfg.cols;
+                 int rows = (targetSlots.size() + cols - 1) / cols;
+                 groupWidth = cols * slotSize + (cols - 1) * groupCfg.spacing;
+diff --git a/src/main/java/com/za/zenith/engine/graphics/ui/PlayerInventoryScreen.java b/src/main/java/com/za/zenith/engine/graphics/ui/PlayerInventoryScreen.java
+index 35d2241..aa6eabf 100644
+--- a/src/main/java/com/za/zenith/engine/graphics/ui/PlayerInventoryScreen.java
++++ b/src/main/java/com/za/zenith/engine/graphics/ui/PlayerInventoryScreen.java
+@@ -114,6 +114,10 @@ public class PlayerInventoryScreen extends InventoryScreen {
+         return super.handleChar(codepoint);
+     }
+
++    public List<GroupUI> getGroupsUI() {
++        return groups;
++    }
++
+     @Override
+     protected com.za.zenith.utils.Identifier getScreenIdentifier() {
+         return com.za.zenith.utils.Identifier.of("zenith:player_inventory");
+diff --git a/src/main/java/com/za/zenith/engine/graphics/ui/UIRenderer.java b/src/main/java/com/za/zenith/engine/graphics/ui/UIRenderer.java
+index 0bc4284..c6e3cf2 100644
+--- a/src/main/java/com/za/zenith/engine/graphics/ui/UIRenderer.java
++++ b/src/main/java/com/za/zenith/engine/graphics/ui/UIRenderer.java
+@@ -158,6 +158,10 @@ public class UIRenderer {
+         hudRenderer.renderNoise(hotbar, screenWidth, screenHeight, noise);
+     }
+
++    public void renderLootboxOpening(int sw, int sh) {
++        hudRenderer.renderLootboxOpening(sw, sh);
++    }
++
+     // --- DELEGATED INVENTORY & SLOTS ---
+
+     public void renderSlot(int x, int y, int size, com.za.zenith.world.items.ItemStack stack, String placeholder, int screenWidth, int screenHeight, com.za.zenith.engine.graphics.DynamicTextureAtlas atlas) {
+diff --git a/src/main/java/com/za/zenith/engine/graphics/ui/renderers/HUDRenderer.java b/src/main/java/com/za/zenith/engine/graphics/ui/renderers/HUDRenderer.java
+index 1150ad5..81745ce 100644
+--- a/src/main/java/com/za/zenith/engine/graphics/ui/renderers/HUDRenderer.java
++++ b/src/main/java/com/za/zenith/engine/graphics/ui/renderers/HUDRenderer.java
+@@ -109,6 +109,42 @@ public class HUDRenderer {
+         glDisable(GL_BLEND);
+     }
+
++    public void renderLootboxOpening(int sw, int sh) {
++        float timer = GameLoop.getInstance().getInputManager().getLootboxOpeningTimer();
++        if (timer <= 0) return;
++
++        ItemStack stack = GameLoop.getInstance().getInputManager().getLootboxStack();
++        if (stack == null) return;
++
++        com.za.zenith.world.items.component.LootboxComponent comp = stack.getItem().getComponent(com.za.zenith.world.items.component.LootboxComponent.class);
++        if (comp == null) return;
++
++        float progress = timer / comp.openingTime();
++        
++        glDisable(GL_DEPTH_TEST);
++        glEnable(GL_BLEND);
++        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
++
++        int barWidth = 100;
++        int barHeight = 4;
++        int x = (sw - barWidth) / 2;
++        int y = (sh / 2) + 20;
++
++        // Background
++        renderer.getPrimitivesRenderer().renderRect(x, y, barWidth, barHeight, sw, sh, 0.1f, 0.1f, 0.1f, 0.5f);
++        // Progress
++        renderer.getPrimitivesRenderer().renderRect(x, y, (int)(barWidth * progress), barHeight, sw, sh, 1.0f, 1.0f, 1.0f, 0.9f);
++
++        // Text
++        String text = I18n.get("ui.opening_case") + " " + (int)(progress * 100) + "%";
++        int textSize = 14;
++        int textWidth = renderer.getFontRenderer().getStringWidth(text, textSize);
++        renderer.getFontRenderer().drawString(text, (sw - textWidth) / 2, y - 18, textSize, sw, sh, 1.0f, 1.0f, 1.0f, 1.0f);
++
++        glEnable(GL_DEPTH_TEST);
++        glDisable(GL_BLEND);
++    }
++
+     public void renderHunger(Hotbar hotbar, int screenWidth, int screenHeight, float hunger) {
+         glDisable(GL_DEPTH_TEST);
+         glEnable(GL_BLEND);
+diff --git a/src/main/java/com/za/zenith/engine/graphics/ui/renderers/InventoryScreenRenderer.java b/src/main/java/com/za/zenith/engine/graphics/ui/renderers/InventoryScreenRenderer.java
+index 7691d7e..532971e 100644
+--- a/src/main/java/com/za/zenith/engine/graphics/ui/renderers/InventoryScreenRenderer.java
++++ b/src/main/java/com/za/zenith/engine/graphics/ui/renderers/InventoryScreenRenderer.java
+@@ -2,8 +2,10 @@ package com.za.zenith.engine.graphics.ui.renderers;
+
+ import com.za.zenith.engine.core.GameLoop;
+ import com.za.zenith.engine.core.PlayerMode;
++import com.za.zenith.engine.graphics.ui.GroupUI;
+ import com.za.zenith.engine.graphics.ui.Hotbar;
+ import com.za.zenith.engine.graphics.ui.InventoryScreen;
++import com.za.zenith.engine.graphics.ui.PlayerInventoryScreen;
+ import com.za.zenith.engine.graphics.ui.Screen;
+ import com.za.zenith.engine.graphics.ui.ScreenManager;
+ import com.za.zenith.engine.graphics.ui.ScrollPanel;
+@@ -65,6 +67,16 @@ public class InventoryScreenRenderer {
+         activeScreen.render(renderer, screenWidth, screenHeight, atlas);
+
+         if (activeScreen instanceof InventoryScreen invScreen) {
++            // Step 1: Handle character stats panel and its tooltip
++            List<String> statsTooltip = null;
++            if (activeScreen instanceof PlayerInventoryScreen pScreen) {
++                for (com.za.zenith.engine.graphics.ui.GroupUI group : pScreen.getGroupsUI()) {
++                    if ("stats".equals(group.getConfig().type)) {
++                        statsTooltip = renderCharacterStats(group, player, screenWidth, screenHeight);
++                    }
++                }
++            }
++
+             int slotSize = (int)(18 * Hotbar.HOTBAR_SCALE);
+             float hmx = GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
+             float hmy = GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
+@@ -94,6 +106,10 @@ public class InventoryScreenRenderer {
+                 renderer.getSlotRenderer().renderSlot((int)mx - slotSize/2, (int)my - slotSize/2, slotSize, held, null, screenWidth, screenHeight, atlas, false, animId, false);
+             }
+
++            // Step 2: Render Tooltips LAST (Z-Order top)
++            if (statsTooltip != null) {
++                renderTooltip(statsTooltip, hmx, hmy, screenWidth, screenHeight);
++            }
+             renderInventoryTooltip(invScreen, slotSize, player, screenWidth, screenHeight);
+         }
+
+@@ -184,7 +200,7 @@ public class InventoryScreenRenderer {
+                 if (y + slotSize < bgY || y > bgY + devHeight) continue;
+
+                 if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {
+-                    renderTooltip(I18n.get(allItems.get(i).getName()), mx, my, sw, sh);
++                    renderTooltip(java.util.List.of(I18n.get(allItems.get(i).getName())), mx, my, sw, sh);
+                     break;
+                 }
+             }
+@@ -206,30 +222,36 @@ public class InventoryScreenRenderer {
+         return devSearchBar.handleChar(codepoint);
+     }
+
+-    private void renderTooltip(String text, float mx, float my, int sw, int sh) {
+-        if (text == null || text.isEmpty()) return;
++    private void renderTooltip(java.util.List<String> lines, float mx, float my, int sw, int sh) {
++        if (lines == null || lines.isEmpty()) return;
+
+         int textSize = 14;
+-        int textWidth = renderer.getFontRenderer().getStringWidth(text, textSize);
+-        int padding = 4;
+-        int rectWidth = textWidth + padding * 2;
+-        int rectHeight = textSize + padding * 2;
++        int maxLineWidth = 0;
++        for (String line : lines) {
++            maxLineWidth = Math.max(maxLineWidth, renderer.getFontRenderer().getStringWidth(line, textSize));
++        }
++
++        int padding = 6;
++        int rectWidth = maxLineWidth + padding * 2;
++        int lineHeight = (int)(textSize * 1.2f);
++        int rectHeight = lines.size() * lineHeight + padding * 2;
+
+         // Adaptive position logic
+         int tx = (int)mx + 12;
+         int ty = (int)my - 12;
+
+-        // Flip to left if it would go off-screen on the right
+-        if (tx + rectWidth > sw) {
+-            tx = (int)mx - rectWidth - 12;
+-        }
+-
+-        // Ensure it doesn't go off-screen on the bottom or top
++        if (tx + rectWidth > sw) tx = (int)mx - rectWidth - 12;
+         if (ty + rectHeight > sh) ty = sh - rectHeight - 2;
+         if (ty < 0) ty = 2;
+
+-        renderer.getPrimitivesRenderer().renderRect(tx, ty - 2, rectWidth, rectHeight, sw, sh, 0.1f, 0.1f, 0.1f, 0.9f);
+-        renderer.getFontRenderer().drawString(text, tx + padding, ty, textSize, sw, sh);
++        // Border (slightly larger rect)
++        renderer.getPrimitivesRenderer().renderRect(tx - 1, ty - 3, rectWidth + 2, rectHeight + 2, sw, sh, 0.2f, 0.2f, 0.2f, 1.0f);
++        // Background (opaque and slightly lighter than the panel)
++        renderer.getPrimitivesRenderer().renderRect(tx, ty - 2, rectWidth, rectHeight, sw, sh, 0.08f, 0.08f, 0.08f, 1.0f);
++        
++        for (int i = 0; i < lines.size(); i++) {
++            renderer.getFontRenderer().drawString(lines.get(i), tx + padding, ty + padding + i * lineHeight, textSize, sw, sh);
++        }
+     }
+
+     private void renderInventoryTooltip(InventoryScreen screen, int slotSize, Player player, int sw, int sh) {
+@@ -240,9 +262,133 @@ public class InventoryScreenRenderer {
+         if (hoveredUI != null) {
+             ItemStack hovered = hoveredUI.getSlot().getStack();
+             if (hovered != null) {
+-                renderTooltip(I18n.get(hovered.getItem().getName()), mx, my, sw, sh);
++                java.util.List<String> lines = generateItemTooltip(hovered, player);
++                renderTooltip(lines, mx, my, sw, sh);
++            }
++        }
++    }
++
++    private java.util.List<String> generateItemTooltip(ItemStack stack, Player player) {
++        java.util.List<String> lines = new java.util.ArrayList<>();
++        Item item = stack.getItem();
++        
++        // 1. Name with Rarity Color
++        com.za.zenith.world.items.stats.RarityDefinition rarity = com.za.zenith.world.items.stats.RarityRegistry.get(stack.getRarity());
++        String rarityColor = (rarity != null) ? rarity.colorCode() : "$f";
++        
++        lines.add(rarityColor + "$l" + stack.getDisplayName());
++        
++        // 2. Rarity Title
++        if (rarity != null && (!item.isBlock() || !stack.getRarity().getPath().equals("common"))) {
++            lines.add("$7" + I18n.get(rarity.translationKey()));
++        }
++
++        // 3. Affixes (SHOW FIRST)
++        if (!stack.getActiveAffixes().isEmpty()) {
++            lines.add("");
++            lines.add("$b$l" + I18n.get("ui.affixes").toUpperCase() + ":");
++            for (com.za.zenith.utils.Identifier affId : stack.getActiveAffixes()) {
++                com.za.zenith.world.items.stats.AffixDefinition aff = com.za.zenith.world.items.stats.AffixRegistry.get(affId);
++                if (aff != null) {
++                    lines.add(" $f> " + I18n.get(aff.translationKey()));
++                }
++            }
++        }
++
++        // 4. Stats and Comparison
++        com.za.zenith.world.items.component.EquipmentComponent equip = item.getComponent(com.za.zenith.world.items.component.EquipmentComponent.class);
++        
++        if (!item.isBlock() || !stack.getActiveAffixes().isEmpty()) {
++            ItemStack equipped = null;
++            if (equip != null && player.getInventory() != null) {
++                equipped = player.getInventory().getEquippedItem(equip.getSlotType());
++            }
++
++            boolean hasStats = false;
++            for (com.za.zenith.world.items.stats.StatDefinition stat : com.za.zenith.world.items.stats.StatRegistry.getAll()) {
++                float value = stack.getStat(stat.identifier());
++                // Only show if the item actually contributes to this stat
++                if (value != 0) {
++                    if (!hasStats) { lines.add(""); hasStats = true; }
++
++                    String sign = value > 0 ? "+" : "";
++                    String color = value > 0 ? "$a" : "$c";
++                    String line = "$7" + I18n.get(stat.translationKey()) + ": " + color + sign + (int)value;
++
++                    if (equipped != null) {
++                        float diff = value - equipped.getStat(stat.identifier());
++                        if (diff > 0) line += " (+$a" + (int)diff + "$f)";
++                        else if (diff < 0) line += " (-$c" + (int)Math.abs(diff) + "$f)";
++                    }
++                    lines.add(line);
++                }
++            }
++        }
++
++        // 5. Loot Preview (if case)
++        com.za.zenith.world.items.component.LootboxComponent box = item.getComponent(com.za.zenith.world.items.component.LootboxComponent.class);
++        if (box != null) {
++            lines.add("");
++            lines.add("$e$lEXPECTED CONTENTS:");
++            com.za.zenith.world.items.loot.LootTable table = com.za.zenith.world.items.loot.LootTableRegistry.get(box.lootTable());
++            if (table != null) {
++                for (com.za.zenith.world.items.loot.LootTable.Pool pool : table.pools()) {
++                    for (com.za.zenith.world.items.loot.LootTable.Entry entry : pool.entries()) {
++                        Item entryItem = ItemRegistry.getItem(entry.item());
++                        if (entryItem != null) {
++                            lines.add(" $7- " + entryItem.getName());
++                        }
++                    }
++                }
+             }
+         }
++
++        return lines;
++    }
++
++    private List<String> renderCharacterStats(com.za.zenith.engine.graphics.ui.GroupUI group, Player player, int sw, int sh) {
++        int padding = group.getConfig().padding;
++        int width = group.getWidth();
++        int height = group.getHeight();
++        int textSize = group.getConfig().textSize;
++
++        int x = group.getX();
++        int y = group.getY();
++
++        // Background
++        if (group.getConfig().background != null && "solid".equals(group.getConfig().background.type)) {
++            renderer.renderGroupBackground(x, y, width, height, group.getConfig().background);
++        } else {
++            // Fallback to default if not configured
++            renderer.getPrimitivesRenderer().renderRect(x, y, width, height, sw, sh, 0.05f, 0.05f, 0.05f, 0.8f);
++        }
++
++        // Title
++        renderer.getFontRenderer().drawString("$b$l" + I18n.get("ui.stats").toUpperCase(), x + padding, y + padding, textSize + 2, sw, sh);
++
++        int startY = y + padding + 25;
++        int spacing = group.getConfig().spacing;
++        int i = 0;
++
++        float hmx = GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
++        float hmy = GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
++        List<String> activeTooltip = null;
++
++        for (com.za.zenith.world.items.stats.StatDefinition stat : com.za.zenith.world.items.stats.StatRegistry.getAll()) {
++            float value = player.getStat(stat.identifier());
++            int lineY = startY + i * spacing;
++
++            String text = "$7" + I18n.get(stat.translationKey()) + ": $f" + (int)value;
++            renderer.getFontRenderer().drawString(text, x + padding, lineY, textSize, sw, sh);
++
++            // Capture tooltip instead of rendering it immediately
++            if (hmx >= x && hmx <= x + width && hmy >= lineY && hmy <= lineY + spacing) {                String descKey = stat.translationKey() + ".desc";
++                activeTooltip = java.util.List.of("$b" + I18n.get(stat.translationKey()), "$7" + I18n.get(descKey));
++            }
++
++            i++;
++        }
++        return activeTooltip;
+     }
+
+     public ScrollPanel getDevScroller() {
+diff --git a/src/main/java/com/za/zenith/engine/input/InputManager.java b/src/main/java/com/za/zenith/engine/input/InputManager.java
+index 34aa5e7..e181a9e 100644
+--- a/src/main/java/com/za/zenith/engine/input/InputManager.java
++++ b/src/main/java/com/za/zenith/engine/input/InputManager.java
+@@ -78,7 +78,12 @@ public class InputManager {
+     private final MiningController miningController;
+     private com.za.zenith.entities.Entity hitEntity;
+     private float placeDelayTimer = 0.0f;
++    private float lootboxOpeningTimer = 0.0f;
++    private ItemStack lootboxStack = null;
+     private static final float PLACE_COOLDOWN = 0.25f; // 4 bps (5 ticks)
++
++    public float getLootboxOpeningTimer() { return lootboxOpeningTimer; }
++    public ItemStack getLootboxStack() { return lootboxStack; }
+
+     public InputManager() {
+         previousPos = new Vector2f();
+@@ -394,12 +399,21 @@ public class InputManager {
+         com.za.zenith.engine.graphics.ui.Screen screen = com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+         if (screen instanceof com.za.zenith.engine.graphics.ui.InventoryScreen invScreen) {
+             com.za.zenith.engine.graphics.ui.SlotUI slotUI = invScreen.getSlotAt(mx, my);
++
+             if (slotUI != null) {
+                 handleInventoryClickOnSlot(window, button, slotUI.getSlot());
+-            } else if (player.getMode() == PlayerMode.DEVELOPER) {
+-                handleDevPanelClick(window, mx, my);
+             } else {
+-                if (heldStack != null) {
++                // Clicked outside any slots
++                boolean handledByDev = false;
++                if (player.getMode() == PlayerMode.DEVELOPER) {
++                    Item devItem = getDevItemAt(mx, my);
++                    if (devItem != null) {
++                        handleDevPanelClick(window, mx, my);
++                        handledByDev = true;
++                    }
++                }
++
++                if (!handledByDev && heldStack != null) {
+                     dropStack(heldStack, player, GameLoop.getInstance().getWorld(), GameLoop.getInstance().getCamera(), true);
+                     heldStack = null;
+                 }
+@@ -446,7 +460,7 @@ public class InputManager {
+         Item item = getDevItemAt(mx, my);
+         if (item != null) {
+             boolean shift = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT) || window.isKeyPressed(GLFW_KEY_RIGHT_SHIFT);
+-
++
+             if (shift) {
+                 Player player = GameLoop.getInstance().getPlayer();
+                 if (player != null) {
+@@ -880,8 +894,49 @@ public class InputManager {
+             if (rm) {
+                 boolean actionConsumed = false;
+
++                // Lootbox Opening Logic
++                if (currentStack != null) {
++                    com.za.zenith.world.items.component.LootboxComponent lootbox = currentStack.getItem().getComponent(com.za.zenith.world.items.component.LootboxComponent.class);
++                    if (lootbox != null) {
++                        if (isNewRightClick || lootboxStack != currentStack) {
++                            lootboxOpeningTimer = 0;
++                            lootboxStack = currentStack;
++                            com.za.zenith.utils.Logger.info("Starting to open tactical case: %s", currentStack.getDisplayName());
++                        }
++
++                        lootboxOpeningTimer += deltaTime;
++
++                        if (lootboxOpeningTimer >= lootbox.openingTime()) {
++                            java.util.List<ItemStack> rewards = com.za.zenith.world.items.loot.LootGenerator.generateFromCase(currentStack);
++
++                            // Remove one case from hand
++                            if (currentStack.getCount() > 1) {
++                                currentStack.setCount(currentStack.getCount() - 1);
++                            } else {
++                                player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
++                            }
++
++                            // Add rewards
++                            for (ItemStack reward : rewards) {
++                                player.getInventory().addItem(reward);
++                                com.za.zenith.utils.Logger.info("Unpacked reward: %s", reward.getDisplayName());
++                            }
++
++                            lootboxOpeningTimer = 0;
++                            lootboxStack = null;
++                        }
++                        actionConsumed = true;
++                    } else {
++                        lootboxOpeningTimer = 0;
++                        lootboxStack = null;
++                    }
++                } else {
++                    lootboxOpeningTimer = 0;
++                    lootboxStack = null;
++                }
++
+                 // Entity Interaction (RMB Pickup)
+-                if (isNewRightClick) {
++                if (!actionConsumed && isNewRightClick) {
+                     if (hitEntity instanceof com.za.zenith.entities.ResourceEntity resource) {
+                         if (!player.isSwinging()) {
+                             float cooldown = resource.getStack().getItem().getInteractionCooldown();
+@@ -1002,6 +1057,10 @@ public class InputManager {
+                         }
+                     }
+                 }
++            } else {
++                // RMB is NOT pressed
++                lootboxOpeningTimer = 0;
++                lootboxStack = null;
+             }
+             rightMousePressed = rm;
+         }
+diff --git a/src/main/java/com/za/zenith/entities/Inventory.java b/src/main/java/com/za/zenith/entities/Inventory.java
+index a9692ed..9a1bf8f 100644
+--- a/src/main/java/com/za/zenith/entities/Inventory.java
++++ b/src/main/java/com/za/zenith/entities/Inventory.java
+@@ -242,6 +242,17 @@ public class Inventory implements IInventory {
+         slots[hotbarIndex] = temp;
+     }
+
++    public ItemStack getEquippedItem(String slotType) {
++        SlotGroup equipment = getGroup("equipment");
++        if (equipment == null) return null;
++        for (Slot slot : equipment.getSlots()) {
++            if (slot.getType().equals(slotType)) {
++                return slot.getStack();
++            }
++        }
++        return null;
++    }
++
+     public void copyFromDevPanel(Item item, int hotbarIndex) {
+         if (hotbarIndex < 0 || hotbarIndex >= HOTBAR_SIZE) return;
+         slots[hotbarIndex] = new ItemStack(item, item.getMaxStackSize());
+diff --git a/src/main/java/com/za/zenith/entities/LivingEntity.java b/src/main/java/com/za/zenith/entities/LivingEntity.java
+index 7882b2a..914bba2 100644
+--- a/src/main/java/com/za/zenith/entities/LivingEntity.java
++++ b/src/main/java/com/za/zenith/entities/LivingEntity.java
+@@ -31,6 +31,10 @@ public abstract class LivingEntity extends Entity {
+         return stats.get(com.za.zenith.world.items.stats.StatRegistry.DEFENSE);
+     }
+
++    public float getStat(com.za.zenith.utils.Identifier statId) {
++        return stats.get(statId);
++    }
++
+     public com.za.zenith.world.items.stats.StatContainer getStats() {
+         return stats;
+     }
+diff --git a/src/main/java/com/za/zenith/entities/Player.java b/src/main/java/com/za/zenith/entities/Player.java
+index f71347d..d379213 100644
+--- a/src/main/java/com/za/zenith/entities/Player.java
++++ b/src/main/java/com/za/zenith/entities/Player.java
+@@ -668,15 +668,42 @@ public class Player extends LivingEntity {
+     public com.za.zenith.engine.core.PlayerMode getMode() { return mode; }
+     public void setMode(com.za.zenith.engine.core.PlayerMode mode) { this.mode = mode; }
+
++    public float getStat(com.za.zenith.utils.Identifier statId) {
++        float total = stats.get(statId);
++        
++        // Add active hand item bonus
++        ItemStack held = inventory.getSelectedItemStack();
++        if (held != null) {
++            total += held.getStat(statId);
++        }
++        
++        // Weight penalty for mobility: every 10kg above 5kg reduces mobility by 5
++        if (statId.equals(com.za.zenith.world.items.stats.StatRegistry.MOBILITY)) {
++            float totalWeight = 0;
++            for (int i = 0; i < inventory.size(); i++) {
++                ItemStack stack = inventory.getStack(i);
++                if (stack != null) {
++                    totalWeight += stack.getItem().getWeight() * stack.getCount();
++                }
++            }
++            float penalty = Math.max(0, (totalWeight - 5.0f) * 0.5f); // 5kg free, then 0.5 mobility per kg
++            total = Math.max(1, total - penalty); // Never drop below 1 mobility
++        }
++
++        return total;
++    }
++
+     private void updateEquipmentStats() {
+         // Clear old equipment modifiers
+         stats.removeModifiersFrom(com.za.zenith.utils.Identifier.of("zenith:equipment"));
+
+-        // Sum stats from all equipment slots
+-        for (int i = Inventory.START_EQUIPMENT; i < Inventory.START_EQUIPMENT + Inventory.EQUIPMENT_SIZE; i++) {
++        // 1. Sum stats from all equipment slots (PASSIVE bonuses)
++        for (int i = 0; i < inventory.size(); i++) {
+             ItemStack stack = inventory.getStack(i);
+-            if (stack != null) {
+-                // For each loaded stat, check if the item has it
++            if (stack == null) continue;
++
++            // Stats from EQUIPMENT slots apply fully
++            if (i >= Inventory.START_EQUIPMENT && i < Inventory.START_EQUIPMENT + Inventory.EQUIPMENT_SIZE) {
+                 for (com.za.zenith.world.items.stats.StatDefinition def : com.za.zenith.world.items.stats.StatRegistry.getAll()) {
+                     float value = stack.getStat(def.identifier());
+                     if (value != 0) {
+@@ -692,21 +719,21 @@ public class Player extends LivingEntity {
+     }
+
+     public float getImpact() {
+-        float impact = stats.get(com.za.zenith.world.items.stats.StatRegistry.IMPACT);
+-        ItemStack held = inventory.getSelectedItemStack();
+-        if (held != null) {
+-            impact += held.getStat(com.za.zenith.world.items.stats.StatRegistry.IMPACT);
+-        }
+-        return impact;
++        return getStat(com.za.zenith.world.items.stats.StatRegistry.IMPACT);
+     }
+
+     public float getAttackDamage() {
+-        // Base punch damage (1.0) + Impact bonus
++        // Base punch damage (1.0) + Impact bonus (1.0 per 10 impact)
+         return 1.0f + (getImpact() / 10.0f);
+     }
+
+     public float getMobilityMultiplier() {
+-        return stats.get(com.za.zenith.world.items.stats.StatRegistry.MOBILITY) / 100.0f;
++        // 10 mobility = 1.0 speed, 20 = 2.0 speed (scaled for zero-to-hero)
++        return getStat(com.za.zenith.world.items.stats.StatRegistry.MOBILITY) / 10.0f;
++    }
++
++    public float getDefense() {
++        return getStat(com.za.zenith.world.items.stats.StatRegistry.DEFENSE);
+     }
+ }
+
+diff --git a/src/main/java/com/za/zenith/world/DataLoader.java b/src/main/java/com/za/zenith/world/DataLoader.java
+index 4dee09e..d49a30d 100644
+--- a/src/main/java/com/za/zenith/world/DataLoader.java
++++ b/src/main/java/com/za/zenith/world/DataLoader.java
+@@ -56,6 +56,7 @@ public class DataLoader {
+             loadRarities(ns);
+             loadAffixRarities(ns);
+             loadAffixes(ns);
++            loadLootTables(ns);
+         }
+
+         // 1. Map blocks to items automatically (BEFORE loading JSON items to reserve IDs)
+@@ -820,6 +821,17 @@ public class DataLoader {
+             if (obj.has("miningSpeed")) item.setMiningSpeed(obj.get("miningSpeed").getAsFloat());
+             if (obj.has("maxStackSize")) item.setMaxStackSize(obj.get("maxStackSize").getAsInt());
+             if (obj.has("interaction_cooldown")) item.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());
++            if (obj.has("rarity")) item.setDefaultRarity(Identifier.of(obj.get("rarity").getAsString()));
++            if (obj.has("gender")) {
++                item.setGender(Item.Gender.valueOf(obj.get("gender").getAsString().toUpperCase()));
++            }
++
++            if (obj.has("tags")) {
++                JsonArray tagsArr = obj.getAsJsonArray("tags");
++                for (JsonElement t : tagsArr) {
++                    item.addTag(t.getAsString());
++                }
++            }
+
+             // тХи╨птХитЦСтХд╨РтХд╨СтХитХХтХитХЬтХитФВ тХитХСтХитХЫтХитХЭтХитФРтХитХЫтХитХЬтХитХбтХитХЬтХд╨ТтХитХЫтХитЦУ (тХитФРтХитХбтХд╨РтХитХбтХитХЦтХитЦСтХитФРтХитХХтХд╨СтХд╨ЫтХитЦУтХитЦСтХд╨ЮтХд╨Т тХитФдтХитХбтХд╨ФтХитХЫтХитХЧтХд╨ТтХитХЬтХд╨ЫтХитХб тХитХХтХитХЦ тХитХСтХитХЫтХитХЬтХд╨СтХд╨ТтХд╨РтХд╨УтХитХСтХд╨ТтХитХЫтХд╨РтХитЦС)
+             if (obj.has("components")) {
+@@ -903,15 +915,33 @@ public class DataLoader {
+                         t.has("burnThreshold") ? t.get("burnThreshold").getAsFloat() : 55.0f
+                     ));
+                 }
++
++                if (comps.has("zenith:lootbox") || comps.has("lootbox")) {
++                    JsonObject l = comps.has("zenith:lootbox") ? comps.getAsJsonObject("zenith:lootbox") : comps.getAsJsonObject("lootbox");
++                    Identifier lootTable = Identifier.of(l.get("loot_table").getAsString());
++                    float openingTime = l.has("opening_time") ? l.get("opening_time").getAsFloat() : 3.0f;
++
++                    java.util.Map<Identifier, Integer> rarityWeights = new java.util.HashMap<>();
++                    if (l.has("rarity_weights")) {
++                        JsonObject rObj = l.getAsJsonObject("rarity_weights");
++                        for (String key : rObj.keySet()) {
++                            rarityWeights.put(Identifier.of(key), rObj.get(key).getAsInt());
++                        }
++                    }
++
++                    java.util.Map<Identifier, Integer> affixWeights = new java.util.HashMap<>();
++                    JsonObject weightsObj = l.getAsJsonObject("affix_weights");
++                    for (String key : weightsObj.keySet()) {
++                        affixWeights.put(Identifier.of(key), weightsObj.get(key).getAsInt());
++                    }
++
++                    item.addComponent(com.za.zenith.world.items.component.LootboxComponent.class, new com.za.zenith.world.items.component.LootboxComponent(
++                        lootTable, openingTime, rarityWeights, affixWeights
++                    ));
++                }
+             }
+
+             // Legacy тХитФРтХитХЫтХитФдтХитФдтХитХбтХд╨РтХитХвтХитХСтХитЦС тХитХХтХитХЧтХитХХ тХитХЦтХитЦСтХитФРтХитХЫтХитХЧтХитХЬтХитХбтХитХЬтХитХХтХитХб тХитХХтХитХЦ тХитХСтХитХЫтХд╨РтХитХЬтХитХбтХитЦУтХд╨ЫтХд╨Х тХитФРтХитХЫтХитХЧтХитХбтХитХг, тХитХбтХд╨СтХитХЧтХитХХ тХд╨СтХитХбтХитХСтХд╨ЦтХитХХтХитХХ components тХитХЬтХитХбтХд╨Т
+-            if (type.equals("food") && (obj.has("nutrition") || obj.has("saturation"))) {
+-                item.addComponent(FoodComponent.class, new FoodComponent(
+-                    obj.has("nutrition") ? obj.get("nutrition").getAsFloat() : 0,
+-                    obj.has("saturation") ? obj.get("saturation").getAsFloat() : 0
+-                ));
+-            }
+             if (type.equals("tool") && (obj.has("toolType") || obj.has("efficiency") || obj.has("durability"))) {
+                 item.addComponent(ToolComponent.class, new ToolComponent(
+                     obj.has("toolType") ? ToolType.valueOf(obj.get("toolType").getAsString().toUpperCase()) : ToolType.NONE,
+@@ -921,6 +951,11 @@ public class DataLoader {
+                 ));
+             }
+
++            // Auto-tagging based on components for affix compatibility
++            if (item.hasComponent(com.za.zenith.world.items.component.ToolComponent.class)) item.addTag("zenith:tools");
++            if (item.hasComponent(com.za.zenith.world.items.component.FoodComponent.class)) item.addTag("zenith:food");
++            if (item.hasComponent(com.za.zenith.world.items.component.EquipmentComponent.class)) item.addTag("zenith:equipment");
++
+             ItemRegistry.registerItem(item);
+         } catch (Exception e) {
+             Logger.error("Failed to parse item: " + e.getMessage());
+@@ -961,10 +996,10 @@ public class DataLoader {
+                     id,
+                     obj.get("translationKey").getAsString(),
+                     color,
++                    obj.has("colorCode") ? obj.get("colorCode").getAsString() : "$f",
+                     obj.get("affixSlots").getAsInt(),
+                     obj.get("weight").getAsInt()
+-                ));
+-            });
++                ));            });
+         }
+     }
+
+@@ -1022,6 +1057,37 @@ public class DataLoader {
+         }
+     }
+
++    private static void loadLootTables(String namespace) {
++        String path = namespace + "/registry/loot_tables";
++        List<String> files = listResources(path);
++        for (String file : files) {
++            loadResource(path + "/" + file, el -> {
++                JsonObject obj = el.getAsJsonObject();
++                Identifier id = Identifier.of(obj.get("identifier").getAsString());
++
++                java.util.List<com.za.zenith.world.items.loot.LootTable.Pool> pools = new java.util.ArrayList<>();
++                JsonArray poolsArr = obj.getAsJsonArray("pools");
++                for (JsonElement pEl : poolsArr) {
++                    JsonObject pObj = pEl.getAsJsonObject();
++                    int rolls = pObj.get("rolls").getAsInt();
++
++                    java.util.List<com.za.zenith.world.items.loot.LootTable.Entry> entries = new java.util.ArrayList<>();
++                    JsonArray entriesArr = pObj.getAsJsonArray("entries");
++                    for (JsonElement eEl : entriesArr) {
++                        JsonObject eObj = eEl.getAsJsonObject();
++                        entries.add(new com.za.zenith.world.items.loot.LootTable.Entry(
++                            Identifier.of(eObj.get("item").getAsString()),
++                            eObj.get("weight").getAsInt()
++                        ));
++                    }
++                    pools.add(new com.za.zenith.world.items.loot.LootTable.Pool(rolls, entries));
++                }
++
++                com.za.zenith.world.items.loot.LootTableRegistry.register(new com.za.zenith.world.items.loot.LootTable(id, pools));
++            });
++        }
++    }
++
+     /**
+      * тХи╨втХитХЫтХитХЦтХитЦУтХд╨РтХитЦСтХд╨ЩтХитЦСтХитХбтХд╨Т тХд╨СтХитФРтХитХХтХд╨СтХитХЫтХитХС тХд╨ФтХитЦСтХитХгтХитХЧтХитХЫтХитЦУ тХитЦУ тХитФРтХитЦСтХитФРтХитХСтХитХб тХд╨РтХитХбтХд╨СтХд╨УтХд╨РтХд╨СтХитХЫтХитЦУ.
+      * тХи╨░тХитЦСтХитЦТтХитХЫтХд╨ТтХитЦСтХитХбтХд╨Т тХд╨ЧтХитХбтХд╨РтХитХбтХитХЦ тХд╨ЧтХд╨ТтХитХбтХитХЬтХитХХтХитХб тХд╨СтХитФРтХитХХтХд╨СтХитХСтХитЦС тХитХХтХитХЦ тХд╨СтХитФРтХитХбтХд╨ЦтХитХХтХитЦСтХитХЧтХд╨ЬтХитХЬтХитХЫтХитФВтХитХЫ тХитХХтХитХЬтХитФдтХитХбтХитХСтХд╨СтХитХЬтХитХЫтХитФВтХитХЫ тХд╨ФтХитЦСтХитХгтХитХЧтХитЦС тХитХХтХитХЧтХитХХ
+diff --git a/src/main/java/com/za/zenith/world/items/Item.java b/src/main/java/com/za/zenith/world/items/Item.java
+index e9f3a2e..fd78b29 100644
+--- a/src/main/java/com/za/zenith/world/items/Item.java
++++ b/src/main/java/com/za/zenith/world/items/Item.java
+@@ -10,10 +10,13 @@ import java.util.HashMap;
+ import java.util.Map;
+
+ public class Item {
++    public enum Gender { MASCULINE, FEMININE, NEUTER }
++
+     protected final int id;
+     protected final Identifier identifier;
+     protected final String name;
+     protected final String texturePath;
++    protected Gender gender = Gender.MASCULINE;
+     protected float weight = 1.0f;
+     protected float visualScale = 1.0f;
+     protected float miningSpeed = 0.1f;
+@@ -21,11 +24,29 @@ public class Item {
+     protected float interactionCooldown = -1.0f;
+     protected com.za.zenith.utils.Identifier defaultRarity = com.za.zenith.world.items.stats.RarityRegistry.COMMON;
+     protected final com.za.zenith.world.items.stats.StatContainer baseStats = new com.za.zenith.world.items.stats.StatContainer();
++    { baseStats.setUseDefaultValues(false); }
++    protected final java.util.Set<String> tags = new java.util.HashSet<>();
++
++    public Gender getGender() {
++        return gender;
++    }
++
++    public void setGender(Gender gender) {
++        this.gender = gender;
++    }
+
+     public com.za.zenith.utils.Identifier getDefaultRarity() {
+         return defaultRarity;
+     }
+
++    public void addTag(String tag) {
++        tags.add(tag);
++    }
++
++    public boolean hasTag(String tag) {
++        return tags.contains(tag);
++    }
++
+     public void setDefaultRarity(com.za.zenith.utils.Identifier rarity) {
+         this.defaultRarity = rarity;
+     }
+diff --git a/src/main/java/com/za/zenith/world/items/ItemStack.java b/src/main/java/com/za/zenith/world/items/ItemStack.java
+index c96d0a6..d5380cf 100644
+--- a/src/main/java/com/za/zenith/world/items/ItemStack.java
++++ b/src/main/java/com/za/zenith/world/items/ItemStack.java
+@@ -8,6 +8,7 @@ public class ItemStack {
+     private int durability;
+     private com.za.zenith.utils.Identifier rarity;
+     private final com.za.zenith.world.items.stats.StatContainer stats = new com.za.zenith.world.items.stats.StatContainer();
++    { stats.setUseDefaultValues(false); }
+     private final java.util.List<com.za.zenith.utils.Identifier> activeAffixes = new java.util.ArrayList<>();
+     private com.za.zenith.world.inventory.ItemInventory itemInventory;
+     private float temperature;
+@@ -94,12 +95,22 @@ public class ItemStack {
+ 
+     public String getDisplayName() {
+         StringBuilder name = new StringBuilder();
+-
++        Item.Gender gender = item.getGender();
++        String suffix = switch(gender) {
++            case FEMININE -> ".f";
++            case NEUTER -> ".n";
++            default -> ".m";
++        };
++
+         // Add Prefixes
+         for (com.za.zenith.utils.Identifier affixId : activeAffixes) {
+             com.za.zenith.world.items.stats.AffixDefinition affix = com.za.zenith.world.items.stats.AffixRegistry.get(affixId);
+             if (affix != null && affix.type() == com.za.zenith.world.items.stats.AffixDefinition.Type.PREFIX) {
+-                name.append(com.za.zenith.utils.I18n.get(affix.translationKey())).append(" ");
++                String key = affix.translationKey() + suffix;
++                String translated = com.za.zenith.utils.I18n.get(key);
++                // Fallback to base key if gender-specific one doesn't exist
++                if (translated.equals(key)) translated = com.za.zenith.utils.I18n.get(affix.translationKey());
++                name.append(translated).append(" ");
+             }
+         }
+
+@@ -110,7 +121,10 @@ public class ItemStack {
+         for (com.za.zenith.utils.Identifier affixId : activeAffixes) {
+             com.za.zenith.world.items.stats.AffixDefinition affix = com.za.zenith.world.items.stats.AffixRegistry.get(affixId);
+             if (affix != null && affix.type() == com.za.zenith.world.items.stats.AffixDefinition.Type.SUFFIX) {
+-                name.append(" ").append(com.za.zenith.utils.I18n.get(affix.translationKey()));
++                String key = affix.translationKey() + suffix;
++                String translated = com.za.zenith.utils.I18n.get(key);
++                if (translated.equals(key)) translated = com.za.zenith.utils.I18n.get(affix.translationKey());
++                name.append(" ").append(translated);
+             }
+         }
+
+@@ -164,6 +178,12 @@ public class ItemStack {
+     public ItemStack copy() {
+         ItemStack copy = new ItemStack(item, count);
+         copy.setDurability(durability);
++        copy.setRarity(rarity);
++        copy.activeAffixes.addAll(activeAffixes);
++        // Transfer custom stats
++        for (java.util.Map.Entry<com.za.zenith.utils.Identifier, Float> entry : stats.getAllStats().entrySet()) {
++            copy.stats.setBase(entry.getKey(), entry.getValue());
++        }
+         if (this.itemInventory != null) {
+             copy.itemInventory = this.itemInventory.copy();
+         }
+@@ -180,8 +200,13 @@ public class ItemStack {
+         int toTake = Math.min(amount, count);
+         ItemStack newStack = new ItemStack(item, toTake);
+         newStack.setDurability(durability);
+-        // Note: Splitting bags should probably not be possible if they have inventory,
+-        // but since their maxStackSize is 1, it only copies the reference/data when amount is 1.
++        newStack.setRarity(rarity);
++        newStack.activeAffixes.addAll(activeAffixes);
++        // Transfer custom stats
++        for (java.util.Map.Entry<com.za.zenith.utils.Identifier, Float> entry : stats.getAllStats().entrySet()) {
++            newStack.stats.setBase(entry.getKey(), entry.getValue());
++        }
++        
+         if (this.itemInventory != null && toTake == this.count) {
+              newStack.itemInventory = this.itemInventory;
+         } else if (this.itemInventory != null) {
+diff --git a/src/main/java/com/za/zenith/world/items/stats/RarityDefinition.java b/src/main/java/com/za/zenith/world/items/stats/RarityDefinition.java
+index 37ed50f..42de23c 100644
+--- a/src/main/java/com/za/zenith/world/items/stats/RarityDefinition.java
++++ b/src/main/java/com/za/zenith/world/items/stats/RarityDefinition.java
+@@ -10,6 +10,7 @@ public record RarityDefinition(
+     Identifier identifier,
+     String translationKey,
+     Vector3f color,
++    String colorCode,
+     int affixSlots,
+     int weight
+ ) {
+diff --git a/src/main/java/com/za/zenith/world/items/stats/RarityRegistry.java b/src/main/java/com/za/zenith/world/items/stats/RarityRegistry.java
+index 7046330..0b30729 100644
+--- a/src/main/java/com/za/zenith/world/items/stats/RarityRegistry.java
++++ b/src/main/java/com/za/zenith/world/items/stats/RarityRegistry.java
+@@ -30,7 +30,7 @@ public class RarityRegistry {
+     public static void init() {
+         // Fallback common rarity
+         if (get(COMMON) == null) {
+-            register(new RarityDefinition(COMMON, "rarity.zenith.common", new Vector3f(1, 1, 1), 0, 100));
++            register(new RarityDefinition(COMMON, "rarity.zenith.common", new org.joml.Vector3f(1, 1, 1), "$f", 0, 100));
+         }
+     }
+ }
+diff --git a/src/main/java/com/za/zenith/world/items/stats/StatContainer.java b/src/main/java/com/za/zenith/world/items/stats/StatContainer.java
+index dc699d6..77ed15c 100644
+--- a/src/main/java/com/za/zenith/world/items/stats/StatContainer.java
++++ b/src/main/java/com/za/zenith/world/items/stats/StatContainer.java
+@@ -17,8 +17,15 @@ public class StatContainer {
+         markDirty();
+     }
+
++    private boolean useDefaultValues = true;
++
++    public void setUseDefaultValues(boolean use) {
++        this.useDefaultValues = use;
++    }
++
+     public float getBase(Identifier id) {
+         if (baseValues.containsKey(id)) return baseValues.get(id);
++        if (!useDefaultValues) return 0.0f;
+         StatDefinition def = StatRegistry.get(id);
+         return def != null ? def.defaultValue() : 0.0f;
+     }
+diff --git a/src/main/resources/zenith/gui/player_inventory.json b/src/main/resources/zenith/gui/player_inventory.json
+index 6be883a..cfe5971 100644
+--- a/src/main/resources/zenith/gui/player_inventory.json
++++ b/src/main/resources/zenith/gui/player_inventory.json
+@@ -8,6 +8,25 @@
+     "includeGroups": ["equipment", "pockets", "pouch"]
+   },
+   "groups": [
++    {
++      "id": "stats_panel",
++      "type": "stats",
++      "relativeTo": "equipment",
++      "relativeAlign": "left",
++      "relativeAlignY": "top",
++      "fixedOffsetX": -20,
++      "spacing": 18,
++      "width": 160,
++      "height": 220,
++      "padding": 12,
++      "textSize": 14,
++      "background": {
++        "type": "solid",
++        "color": [0.05, 0.05, 0.05, 0.85],
++        "padding": 6,
++        "borderRadius": 4
++      }
++    },
+     {
+       "id": "equipment",
+       "type": "vertical",
+@@ -21,7 +40,7 @@
+       "y": "-5%",
+       "rows": 4,
+       "spacing": 4,
+-      "quickMoveTo": ["pouch", "pockets", "hotbar"],
++      "quickMoveTo": ["hotbar","pockets", "pouch"],
+       "placeholders": {
+         "0": "empty_armor_slot_helmet",
+         "1": "empty_armor_slot_chestplate",
+@@ -45,7 +64,8 @@
+       "cols": 4,
+       "rows": 2,
+       "spacing": 4,
+-      "quickMoveTo": ["pouch", "hotbar", "equipment"]
++      "quickMoveTo": ["equipment", "pouch", "hotbar"]
++
+     },
+     {
+       "id": "pouch",
+@@ -73,7 +93,7 @@
+       "y": "15%",
+       "cols": 9,
+       "spacing": 4,
+-      "quickMoveTo": ["pockets", "pouch", "equipment"]
++      "quickMoveTo": ["equipment", "pouch", "pockets"]
+     },
+     {
+       "id": "developer_panel",
+diff --git a/src/main/resources/zenith/items/.index b/src/main/resources/zenith/items/.index
+index dbf9851..a8da5ab 100644
+--- a/src/main/resources/zenith/items/.index
++++ b/src/main/resources/zenith/items/.index
+@@ -33,3 +33,6 @@ rusty_pipe.json
+ duct_tape.json
+ scrap_axe.json
+ scrap_knife.json
++case_standard.json
++case_reinforced.json
++case_spec_ops.json
+diff --git a/src/main/resources/zenith/items/crowbar.json b/src/main/resources/zenith/items/crowbar.json
+index 1c6256b..850ec04 100644
+--- a/src/main/resources/zenith/items/crowbar.json
++++ b/src/main/resources/zenith/items/crowbar.json
+@@ -3,6 +3,8 @@
+   "translationKey": "item.zenith.crowbar",
+   "texture": "zenith/textures/block/lever.png",
+   "maxStackSize": 1,
++  "gender": "feminine",
++  "tags": ["zenith:tools", "zenith:melee", "zenith:bladed"],
+   "components": {
+     "zenith:tool": {
+       "type": "crowbar",
+diff --git a/src/main/resources/zenith/items/scrap_axe.json b/src/main/resources/zenith/items/scrap_axe.json
+index 587a829..bb5cb91 100644
+--- a/src/main/resources/zenith/items/scrap_axe.json
++++ b/src/main/resources/zenith/items/scrap_axe.json
+@@ -5,6 +5,7 @@
+   "maxStackSize": 1,
+   "visualScale": 1.2,
+   "weight": 1.8,
++  "tags": ["zenith:tools", "zenith:melee", "zenith:bladed"],
+   "components": {
+     "zenith:tool": {
+       "type": "axe",
+diff --git a/src/main/resources/zenith/items/scrap_pickaxe.json b/src/main/resources/zenith/items/scrap_pickaxe.json
+index 37b9bc2..1997b4a 100644
+--- a/src/main/resources/zenith/items/scrap_pickaxe.json
++++ b/src/main/resources/zenith/items/scrap_pickaxe.json
+@@ -3,6 +3,8 @@
+   "translationKey": "item.zenith.scrap_pickaxe",
+   "texture": "zenith/textures/item/wooden_pickaxe.png",
+   "maxStackSize": 1,
++  "gender": "feminine",
++  "tags": ["zenith:tools", "zenith:melee"],
+   "components": {
+     "zenith:tool": {
+       "type": "pickaxe",
+diff --git a/src/main/resources/zenith/items/stone_shovel.json b/src/main/resources/zenith/items/stone_shovel.json
+index 1bd89eb..1fd76fa 100644
+--- a/src/main/resources/zenith/items/stone_shovel.json
++++ b/src/main/resources/zenith/items/stone_shovel.json
+@@ -4,6 +4,8 @@
+   "texture": "zenith/textures/item/stone_shovel.png",
+   "visualScale": 1.15,
+   "weight": 2.0,
++  "gender": "feminine",
++  "tags": ["zenith:tools", "zenith:melee"],
+   "components": {
+     "viewmodel": {
+       "translation": [
+diff --git a/src/main/resources/zenith/lang/ru_ru.json b/src/main/resources/zenith/lang/ru_ru.json
+index a6fa0c6..8e531ca 100644
+--- a/src/main/resources/zenith/lang/ru_ru.json
++++ b/src/main/resources/zenith/lang/ru_ru.json
+@@ -166,5 +166,43 @@
+   "journal.title": "тХи╨дтХитХЬтХитХбтХитЦУтХитХЬтХитХХтХитХС тХитЦУтХд╨ЫтХитХвтХитХХтХитЦУтХд╨ШтХитХбтХитФВтХитХЫ",
+   "journal.tip_header": "тХи╨▒тХи╨отХи╨втХи╨етХи╨▓",
+   "journal.recipe_napping": "тХи╨▒тХд╨ХтХитХбтХитХЭтХитЦС тХд╨СтХитХСтХитЦСтХитХЧтХд╨ЫтХитЦУтХитЦСтХитХЬтХитХХтХд╨Я:",
+-  "journal.welcome": "тХи╨втХд╨ЫтХитЦТтХитХбтХд╨РтХитХХтХд╨ТтХитХб тХд╨РтХитЦСтХитХЦтХитФдтХитХбтХитХЧ тХд╨СтХитХЧтХитХбтХитЦУтХитЦС, тХд╨ЧтХд╨ТтХитХЫтХитЦТтХд╨Ы тХитХЬтХитЦСтХд╨ЧтХитЦСтХд╨ТтХд╨Ь тХитХЫтХитЦТтХд╨УтХд╨ЧтХитХбтХитХЬтХитХХтХитХб"
++  "journal.welcome": "тХи╨втХд╨ЫтХитЦТтХитХбтХд╨РтХитХХтХд╨ТтХитХб тХд╨РтХитЦСтХитХЦтХитФдтХитХбтХитХЧ тХд╨СтХитХЧтХитХбтХитЦУтХитЦС, тХд╨ЧтХд╨ТтХитХЫтХитЦТтХд╨Ы тХитХЬтХитЦСтХд╨ЧтХитЦСтХд╨ТтХд╨Ь тХитХЫтХитЦТтХд╨УтХд╨ЧтХитХбтХитХЬтХитХХтХитХб",
++  "item.zenith.case_standard": "тХи╨▒тХд╨ТтХитЦСтХитХЬтХитФдтХитЦСтХд╨РтХд╨ТтХитХЬтХд╨ЫтХитХг тХитХЫтХд╨РтХд╨УтХитХвтХитХбтХитХгтХитХЬтХд╨ЫтХитХг тХитХСтХитХбтХитХгтХд╨С",
++  "item.zenith.case_reinforced": "тХи╨│тХитХСтХд╨РтХитХбтХитФРтХитХЧтХитХбтХитХЬтХитХЬтХд╨ЫтХитХг тХитХЫтХд╨РтХд╨УтХитХвтХитХбтХитХгтХитХЬтХд╨ЫтХитХг тХитХСтХитХбтХитХгтХд╨С",
++  "item.zenith.case_spec_ops": "тХи╨ктХитХбтХитХгтХд╨С тХи╨▒тХитФРтХитХбтХд╨ЦтХитХЬтХитЦСтХитХЦтХитХЬтХитЦСтХд╨ЧтХитХбтХитХЬтХитХХтХд╨Я",
++  "stat.zenith.impact": "тХи╨│тХитФдтХитЦСтХд╨РтХитХЬтХитЦСтХд╨Я тХд╨СтХитХХтХитХЧтХитЦС",
++  "stat.zenith.mobility": "тХи╨мтХитХЫтХитЦТтХитХХтХитХЧтХд╨ЬтХитХЬтХитХЫтХд╨СтХд╨ТтХд╨Ь",
++  "stat.zenith.constitution": "тХи╨▓тХитХбтХитХЧтХитХЫтХд╨СтХитХЧтХитХЫтХитХвтХитХбтХитХЬтХитХХтХитХб",
++  "stat.zenith.handling": "тХи╨╜тХд╨РтХитФВтХитХЫтХитХЬтХитХЫтХитХЭтХитХХтХитХСтХитЦС",
++  "stat.zenith.defense": "тХи╨зтХитЦСтХд╨ЩтХитХХтХд╨ТтХитЦС",
++  "stat.zenith.shock": "тХи╨╕тХитХЫтХитХСтХитХЫтХитЦУтХд╨ЫтХитХг тХд╨УтХд╨РтХитХЫтХитХЬ",
++  "stat.zenith.penetration": "тХи╨птХд╨РтХитХЫтХитЦТтХитХХтХд╨ТтХитХХтХитХб",
++  "stat.zenith.trauma": "тХи╨▓тХд╨РтХитЦСтХитЦУтХитХЭтХитЦСтХд╨ТтХитХХтХитХЦтХитХЭ",
++  "stat.zenith.balance": "тХи╨бтХитЦСтХитХЧтХитЦСтХитХЬтХд╨С",
++  "stat.zenith.impact.desc": "тХи╨│тХитЦУтХитХбтХитХЧтХитХХтХд╨ЧтХитХХтХитЦУтХитЦСтХитХбтХд╨Т тХд╨УтХд╨РтХитХЫтХитХЬ тХитХХ тХд╨СтХитХХтХитХЧтХд╨У тХитХЫтХд╨ТтХитЦТтХд╨РтХитЦСтХд╨СтХд╨ЫтХитЦУтХитЦСтХитХЬтХитХХтХд╨Я.",
++  "stat.zenith.mobility.desc": "тХи╨втХитХЧтХитХХтХд╨ЯтХитХбтХд╨Т тХитХЬтХитЦС тХд╨СтХитХСтХитХЫтХд╨РтХитХЫтХд╨СтХд╨ТтХд╨Ь тХитЦТтХитХбтХитФВтХитЦС тХитХХ тХитЦУтХд╨ЫтХд╨СтХитХЫтХд╨ТтХд╨У тХитФРтХд╨РтХд╨ЫтХитХвтХитХСтХитЦС.",
++  "stat.zenith.constitution.desc": "тХи╨отХитФРтХд╨РтХитХбтХитФдтХитХбтХитХЧтХд╨ЯтХитХбтХд╨Т тХитХЭтХитЦСтХитХСтХд╨СтХитХХтХитХЭтХитЦСтХитХЧтХд╨ЬтХитХЬтХд╨ЫтХитХг тХитХЦтХитЦСтХитФРтХитЦСтХд╨С тХитХЦтХитФдтХитХЫтХд╨РтХитХЫтХитЦУтХд╨ЬтХд╨Я.",
++  "stat.zenith.handling.desc": "тХи╨▒тХитХСтХитХЫтХд╨РтХитХЫтХд╨СтХд╨ТтХд╨Ь тХд╨РтХитЦСтХитЦТтХитХЫтХд╨ТтХд╨Ы тХитХХ тХд╨ЭтХд╨ФтХд╨ФтХитХбтХитХСтХд╨ТтХитХХтХитЦУтХитХЬтХитХЫтХд╨СтХд╨ТтХд╨Ь тХд╨УтХитФдтХитЦСтХд╨РтХитХЫтХитЦУ тХитФРтХитХЫ тХд╨СтХитХЧтХитЦСтХитЦТтХд╨ЫтХитХЭ тХд╨ТтХитХЫтХд╨ЧтХитХСтХитЦСтХитХЭ тХитЦТтХитХЧтХитХЫтХитХСтХитХЫтХитЦУ.",
++  "stat.zenith.defense.desc": "тХи╨▒тХитХЬтХитХХтХитХвтХитЦСтХитХбтХд╨Т тХитФРтХитХЫтХитХЧтХд╨УтХд╨ЧтХитЦСтХитХбтХитХЭтХд╨ЫтХитХг тХд╨ФтХитХХтХитХЦтХитХХтХд╨ЧтХитХбтХд╨СтХитХСтХитХХтХитХг тХд╨УтХд╨РтХитХЫтХитХЬ.",
++  "stat.zenith.shock.desc": "тХи╨╕тХитЦСтХитХЬтХд╨С тХитХСтХд╨РтХитЦСтХд╨ТтХитХСтХитХЫтХитЦУтХд╨РтХитХбтХитХЭтХитХбтХитХЬтХитХЬтХитХЫ тХитХЫтХитФВтХитХЧтХд╨УтХд╨ШтХитХХтХд╨ТтХд╨Ь тХд╨ЦтХитХбтХитХЧтХд╨Ь.",
++  "stat.zenith.penetration.desc": "тХи╨итХитФВтХитХЬтХитХЫтХд╨РтХитХХтХд╨РтХд╨УтХитХбтХд╨Т тХд╨ЧтХитЦСтХд╨СтХд╨ТтХд╨Ь тХитХЦтХитЦСтХд╨ЩтХитХХтХд╨ТтХд╨Ы тХитФРтХд╨РтХитХЫтХд╨ТтХитХХтХитЦУтХитХЬтХитХХтХитХСтХитЦС.",
++  "stat.zenith.trauma.desc": "тХи╨нтХитЦСтХитХЬтХитХЫтХд╨СтХитХХтХд╨Т тХитФРтХитХЫтХд╨СтХд╨ТтХитХбтХитФРтХитХбтХитХЬтХитХЬтХд╨ЫтХитХг тХд╨УтХд╨РтХитХЫтХитХЬ тХитХСтХд╨РтХитХЫтХитЦУтХитХЫтХд╨ТтХитХбтХд╨ЧтХитХбтХитХЬтХитХХтХитХбтХитХЭ.",
++  "stat.zenith.balance.desc": "тХи╨▒тХд╨ТтХитХЫтХитХгтХитХСтХитХЫтХд╨СтХд╨ТтХд╨Ь тХитХС тХитХЫтХитФВтХитХЧтХд╨УтХд╨ШтХитХбтХитХЬтХитХХтХд╨Ю тХитХХ тХитХЫтХд╨ТтХитЦТтХд╨РтХитЦСтХд╨СтХд╨ЫтХитЦУтХитЦСтХитХЬтХитХХтХд╨Ю.",
++  "rarity.zenith.common": "тХи╨отХитЦТтХд╨ЫтХд╨ЧтХитХЬтХд╨ЫтХитХг",
++  "rarity.zenith.uncommon": "тХи╨нтХитХбтХитХЫтХитЦТтХд╨ЫтХд╨ЧтХитХЬтХд╨ЫтХитХг",
++  "rarity.zenith.rare": "тХи╨░тХитХбтХитФдтХитХСтХитХХтХитХг",
++  "rarity.zenith.epic": "тХи╨╜тХитФРтХитХХтХд╨ЧтХитХбтХд╨СтХитХСтХитХХтХитХг",
++  "rarity.zenith.legendary": "тХи╨лтХитХбтХитФВтХитХбтХитХЬтХитФдтХитЦСтХд╨РтХитХЬтХд╨ЫтХитХг",
++  "affix.zenith.heavy": "тХи╨▓тХд╨ЯтХитХвтХитХбтХитХЧтХд╨ЫтХитХг",
++  "affix.zenith.heavy.f": "тХи╨▓тХд╨ЯтХитХвтХитХбтХитХЧтХитЦСтХд╨Я",
++  "affix.zenith.heavy.n": "тХи╨▓тХд╨ЯтХитХвтХитХбтХитХЧтХитХЫтХитХб",
++  "affix.zenith.sharp": "тХи╨отХд╨СтХд╨ТтХд╨РтХд╨ЫтХитХг",
++  "affix.zenith.sharp.f": "тХи╨отХд╨СтХд╨ТтХд╨РтХитЦСтХд╨Я",
++  "affix.zenith.sharp.n": "тХи╨отХд╨СтХд╨ТтХд╨РтХитХЫтХитХб",
++  "affix.zenith.masterwork": "тХи╨╜тХд╨ТтХитЦСтХитХЧтХитХЫтХитХЬтХитХЬтХд╨ЫтХитХг",
++  "affix.zenith.masterwork.f": "тХи╨╜тХд╨ТтХитЦСтХитХЧтХитХЫтХитХЬтХитХЬтХитЦСтХд╨Я",
++  "affix.zenith.masterwork.n": "тХи╨╜тХд╨ТтХитЦСтХитХЧтХитХЫтХитХЬтХитХЬтХитХЫтХитХб",
++  "ui.opening_case": "тХи╨втХд╨СтХитХСтХд╨РтХд╨ЫтХд╨ТтХитХХтХитХб тХитХСтХитХбтХитХгтХд╨СтХитЦС...",
++  "ui.stats": "тХи╨╡тХитЦСтХд╨РтХитЦСтХитХСтХд╨ТтХитХбтХд╨РтХитХХтХд╨СтХд╨ТтХитХХтХитХСтХитХХ",
++  "ui.affixes": "тХи╨отХд╨СтХитХЫтХитЦТтХитХбтХитХЬтХитХЬтХитХЫтХд╨СтХд╨ТтХитХХ"
+ }
+diff --git a/src/main/resources/zenith/registry/rarities/common.json b/src/main/resources/zenith/registry/rarities/common.json
+index a9299c7..13db7ad 100644
+--- a/src/main/resources/zenith/registry/rarities/common.json
++++ b/src/main/resources/zenith/registry/rarities/common.json
+@@ -2,6 +2,7 @@
+   "identifier": "zenith:common",
+   "translationKey": "rarity.zenith.common",
+   "color": [1.0, 1.0, 1.0],
++  "colorCode": "$f",
+   "affixSlots": 0,
+   "weight": 100
+ }
+diff --git a/src/main/resources/zenith/registry/rarities/epic.json b/src/main/resources/zenith/registry/rarities/epic.json
+index 56d5883..623d7b2 100644
+--- a/src/main/resources/zenith/registry/rarities/epic.json
++++ b/src/main/resources/zenith/registry/rarities/epic.json
+@@ -1,7 +1,8 @@
+ {
+   "identifier": "zenith:epic",
+   "translationKey": "rarity.zenith.epic",
+-  "color": [0.7, 0.2, 1.0],
++  "color": [0.8, 0.2, 0.8],
++  "colorCode": "$d",
+   "affixSlots": 3,
+   "weight": 5
+ }
+diff --git a/src/main/resources/zenith/registry/rarities/legendary.json b/src/main/resources/zenith/registry/rarities/legendary.json
+index b1c0e31..0ec0ad1 100644
+--- a/src/main/resources/zenith/registry/rarities/legendary.json
++++ b/src/main/resources/zenith/registry/rarities/legendary.json
+@@ -2,6 +2,7 @@
+   "identifier": "zenith:legendary",
+   "translationKey": "rarity.zenith.legendary",
+   "color": [1.0, 0.6, 0.0],
++  "colorCode": "$6",
+   "affixSlots": 4,
+   "weight": 1
+ }
+diff --git a/src/main/resources/zenith/registry/rarities/rare.json b/src/main/resources/zenith/registry/rarities/rare.json
+index a628c01..0270ba2 100644
+--- a/src/main/resources/zenith/registry/rarities/rare.json
++++ b/src/main/resources/zenith/registry/rarities/rare.json
+@@ -2,6 +2,7 @@
+   "identifier": "zenith:rare",
+   "translationKey": "rarity.zenith.rare",
+   "color": [0.2, 0.4, 1.0],
++  "colorCode": "$b",
+   "affixSlots": 2,
+   "weight": 20
+ }
+diff --git a/src/main/resources/zenith/registry/rarities/uncommon.json b/src/main/resources/zenith/registry/rarities/uncommon.json
+index a58f943..906c75b 100644
+--- a/src/main/resources/zenith/registry/rarities/uncommon.json
++++ b/src/main/resources/zenith/registry/rarities/uncommon.json
+@@ -2,6 +2,7 @@
+   "identifier": "zenith:uncommon",
+   "translationKey": "rarity.zenith.uncommon",
+   "color": [0.1, 0.8, 0.1],
++  "colorCode": "$a",
+   "affixSlots": 1,
+   "weight": 50
+ }
+diff --git a/src/main/resources/zenith/registry/stats/constitution.json b/src/main/resources/zenith/registry/stats/constitution.json
+index 55189a6..30350bc 100644
+--- a/src/main/resources/zenith/registry/stats/constitution.json
++++ b/src/main/resources/zenith/registry/stats/constitution.json
+@@ -1,9 +1,9 @@
+ {
+   "identifier": "zenith:constitution",
+   "translationKey": "stat.zenith.constitution",
+-  "defaultValue": 100.0,
++  "defaultValue": 10.0,
+   "minValue": 0.0,
+-  "maxValue": 1000.0,
++  "maxValue": 100.0,
+   "displayType": "NUMBER",
+   "category": "GLOBAL"
+ }
+diff --git a/src/main/resources/zenith/registry/stats/defense.json b/src/main/resources/zenith/registry/stats/defense.json
+index e3cd3a4..40c4aa5 100644
+--- a/src/main/resources/zenith/registry/stats/defense.json
++++ b/src/main/resources/zenith/registry/stats/defense.json
+@@ -3,7 +3,7 @@
+   "translationKey": "stat.zenith.defense",
+   "defaultValue": 0.0,
+   "minValue": 0.0,
+-  "maxValue": 1000.0,
++  "maxValue": 100.0,
+   "displayType": "NUMBER",
+   "category": "GLOBAL"
+ }
+diff --git a/src/main/resources/zenith/registry/stats/handling.json b/src/main/resources/zenith/registry/stats/handling.json
+index e945364..ac4dfee 100644
+--- a/src/main/resources/zenith/registry/stats/handling.json
++++ b/src/main/resources/zenith/registry/stats/handling.json
+@@ -1,9 +1,9 @@
+ {
+   "identifier": "zenith:handling",
+   "translationKey": "stat.zenith.handling",
+-  "defaultValue": 100.0,
++  "defaultValue": 10.0,
+   "minValue": 0.0,
+-  "maxValue": 1000.0,
++  "maxValue": 100.0,
+   "displayType": "NUMBER",
+   "category": "GLOBAL"
+ }
+diff --git a/src/main/resources/zenith/registry/stats/impact.json b/src/main/resources/zenith/registry/stats/impact.json
+index 6fca5b9..901bd42 100644
+--- a/src/main/resources/zenith/registry/stats/impact.json
++++ b/src/main/resources/zenith/registry/stats/impact.json
+@@ -3,7 +3,7 @@
+   "translationKey": "stat.zenith.impact",
+   "defaultValue": 10.0,
+   "minValue": 0.0,
+-  "maxValue": 1000.0,
++  "maxValue": 100.0,
+   "displayType": "NUMBER",
+   "category": "GLOBAL"
+ }
+diff --git a/src/main/resources/zenith/registry/stats/mobility.json b/src/main/resources/zenith/registry/stats/mobility.json
+index d5a47bf..4e546d5 100644
+--- a/src/main/resources/zenith/registry/stats/mobility.json
++++ b/src/main/resources/zenith/registry/stats/mobility.json
+@@ -1,7 +1,7 @@
+ {
+   "identifier": "zenith:mobility",
+   "translationKey": "stat.zenith.mobility",
+-  "defaultValue": 100.0,
++  "defaultValue": 10.0,
+   "minValue": 0.0,
+   "maxValue": 500.0,
+   "displayType": "NUMBER",
+On branch main
+Your branch is ahead of 'origin/main' by 2 commits.
+  (use "git push" to publish your local commits)
+
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   src/main/java/com/za/zenith/engine/core/GameLoop.java
+        modified:   src/main/java/com/za/zenith/engine/graphics/ui/FontRenderer.java
+        modified:   src/main/java/com/za/zenith/engine/graphics/ui/GUIConfig.java
+        modified:   src/main/java/com/za/zenith/engine/graphics/ui/InventoryLayout.java
+        modified:   src/main/java/com/za/zenith/engine/graphics/ui/PlayerInventoryScreen.java
+        modified:   src/main/java/com/za/zenith/engine/graphics/ui/UIRenderer.java
+        modified:   src/main/java/com/za/zenith/engine/graphics/ui/renderers/HUDRenderer.java
+        modified:   src/main/java/com/za/zenith/engine/graphics/ui/renderers/InventoryScreenRenderer.java
+        modified:   src/main/java/com/za/zenith/engine/input/InputManager.java
+        modified:   src/main/java/com/za/zenith/entities/Inventory.java
+        modified:   src/main/java/com/za/zenith/entities/LivingEntity.java
+        modified:   src/main/java/com/za/zenith/entities/Player.java
+        modified:   src/main/java/com/za/zenith/world/DataLoader.java
+        modified:   src/main/java/com/za/zenith/world/items/Item.java
+        modified:   src/main/java/com/za/zenith/world/items/ItemStack.java
+        modified:   src/main/java/com/za/zenith/world/items/stats/RarityDefinition.java
+        modified:   src/main/java/com/za/zenith/world/items/stats/RarityRegistry.java
+        modified:   src/main/java/com/za/zenith/world/items/stats/StatContainer.java
+        modified:   src/main/resources/zenith/gui/player_inventory.json
+        modified:   src/main/resources/zenith/items/.index
+        modified:   src/main/resources/zenith/items/crowbar.json
+        modified:   src/main/resources/zenith/items/scrap_axe.json
+        modified:   src/main/resources/zenith/items/scrap_pickaxe.json
+        modified:   src/main/resources/zenith/items/stone_shovel.json
+        modified:   src/main/resources/zenith/lang/ru_ru.json
+        modified:   src/main/resources/zenith/registry/rarities/common.json
+        modified:   src/main/resources/zenith/registry/rarities/epic.json
+        modified:   src/main/resources/zenith/registry/rarities/legendary.json
+        modified:   src/main/resources/zenith/registry/rarities/rare.json
+        modified:   src/main/resources/zenith/registry/rarities/uncommon.json
+        modified:   src/main/resources/zenith/registry/stats/constitution.json
+        modified:   src/main/resources/zenith/registry/stats/defense.json
+        modified:   src/main/resources/zenith/registry/stats/handling.json
+        modified:   src/main/resources/zenith/registry/stats/impact.json
+        modified:   src/main/resources/zenith/registry/stats/mobility.json
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        src/main/java/com/za/zenith/world/items/component/LootboxComponent.java
+        src/main/java/com/za/zenith/world/items/loot/
+        src/main/resources/zenith/items/case_reinforced.json
+        src/main/resources/zenith/items/case_spec_ops.json
+        src/main/resources/zenith/items/case_standard.json
+        src/main/resources/zenith/registry/loot_tables/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+commit 33019d603e3c07c3d4058042c0d63e957f31d385 (HEAD -> main)
+Author: haiseskibidi <akopalexx@mail.ru>
+Date:   Fri Apr 10 18:39:27 2026 +1000
+
+    Implement data-driven Affix System with tier-based rarities and dynamic name generation
+
+commit e0483dfa006ab0f4126853a4efc1d2f3d9ff52c3
+Author: haiseskibidi <akopalexx@mail.ru>
+Date:   Fri Apr 10 17:57:42 2026 +1000
+
+    Implement core RPG Stat Engine and Rarity System (Data-Driven)
+
+commit 0b0c741e877ab73a453cb79676b43a858bebb785 (origin/main, origin/HEAD)
+Author: haiseskibidi <akopalexx@mail.ru>
+Date:   Fri Apr 10 17:42:51 2026 +1000
+
+    Add rpg-system-plan.md
+Process Group PGID: 15216

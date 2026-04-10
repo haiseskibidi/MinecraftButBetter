@@ -1,0 +1,14 @@
+{
+  "identifier": "zenith:equipment",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "item": "zenith:scrap_pickaxe", "weight": 10 },
+        { "item": "zenith:scrap_axe", "weight": 10 },
+        { "item": "zenith:stone_shovel", "weight": 10 },
+        { "item": "zenith:crowbar", "weight": 5 }
+      ]
+    }
+  ]
+}

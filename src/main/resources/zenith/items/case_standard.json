@@ -1,0 +1,24 @@
+{
+  "identifier": "zenith:case_standard",
+  "translationKey": "item.zenith.case_standard",
+  "texture": "zenith:textures/item/case_standard",
+  "type": "default",
+  "maxStackSize": 1,
+  "rarity": "zenith:uncommon",
+  "components": {
+    "lootbox": {
+      "loot_table": "zenith:equipment",
+      "opening_time": 1.0,
+      "rarity_weights": {
+        "zenith:common": 40,
+        "zenith:uncommon": 50,
+        "zenith:rare": 10
+      },
+      "affix_weights": {
+        "zenith:basic": 80,
+        "zenith:advanced": 20,
+        "zenith:elite": 0
+      }
+    }
+  }
+}

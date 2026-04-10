@@ -242,6 +242,17 @@ public class Inventory implements IInventory {
         slots[hotbarIndex] = temp;
     }
 
+    public ItemStack getEquippedItem(String slotType) {
+        SlotGroup equipment = getGroup("equipment");
+        if (equipment == null) return null;
+        for (Slot slot : equipment.getSlots()) {
+            if (slot.getType().equals(slotType)) {
+                return slot.getStack();
+            }
+        }
+        return null;
+    }
+
     public void copyFromDevPanel(Item item, int hotbarIndex) {
         if (hotbarIndex < 0 || hotbarIndex >= HOTBAR_SIZE) return;
         slots[hotbarIndex] = new ItemStack(item, item.getMaxStackSize());

@@ -21,6 +21,33 @@ public class Item {
     protected float interactionCooldown = -1.0f; 
     protected com.za.zenith.utils.Identifier defaultRarity = com.za.zenith.world.items.stats.RarityRegistry.COMMON;
     protected final com.za.zenith.world.items.stats.StatContainer baseStats = new com.za.zenith.world.items.stats.StatContainer();
+    { baseStats.setUseDefaultValues(false); }
+    protected Gender gender = Gender.MASCULINE;
+    protected final java.util.Set<Identifier> tags = new java.util.HashSet<>();
+
+    public enum Gender {
+        MASCULINE, FEMININE, NEUTER
+    }
+
+    public Gender getGender() {
+        return gender;
+    }
+
+    public void setGender(Gender gender) {
+        this.gender = gender;
+    }
+
+    public void addTag(Identifier tag) {
+        tags.add(tag);
+    }
+
+    public boolean hasTag(Identifier tag) {
+        return tags.contains(tag);
+    }
+    
+    public boolean hasTag(String tagStr) {
+        return tags.contains(Identifier.of(tagStr));
+    }
 
     public com.za.zenith.utils.Identifier getDefaultRarity() {
         return defaultRarity;

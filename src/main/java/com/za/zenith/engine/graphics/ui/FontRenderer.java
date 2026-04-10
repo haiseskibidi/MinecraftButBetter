@@ -49,9 +49,11 @@ public class FontRenderer {
     private int vbo;
     private int ebo;
 
+    private final float[][] colorCodes = new float[32][3];
+
     public void init(Shader shader) {
         this.shader = shader;
-        
+        setupColorCodes();
         // Загружаем ширину для ASCII (fallback)
         loadWidthMap("zenith/textures/font/ascii.png", widthMap);
         
@@ -59,6 +61,20 @@ public class FontRenderer {
         loadJsonMapping();
         
         createQuad();
+    }
+
+    private void setupColorCodes() {
+        for (int i = 0; i < 32; ++i) {
+            int j = (i >> 3 & 1) * 85;
+            int k = (i >> 2 & 1) * 170 + j;
+            int l = (i >> 1 & 1) * 170 + j;
+            int m = (i & 1) * 170 + j;
+            if (i == 6) k += 85;
+            if (i >= 16) { k /= 4; l /= 4; m /= 4; }
+            colorCodes[i][0] = (float)k / 255.0F;
+            colorCodes[i][1] = (float)l / 255.0F;
+            colorCodes[i][2] = (float)m / 255.0F;
+        }
     }
 
     private void loadJsonMapping() {
@@ -171,7 +187,9 @@ public class FontRenderer {
         shader.use();
         shader.setInt("useTexture", 1);
         shader.setInt("useArray", 0);
-        shader.setUniform("tintColor", r, g, b, a);
+        
+        float currentR = r, currentG = g, currentB = b;
+        boolean bold = false;
 
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(vao);
@@ -183,10 +201,27 @@ public class FontRenderer {
             int cp = text.codePointAt(i);
             int charCount = Character.charCount(cp);
 
-            if (cp == '\u00a7' && i + charCount < text.length()) { // цветовые коды
-                i += charCount + Character.charCount(text.codePointAt(i + charCount));
+            if (cp == '$' && i + charCount < text.length()) {
+                int nextCp = text.codePointAt(i + charCount);
+                int codeIndex = "0123456789abcdefklmnor".indexOf(Character.toLowerCase(nextCp));
+
+                if (codeIndex >= 0 && codeIndex < 16) {
+                    currentR = colorCodes[codeIndex][0];
+                    currentG = colorCodes[codeIndex][1];
+                    currentB = colorCodes[codeIndex][2];
+                } else if (codeIndex == 16) { // k - magic (skip for now)
+                } else if (codeIndex == 17) { // l - bold
+                    bold = true;
+                } else if (codeIndex == 21) { // r - reset
+                    currentR = r; currentG = g; currentB = b;
+                    bold = false;
+                }
+
+                i += charCount + Character.charCount(nextCp);
                 continue;
             }
+
+            shader.setUniform("tintColor", currentR, currentG, currentB, a);
 
             int textureToBind;
             GlyphInfo custom = glyphCustomMap.get(cp);
@@ -218,15 +253,17 @@ public class FontRenderer {
 
             if (custom != null) {
                 renderCustomGlyph(custom, drawX, y, size, screenWidth, screenHeight);
+                if (bold) renderCustomGlyph(custom, drawX + Math.round(0.5f * scale), y, size, screenWidth, screenHeight);
                 drawX += Math.round(advance + scale);
             } else {
                 int page = cp / 256;
                 if (page != 0 || cp >= 128) {
                     renderGlyph((char)cp, drawX, y, size, screenWidth, screenHeight);
-                    renderGlyph((char)cp, drawX + Math.round(0.5f * scale), y, size, screenWidth, screenHeight);
+                    if (bold) renderGlyph((char)cp, drawX + Math.round(0.5f * scale), y, size, screenWidth, screenHeight);
                     drawX += Math.round(advance); 
                 } else {
                     renderGlyph((char)cp, drawX, y, size, screenWidth, screenHeight);
+                    if (bold) renderGlyph((char)cp, drawX + Math.round(0.5f * scale), y, size, screenWidth, screenHeight);
                     drawX += Math.round(advance + scale);
                 }
             }
@@ -321,8 +358,9 @@ public class FontRenderer {
             int cp = text.codePointAt(i);
             int charCount = Character.charCount(cp);
 
-            if (cp == '\u00a7' && i + charCount < text.length()) {
-                i += charCount + Character.charCount(text.codePointAt(i + charCount));
+            if (cp == '$' && i + charCount < text.length()) {
+                int nextCp = text.codePointAt(i + charCount);
+                i += charCount + Character.charCount(nextCp);
                 continue;
             }
             GlyphInfo custom = glyphCustomMap.get(cp);

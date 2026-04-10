@@ -62,6 +62,7 @@ public class DataLoader {
         com.za.zenith.world.items.ItemRegistry.init();
         
         for (String ns : namespaces) {
+            loadLootTables(ns);
             loadItems(ns);
         }
         com.za.zenith.utils.events.RegistryEvents.fireItemRegistration();
@@ -535,6 +536,43 @@ public class DataLoader {
         }
     }
 
+    private static void loadLootTables(String namespace) {
+        String path = namespace + "/registry/loot_tables";
+        List<String> files = listResources(path);
+        if (!files.isEmpty()) {
+            for (String file : files) {
+                loadResource(path + "/" + file, DataLoader::parseLootTable);
+            }
+        }
+    }
+
+    private static void parseLootTable(JsonElement el) {
+        try {
+            JsonObject obj = el.getAsJsonObject();
+            Identifier id = Identifier.of(obj.get("identifier").getAsString());
+            
+            List<com.za.zenith.world.items.loot.LootTable.Pool> pools = new ArrayList<>();
+            JsonArray poolsArr = obj.getAsJsonArray("pools");
+            for (JsonElement poolEl : poolsArr) {
+                JsonObject p = poolEl.getAsJsonObject();
+                int rolls = p.has("rolls") ? p.get("rolls").getAsInt() : 1;
+                List<com.za.zenith.world.items.loot.LootTable.Entry> entries = new ArrayList<>();
+                JsonArray entriesArr = p.getAsJsonArray("entries");
+                for (JsonElement entryEl : entriesArr) {
+                    JsonObject e = entryEl.getAsJsonObject();
+                    entries.add(new com.za.zenith.world.items.loot.LootTable.Entry(
+                        Identifier.of(e.get("item").getAsString()),
+                        e.has("weight") ? e.get("weight").getAsInt() : 1
+                    ));
+                }
+                pools.add(new com.za.zenith.world.items.loot.LootTable.Pool(rolls, entries));
+            }
+            com.za.zenith.world.items.loot.LootTableRegistry.register(new com.za.zenith.world.items.loot.LootTable(id, pools));
+        } catch (Exception e) {
+            Logger.error("Failed to parse loot table: " + e.getMessage());
+        }
+    }
+
     private static void loadItems(String namespace) {
         List<String> files = listResources(namespace + "/items");
         if (!files.isEmpty()) {
@@ -820,11 +858,41 @@ public class DataLoader {
             if (obj.has("miningSpeed")) item.setMiningSpeed(obj.get("miningSpeed").getAsFloat());
             if (obj.has("maxStackSize")) item.setMaxStackSize(obj.get("maxStackSize").getAsInt());
             if (obj.has("interaction_cooldown")) item.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());
+            if (obj.has("gender")) item.setGender(Item.Gender.valueOf(obj.get("gender").getAsString().toUpperCase()));
+
+            if (obj.has("tags")) {
+                JsonArray tagsArr = obj.getAsJsonArray("tags");
+                for (JsonElement elTag : tagsArr) {
+                    item.addTag(Identifier.of(elTag.getAsString()));
+                }
+            }
             
             // Парсинг компонентов (перезаписывают дефолтные из конструктора)
             if (obj.has("components")) {
                 JsonObject comps = obj.getAsJsonObject("components");
                 
+                if (comps.has("zenith:lootbox") || comps.has("lootbox")) {
+                    JsonObject l = comps.has("zenith:lootbox") ? comps.getAsJsonObject("zenith:lootbox") : comps.getAsJsonObject("lootbox");
+                    java.util.Map<Identifier, Integer> rW = new java.util.HashMap<>();
+                    if (l.has("rarity_weights")) {
+                        for (java.util.Map.Entry<String, JsonElement> e : l.getAsJsonObject("rarity_weights").entrySet()) {
+                            rW.put(Identifier.of(e.getKey()), e.getValue().getAsInt());
+                        }
+                    }
+                    java.util.Map<Identifier, Integer> aW = new java.util.HashMap<>();
+                    if (l.has("affix_weights")) {
+                        for (java.util.Map.Entry<String, JsonElement> e : l.getAsJsonObject("affix_weights").entrySet()) {
+                            aW.put(Identifier.of(e.getKey()), e.getValue().getAsInt());
+                        }
+                    }
+                    item.addComponent(com.za.zenith.world.items.component.LootboxComponent.class, new com.za.zenith.world.items.component.LootboxComponent(
+                        Identifier.of(l.get("loot_table").getAsString()),
+                        l.has("opening_time") ? l.get("opening_time").getAsFloat() : 1.0f,
+                        rW.isEmpty() ? null : rW,
+                        aW.isEmpty() ? null : aW
+                    ));
+                }
+
                 if (comps.has("zenith:food") || comps.has("food")) {
                     JsonObject f = comps.has("zenith:food") ? comps.getAsJsonObject("zenith:food") : comps.getAsJsonObject("food");
                     item.addComponent(FoodComponent.class, new FoodComponent(
@@ -961,6 +1029,7 @@ public class DataLoader {
                     id,
                     obj.get("translationKey").getAsString(),
                     color,
+                    obj.has("colorCode") ? obj.get("colorCode").getAsString() : "$f",
                     obj.get("affixSlots").getAsInt(),
                     obj.get("weight").getAsInt()
                 ));

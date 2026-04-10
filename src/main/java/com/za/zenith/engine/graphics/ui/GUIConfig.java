@@ -48,6 +48,13 @@ public class GUIConfig {
         public java.util.List<String> quickMoveTo; // Target group IDs for Shift+Click
         public java.util.Map<Integer, String> placeholders; // Map slot index in group to placeholder texture
         public String condition;   // Optional condition (e.g., "has_pouch", "developer_mode")
+        
+        // Custom dimensions for special group types
+        public int width = 0;
+        public int height = 0;
+        public int padding = 0;
+        public int textSize = 14;
+        public BackgroundConfig background;
     }
 
     public static class BackgroundConfig {
@@ -58,5 +65,3 @@ public class GUIConfig {
         public List<String> includeGroups; // List of group IDs to encompass with this background
     }
 }
-
-

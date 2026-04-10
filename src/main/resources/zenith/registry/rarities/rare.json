@@ -2,6 +2,7 @@
   "identifier": "zenith:rare",
   "translationKey": "rarity.zenith.rare",
   "color": [0.2, 0.4, 1.0],
+  "colorCode": "$b",
   "affixSlots": 2,
   "weight": 20
 }

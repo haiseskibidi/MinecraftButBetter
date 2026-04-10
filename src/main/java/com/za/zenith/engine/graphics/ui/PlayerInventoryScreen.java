@@ -114,6 +114,10 @@ public class PlayerInventoryScreen extends InventoryScreen {
         return super.handleChar(codepoint);
     }
 
+    public java.util.List<GroupUI> getGroupsUI() {
+        return groups;
+    }
+
     @Override
     protected com.za.zenith.utils.Identifier getScreenIdentifier() {
         return com.za.zenith.utils.Identifier.of("zenith:player_inventory");

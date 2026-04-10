@@ -17,8 +17,15 @@ public class StatContainer {
         markDirty();
     }
 
+    private boolean useDefaultValues = true;
+
+    public void setUseDefaultValues(boolean use) {
+        this.useDefaultValues = use;
+    }
+
     public float getBase(Identifier id) {
         if (baseValues.containsKey(id)) return baseValues.get(id);
+        if (!useDefaultValues) return 0.0f;
         StatDefinition def = StatRegistry.get(id);
         return def != null ? def.defaultValue() : 0.0f;
     }

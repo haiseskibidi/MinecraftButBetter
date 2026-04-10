@@ -30,7 +30,7 @@ public class RarityRegistry {
     public static void init() {
         // Fallback common rarity
         if (get(COMMON) == null) {
-            register(new RarityDefinition(COMMON, "rarity.zenith.common", new Vector3f(1, 1, 1), 0, 100));
+            register(new RarityDefinition(COMMON, "rarity.zenith.common", new Vector3f(1, 1, 1), "$f", 0, 100));
         }
     }
 }

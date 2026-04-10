@@ -31,6 +31,10 @@ public abstract class LivingEntity extends Entity {
         return stats.get(com.za.zenith.world.items.stats.StatRegistry.DEFENSE);
     }
 
+    public float getStat(com.za.zenith.utils.Identifier statId) {
+        return stats.get(statId);
+    }
+
     public com.za.zenith.world.items.stats.StatContainer getStats() {
         return stats;
     }

@@ -2,6 +2,7 @@
   "identifier": "zenith:legendary",
   "translationKey": "rarity.zenith.legendary",
   "color": [1.0, 0.6, 0.0],
+  "colorCode": "$6",
   "affixSlots": 4,
   "weight": 1
 }

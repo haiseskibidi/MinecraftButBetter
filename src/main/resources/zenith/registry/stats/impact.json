@@ -3,7 +3,7 @@
   "translationKey": "stat.zenith.impact",
   "defaultValue": 10.0,
   "minValue": 0.0,
-  "maxValue": 1000.0,
+  "maxValue": 100.0,
   "displayType": "NUMBER",
   "category": "GLOBAL"
 }

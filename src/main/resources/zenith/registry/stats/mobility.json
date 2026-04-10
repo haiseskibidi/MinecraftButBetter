@@ -1,7 +1,7 @@
 {
   "identifier": "zenith:mobility",
   "translationKey": "stat.zenith.mobility",
-  "defaultValue": 100.0,
+  "defaultValue": 10.0,
   "minValue": 0.0,
   "maxValue": 500.0,
   "displayType": "NUMBER",

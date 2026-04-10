@@ -3,6 +3,8 @@
   "translationKey": "item.zenith.crowbar",
   "texture": "zenith/textures/block/lever.png",
   "maxStackSize": 1,
+  "gender": "feminine",
+  "tags": ["zenith:tools", "zenith:melee", "zenith:bladed"],
   "components": {
     "zenith:tool": {
       "type": "crowbar",

@@ -9,6 +9,25 @@
   },
   "groups": [
     {
+      "id": "stats_panel",
+      "type": "stats",
+      "relativeTo": "equipment",
+      "relativeAlign": "left",
+      "relativeAlignY": "top",
+      "fixedOffsetX": -20,
+      "spacing": 18,
+      "width": 160,
+      "height": 220,
+      "padding": 12,
+      "textSize": 14,
+      "background": {
+        "type": "solid",
+        "color": [0.05, 0.05, 0.05, 0.85],
+        "padding": 6,
+        "borderRadius": 4
+      }
+    },
+    {
       "id": "equipment",
       "type": "vertical",
       "inventorySource": "player",
@@ -21,7 +40,7 @@
       "y": "-5%",
       "rows": 4,
       "spacing": 4,
-      "quickMoveTo": ["pouch", "pockets", "hotbar"],
+      "quickMoveTo": ["hotbar","pockets", "pouch"],
       "placeholders": {
         "0": "empty_armor_slot_helmet",
         "1": "empty_armor_slot_chestplate",
@@ -45,7 +64,8 @@
       "cols": 4,
       "rows": 2,
       "spacing": 4,
-      "quickMoveTo": ["pouch", "hotbar", "equipment"]
+      "quickMoveTo": ["equipment", "pouch", "hotbar"]
+
     },
     {
       "id": "pouch",
@@ -73,7 +93,7 @@
       "y": "15%",
       "cols": 9,
       "spacing": 4,
-      "quickMoveTo": ["pockets", "pouch", "equipment"]
+      "quickMoveTo": ["equipment", "pouch", "pockets"]
     },
     {
       "id": "developer_panel",

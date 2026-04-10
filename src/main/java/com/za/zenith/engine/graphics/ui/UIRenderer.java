@@ -158,6 +158,10 @@ public class UIRenderer {
         hudRenderer.renderNoise(hotbar, screenWidth, screenHeight, noise);
     }
 
+    public void renderLootboxOpening(int sw, int sh) {
+        hudRenderer.renderLootboxOpening(sw, sh);
+    }
+
     // --- DELEGATED INVENTORY & SLOTS ---
 
     public void renderSlot(int x, int y, int size, com.za.zenith.world.items.ItemStack stack, String placeholder, int screenWidth, int screenHeight, com.za.zenith.engine.graphics.DynamicTextureAtlas atlas) {

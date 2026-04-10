@@ -10,6 +10,7 @@ public record RarityDefinition(
     Identifier identifier,
     String translationKey,
     Vector3f color,
+    String colorCode,
     int affixSlots,
     int weight
 ) {

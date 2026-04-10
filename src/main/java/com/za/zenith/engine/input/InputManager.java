@@ -78,10 +78,14 @@ public class InputManager {
     private final MiningController miningController;
     private com.za.zenith.entities.Entity hitEntity;
     private float placeDelayTimer = 0.0f;
+    private float lootboxOpeningTimer = 0.0f;
+    private com.za.zenith.world.items.ItemStack lootboxStack = null;
     private static final float PLACE_COOLDOWN = 0.25f; // 4 bps (5 ticks)
-    
-    public InputManager() {
-        previousPos = new Vector2f();
+
+    public float getLootboxOpeningTimer() { return lootboxOpeningTimer; }
+    public com.za.zenith.world.items.ItemStack getLootboxStack() { return lootboxStack; }
+
+    public InputManager() {        previousPos = new Vector2f();
         currentPos = new Vector2f();
         this.miningController = new MiningController();
     }
@@ -394,12 +398,21 @@ public class InputManager {
         com.za.zenith.engine.graphics.ui.Screen screen = com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
         if (screen instanceof com.za.zenith.engine.graphics.ui.InventoryScreen invScreen) {
             com.za.zenith.engine.graphics.ui.SlotUI slotUI = invScreen.getSlotAt(mx, my);
+
             if (slotUI != null) {
                 handleInventoryClickOnSlot(window, button, slotUI.getSlot());
-            } else if (player.getMode() == PlayerMode.DEVELOPER) {
-                handleDevPanelClick(window, mx, my);
             } else {
-                if (heldStack != null) {
+                // Clicked outside any slots
+                boolean handledByDev = false;
+                if (player.getMode() == PlayerMode.DEVELOPER) {
+                    Item devItem = getDevItemAt(mx, my);
+                    if (devItem != null) {
+                        handleDevPanelClick(window, mx, my);
+                        handledByDev = true;
+                    }
+                }
+
+                if (!handledByDev && heldStack != null) {
                     dropStack(heldStack, player, GameLoop.getInstance().getWorld(), GameLoop.getInstance().getCamera(), true);
                     heldStack = null;
                 }
@@ -880,8 +893,51 @@ public class InputManager {
             if (rm) {
                 boolean actionConsumed = false;
 
+                // Lootbox Opening Logic
+                if (currentStack != null) {
+                    com.za.zenith.world.items.component.LootboxComponent lootbox = currentStack.getItem().getComponent(com.za.zenith.world.items.component.LootboxComponent.class);
+                    if (lootbox != null) {
+                        if (isNewRightClick || lootboxStack != currentStack) {
+                            lootboxOpeningTimer = 0;
+                            lootboxStack = currentStack;
+                            com.za.zenith.utils.Logger.info("Starting to open tactical case: %s", currentStack.getDisplayName());
+                        }
+
+                        lootboxOpeningTimer += deltaTime;
+
+                        if (lootboxOpeningTimer >= lootbox.openingTime()) {
+                            java.util.List<ItemStack> rewards = com.za.zenith.world.items.loot.LootGenerator.generateFromCase(currentStack);
+
+                            // Remove one case from hand
+                            if (currentStack.getCount() > 1) {
+                                currentStack.setCount(currentStack.getCount() - 1);
+                            } else {
+                                player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
+                            }
+
+                            // Add rewards
+                            for (ItemStack reward : rewards) {
+                                if (!player.getInventory().addItem(reward)) {
+                                    dropStack(reward, player, world, camera, true);
+                                }
+                                com.za.zenith.utils.Logger.info("Unpacked reward: %s", reward.getDisplayName());
+                            }
+
+                            lootboxOpeningTimer = 0;
+                            lootboxStack = null;
+                        }
+                        actionConsumed = true;
+                    } else {
+                        lootboxOpeningTimer = 0;
+                        lootboxStack = null;
+                    }
+                } else {
+                    lootboxOpeningTimer = 0;
+                    lootboxStack = null;
+                }
+
                 // Entity Interaction (RMB Pickup)
-                if (isNewRightClick) {
+                if (!actionConsumed && isNewRightClick) {
                     if (hitEntity instanceof com.za.zenith.entities.ResourceEntity resource) {
                         if (!player.isSwinging()) {
                             float cooldown = resource.getStack().getItem().getInteractionCooldown();
@@ -1002,6 +1058,9 @@ public class InputManager {
                         }
                     }
                 }
+            } else {
+                lootboxOpeningTimer = 0;
+                lootboxStack = null;
             }
             rightMousePressed = rm;
         }

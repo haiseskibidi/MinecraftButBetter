@@ -315,6 +315,7 @@ public class GameLoop {
         renderer.getUIRenderer().renderHunger(window.getWidth(), window.getHeight(), player.getHunger());
         renderer.getUIRenderer().renderStamina(window.getWidth(), window.getHeight(), player.getStamina());
         renderer.getUIRenderer().renderNoise(window.getWidth(), window.getHeight(), player.getNoiseLevel());
+        renderer.getUIRenderer().renderLootboxOpening(window.getWidth(), window.getHeight());
         renderer.renderDebug(currentFps, window.getWidth(), window.getHeight());
         
         window.update();

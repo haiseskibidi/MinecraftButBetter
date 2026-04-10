@@ -71,11 +71,25 @@ public class InventoryLayout {
                 }
             }
 
-            if (targetSlots.isEmpty()) continue;
+            if (targetSlots.isEmpty() && !groupCfg.type.equals("stats")) continue;
             resolvedSlots.put(groupCfg.id, targetSlots);
 
             int groupWidth = 0, groupHeight = 0;
-            if (groupCfg.type.equals("grid")) {
+            if (groupCfg.type.equals("stats")) {
+                // Calculate actual width based on content if not specified or as a minimum
+                int maxLineWidth = 0;
+                int textSize = groupCfg.textSize;
+                for (com.za.zenith.world.items.stats.StatDefinition stat : com.za.zenith.world.items.stats.StatRegistry.getAll()) {
+                     float value = player.getStat(stat.identifier());
+                     String text = "$7" + com.za.zenith.utils.I18n.get(stat.translationKey()) + ": $f" + (int)value;
+                     maxLineWidth = Math.max(maxLineWidth, com.za.zenith.engine.core.GameLoop.getInstance().getRenderer().getUIRenderer().getFontRenderer().getStringWidth(text, textSize));
+                }
+                String title = "$b$l" + com.za.zenith.utils.I18n.get("ui.stats").toUpperCase();
+                maxLineWidth = Math.max(maxLineWidth, com.za.zenith.engine.core.GameLoop.getInstance().getRenderer().getUIRenderer().getFontRenderer().getStringWidth(title, 16));
+                
+                groupWidth = Math.max(groupCfg.width, maxLineWidth + groupCfg.padding * 2 + 10); // Added slight extra buffer
+                groupHeight = groupCfg.height;
+            } else if (groupCfg.type.equals("grid")) {
                 int cols = groupCfg.cols;
                 int rows = (targetSlots.size() + cols - 1) / cols;
                 groupWidth = cols * slotSize + (cols - 1) * groupCfg.spacing;
@@ -266,5 +280,3 @@ public class InventoryLayout {
         }
     }
 }
-
-
