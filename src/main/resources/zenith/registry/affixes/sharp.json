@@ -1,0 +1,11 @@
+{
+  "identifier": "zenith:sharp",
+  "translationKey": "affix.zenith.sharp",
+  "rarityId": "zenith:advanced",
+  "type": "PREFIX",
+  "stats": {
+    "zenith:penetration": 10.0,
+    "zenith:trauma": 5.0
+  },
+  "applicableTo": ["tag:zenith:bladed", "tag:zenith:melee"]
+}

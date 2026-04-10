@@ -54,6 +54,8 @@ public class DataLoader {
         for (String ns : namespaces) {
             loadStats(ns);
             loadRarities(ns);
+            loadAffixRarities(ns);
+            loadAffixes(ns);
         }
 
         // 1. Map blocks to items automatically (BEFORE loading JSON items to reserve IDs)
@@ -961,6 +963,60 @@ public class DataLoader {
                     color,
                     obj.get("affixSlots").getAsInt(),
                     obj.get("weight").getAsInt()
+                ));
+            });
+        }
+    }
+
+    private static void loadAffixRarities(String namespace) {
+        String path = namespace + "/registry/affix_rarities";
+        List<String> files = listResources(path);
+        for (String file : files) {
+            loadResource(path + "/" + file, el -> {
+                JsonObject obj = el.getAsJsonObject();
+                Identifier id = Identifier.of(obj.get("identifier").getAsString());
+                JsonArray col = obj.getAsJsonArray("color");
+                org.joml.Vector3f color = new org.joml.Vector3f(col.get(0).getAsFloat(), col.get(1).getAsFloat(), col.get(2).getAsFloat());
+                
+                com.za.zenith.world.items.stats.AffixRarityRegistry.register(new com.za.zenith.world.items.stats.AffixRarityDefinition(
+                    id,
+                    obj.get("translationKey").getAsString(),
+                    color,
+                    obj.get("weight").getAsInt()
+                ));
+            });
+        }
+    }
+
+    private static void loadAffixes(String namespace) {
+        String path = namespace + "/registry/affixes";
+        List<String> files = listResources(path);
+        for (String file : files) {
+            loadResource(path + "/" + file, el -> {
+                JsonObject obj = el.getAsJsonObject();
+                Identifier id = Identifier.of(obj.get("identifier").getAsString());
+                Identifier rarityId = Identifier.of(obj.get("rarityId").getAsString());
+                com.za.zenith.world.items.stats.AffixDefinition.Type type = com.za.zenith.world.items.stats.AffixDefinition.Type.valueOf(obj.get("type").getAsString().toUpperCase());
+                
+                java.util.Map<Identifier, Float> stats = new java.util.HashMap<>();
+                JsonObject statsObj = obj.getAsJsonObject("stats");
+                for (String key : statsObj.keySet()) {
+                    stats.put(Identifier.of(key), statsObj.get(key).getAsFloat());
+                }
+                
+                java.util.List<String> applicableTo = new java.util.ArrayList<>();
+                JsonArray appArr = obj.getAsJsonArray("applicableTo");
+                for (JsonElement e : appArr) {
+                    applicableTo.add(e.getAsString());
+                }
+                
+                com.za.zenith.world.items.stats.AffixRegistry.register(new com.za.zenith.world.items.stats.AffixDefinition(
+                    id,
+                    obj.get("translationKey").getAsString(),
+                    rarityId,
+                    type,
+                    stats,
+                    applicableTo
                 ));
             });
         }

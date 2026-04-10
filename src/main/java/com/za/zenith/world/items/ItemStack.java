@@ -8,8 +8,19 @@ public class ItemStack {
     private int durability;
     private com.za.zenith.utils.Identifier rarity;
     private final com.za.zenith.world.items.stats.StatContainer stats = new com.za.zenith.world.items.stats.StatContainer();
+    private final java.util.List<com.za.zenith.utils.Identifier> activeAffixes = new java.util.ArrayList<>();
     private com.za.zenith.world.inventory.ItemInventory itemInventory;
     private float temperature;
+
+    public void addAffix(com.za.zenith.utils.Identifier affixId) {
+        if (!activeAffixes.contains(affixId)) {
+            activeAffixes.add(affixId);
+        }
+    }
+
+    public java.util.List<com.za.zenith.utils.Identifier> getActiveAffixes() {
+        return activeAffixes;
+    }
 
     public ItemStack(Item item) {
         this(item, 1);
@@ -53,25 +64,57 @@ public class ItemStack {
     }
 
     /**
-     * Gets the total stat value, combining base item stats and this stack's modifiers.
+     * Gets the total stat value, combining base item stats, stack modifiers, and affixes.
      */
     public float getStat(com.za.zenith.utils.Identifier statId) {
-        float baseValue = item.getStat(statId);
-        // We use a temporary container to combine base item stats with stack modifiers
-        com.za.zenith.world.items.stats.StatContainer temp = new com.za.zenith.world.items.stats.StatContainer();
-        temp.setBase(statId, baseValue);
+        float totalValue = item.getStat(statId);
         
-        // Add all modifiers from this stack to the calculation
+        // Add manual stack modifiers
         java.util.Map<com.za.zenith.utils.Identifier, Float> stackStats = stats.getAllStats();
         if (stackStats.containsKey(statId)) {
-            temp.addModifier(statId, new com.za.zenith.world.items.stats.StatModifier(
-                com.za.zenith.utils.Identifier.of("zenith:stack_modifiers"),
-                com.za.zenith.world.items.stats.StatModifier.Operation.ADD,
-                stackStats.get(statId)
-            ));
+            totalValue += stackStats.get(statId);
+        }
+
+        // Add affix modifiers
+        for (com.za.zenith.utils.Identifier affixId : activeAffixes) {
+            com.za.zenith.world.items.stats.AffixDefinition affix = com.za.zenith.world.items.stats.AffixRegistry.get(affixId);
+            if (affix != null && affix.stats().containsKey(statId)) {
+                totalValue += affix.stats().get(statId);
+            }
         }
         
-        return temp.get(statId);
+        // Clamp result using stat definition
+        com.za.zenith.world.items.stats.StatDefinition def = com.za.zenith.world.items.stats.StatRegistry.get(statId);
+        if (def != null) {
+            totalValue = Math.clamp(totalValue, def.minValue(), def.maxValue());
+        }
+        
+        return totalValue;
+    }
+
+    public String getDisplayName() {
+        StringBuilder name = new StringBuilder();
+        
+        // Add Prefixes
+        for (com.za.zenith.utils.Identifier affixId : activeAffixes) {
+            com.za.zenith.world.items.stats.AffixDefinition affix = com.za.zenith.world.items.stats.AffixRegistry.get(affixId);
+            if (affix != null && affix.type() == com.za.zenith.world.items.stats.AffixDefinition.Type.PREFIX) {
+                name.append(com.za.zenith.utils.I18n.get(affix.translationKey())).append(" ");
+            }
+        }
+
+        // Base Name
+        name.append(item.getName());
+
+        // Add Suffixes
+        for (com.za.zenith.utils.Identifier affixId : activeAffixes) {
+            com.za.zenith.world.items.stats.AffixDefinition affix = com.za.zenith.world.items.stats.AffixRegistry.get(affixId);
+            if (affix != null && affix.type() == com.za.zenith.world.items.stats.AffixDefinition.Type.SUFFIX) {
+                name.append(" ").append(com.za.zenith.utils.I18n.get(affix.translationKey()));
+            }
+        }
+
+        return name.toString();
     }
 
     public float getTemperature() {

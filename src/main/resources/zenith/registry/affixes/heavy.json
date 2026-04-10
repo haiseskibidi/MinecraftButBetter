@@ -1,0 +1,11 @@
+{
+  "identifier": "zenith:heavy",
+  "translationKey": "affix.zenith.heavy",
+  "rarityId": "zenith:basic",
+  "type": "PREFIX",
+  "stats": {
+    "zenith:impact": 15.0,
+    "zenith:mobility": -10.0
+  },
+  "applicableTo": ["tag:zenith:tools", "tag:zenith:melee"]
+}

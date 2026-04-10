@@ -1,0 +1,12 @@
+{
+  "identifier": "zenith:masterwork",
+  "translationKey": "affix.zenith.masterwork",
+  "rarityId": "zenith:elite",
+  "type": "PREFIX",
+  "stats": {
+    "zenith:impact": 20.0,
+    "zenith:handling": 15.0,
+    "zenith:balance": 10.0
+  },
+  "applicableTo": ["tag:zenith:tools", "tag:zenith:melee", "tag:zenith:armor"]
+}
