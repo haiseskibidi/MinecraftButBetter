@@ -65,6 +65,7 @@ public class Player extends LivingEntity {
     private final com.za.zenith.engine.graphics.model.ViewmodelController viewmodelController = new com.za.zenith.engine.graphics.model.ViewmodelController();
     private final com.za.zenith.engine.graphics.model.ViewmodelPhysics mainHandPhys = new com.za.zenith.engine.graphics.model.ViewmodelPhysics();
     private float lerpedWeight = 0.2f;
+    private float offhandWeight = 0.0f; // Вес видимости левой руки
     private boolean physicsInitialized = false;
 
     // Locomotion Engine
@@ -426,15 +427,37 @@ public class Player extends LivingEntity {
                 mainHandPhys.update(deltaTime, tPos, tRot, lerpedWeight, extF);
                 
                 Vector3f a = mainHandPhys.currentRot.getEulerAnglesXYZ(new Vector3f());
-                sh.animRotation.set(a.x * 0.1f, a.y * 0.1f, a.z * 0.1f);
-                fo.animRotation.set(a.x * 0.2f, a.y * 0.2f, a.z * 0.2f);
-                hand.animRotation.set(a.x * 0.7f, a.y * 0.7f, a.z * 0.7f);
-                sh.animRotation.x += lerpedWeight * 0.05f;
+                
+                // Update offhand visibility weight
+                boolean offhandNeeded = inventory.getStack(Inventory.SLOT_OFFHAND) != null || parkourWeight > 0.1f;
+                float offhandTarget = offhandNeeded ? 1.0f : 0.0f;
+                offhandWeight += (offhandTarget - offhandWeight) * 5.0f * deltaTime;
 
-                // Apply swing rotations dynamically across the arm joints (more shoulder/forearm for weight)
-                sh.animRotation.add(swingPitch * 0.25f, swingYaw * 0.25f, swingRoll * 0.25f);
-                fo.animRotation.add(swingPitch * 0.35f, swingYaw * 0.35f, swingRoll * 0.35f);
-                hand.animRotation.add(swingPitch * 0.4f, swingYaw * 0.4f, swingRoll * 0.4f);
+                // Universal bone update
+                for (com.za.zenith.engine.graphics.model.ModelNode node : viewmodel.getAllNodes()) {
+                    boolean isLeft = node.name.endsWith("_l");
+                    float depthFactor = node.name.contains("hand") ? 0.7f : (node.name.contains("forearm") ? 0.2f : 0.1f);
+                    
+                    // Apply base inertia
+                    node.animRotation.set(a.x * depthFactor, a.y * depthFactor * (isLeft ? -1 : 1), a.z * depthFactor * (isLeft ? -1 : 1));
+                    
+                    // Apply swing impact
+                    float sF = node.name.contains("hand") ? 0.4f : (node.name.contains("forearm") ? 0.35f : 0.25f);
+                    node.animRotation.add(swingPitch * sF, swingYaw * sF, swingRoll * sF);
+                    
+                    if (node.name.equals("shoulder_r")) node.animRotation.x += lerpedWeight * 0.05f;
+
+                    // Dynamic visibility for left hand: rotate down if not needed
+                    if (isLeft) {
+                        float hideFactor = 1.0f - offhandWeight;
+                        if (node.name.startsWith("shoulder")) {
+                            node.animRotation.x -= (float)Math.toRadians(110.0f * hideFactor); // Rotate DOWN
+                            node.animRotation.z += (float)Math.toRadians(25.0f * hideFactor);  // Tilt slightly
+                            node.animTranslation.y -= 0.8f * hideFactor; // Pull down further
+                            node.animTranslation.z += 0.2f * hideFactor; // Pull back slightly
+                        }
+                    }
+                }
 
                 Vector3f finalPos = new Vector3f(mainHandPhys.currentPos).add(swingPosX, swingPosY, swingPosZ);
                 viewmodel.updateHierarchy(new org.joml.Matrix4f().identity().translate(finalPos));

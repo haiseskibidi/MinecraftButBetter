@@ -205,9 +205,9 @@ public class AnimationEditorRenderer {
             node.mesh.render();
             shader.setBoolean("isHand", false);
         }
-        if (node.name.equals("item_attachment_r") && state.heldStack != null) {
+        if (node.name.equals("socket_palm_r") && state.heldStack != null) {
             if (isSelected) { shader.setBoolean("isHand", true); shader.setFloat("uHandPartWeight", 1.0f); }
-            viewmodelRenderer.getHeldItemRenderer().render(node.globalMatrix, state.heldStack, shader, atlas, true, isSelected ? 1.0f : 0.0f);
+            viewmodelRenderer.getHeldItemRenderer().render(node.globalMatrix, state.heldStack, shader, atlas, isSelected ? 1.0f : 0.0f);
             shader.setBoolean("isHand", false);
         }
         for (ModelNode child : node.children) renderRecursive(child, state, atlas);

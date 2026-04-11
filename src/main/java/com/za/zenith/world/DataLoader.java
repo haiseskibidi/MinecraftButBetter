@@ -924,12 +924,17 @@ public class DataLoader {
 
                 if (comps.has("zenith:viewmodel") || comps.has("viewmodel")) {
                     JsonObject v = comps.has("zenith:viewmodel") ? comps.getAsJsonObject("zenith:viewmodel") : comps.getAsJsonObject("viewmodel");
-                    JsonArray pos = v.getAsJsonArray("translation");
-                    JsonArray rot = v.getAsJsonArray("rotation");
-                    float scale = v.get("scale").getAsFloat();
+                    String socket = v.has("socket") ? v.get("socket").getAsString() : null;
+                    float[] translation = v.has("translation") ? GSON.fromJson(v.getAsJsonArray("translation"), float[].class) : new float[]{0, 0, 0};
+                    float[] rotation = v.has("rotation") ? GSON.fromJson(v.getAsJsonArray("rotation"), float[].class) : new float[]{0, 0, 0};
+                    float scale = v.has("scale") ? v.get("scale").getAsFloat() : 1.0f;
+                    
+                    item.addComponent(com.za.zenith.world.items.component.ViewmodelComponent.class, 
+                        new com.za.zenith.world.items.component.ViewmodelComponent(socket, translation, rotation, scale));
+                    
                     item.setViewmodelTransform(new Item.ViewmodelTransform(
-                        pos.get(0).getAsFloat(), pos.get(1).getAsFloat(), pos.get(2).getAsFloat(),
-                        rot.get(0).getAsFloat(), rot.get(1).getAsFloat(), rot.get(2).getAsFloat(),
+                        translation[0], translation[1], translation[2],
+                        rotation[0], rotation[1], rotation[2],
                         scale
                     ));
                 }

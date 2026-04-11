@@ -25,15 +25,78 @@ public class ViewmodelRenderer {
         // 1. Отрисовка скелета рук
         renderNode(viewmodel.root, shader, handHeat);
 
-        // 2. Отрисовка предметов в точках привязки
-        ModelNode mainHandNode = findNode(viewmodel.root, "item_attachment_r");
-        if (mainHandNode != null && mainHand != null) {
-            heldItemRenderer.render(mainHandNode.globalMatrix, mainHand, shader, atlas, true, itemHeat);
+        // 2. Отрисовка предметов в сокетах (Data-Driven Sockets)
+        renderSockets(viewmodel.root, shader, atlas, mainHand, offHand, itemHeat);
+    }
+
+    private void renderSockets(ModelNode node, Shader shader, DynamicTextureAtlas atlas, ItemStack mainHand, ItemStack offHand, float itemHeat) {
+        if (node.name.startsWith("socket_")) {
+            // Check Main Hand
+            renderItemInSocket(node, mainHand, shader, atlas, true, itemHeat);
+            // Check Off Hand
+            renderItemInSocket(node, offHand, shader, atlas, false, itemHeat);
         }
 
-        ModelNode offHandNode = findNode(viewmodel.root, "item_attachment_l");
-        if (offHandNode != null && offHand != null) {
-            heldItemRenderer.render(offHandNode.globalMatrix, offHand, shader, atlas, false, itemHeat);
+        for (ModelNode child : node.children) {
+            renderSockets(child, shader, atlas, mainHand, offHand, itemHeat);
+        }
+    }
+
+    private void renderItemInSocket(ModelNode socketNode, ItemStack stack, Shader shader, DynamicTextureAtlas atlas, boolean isMainHand, float itemHeat) {
+        if (stack == null) return;
+        
+        com.za.zenith.world.items.Item item = stack.getItem();
+        com.za.zenith.world.items.component.ViewmodelComponent vmComp = 
+            item.getComponent(com.za.zenith.world.items.component.ViewmodelComponent.class);
+        
+        String targetSocket;
+        if (vmComp != null && vmComp.socket() != null) {
+            targetSocket = vmComp.socket();
+            if (!targetSocket.endsWith("_r") && !targetSocket.endsWith("_l")) {
+                targetSocket += (isMainHand ? "_r" : "_l");
+            }
+        } else {
+            targetSocket = isMainHand ? "socket_palm_r" : "socket_palm_l";
+        }
+        
+        if (socketNode.name.equals(targetSocket)) {
+            org.joml.Matrix4f transform = new org.joml.Matrix4f(socketNode.globalMatrix);
+            
+            float tx, ty, tz, rx, ry, rz, scale;
+            
+            if (vmComp != null) {
+                tx = vmComp.translation()[0] / 16.0f;
+                ty = vmComp.translation()[1] / 16.0f;
+                tz = vmComp.translation()[2] / 16.0f;
+                rx = vmComp.rotation()[0];
+                ry = vmComp.rotation()[1];
+                rz = vmComp.rotation()[2];
+                scale = vmComp.scale();
+            } else {
+                if (item.isBlock()) {
+                    tx = 0; ty = 0.15f; tz = 0;
+                    rx = 30; ry = isMainHand ? 15 : -15; rz = 0;
+                    scale = 0.4f;
+                } else {
+                    tx = 0; ty = -0.1f; tz = 0;
+                    rx = 0; ry = isMainHand ? -90 : 90; rz = 0;
+                    scale = 0.85f;
+                }
+            }
+
+            transform.translate(tx, ty, tz);
+            transform.rotateXYZ((float)Math.toRadians(rx), (float)Math.toRadians(ry), (float)Math.toRadians(rz));
+            transform.scale(scale);
+            
+            if (!item.isBlock()) {
+                Mesh itemMesh = heldItemRenderer.getOrGenerateMesh(item, atlas);
+                if (itemMesh != null) {
+                    org.joml.Vector3f go = itemMesh.getGraspOffset();
+                    transform.translate(-go.x, -go.y, -go.z);
+                }
+            }
+            
+            heldItemRenderer.render(transform, stack, shader, atlas, itemHeat);
         }
     }
 

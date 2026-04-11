@@ -1,33 +1,66 @@
 {
-  "texture": "zenith/textures/default.png",
+  "texture": "zenith:textures/default.png",
   "bones": [
     {
       "name": "shoulder_r",
-      "pivot": [5.0, -4.0, 1.0],
+      "pivot": [4.0, -4.0, -2.0],
       "cubes": [
-        { "origin": [3.5, -6.0, -7.0], "size": [3.0, 3.5, 35.0], "uv": [0, 0] }
+        { "origin": [-1.0, -1.5, -5.0], "size": [2.0, 3.0, 5.0], "uv": [0, 0] }
       ]
     },
     {
       "name": "forearm_r",
       "parent": "shoulder_r",
-      "pivot": [5.0, -5.0, -6.0],
+      "pivot": [0.0, 0.0, -5.0],
       "cubes": [
-        { "origin": [4.0, -6.5, -13.0], "size": [2.5, 3.0, 9.0], "uv": [0, 0] }
+        { "origin": [-0.75, -1.0, -5.0], "size": [1.5, 2.5, 5.0], "uv": [0, 0] }
       ]
     },
     {
       "name": "hand_r",
       "parent": "forearm_r",
-      "pivot": [5.0, -5.0, -12.0],
+      "pivot": [0.0, 0.0, -5.0],
       "cubes": [
-        { "origin": [3.5, -7.5, -16.5], "size": [3.5, 4.5, 5.0], "uv": [0, 0] }
+        { "origin": [-1.25, -1.5, -3.0], "size": [2.5, 3.0, 3.0], "uv": [0, 0] }
       ]
     },
     {
-      "name": "item_attachment_r",
+      "name": "socket_palm_r",
       "parent": "hand_r",
-      "pivot": [5.0, -5.0, -14.5]
+      "pivot": [0.0, 0.0, -3.0]
+    },
+    {
+      "name": "shoulder_l",
+      "pivot": [-4.0, -4.0, -2.0],
+      "cubes": [
+        { "origin": [-1.0, -1.5, -5.0], "size": [2.0, 3.0, 5.0], "uv": [0, 0] }
+      ]
+    },
+    {
+      "name": "forearm_l",
+      "parent": "shoulder_l",
+      "pivot": [0.0, 0.0, -5.0],
+      "cubes": [
+        { "origin": [-0.75, -1.0, -5.0], "size": [1.5, 2.5, 5.0], "uv": [0, 0] }
+      ]
+    },
+    {
+      "name": "hand_l",
+      "parent": "forearm_l",
+      "pivot": [0.0, 0.0, -5.0],
+      "cubes": [
+        { "origin": [-1.25, -1.5, -3.0], "size": [2.5, 3.0, 3.0], "uv": [0, 0] }
+      ]
+    },
+    {
+      "name": "socket_palm_l",
+      "parent": "hand_l",
+      "pivot": [0.0, 0.0, -3.0]
+    },
+    {
+      "name": "socket_wrist_l",
+      "parent": "hand_l",
+      "pivot": [0.0, 0.0, 0.0]
     }
   ]
 }

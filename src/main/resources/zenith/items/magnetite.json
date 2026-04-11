@@ -6,14 +6,20 @@
   "visualScale": 1.0,
   "maxStackSize": 1,
   "components": {
-    "equipment": {
+    "zenith:equipment": {
       "slot": "offhand",
       "strict": true
     },
-    "magnetic": {
+    "zenith:magnetic": {
       "attractionRadius": 4.0,
       "pickupRadius": 0.6,
       "attractionForce": 45.0
+    },
+    "viewmodel": {
+      "socket": "socket_palm",
+      "translation": [0, 0, 0],
+      "rotation": [0, 90, 0],
+      "scale": 0.5
     }
   }
 }

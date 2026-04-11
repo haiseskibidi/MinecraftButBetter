@@ -13,36 +13,21 @@ public class Viewmodel {
 
     public Viewmodel(ViewmodelDefinition def) {
         this.def = def;
-        this.root = new ModelNode("root", null); // Abstract root
+        this.root = new ModelNode("root", null);
         
-        // Build the tree
-        Map<String, ModelNode> tempNodes = new HashMap<>();
+        // 1. Create all nodes
         for (BoneDefinition bone : def.bones) {
             ModelNode node = new ModelNode(bone.name, bone);
-            tempNodes.put(bone.name, node);
             nodesMap.put(bone.name, node);
         }
         
+        // 2. Build tree structure
         for (BoneDefinition bone : def.bones) {
-            ModelNode node = tempNodes.get(bone.name);
-            if (bone.parent != null && tempNodes.containsKey(bone.parent)) {
-                ModelNode parentNode = tempNodes.get(bone.parent);
-                parentNode.children.add(node);
-                
-                // Calculate relative pivot: this bone's pivot minus parent's pivot
-                if (bone.pivot != null && parentNode.def.pivot != null) {
-                    node.basePivot.set(
-                        (bone.pivot[0] - parentNode.def.pivot[0]) / 16.0f,
-                        (bone.pivot[1] - parentNode.def.pivot[1]) / 16.0f,
-                        (bone.pivot[2] - parentNode.def.pivot[2]) / 16.0f
-                    );
-                }
+            ModelNode node = nodesMap.get(bone.name);
+            if (bone.parent != null && nodesMap.containsKey(bone.parent)) {
+                nodesMap.get(bone.parent).children.add(node);
             } else {
                 root.children.add(node);
-                // For root children, the pivot is already relative to [0,0,0]
-                if (bone.pivot != null) {
-                    node.basePivot.set(bone.pivot[0] / 16.0f, bone.pivot[1] / 16.0f, bone.pivot[2] / 16.0f);
-                }
             }
         }
     }
@@ -51,29 +36,24 @@ public class Viewmodel {
         return nodesMap.get(name);
     }
 
-    public List<ModelNode> getAllNodes() {
+    public java.util.List<ModelNode> getAllNodes() {
         return new java.util.ArrayList<>(nodesMap.values());
     }
-    
+
+    public void updateHierarchy(Matrix4f baseMatrix) {
+        root.updateGlobalMatrix(baseMatrix);
+    }
+
     public void initMeshes(DynamicTextureAtlas atlas) {
-        String texturePath = def.texture != null ? def.texture : "zenith/textures/entity/hands.png";
-        if (atlas.uvFor(texturePath) == null) {
-            texturePath = "zenith/textures/default.png";
-        }
+        String texturePath = def.texture != null ? def.texture : "zenith/textures/default.png";
         for (ModelNode node : nodesMap.values()) {
             if (node.def != null && node.def.cubes != null && !node.def.cubes.isEmpty()) {
                 node.mesh = ViewmodelMeshGenerator.generateBoneMesh(node.def, texturePath, atlas);
             }
         }
     }
-    
-    public void updateHierarchy(Matrix4f baseMatrix) {
-        root.updateGlobalMatrix(baseMatrix);
-    }
 
     public void cleanup() {
         root.cleanup();
     }
 }
-
-
