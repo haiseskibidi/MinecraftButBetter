@@ -72,11 +72,26 @@
 
 ### com.za.zenith.world.items (UPDATED)
 - **ItemSearchEngine.java**: Универсальный движок фильтрации. Поддерживает поиск по локализованным именам, ID и путям.
-- **Item.java**: Базовый класс предмета.
+- **Item.java**: Базовый класс предмета. Теперь содержит `Gender`, `Tags` и `defaultRarity`.
+- **ItemStack.java**: Состояние предмета в инвентаре. Хранит `rarity`, `activeAffixes` и `StatContainer`. Поддерживает генерацию гендерно-зависимых имен и авто-перенос в тултипах.
 - **ItemRegistry.java**: Центральный реестр предметов.
+- **DataLoader.java**: Загрузка JSON. Обновлен для парсинга RPG-полей предметов (rarity, gender, tags) и Loot Tables.
+
+### com.za.zenith.world.items.stats (NEW)
+- **StatRegistry.java**: Реестр определений всех игровых характеристик.
+- **RarityRegistry.java**: Реестр уровней редкости (Common...Legendary).
+- **AffixRegistry.java**: Реестр префиксов/суффиксов.
+- **StatContainer.java**: Хранилище и калькулятор модификаторов для Player и ItemStack. Поддерживает динамический пересчет при добавлении аффиксов.
+- **RarityDefinition.java**: Модель данных редкости, включая `colorCode` для UI.
+- **AffixDefinition.java**: Модель данных аффикса с условиями применимости (`applicableTo`).
+
+### com.za.zenith.world.items.loot (NEW)
+- **LootTable.java**: Определение пулов и весов выпадения предметов.
+- **LootGenerator.java**: Ядро рандомизации. Реализует ролл редкости, аффиксов и предметов из пулов с учетом весов контейнера.
 
 ### com.za.zenith.engine.graphics.ui (UPDATED)
-- **UISearchBar.java**: Переиспользуемый компонент поисковой строки. Реализует логику курсора, выделения и работы с буфером обмена.
+- **UISearchBar.java**: Переиспользуемый компонент поисковой строки.
+- **FontRenderer.java**: Отрисовка текста. Реализована поддержка цветовых кодов и стилей через символ `$`.
 - **InventoryScreen.java**: Базовый класс экранов инвентаря.
 
 ## Entity System (v5.6 NEW)
