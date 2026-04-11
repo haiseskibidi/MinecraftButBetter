@@ -250,7 +250,7 @@ public class InventoryLayout {
         return calculateCoord(valueObj, total, 0, 0);
     }
 
-    private static int calculateCoord(Object valueObj, int total, int slotSize, int spacing) {
+    public static int calculateCoord(Object valueObj, int total, int slotSize, int spacing) {
         if (valueObj == null) return 0;
         
         // Support direct numeric values from JSON (old way)

@@ -12,8 +12,26 @@ public class GUIConfig {
     public String title;
     public boolean hudVisible = false; // If true, this GUI can be rendered as part of the HUD
     public List<GroupConfig> groups;
+    public java.util.Map<String, HUDElementConfig> hudElements;
     public SelectionStyle selection = new SelectionStyle();
     public BackgroundConfig background = new BackgroundConfig();
+
+    public static class HUDElementConfig {
+        public String type = "text"; // text, bar
+        public String anchor = "center"; // top, bottom, left, right, center
+        public String alignX = "center";
+        public String alignY = "center";
+        public Object x = 0;
+        public Object y = 0;
+        public int fontSize = 18;
+        public int minFontSize = 12;
+        public int maxWidth = 300;
+        public int width = 100;
+        public int height = 10;
+        public float[] color = {1.0f, 1.0f, 1.0f, 1.0f};
+        public float[] backgroundColor = {0.0f, 0.0f, 0.0f, 0.5f};
+        public boolean visible = true;
+    }
 
     public static class SelectionStyle {
         public String type = "brackets"; // border, brackets, glow, none

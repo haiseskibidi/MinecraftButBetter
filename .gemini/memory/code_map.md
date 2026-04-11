@@ -89,10 +89,14 @@
 - **LootTable.java**: Определение пулов и весов выпадения предметов.
 - **LootGenerator.java**: Ядро рандомизации. Реализует ролл редкости, аффиксов и предметов из пулов с учетом весов контейнера.
 
-### com.za.zenith.engine.graphics.ui (UPDATED)
-- **UISearchBar.java**: Переиспользуемый компонент поисковой строки.
-- **FontRenderer.java**: Отрисовка текста. Реализована поддержка цветовых кодов и стилей через символ `$`.
-- **InventoryScreen.java**: Базовый класс экранов инвентаря.
+- `com.za.zenith.engine.graphics.ui`
+    - `UISearchBar.java`: Переиспользуемый компонент поисковой строки.
+    - `FontRenderer.java`: Отрисовка текста. Реализована поддержка цветовых кодов и стилей через символ `$`.
+    - `InventoryScreen.java`: Базовый класс экранов инвентаря.
+    - `GUIConfig.java`: Модель конфигурации GUI. Добавлена поддержка `HUDElementConfig` для гибкой настройки HUD.
+- `com.za.zenith.engine.graphics.ui.renderers`
+    - `HUDRenderer.java`: Отрисовка HUD. Реализована полная поддержка `hud.json` и динамическое масштабирование имен предметов.
+    - `InventoryScreenRenderer.java`: Отрисовка инвентарей. Исправлено цветовое кодирование отрицательных статов в тултипах.
 
 ## Entity System (v5.6 NEW)
 ### com.za.zenith.entities.Entity (UPDATED)

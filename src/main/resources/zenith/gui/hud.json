@@ -1,0 +1,54 @@
+{
+  "id": "zenith:hud",
+  "hudVisible": true,
+  "hudElements": {
+    "item_name": {
+      "type": "text",
+      "anchor": "bottom",
+      "alignX": "center",
+      "alignY": "bottom",
+      "x": "0px",
+      "y": "-60px",
+      "fontSize": 20,
+      "minFontSize": 12,
+      "maxWidth": 280,
+      "color": [1.0, 1.0, 1.0, 1.0],
+      "visible": true
+    },
+    "hunger": {
+      "type": "text",
+      "anchor": "bottom_center",
+      "alignX": "left",
+      "alignY": "bottom",
+      "x": "200px",
+      "y": "-75px",
+      "fontSize": 18,
+      "color": [1.0, 0.8, 0.2, 1.0],
+      "visible": true
+    },
+    "stamina": {
+      "type": "bar",
+      "anchor": "bottom_center",
+      "alignX": "left",
+      "alignY": "bottom",
+      "x": "200px",
+      "y": "-55px",
+      "width": 120,
+      "height": 8,
+      "color": [0.2, 0.8, 0.2, 1.0],
+      "backgroundColor": [0.0, 0.0, 0.0, 0.8],
+      "visible": true
+    },
+    "noise": {
+      "type": "text",
+      "anchor": "bottom_center",
+      "alignX": "right",
+      "alignY": "bottom",
+      "x": "-200px",
+      "y": "-75px",
+      "fontSize": 18,
+      "color": [0.6, 0.6, 1.0, 1.0],
+      "visible": true
+    }
+  }
+}
