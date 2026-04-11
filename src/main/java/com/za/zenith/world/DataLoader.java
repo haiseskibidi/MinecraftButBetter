@@ -738,7 +738,8 @@ public class DataLoader {
                     String item = dropObj.get("item").getAsString();
                     float chance = dropObj.has("chance") ? dropObj.get("chance").getAsFloat() : 1.0f;
                     boolean dropOnHit = dropObj.has("drop_on_hit") && dropObj.get("drop_on_hit").getAsBoolean();
-                    def.addDropRule(new com.za.zenith.world.blocks.DropRule(tool, item, chance, dropOnHit));
+                    float penalty = dropObj.has("durability_penalty") ? dropObj.get("durability_penalty").getAsFloat() : 0.6f;
+                    def.addDropRule(new com.za.zenith.world.blocks.DropRule(tool, item, chance, dropOnHit, penalty));
                 }
             }
 

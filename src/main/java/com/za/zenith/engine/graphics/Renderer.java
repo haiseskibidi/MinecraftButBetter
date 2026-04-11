@@ -199,6 +199,7 @@ public class Renderer {
         else postProcessor.processPassthrough(framebuffer.getColorTextureId(), framebuffer.getDepthTextureId(), window.getWidth(), window.getHeight());
         
         uiRenderer.renderCrosshair(window.getWidth(), window.getHeight());
+        uiRenderer.renderLogo(window.getWidth(), window.getHeight());
         uiRenderer.renderHotbar(window.getWidth(), window.getHeight(), atlas);
         uiRenderer.renderPauseMenu(window.getWidth(), window.getHeight());
     }

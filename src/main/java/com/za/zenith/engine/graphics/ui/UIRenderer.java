@@ -158,6 +158,10 @@ public class UIRenderer {
         hudRenderer.renderNoise(hotbar, screenWidth, screenHeight, noise);
     }
 
+    public void renderLogo(int screenWidth, int screenHeight) {
+        hudRenderer.renderLogo(screenWidth, screenHeight);
+    }
+
     public void renderLootboxOpening(int sw, int sh) {
         hudRenderer.renderLootboxOpening(sw, sh);
     }

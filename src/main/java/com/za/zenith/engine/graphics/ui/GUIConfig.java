@@ -18,6 +18,7 @@ public class GUIConfig {
 
     public static class HUDElementConfig {
         public String type = "text"; // text, bar
+        public String texture; // Для типа image
         public String anchor = "center"; // top, bottom, left, right, center
         public String alignX = "center";
         public String alignY = "center";

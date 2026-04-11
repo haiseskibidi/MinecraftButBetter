@@ -49,6 +49,18 @@
       "fontSize": 18,
       "color": [0.6, 0.6, 1.0, 1.0],
       "visible": true
+    },
+    "logo": {
+      "type": "image",
+      "texture": "zenith/gui/zenith_logo.png",
+      "anchor": "top_right",
+      "alignX": "right",
+      "alignY": "top",
+      "x": "-20px",
+      "y": "20px",
+      "width": 64,
+      "height": 64,
+      "visible": true
     }
   }
 }

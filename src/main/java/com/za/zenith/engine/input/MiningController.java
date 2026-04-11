@@ -159,8 +159,8 @@ public class MiningController {
                                         world.spawnEntity(dropEntity);
                                         com.za.zenith.utils.Logger.info("Progressive drop spawned: " + rule.dropItemIdentifier());
                                         
-                                        // Softened penalty: tearing off a piece damages the block by roughly half of the drop chance
-                                        currentDamage += maxHealth * rule.chance() * 0.6f;
+                                        // Penalty: tearing off a piece damages the block
+                                        currentDamage += maxHealth * rule.chance() * rule.durabilityPenalty();
                                     }
                                 }
                             }

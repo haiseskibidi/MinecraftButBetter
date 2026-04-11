@@ -329,6 +329,23 @@ public class HUDRenderer {
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
     }
+
+    public void renderLogo(int screenWidth, int screenHeight) {
+        GUIConfig.HUDElementConfig cfg = getHUDConfig("logo");
+        if (cfg == null || !cfg.visible || cfg.texture == null) return;
+
+        int width = cfg.width;
+        int height = cfg.height;
+        int[] pos = calculateElementPos(cfg, screenWidth, screenHeight, width, height);
+        
+        // Если путь не содержит src/main/resources, добавляем его
+        String texturePath = cfg.texture;
+        if (!texturePath.startsWith("src/main/resources/")) {
+            texturePath = "src/main/resources/" + texturePath;
+        }
+        
+        renderer.getPrimitivesRenderer().renderExternalImage(texturePath, pos[0], pos[1], width, height, screenWidth, screenHeight);
+    }
 }
 
 
