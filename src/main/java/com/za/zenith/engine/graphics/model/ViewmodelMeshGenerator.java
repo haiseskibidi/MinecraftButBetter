@@ -22,14 +22,16 @@ public class ViewmodelMeshGenerator {
         float texSize = 16.0f; 
 
         for (BoneDefinition.CubeDefinition cube : bone.cubes) {
-            // ВАЖНО: В новой системе origin уже ОТНОСИТЕЛЬНЫЙ пивота в JSON.
-            // Поэтому нам не нужно вычитать bone.pivot здесь.
-            float x = cube.origin[0] / 16.0f;
-            float y = cube.origin[1] / 16.0f;
-            float z = cube.origin[2] / 16.0f;
             float w = cube.size[0] / 16.0f;
             float h = cube.size[1] / 16.0f;
             float d = cube.size[2] / 16.0f;
+
+            float x = cube.x / 16.0f;
+            float y = cube.y / 16.0f;
+            // В OpenGL начало куба по Z должно быть самым дальним (минимальным),
+            // чтобы он рос "на нас". Но мы хотим чтобы он рос "ОТ нас".
+            // Поэтому glZ = -(cubeZ + depth)
+            float z = -(cube.z / 16.0f + d);
 
             int u = cube.uv[0];
             int v = cube.uv[1];

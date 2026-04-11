@@ -27,7 +27,8 @@ public class ModelNode {
     public ModelNode(String name, BoneDefinition def) {
         this.name = name;
         this.def = def;
-        this.basePivot = def != null && def.pivot != null ? new Vector3f(def.pivot[0] / 16.0f, def.pivot[1] / 16.0f, def.pivot[2] / 16.0f) : new Vector3f();
+        // Конвертация: в OpenGL Z направлен НА игрока, а в JSON - ОТ игрока.
+        this.basePivot = def != null ? new Vector3f(def.x / 16.0f, def.y / 16.0f, -def.z / 16.0f) : new Vector3f();
         this.baseRotation = def != null && def.rotation != null ? 
             new Vector3f((float)Math.toRadians(def.rotation[0]), (float)Math.toRadians(def.rotation[1]), (float)Math.toRadians(def.rotation[2])) : new Vector3f();
     }

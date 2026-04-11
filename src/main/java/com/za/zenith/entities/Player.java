@@ -436,13 +436,14 @@ public class Player extends LivingEntity {
                 // Universal bone update
                 for (com.za.zenith.engine.graphics.model.ModelNode node : viewmodel.getAllNodes()) {
                     boolean isLeft = node.name.endsWith("_l");
-                    float depthFactor = node.name.contains("hand") ? 0.7f : (node.name.contains("forearm") ? 0.2f : 0.1f);
+                    boolean isHandPart = node.name.contains("hand") || node.name.contains("thumb") || node.name.contains("finger") || node.name.contains("index");
+                    float depthFactor = isHandPart ? 0.7f : (node.name.contains("forearm") ? 0.2f : 0.1f);
                     
                     // Apply base inertia
                     node.animRotation.set(a.x * depthFactor, a.y * depthFactor * (isLeft ? -1 : 1), a.z * depthFactor * (isLeft ? -1 : 1));
                     
                     // Apply swing impact
-                    float sF = node.name.contains("hand") ? 0.4f : (node.name.contains("forearm") ? 0.35f : 0.25f);
+                    float sF = isHandPart ? 0.4f : (node.name.contains("forearm") ? 0.35f : 0.25f);
                     node.animRotation.add(swingPitch * sF, swingYaw * sF, swingRoll * sF);
                     
                     if (node.name.equals("shoulder_r")) node.animRotation.x += lerpedWeight * 0.05f;

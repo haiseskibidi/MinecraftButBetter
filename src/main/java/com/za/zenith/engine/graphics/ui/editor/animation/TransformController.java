@@ -207,9 +207,15 @@ public class TransformController {
             if (p == state.cameraNode || p.def == null || p.def.cubes == null) continue;
             Matrix4f invG = new Matrix4f(p.globalMatrix).invert();
             Vector3f lro = ro.mulPosition(invG, new Vector3f()), lrd = rd.mulDirection(invG, new Vector3f());
-            float px = p.def.pivot[0], py = p.def.pivot[1], pz = p.def.pivot[2];
+            
             for (BoneDefinition.CubeDefinition c : p.def.cubes) {
-                Vector3f min = new Vector3f((c.origin[0] - px)/16f, (c.origin[1] - py)/16f, (c.origin[2] - pz)/16f);
+                // В новой системе c.x/y/z уже относительны пивота.
+                // Но нам нужно учесть инверсию Z в меше: glZ = -(cubeZ + depth)
+                float minX = c.x / 16.0f;
+                float minY = c.y / 16.0f;
+                float minZ = -(c.z / 16.0f + c.size[2] / 16.0f);
+                
+                Vector3f min = new Vector3f(minX, minY, minZ);
                 Vector3f max = new Vector3f(min).add(new Vector3f(c.size[0]/16f, c.size[1]/16f, c.size[2]/16f));
                 Vector2f res = new Vector2f();
                 if (Intersectionf.intersectRayAab(lro, lrd, min, max, res)) {

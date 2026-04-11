@@ -24,6 +24,11 @@ public class Viewmodel {
         // 2. Build tree structure
         for (BoneDefinition bone : def.bones) {
             ModelNode node = nodesMap.get(bone.name);
+            
+            // Конвертация: в OpenGL Z направлен НА игрока, а в JSON - ОТ игрока.
+            // Поэтому инвертируем Z.
+            node.basePivot.set(bone.x / 16.0f, bone.y / 16.0f, -bone.z / 16.0f);
+
             if (bone.parent != null && nodesMap.containsKey(bone.parent)) {
                 nodesMap.get(bone.parent).children.add(node);
             } else {
