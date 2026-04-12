@@ -2,6 +2,6 @@
   "identifier": "zenith:stick",
   "translationKey": "item.zenith.stick",
   "texture": "zenith/textures/item/stick.png",
-  "visualScale": 0.6,
+  "droppedScale": 0.6,
   "interaction_cooldown": 0.5
 }

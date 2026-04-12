@@ -2,7 +2,7 @@
   "identifier": "zenith:stone_shovel",
   "translationKey": "item.zenith.stone_shovel",
   "texture": "zenith/textures/item/stone_shovel.png",
-  "visualScale": 1.15,
+  "droppedScale": 1.15,
   "weight": 2.0,
   "gender": "feminine",
   "tags": ["zenith:tools", "zenith:melee"],

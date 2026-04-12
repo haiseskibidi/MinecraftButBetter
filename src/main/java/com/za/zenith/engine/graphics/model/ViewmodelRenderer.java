@@ -78,12 +78,12 @@ public class ViewmodelRenderer {
                     tx = isMainHand ? -0.15f : 0.15f; 
                     ty = 0.15f; tz = 0;
                     rx = 30; ry = isMainHand ? 15 : -15; rz = 0;
-                    scale = 0.4f;
+                    scale = 0.4f * item.getViewmodelScale();
                 } else {
                     tx = isMainHand ? -0.05f : 0.05f; 
                     ty = -0.1f; tz = 0;
                     rx = 0; ry = isMainHand ? -90 : 90; rz = 0;
-                    scale = 0.85f;
+                    scale = 0.85f * item.getViewmodelScale();
                 }
             }
 

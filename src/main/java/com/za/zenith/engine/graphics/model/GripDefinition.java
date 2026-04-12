@@ -52,7 +52,9 @@ public record GripDefinition(
     public static GripDefinition createAuto(com.za.zenith.world.items.Item item) {
         if (item == null) return createRelaxed();
 
-        float scale = item.getVisualScale();
+        float scale = item.getViewmodelScale();
+        if (item.isBlock()) scale *= 0.4f;
+        else scale *= 0.85f;
         com.za.zenith.world.items.component.ViewmodelComponent vm = item.getComponent(com.za.zenith.world.items.component.ViewmodelComponent.class);
         if (vm != null) scale *= vm.scale();
 

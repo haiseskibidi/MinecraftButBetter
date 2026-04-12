@@ -2,7 +2,7 @@
   "identifier": "zenith:wooden_shovel",
   "translationKey": "item.zenith.wooden_shovel",
   "texture": "zenith/textures/item/wooden_shovel.png",
-  "visualScale": 1.1,
+  "droppedScale": 1.1,
   "weight": 1.2,
   "components": {
     "viewmodel": {

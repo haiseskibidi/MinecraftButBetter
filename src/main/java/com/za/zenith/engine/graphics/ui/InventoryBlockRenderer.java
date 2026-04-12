@@ -59,7 +59,7 @@ public class InventoryBlockRenderer {
             // Трансформации для изометрического вида
             modelMatrix.identity().translate(centerX, centerY, 0);
             
-            float visualScale = size * 0.65f * item.getVisualScale();
+            float visualScale = size * 0.65f * item.getDroppedScale();
             modelMatrix.rotateX((float) Math.toRadians(-30))
                        .rotateY((float) Math.toRadians(45 + rotation))
                        .scale(visualScale, -visualScale, visualScale)

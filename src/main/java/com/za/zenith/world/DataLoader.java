@@ -879,7 +879,9 @@ public class DataLoader {
             Item item = ItemTypeRegistry.create(type, id, identifier, translationKey, texture);
             
             if (obj.has("weight")) item.setWeight(obj.get("weight").getAsFloat());
-            if (obj.has("visualScale")) item.setVisualScale(obj.get("visualScale").getAsFloat());
+            if (obj.has("visualScale")) item.setDroppedScale(obj.get("visualScale").getAsFloat()); // Legacy support
+            if (obj.has("droppedScale")) item.setDroppedScale(obj.get("droppedScale").getAsFloat());
+            if (obj.has("viewmodelScale")) item.setViewmodelScale(obj.get("viewmodelScale").getAsFloat());
             if (obj.has("miningSpeed")) item.setMiningSpeed(obj.get("miningSpeed").getAsFloat());
             if (obj.has("maxStackSize")) item.setMaxStackSize(obj.get("maxStackSize").getAsInt());
             if (obj.has("interaction_cooldown")) item.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());

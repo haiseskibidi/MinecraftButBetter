@@ -417,7 +417,7 @@ public class Player extends LivingEntity {
 
                 // --- 7.1 WORLD COLLISIONS (Tarkov-style) ---
                 float reach = 0.6f; 
-                if (heldItem != null) reach += heldItem.getVisualScale() * 0.4f;
+                if (heldItem != null) reach += heldItem.getViewmodelScale() * 0.4f;
                 Vector3f eyePos = new Vector3f(position).add(0, getEyeHeight(), 0);
                 com.za.zenith.world.physics.RaycastResult hit = com.za.zenith.world.physics.Raycast.raycast(world, eyePos, camForward);
                 Vector3f probePoint = new Vector3f(eyePos).fma(reach * 0.8f, camForward);

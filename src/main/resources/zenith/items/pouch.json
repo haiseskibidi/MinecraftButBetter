@@ -3,7 +3,8 @@
   "translationKey": "item.zenith.pouch",
   "texture": "zenith/textures/item/bundle.png",
   "weight": 0.5,
-  "visualScale": 0.8,
+  "droppedScale": 0.8,
+  "viewmodelScale": 0.5,
   "maxStackSize": 1,
   "components": {
     "equipment": {

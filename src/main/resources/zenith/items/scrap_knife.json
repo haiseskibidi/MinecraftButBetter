@@ -3,7 +3,7 @@
   "translationKey": "item.zenith.scrap_knife",
   "texture": "zenith/textures/item/stone_sword.png",
   "maxStackSize": 1,
-  "visualScale": 1.0,
+  "droppedScale": 1.0,
   "weight": 1.0,
   "components": {
     "zenith:tool": {

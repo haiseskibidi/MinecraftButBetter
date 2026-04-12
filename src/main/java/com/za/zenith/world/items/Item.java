@@ -15,7 +15,8 @@ public class Item {
     protected final String name;
     protected final String texturePath;
     protected float weight = 1.0f;
-    protected float visualScale = 1.0f;
+    protected float droppedScale = 1.0f;
+    protected float viewmodelScale = 1.0f;
     protected float miningSpeed = 0.1f;
     protected int maxStackSize = -1; // -1 means use type default
     protected float interactionCooldown = -1.0f; 
@@ -132,12 +133,20 @@ public class Item {
         this.weight = weight;
     }
 
-    public float getVisualScale() {
-        return visualScale;
+    public float getDroppedScale() {
+        return droppedScale;
     }
 
-    public void setVisualScale(float visualScale) {
-        this.visualScale = visualScale;
+    public void setDroppedScale(float droppedScale) {
+        this.droppedScale = droppedScale;
+    }
+
+    public float getViewmodelScale() {
+        return viewmodelScale;
+    }
+
+    public void setViewmodelScale(float viewmodelScale) {
+        this.viewmodelScale = viewmodelScale;
     }
 
     public void setVisualBounds(org.joml.Vector3f min, org.joml.Vector3f max) {

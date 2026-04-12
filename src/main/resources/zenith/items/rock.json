@@ -2,6 +2,6 @@
   "identifier": "zenith:rock",
   "translationKey": "item.zenith.rock",
   "texture": "zenith/textures/block/cobblestone.png",
-  "visualScale": 0.55,
+  "droppedScale": 0.55,
   "interaction_cooldown": 0.5
 }

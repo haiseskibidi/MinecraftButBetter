@@ -2,7 +2,7 @@
   "identifier": "zenith:stone_axe",
   "translationKey": "item.zenith.stone_axe",
   "texture": "zenith/textures/item/stone_axe.png",
-  "visualScale": 1.2,
+  "droppedScale": 1.2,
   "weight": 1.5,
   "components": {
     "zenith:tool": {

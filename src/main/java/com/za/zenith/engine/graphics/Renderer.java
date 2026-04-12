@@ -492,7 +492,7 @@ public class Renderer {
                             }
                         }
                     }
-                    float scale = item.getVisualScale() * baseScale;
+                    float scale = item.getDroppedScale() * baseScale;
 
                     // Items are centered at (0,0), so they sink by half. Blocks are 0..1, so they don't.
                     float yOffset = item.isBlock() ? 0.0f : scale * 0.5f;
@@ -520,7 +520,7 @@ public class Renderer {
                 }
 
                 if (mesh != null) {
-                    float scale = item.getVisualScale();
+                    float scale = item.getDroppedScale();
                     float thicknessOffset = 0.03125f * scale;
                     
                     modelMatrix.identity()
@@ -604,7 +604,7 @@ public class Renderer {
 
                     if (mesh != null) {
                         org.joml.Vector3f transform = com.za.zenith.world.blocks.CraftingLayoutEngine.getSlotTransform(i, totalItems);
-                        float scale = item.isBlock() ? 0.4f : item.getVisualScale() * 0.6f;
+                        float scale = item.isBlock() ? 0.4f : item.getDroppedScale() * 0.6f;
                         float finalScale = scale * transform.y; 
 
                         BlockPos pos = be.getPos();

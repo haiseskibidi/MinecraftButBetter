@@ -21,7 +21,7 @@ public class ResourceEntity extends Entity {
         // Генерируем точный хитбокс на основе текстуры
         com.za.zenith.world.physics.AABB texAABB = com.za.zenith.utils.TextureAABBGenerator.generateAABB(stack.getItem().getTexturePath());
         if (texAABB != null) {
-            float visualScale = stack.getItem().getVisualScale();
+            float visualScale = stack.getItem().getDroppedScale();
             // Текстура сканируется в XY, но предмет лежит в XZ.
             // Центрируем хитбокс относительно позиции сущности.
             float width = (texAABB.getMax().x - texAABB.getMin().x) * visualScale;

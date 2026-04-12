@@ -3,7 +3,7 @@
   "translationKey": "item.zenith.magnetite",
   "texture": "zenith/textures/item/magnetite.png",
   "weight": 1.2,
-  "visualScale": 1.0,
+  "droppedScale": 1.0,
   "maxStackSize": 1,
   "components": {
     "zenith:equipment": {
