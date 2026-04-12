@@ -68,6 +68,20 @@ public class Player extends LivingEntity {
     private float offhandWeight = 0.0f; // Вес видимости левой руки
     private boolean physicsInitialized = false;
 
+    // Grip States
+    private final Vector3f gripThumbR = new Vector3f();
+    private final Vector3f gripThumbTipR = new Vector3f();
+    private final Vector3f gripIndexR = new Vector3f();
+    private final Vector3f gripIndexTipR = new Vector3f();
+    private final Vector3f gripFingersR = new Vector3f();
+    private final Vector3f gripFingersTipR = new Vector3f();
+    private final Vector3f gripThumbL = new Vector3f();
+    private final Vector3f gripThumbTipL = new Vector3f();
+    private final Vector3f gripIndexL = new Vector3f();
+    private final Vector3f gripIndexTipL = new Vector3f();
+    private final Vector3f gripFingersL = new Vector3f();
+    private final Vector3f gripFingersTipL = new Vector3f();
+
     // Locomotion Engine
     private float locomotionTimer = 0.0f;
     private float movementAlpha = 0.0f;
@@ -433,6 +447,47 @@ public class Player extends LivingEntity {
                 float offhandTarget = offhandNeeded ? 1.0f : 0.0f;
                 offhandWeight += (offhandTarget - offhandWeight) * 5.0f * deltaTime;
 
+                // Get grips for hands
+                ItemStack mainHandStack = inventory.getSelectedItemStack();
+                ItemStack offHandStack = inventory.getStack(Inventory.SLOT_OFFHAND);
+                com.za.zenith.engine.graphics.model.GripDefinition mainGrip = null;
+                com.za.zenith.engine.graphics.model.GripDefinition offGrip = null;
+                
+                if (mainHandStack != null && mainHandStack.getItem().getComponent(com.za.zenith.world.items.component.ViewmodelComponent.class) != null) {
+                    mainGrip = mainHandStack.getItem().getComponent(com.za.zenith.world.items.component.ViewmodelComponent.class).grip();
+                }
+                if (offHandStack != null && offHandStack.getItem().getComponent(com.za.zenith.world.items.component.ViewmodelComponent.class) != null) {
+                    offGrip = offHandStack.getItem().getComponent(com.za.zenith.world.items.component.ViewmodelComponent.class).grip();
+                }
+
+                // Плавная интерполяция состояний хвата (один раз за кадр, до цикла!)
+                com.za.zenith.engine.graphics.model.GripDefinition activeGripR = mainGrip != null ? mainGrip : 
+                    (mainHandStack != null ? com.za.zenith.engine.graphics.model.GripDefinition.createAuto(mainHandStack.getItem()) : com.za.zenith.engine.graphics.model.GripDefinition.createRelaxed());
+                    
+                com.za.zenith.engine.graphics.model.GripDefinition activeGripL = offGrip != null ? offGrip : 
+                    (offHandStack != null ? com.za.zenith.engine.graphics.model.GripDefinition.createAuto(offHandStack.getItem()) : com.za.zenith.engine.graphics.model.GripDefinition.createRelaxed());
+                
+                float gripLerpSpeed = 12.0f * deltaTime;
+                gripThumbR.x += (activeGripR.thumb()[0] - gripThumbR.x) * gripLerpSpeed;
+                gripThumbR.y += (activeGripR.thumb()[1] - gripThumbR.y) * gripLerpSpeed;
+                gripThumbR.z += (activeGripR.thumb()[2] - gripThumbR.z) * gripLerpSpeed;
+                gripIndexR.x += (activeGripR.index()[0] - gripIndexR.x) * gripLerpSpeed;
+                gripIndexR.y += (activeGripR.index()[1] - gripIndexR.y) * gripLerpSpeed;
+                gripIndexR.z += (activeGripR.index()[2] - gripIndexR.z) * gripLerpSpeed;
+                gripFingersR.x += (activeGripR.fingers()[0] - gripFingersR.x) * gripLerpSpeed;
+                gripFingersR.y += (activeGripR.fingers()[1] - gripFingersR.y) * gripLerpSpeed;
+                gripFingersR.z += (activeGripR.fingers()[2] - gripFingersR.z) * gripLerpSpeed;
+                
+                gripThumbL.x += (activeGripL.thumb()[0] - gripThumbL.x) * gripLerpSpeed;
+                gripThumbL.y += (activeGripL.thumb()[1] - gripThumbL.y) * gripLerpSpeed;
+                gripThumbL.z += (activeGripL.thumb()[2] - gripThumbL.z) * gripLerpSpeed;
+                gripIndexL.x += (activeGripL.index()[0] - gripIndexL.x) * gripLerpSpeed;
+                gripIndexL.y += (activeGripL.index()[1] - gripIndexL.y) * gripLerpSpeed;
+                gripIndexL.z += (activeGripL.index()[2] - gripIndexL.z) * gripLerpSpeed;
+                gripFingersL.x += (activeGripL.fingers()[0] - gripFingersL.x) * gripLerpSpeed;
+                gripFingersL.y += (activeGripL.fingers()[1] - gripFingersL.y) * gripLerpSpeed;
+                gripFingersL.z += (activeGripL.fingers()[2] - gripFingersL.z) * gripLerpSpeed;
+
                 // Universal bone update
                 for (com.za.zenith.engine.graphics.model.ModelNode node : viewmodel.getAllNodes()) {
                     boolean isLeft = node.name.endsWith("_l");
@@ -447,6 +502,28 @@ public class Player extends LivingEntity {
                     node.animRotation.add(swingPitch * sF, swingYaw * sF, swingRoll * sF);
                     
                     if (node.name.equals("shoulder_r")) node.animRotation.x += lerpedWeight * 0.05f;
+
+                    // Apply Grip logic
+                    boolean isThumb = node.name.startsWith("thumb");
+                    boolean isIndex = node.name.startsWith("index");
+                    boolean isFingers = node.name.startsWith("fingers");
+                    
+                    if (isThumb || isIndex || isFingers) {
+                        Vector3f state = isLeft ? 
+                            (isThumb ? gripThumbL : (isIndex ? gripIndexL : gripFingersL)) :
+                            (isThumb ? gripThumbR : (isIndex ? gripIndexR : gripFingersR));
+                            
+                        float signX = 1.0f;
+                        float signY = isLeft ? -1.0f : 1.0f;
+                        float signZ = isLeft ? -1.0f : 1.0f;
+                        
+                        // Множитель сгиба для второй фаланги: она сгибается на 20% сильнее базы, образуя кулак
+                        float curlMultiplier = node.name.contains("tip") ? 1.2f : 1.0f;
+                        
+                        node.animRotation.x += (float)Math.toRadians(state.x * signX * curlMultiplier);
+                        node.animRotation.y += (float)Math.toRadians(state.y * signY * curlMultiplier);
+                        node.animRotation.z += (float)Math.toRadians(state.z * signZ * curlMultiplier);
+                    }
 
                     // Dynamic visibility for left hand: rotate down if not needed
                     if (isLeft) {

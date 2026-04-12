@@ -65,20 +65,23 @@ public class ViewmodelRenderer {
             float tx, ty, tz, rx, ry, rz, scale;
             
             if (vmComp != null) {
-                tx = vmComp.translation()[0] / 16.0f;
+                tx = (vmComp.translation()[0] / 16.0f) * (isMainHand ? 1.0f : -1.0f);
                 ty = vmComp.translation()[1] / 16.0f;
                 tz = vmComp.translation()[2] / 16.0f;
                 rx = vmComp.rotation()[0];
-                ry = vmComp.rotation()[1];
-                rz = vmComp.rotation()[2];
+                ry = vmComp.rotation()[1] * (isMainHand ? 1.0f : -1.0f);
+                rz = vmComp.rotation()[2] * (isMainHand ? 1.0f : -1.0f);
                 scale = vmComp.scale();
             } else {
                 if (item.isBlock()) {
-                    tx = 0; ty = 0.15f; tz = 0;
+                    // Выносим блок из кисти (сдвигаем влево для правой руки, вправо для левой)
+                    tx = isMainHand ? -0.15f : 0.15f; 
+                    ty = 0.15f; tz = 0;
                     rx = 30; ry = isMainHand ? 15 : -15; rz = 0;
                     scale = 0.4f;
                 } else {
-                    tx = 0; ty = -0.1f; tz = 0;
+                    tx = isMainHand ? -0.05f : 0.05f; 
+                    ty = -0.1f; tz = 0;
                     rx = 0; ry = isMainHand ? -90 : 90; rz = 0;
                     scale = 0.85f;
                 }

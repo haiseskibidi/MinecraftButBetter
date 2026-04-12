@@ -56,6 +56,7 @@ public class DataLoader {
             loadRarities(ns);
             loadAffixRarities(ns);
             loadAffixes(ns);
+            loadGrips(ns); // Загружаем хваты ДО предметов!
         }
 
         // 1. Map blocks to items automatically (BEFORE loading JSON items to reserve IDs)
@@ -305,6 +306,29 @@ public class DataLoader {
             com.za.zenith.engine.graphics.ui.GUIRegistry.register(Identifier.of(config.identifier), config);
         } catch (Exception e) {
             Logger.error("Failed to parse GUI: " + e.getMessage());
+        }
+    }
+
+    private static void loadGrips(String namespace) {
+        String path = namespace + "/grips";
+        List<String> files = listResources(path);
+        if (!files.isEmpty()) {
+            for (String file : files) {
+                try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path + "/" + file)) {
+                    if (is == null) continue;
+                    com.za.zenith.engine.graphics.model.GripDefinition def = GSON.fromJson(
+                        new InputStreamReader(is, StandardCharsets.UTF_8), 
+                        com.za.zenith.engine.graphics.model.GripDefinition.class
+                    );
+                    if (def != null) {
+                        Identifier id = Identifier.of(namespace, file.replace(".json", ""));
+                        com.za.zenith.engine.graphics.model.GripRegistry.register(id, def);
+                        Logger.info("Loaded grip preset: " + id);
+                    }
+                } catch (Exception e) {
+                    Logger.error("Failed to load grip preset " + file + ": " + e.getMessage());
+                }
+            }
         }
     }
 
@@ -929,8 +953,21 @@ public class DataLoader {
                     float[] rotation = v.has("rotation") ? GSON.fromJson(v.getAsJsonArray("rotation"), float[].class) : new float[]{0, 0, 0};
                     float scale = v.has("scale") ? v.get("scale").getAsFloat() : 1.0f;
                     
+                    com.za.zenith.engine.graphics.model.GripDefinition grip = null;
+                    if (v.has("grip")) {
+                        JsonElement gripEl = v.get("grip");
+                        if (gripEl.isJsonPrimitive()) {
+                            // Если это строка - пытаемся загрузить из реестра (может быть null, если еще не загружен или не существует, 
+                            // но мы будем разрешать это динамически в рендерере или оставим как есть, если порядок загрузки правильный)
+                            grip = com.za.zenith.engine.graphics.model.GripRegistry.get(gripEl.getAsString());
+                        } else if (gripEl.isJsonObject()) {
+                            // Инлайн определение
+                            grip = GSON.fromJson(gripEl, com.za.zenith.engine.graphics.model.GripDefinition.class);
+                        }
+                    }
+                    
                     item.addComponent(com.za.zenith.world.items.component.ViewmodelComponent.class, 
-                        new com.za.zenith.world.items.component.ViewmodelComponent(socket, translation, rotation, scale));
+                        new com.za.zenith.world.items.component.ViewmodelComponent(socket, translation, rotation, scale, grip));
                     
                     item.setViewmodelTransform(new Item.ViewmodelTransform(
                         translation[0], translation[1], translation[2],

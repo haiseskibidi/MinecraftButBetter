@@ -42,7 +42,16 @@ public class HeldItemRenderer {
                     item.getTexturePath(), atlas, item.getId()
                 );
             }
-            if (mesh != null) itemMeshCache.put(item.getId(), mesh);
+            if (mesh != null) {
+                itemMeshCache.put(item.getId(), mesh);
+                item.setVisualBounds(mesh.getMin(), mesh.getMax());
+                float gw = mesh.getGripWidth(mesh.getGraspOffset().y, 0.1f);
+                if (gw > 0.001f) {
+                    item.setGripWidth(gw);
+                } else {
+                    item.setGripWidth(mesh.getMax().x - mesh.getMin().x);
+                }
+            }
         }
         return mesh;
     }

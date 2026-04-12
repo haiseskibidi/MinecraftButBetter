@@ -1,0 +1,9 @@
+{
+  "_axis_guide": "X: +Up/-Down | Y: +Left/-Right | Z: Twist. Right Hand Fist: Fingers bend LEFT (+Y). Thumb bends LEFT (+Y) and DOWN (-X).",
+  "thumb": [20, 30, 0],
+  "thumb_tip": [10, 10, 0],
+  "index": [0, 80, 0],
+  "index_tip": [0, 80, 0],
+  "fingers": [0, 80, 0],
+  "fingers_tip": [0, 80, 0]
+}

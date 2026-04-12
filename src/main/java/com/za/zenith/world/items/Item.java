@@ -19,6 +19,9 @@ public class Item {
     protected float miningSpeed = 0.1f;
     protected int maxStackSize = -1; // -1 means use type default
     protected float interactionCooldown = -1.0f; 
+    protected org.joml.Vector3f visualMin = new org.joml.Vector3f(-0.5f);
+    protected org.joml.Vector3f visualMax = new org.joml.Vector3f(0.5f);
+    protected float gripWidth = -1.0f;
     protected com.za.zenith.utils.Identifier defaultRarity = com.za.zenith.world.items.stats.RarityRegistry.COMMON;
     protected final com.za.zenith.world.items.stats.StatContainer baseStats = new com.za.zenith.world.items.stats.StatContainer();
     { baseStats.setUseDefaultValues(false); }
@@ -135,6 +138,20 @@ public class Item {
 
     public void setVisualScale(float visualScale) {
         this.visualScale = visualScale;
+    }
+
+    public void setVisualBounds(org.joml.Vector3f min, org.joml.Vector3f max) {
+        if (min != null) this.visualMin.set(min);
+        if (max != null) this.visualMax.set(max);
+    }
+
+    public org.joml.Vector3f getVisualMin() { return visualMin; }
+    public org.joml.Vector3f getVisualMax() { return visualMax; }
+
+    public void setGripWidth(float w) { this.gripWidth = w; }
+    public float getGripWidth() { 
+        if (gripWidth >= 0) return gripWidth;
+        return visualMax.x - visualMin.x; 
     }
 
     public float getBaseMiningSpeed() {

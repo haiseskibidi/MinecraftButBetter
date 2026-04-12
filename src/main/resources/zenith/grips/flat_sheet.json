@@ -1,0 +1,9 @@
+{
+  "_axis_guide": "X: +Up/-Down | Y: +Left/-Right | Z: Twist. Duck grip: Base fingers bend slightly LEFT (+Y), tips are straight (0).",
+  "thumb": [0, 15, 0],
+  "thumb_tip": [0, 0, 0],
+  "index": [0, 15, 0],
+  "index_tip": [0, 0, 0],
+  "fingers": [0, 20, 0],
+  "fingers_tip": [0, 0, 0]
+}

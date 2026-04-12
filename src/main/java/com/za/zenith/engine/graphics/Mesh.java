@@ -153,6 +153,21 @@ public class Mesh {
         return max;
     }
 
+    public float getGripWidth(float gripY, float margin) {
+        float minX = Float.MAX_VALUE;
+        float maxX = -Float.MAX_VALUE;
+        boolean found = false;
+        for (int i = 0; i < positions.length; i += 3) {
+            float y = positions[i+1];
+            if (Math.abs(y - gripY) <= margin) {
+                minX = Math.min(minX, positions[i]);
+                maxX = Math.max(maxX, positions[i]);
+                found = true;
+            }
+        }
+        return found ? (maxX - minX) : 0.0f;
+    }
+
     /**
      * Возвращает смещение центра меша по горизонтали (X, Z) относительно его локального нуля.
      */
