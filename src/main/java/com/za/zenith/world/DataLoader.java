@@ -132,6 +132,7 @@ public class DataLoader {
                 if (animObj.has("duration")) anim.setDuration(animObj.get("duration").getAsFloat());
                 if (animObj.has("duration_key")) anim.setDurationKey(animObj.get("duration_key").getAsString());
                 if (animObj.has("looping")) anim.setLooping(animObj.get("looping").getAsBoolean());
+                if (animObj.has("version")) anim.setVersion(animObj.get("version").getAsInt());
                 
                 if (animObj.has("path")) {
                     JsonObject p = animObj.getAsJsonObject("path");

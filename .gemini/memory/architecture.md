@@ -1,7 +1,12 @@
  # Архитектура проекта "Zenith"
 
 ### Core Graphics Systems
-1.  **Unified Coloring System (v1.0)**:
+1.  **Animation System v2.0 (Quaternion Engine)**:
+    - **Dual-State ModelNode**: Гибридные узлы. Сохраняют старое поле `animRotation` (Euler) для 100% обратной совместимости (V1) и добавляют `animRotationQuat` (Quaternion) для новой системы (V2). Вычисляются аддитивно.
+    - **Modular Additive Controller**: `ViewmodelController` парсит `version` из JSON. V1 треки пишутся напрямую в Euler, V2 треки конвертируются в `Quaternionf` и накладываются через сферическую интерполяцию (slerp).
+    - **Transition Buffer (Cross-fade)**: `ViewmodelController` делает "снимок" позы (`saveSnapshotRecursive`) при смене предметов и плавно сглаживает (lerp/slerp) предыдущий кадр с новым. Логика перенесена в конец кадра (после Инерции и Хвата), что гарантирует отсутствие резких щелчков.
+    - **Data-Driven Sockets & Grips**: Центрирование предметов теперь происходит математически точно (через смещения в `ViewmodelComponent`), а сгиб пальцев контролируется через Data-Driven пресеты `GripDefinition` (например, `flat_sheet` для блоков).
+2.  **Unified Coloring System (v1.0)**:
     - **Single Source of Truth**: Класс `ColorProvider` централизованно хранит цвета биома (трава, листва).
     - **Smart Overlays**: Вместо проверки пикселей шейдер использует 4-ю текстурную координату (`OverlayLayer`) для наложения окрашиваемых масок поверх базовых текстур.
     - **Cross-System Consistency**: Единые шейдеры для мира, viewmodel, инвентаря и частиц гарантируют идентичное отображение цветов.

@@ -20,6 +20,7 @@ public class AnimationProfile {
     private float jitterStart = 0.0f;
     private float jitterEnd = 1.0f;
     private float jitterIntensity = 0.0f;
+    private int version = 1;
 
     public AnimationProfile(String name) {
         this.name = name;
@@ -63,6 +64,8 @@ public class AnimationProfile {
     public void setJitterEnd(float jitterEnd) { this.jitterEnd = jitterEnd; }
     public float getJitterIntensity() { return jitterIntensity; }
     public void setJitterIntensity(float jitterIntensity) { this.jitterIntensity = jitterIntensity; }
+    public int getVersion() { return version; }
+    public void setVersion(int version) { this.version = version; }
 }
 
 

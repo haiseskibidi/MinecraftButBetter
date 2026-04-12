@@ -18,6 +18,16 @@ public class ItemRegistry {
             
             Item blockItem = new BlockItem(intId, def.getIdentifier(), def.getName(), def.getTextures() != null ? def.getTextures().getNorth() : "");
             blockItem.setInteractionCooldown(def.getInteractionCooldown());
+            
+            // Assign a relaxed/flat grip for blocks so fingers don't clip weirdly
+            com.za.zenith.engine.graphics.model.GripDefinition blockGrip = new com.za.zenith.engine.graphics.model.GripDefinition(
+                new float[]{0, 15, 0}, null,
+                new float[]{0, 15, 0}, null,
+                new float[]{0, 20, 0}, null
+            );
+            blockItem.addComponent(com.za.zenith.world.items.component.ViewmodelComponent.class, 
+                new com.za.zenith.world.items.component.ViewmodelComponent(null, new float[]{-3.2f, 0.0f, -3.2f}, new float[]{0, 45, 0}, 0.4f, blockGrip));
+                
             registerItem(blockItem);
         });
     }

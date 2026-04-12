@@ -74,10 +74,8 @@ public class ViewmodelRenderer {
                 scale = vmComp.scale();
             } else {
                 if (item.isBlock()) {
-                    // Выносим блок из кисти (сдвигаем влево для правой руки, вправо для левой)
-                    tx = isMainHand ? -0.15f : 0.15f; 
-                    ty = 0.15f; tz = 0;
-                    rx = 30; ry = isMainHand ? 15 : -15; rz = 0;
+                    tx = 0.0f; ty = 0.0f; tz = 0.0f;
+                    rx = 0; ry = 0; rz = 0;
                     scale = 0.4f * item.getViewmodelScale();
                 } else {
                     tx = isMainHand ? -0.05f : 0.05f; 

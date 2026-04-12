@@ -15,6 +15,13 @@
 - `hotbar.json`: Конфигурация HUD-хотбара.
 - `chest.json`: Интерфейс сундуков.
 
+### src/main/java/com/za/zenith/engine/graphics/model (UPDATED)
+- **ModelNode.java**: Узел скелета. Теперь имеет два состояния вращения: `animRotation` (Euler, v1) и `animRotationQuat` (Quaternion, v2).
+- **ViewmodelController.java**: Парсер треков. Отвечает за применение AnimationProfile. Внедрена система `Snapshot Buffer` для хранения прошлых поз и плавной `slerp`-интерполяции (Cross-fade) при смене анимаций или предметов.
+- **HeldItemRenderer.java**: Отрисовывает предметы в руках. Очищен от хардкода.
+- **ViewmodelRenderer.java**: Центрирует блоки математически точно в сокете (socket_palm), опираясь на параметры `ViewmodelComponent`.
+- **GripRegistry.java** / **GripDefinition.java**: Система Data-Driven пресетов для костей пальцев (например, `flat_sheet` для удержания блоков снизу).
+
 ## UI & Animation Editor (v1.1 MODULAR)
 ### com.za.zenith.engine.graphics.ui.editor.animation
 - **AnimationEditorScreen.java**: Главный оркестратор. Делегирует задачи специализированным модулям.

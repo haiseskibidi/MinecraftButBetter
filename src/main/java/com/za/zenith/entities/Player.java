@@ -67,6 +67,7 @@ public class Player extends LivingEntity {
     private float lerpedWeight = 0.2f;
     private float offhandWeight = 0.0f; // Вес видимости левой руки
     private boolean physicsInitialized = false;
+    private com.za.zenith.world.items.Item lastFrameItem;
 
     // Grip States
     private final Vector3f gripThumbR = new Vector3f();
@@ -369,6 +370,11 @@ public class Player extends LivingEntity {
 
         // 7. Physical Simulation
         if (viewmodel != null) {
+            if (lastFrameItem != heldItem) {
+                viewmodelController.startTransition(viewmodel, 0.25f);
+                lastFrameItem = heldItem;
+            }
+
             viewmodelController.resetAnimation(viewmodel);
             viewmodelController.applyAnimation(viewmodel, cip, sneaking ? 0.0f : locomotionTimer, (1.0f - movementAlpha));
             viewmodelController.applyAnimation(viewmodel, cp, locomotionTimer, movementAlpha);
@@ -536,6 +542,11 @@ public class Player extends LivingEntity {
                         }
                     }
                 }
+
+                // --- 7.2 APPLY TRANSITION (V1 <-> V2 CROSSFADE) ---
+                // Applies smooth interpolation for all bones AFTER Inertia, Grip, and V1/V2 animations have been combined
+                viewmodelController.updateTransition(deltaTime);
+                viewmodelController.applyTransition(viewmodel);
 
                 Vector3f finalPos = new Vector3f(mainHandPhys.currentPos).add(swingPosX, swingPosY, swingPosZ);
                 viewmodel.updateHierarchy(new org.joml.Matrix4f().identity().translate(finalPos));

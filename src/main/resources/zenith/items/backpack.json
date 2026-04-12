@@ -5,12 +5,24 @@
   "type": "default",
   "maxStackSize": 1,
   "components": {
+    "zenith:animations": {
+      "item_idle": "block_idle",
+      "item_walk": "block_walk",
+      "item_sprint": "block_walk",
+      "item_sneak": "block_walk"
+    },
     "zenith:bag": {
       "slots": 18
     },
     "zenith:equipment": {
       "slot": "accessory",
       "strict": true
+    },
+    "zenith:viewmodel": {
+      "scale": 0.5,
+      "translation": [-3.2, 0.0, -3.2],
+      "rotation": [0, 45, 0],
+      "grip": "zenith:flat_sheet"
     }
   }
 }

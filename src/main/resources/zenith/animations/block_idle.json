@@ -1,11 +1,33 @@
 {
+  "version": 2,
   "looping": true,
   "duration": 4.0,
   "tracks": {
     "item_y": [
-      [0.0, -0.05, "sine"],
-      [0.5, -0.04, "sine"],
-      [1.0, -0.05, "linear"]
+      [0.0, 0.0, "sine"],
+      [0.5, -0.015, "sine"],
+      [1.0, 0.0, "linear"]
+    ],
+    "item_pitch": [
+      [0.0, 0.0, "sine"],
+      [0.5, 0.02, "sine"],
+      [1.0, 0.0, "linear"]
+    ],
+    "hand_r:roll": [
+      [0.0, -50, "linear"],
+      [1.0, -50, "linear"]
+    ],
+    "hand_r:yaw": [
+      [0.0, -10, "linear"],
+      [1.0, -10, "linear"]
+    ],
+    "hand_r:pitch": [
+      [0.0, -10, "linear"],
+      [1.0, -10, "linear"]
+    ],
+    "forearm_r:yaw": [
+      [0.0, 10, "linear"],
+      [1.0, 10, "linear"]
     ]
   }
 }

@@ -19,6 +19,7 @@ public class ModelNode {
     // Animation overrides
     public final Vector3f animTranslation = new Vector3f();
     public final Vector3f animRotation = new Vector3f(); // in radians
+    public final org.joml.Quaternionf animRotationQuat = new org.joml.Quaternionf(); // for V2
     
     // Computed matrices
     public final Matrix4f localMatrix = new Matrix4f();
@@ -40,7 +41,8 @@ public class ModelNode {
             .translate(animTranslation)
             .rotateX(baseRotation.x + animRotation.x)
             .rotateY(baseRotation.y + animRotation.y)
-            .rotateZ(baseRotation.z + animRotation.z);
+            .rotateZ(baseRotation.z + animRotation.z)
+            .rotate(animRotationQuat);
             
         if (parentGlobal != null) {
             parentGlobal.mul(localMatrix, globalMatrix);

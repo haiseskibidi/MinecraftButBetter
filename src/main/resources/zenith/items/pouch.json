@@ -7,12 +7,24 @@
   "viewmodelScale": 0.5,
   "maxStackSize": 1,
   "components": {
+    "animations": {
+      "item_idle": "block_idle",
+      "item_walk": "block_walk",
+      "item_sprint": "block_walk",
+      "item_sneak": "block_walk"
+    },
     "equipment": {
       "slot": "accessory",
       "strict": true
     },
     "bag": {
       "slots": 8
+    },
+    "zenith:viewmodel": {
+      "scale": 0.5,
+      "translation": [-3.2, 0.0, -3.2],
+      "rotation": [0, 45, 0],
+      "grip": "zenith:flat_sheet"
     }
   }
 }
