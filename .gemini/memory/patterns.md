@@ -1,0 +1,224 @@
+# Architectural Patterns & Blueprints: Zenith
+
+Этот документ содержит **эталонные реализации (Blueprints)** для основных подсистем движка Zenith. При реализации нового функционала **СТРОГО ЗАПРЕЩЕНО** отклоняться от этих паттернов. ИИ должен копировать структуру из этого файла и адаптировать только бизнес-логику.
+
+---
+
+## 1. BlockEntity и Логика Тиков (ITickable)
+**Правило:** Любой блок, требующий обновления каждый кадр или хранящий сложные данные (энергию, инвентарь), должен использовать `BlockEntity`.
+
+### Blueprint: Создание базового BlockEntity
+```java
+package com.za.zenith.world.blocks.entity;
+
+import com.za.zenith.world.BlockPos;
+
+public class MyCustomBlockEntity extends BlockEntity implements ITickable {
+    
+    public MyCustomBlockEntity(BlockPos pos) {
+        super(pos);
+    }
+
+    @Override
+    public void update(float deltaTime) {
+        // КРИТИЧЕСКИ ВАЖНО: Всегда проверяйте world на null перед логикой
+        if (world == null) return;
+
+        // Ваша логика здесь...
+    }
+}
+```
+
+---
+
+## 2. Поиск соседей (Neighbor Searching)
+**Правило:** **КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО** хардкодить массивы смещений типа `int[][] offsets = {{0,1,0}, {1,0,0}}`. Всегда используйте enum `Direction`.
+
+### Blueprint: Обход соседних блоков (на примере передачи энергии)
+```java
+import com.za.zenith.utils.Direction;
+import com.za.zenith.world.BlockPos;
+
+// ... внутри метода update(float deltaTime) ...
+
+for (Direction dir : Direction.values()) {
+    BlockPos neighborPos = dir.offset(this.pos);
+    BlockEntity neighborBE = world.getBlockEntity(neighborPos);
+    
+    if (neighborBE instanceof IEnergyStorage storage) {
+        // Взаимодействие с соседом
+        if (storage.canReceive()) {
+            storage.receiveEnergy(10.0f, false);
+        }
+    }
+}
+```
+
+---
+
+## 3. Компоненты Предметов (Item Components)
+**Правило:** В Zenith **нет** наследования предметов (нет классов `ToolItem`, `FoodItem`). Все предметы — это экземпляры базового класса `Item`. Логика строится на композиции через `ItemComponent`.
+
+### Blueprint: Проверка наличия компонента
+**КАТЕГОРИЧЕСКИ ЗАПРЕЩЕНО:** `if (item instanceof ToolItem)`
+**ПРАВИЛЬНО:**
+```java
+import com.za.zenith.world.items.component.ToolComponent;
+
+// ... где-то в логике взаимодействия ...
+ToolComponent toolComp = itemStack.getItem().getComponent(ToolComponent.class);
+
+if (toolComp != null) {
+    float efficiency = toolComp.getEfficiency();
+    // Логика инструмента
+}
+```
+
+### Blueprint: Создание нового компонента
+```java
+package com.za.zenith.world.items.component;
+
+// 1. Создать класс компонента
+public class MyNewComponent implements ItemComponent {
+    public final float myValue;
+    
+    // Поля должны совпадать с ключами в JSON
+    public MyNewComponent(float myValue) {
+        this.myValue = myValue;
+    }
+}
+
+// 2. JSON предмета будет выглядеть так:
+// "components": {
+//   "zenith:my_new": { "myValue": 10.5 }
+// }
+```
+
+---
+
+## 4. Система Регистрации (Data-Driven Registries)
+**Правило:** Никаких хардкодных числовых ID (`int id = 5`). Движок назначает их динамически. Везде используется `Identifier`.
+
+### Blueprint: Получение блока или предмета из кода
+**ПРАВИЛЬНО:** Использовать авто-генерируемые поля-холдеры.
+```java
+// Эти поля в Blocks.java и Items.java заполняются автоматически через рефлексию!
+// Имя переменной должно точно совпадать с путем Identifier (без namespace).
+Block grass = Blocks.grass_block; 
+Item axe = Items.stone_axe;
+```
+
+**ПРАВИЛЬНО:** Если нужно получить по строке в рантайме:
+```java
+Identifier id = Identifier.of("zenith:grass_block");
+int numericalId = BlockRegistry.getId(id); // Для рендеринга или чанков
+Block block = BlockRegistry.get(id);       // Для логики
+```
+
+---
+
+## 5. Работа с Метаданными (Metadata Masking)
+**Правило:** Метаданные блока (1 байт) хранят несколько флагов. Нельзя просто сравнивать метаданные целиком (`if (meta == 1)`), нужно использовать **битовые маски**.
+
+### Blueprint: Маскирование направления и флагов
+```java
+// 0x07 (0000 0111) - Маска для извлечения направления (0-5)
+int direction = metadata & 0x07; 
+
+// 0x80 (1000 0000) - Маска флага BIT_NATURAL (используется для деревьев)
+boolean isNatural = (metadata & 0x80) != 0;
+
+// Если нужно добавить флаг:
+int newMetadata = direction | 0x80;
+```
+
+---
+
+## 6. UI и Инвентари (Data-Driven GUI)
+**Правило:** GUI верстается исключительно в JSON (папка `gui/`). В Java создается только экран-контроллер.
+
+### Blueprint: Создание экрана на базе JSON
+```java
+public class MyCustomScreen extends InventoryScreen {
+    
+    public MyCustomScreen(Player player) {
+        // Указываем Identifier JSON файла из папки gui/
+        super(Identifier.of("zenith:my_custom_gui"), player);
+    }
+
+    @Override
+    protected void onInit() {
+        super.onInit(); // Автоматически загрузит JSON и создаст Layout
+        // Дополнительная настройка, если нужна
+    }
+}
+```
+
+---
+
+## 7. Система Частиц (Visual Particles)
+**Правило:** В Zenith используется классическая воксельная система частиц. Частицы — это «призраки», они **не имеют физических коллизий** для обеспечения максимальной производительности и стабильности.
+
+### Blueprint: Создание новой частицы
+```java
+package com.za.zenith.world.particles;
+
+import org.joml.Vector3f;
+
+public class MyCustomParticle extends Particle {
+    public MyCustomParticle(Vector3f pos, Vector3f vel, float life) {
+        super(pos, vel, life);
+        this.scale = 0.5f; // Настройка размера
+    }
+
+    @Override
+    public void update(float deltaTime) {
+        // Базовая физика (движение + затухание) уже в super.update()
+        super.update(deltaTime);
+        
+        // Кастомная логика (например, изменение цвета или вращение)
+        this.roll += rollVelocity * deltaTime;
+    }
+}
+```
+
+### Blueprint: Спавн частицы
+```java
+ParticleManager.getInstance().addParticle(new MyCustomParticle(pos, velocity, 2.0f));
+```
+
+---
+
+## 8. Сущности и Коллизии (Entity & Interpolation)
+**Правило:** Все сущности должны поддерживать интерполяцию для плавности 144Hz+ при 20Hz физике.
+
+### Blueprint: Создание новой сущности
+```java
+package com.za.zenith.entities;
+
+import org.joml.Vector3f;
+
+public class MyNewEntity extends Entity {
+    public MyNewEntity(Vector3f pos) {
+        super(pos, 0.5f, 0.5f); // Позиция, ширина, высота
+    }
+
+    @Override
+    public void update(float deltaTime) {
+        // 1. Всегда сохраняем старую позицию для интерполяции в НАЧАЛЕ тика
+        this.prevPosition.set(this.position);
+        this.prevRotation.set(this.rotation);
+
+        // 2. Логика движения с коллизиями
+        // move(velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
+    }
+}
+```
+
+### Blueprint: Проверка коллизий и AABB
+```java
+// Использование AABB сущности
+if (this.boundingBox.intersects(otherAABB)) {
+    // Столкновение
+}
+```
