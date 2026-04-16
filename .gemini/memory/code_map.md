@@ -1,6 +1,13 @@
 # Code Map: Zenith
 
 ## Asset Map
+### src/main/resources/zenith/registry
+Назначение: Глобальные конфигурации и реестры данных.
+- `physics.json`: Физические параметры мира.
+- `world.json`: Настройки времени, скорости цикла дня/ночи и цветов освещения (Sun/Moon/Ambient).
+- `celestial.json`: Визуальные параметры небесных тел (текстуры, масштаб, процедурные пиксельные сетки).
+- `wood_types.json`: Список пород деревьев.
+
 ### src/main/resources/zenith/textures
 Назначение: Полный набор оригинальных ассетов zenith.
 - **block/**: Текстуры блоков (16x16).
@@ -21,6 +28,26 @@
 - **HeldItemRenderer.java**: Отрисовывает предметы в руках. Очищен от хардкода.
 - **ViewmodelRenderer.java**: Центрирует блоки математически точно в сокете (socket_palm), опираясь на параметры `ViewmodelComponent`.
 - **GripRegistry.java** / **GripDefinition.java**: Система Data-Driven пресетов для костей пальцев (например, `flat_sheet` для удержания блоков снизу).
+
+## Voxel Lighting & Celestial Systems (v1.0 NEW)
+### com.za.zenith.world.lighting
+- **LightEngine.java**: Ядро системы освещения. Реализует BFS-распространение блочного света (от источников) и первичную заливку солнечного света (`generateInitialSunlight`) сверху вниз.
+- **WorldSettings.java**: Data-Driven контейнер для настроек времени и цветов освещения (загружается из `world.json`).
+
+### com.za.zenith.engine.graphics
+- **SkyRenderer.java**: Специализированный рендерер небесных тел. Отрисовывает Солнце и Луну как билборды в пространстве вида (View Space) с поддержкой процедурных кругов и пиксельных сеток.
+- **SkySettings.java**: Конфигурация параметров неба (загружается из `celestial.json`).
+- **Renderer.java (UPDATED)**: Управляет динамической сменой освещения. Смешивает цвета `sunLightColor` и `moonLightColor` на основе `worldTime`, инвертирует направление теней ночью.
+
+### com.za.zenith.world.chunks
+- **Chunk.java (UPDATED)**: Добавлен массив `byte[] lightData` для компактного хранения Sunlight и Blocklight (по 4 бита).
+- **ChunkMeshGenerator.java (UPDATED)**: 
+    - **Smooth Lighting**: Расчет среднего освещения 4-х вокселей для каждой вершины.
+    - **Ambient Occlusion**: Затенение углов на основе анализа соседних блоков.
+
+### src/main/resources/shaders (UPDATED)
+- **sky_vertex/fragment.glsl**: Шейдеры для отрисовки неба. Поддерживают процедурный "Glow" эффект и переключение между текстурой и пиксельной сеткой.
+- **vertex/fragment.glsl**: Обновлены для приема атрибутов `vLight` и `vAO` и финального расчета освещенности.
 
 ## UI & Animation Editor (v1.1 MODULAR)
 ### com.za.zenith.engine.graphics.ui.editor.animation

@@ -7,6 +7,8 @@ in float blockType;
 in float neighborData;
 in vec3 vLocalPos;
 in float vBreakingIntensity;
+in vec2 vLight;
+in float vAO;
 
 out vec4 fragColor;
 
@@ -107,7 +109,17 @@ void main() {
     }
 
     // Apply Lighting
-    vec3 lighting = calculateLighting(fragNormal, lightDirection, lightColor, ambientLight);
+    float sunlight = vLight.x / 15.0;
+    float blocklight = vLight.y / 15.0;
+    
+    vec3 lighting = calculateLighting(fragNormal, lightDirection, lightColor * sunlight, ambientLight);
+    
+    // Add blocklight as an emissive contribution (warm orange tint)
+    vec3 blocklightCol = vec3(1.0, 0.85, 0.6) * blocklight;
+    lighting += blocklightCol;
+    
+    // Apply Ambient Occlusion
+    lighting *= vAO;
     
     fragColor = vec4(lighting * baseColor * brightnessMultiplier, alpha);       
 

@@ -46,6 +46,7 @@ public class BlockDefinition {
     private MiningSettings miningSettings = MiningSettings.DEFAULT;
     private float interactionCooldown = -1.0f; // -1 means use PhysicsSettings.baseMiningCooldown
     private float healingSpeed = 0.1f; // Default: heals 10% of max health per second
+    private int emission = 0; // Light emission level (0-15)
     private int particleGridSize = 2; // Default 2x2x2 shards for cleaner look
     private int innerTextureIndex = -1;
     private int weakSpotParticles = 2; // Default particles on weak spot hit
@@ -55,6 +56,9 @@ public class BlockDefinition {
 
     public int getParticleMaterial() { return particleMaterial; }
     public void setParticleMaterial(int material) { this.particleMaterial = material; }
+
+    public int getEmission() { return emission; }
+    public BlockDefinition setEmission(int emission) { this.emission = emission; return this; }
 
     public float getParticleScale() { return particleScale; }
     public void setParticleScale(float scale) { this.particleScale = scale; }

@@ -17,6 +17,8 @@ public class Mesh {
     private final int blockTypeVboId;
     private final int neighborDataVboId;
     private final int weightVboId;
+    private final int lightVboId;
+    private final int aoVboId;
     private final int eboId;
     private final int vertexCount;
     private final float[] positions;
@@ -26,18 +28,22 @@ public class Mesh {
     public org.joml.Vector3f getGraspOffset() { return graspOffset; }
     
     public Mesh(float[] positions, float[] texCoords, float[] normals, int[] indices) {
-        this(positions, texCoords, normals, new float[positions.length / 3], new float[positions.length / 3], new float[positions.length / 3], indices);
+        this(positions, texCoords, normals, new float[positions.length / 3], new float[positions.length / 3], new float[positions.length / 3], new float[positions.length / 3 * 2], new float[positions.length / 3], indices);
     }
     
     public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, int[] indices) {
-        this(positions, texCoords, normals, blockTypes, new float[positions.length / 3], new float[positions.length / 3], indices);
+        this(positions, texCoords, normals, blockTypes, new float[positions.length / 3], new float[positions.length / 3], new float[positions.length / 3 * 2], new float[positions.length / 3], indices);
     }
 
     public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, int[] indices) {
-        this(positions, texCoords, normals, blockTypes, neighborData, new float[positions.length / 3], indices);
+        this(positions, texCoords, normals, blockTypes, neighborData, new float[positions.length / 3], new float[positions.length / 3 * 2], new float[positions.length / 3], indices);
     }
 
     public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, float[] weights, int[] indices) {
+        this(positions, texCoords, normals, blockTypes, neighborData, weights, new float[positions.length / 3 * 2], new float[positions.length / 3], indices);
+    }
+
+    public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, float[] weights, float[] lightData, float[] aoData, int[] indices) {
         this.positions = positions;
         if (indices.length == 0 || positions.length == 0) {
             this.vertexCount = 0;
@@ -48,6 +54,8 @@ public class Mesh {
             this.blockTypeVboId = -1;
             this.neighborDataVboId = -1;
             this.weightVboId = -1;
+            this.lightVboId = -1;
+            this.aoVboId = -1;
             this.eboId = -1;
             return;
         }
@@ -110,6 +118,24 @@ public class Mesh {
         glVertexAttribPointer(5, 1, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(5);
         memFree(weightBuffer);
+
+        lightVboId = glGenBuffers();
+        FloatBuffer lightBuffer = memAllocFloat(lightData.length);
+        lightBuffer.put(lightData).flip();
+        glBindBuffer(GL_ARRAY_BUFFER, lightVboId);
+        glBufferData(GL_ARRAY_BUFFER, lightBuffer, GL_STATIC_DRAW);
+        glVertexAttribPointer(6, 2, GL_FLOAT, false, 0, 0);
+        glEnableVertexAttribArray(6);
+        memFree(lightBuffer);
+
+        aoVboId = glGenBuffers();
+        FloatBuffer aoBuffer = memAllocFloat(aoData.length);
+        aoBuffer.put(aoData).flip();
+        glBindBuffer(GL_ARRAY_BUFFER, aoVboId);
+        glBufferData(GL_ARRAY_BUFFER, aoBuffer, GL_STATIC_DRAW);
+        glVertexAttribPointer(7, 1, GL_FLOAT, false, 0, 0);
+        glEnableVertexAttribArray(7);
+        memFree(aoBuffer);
         
         eboId = glGenBuffers();
         IntBuffer indicesBuffer = memAllocInt(indices.length);
@@ -187,6 +213,9 @@ public class Mesh {
         glDeleteBuffers(normalVboId);
         glDeleteBuffers(blockTypeVboId);
         glDeleteBuffers(neighborDataVboId);
+        glDeleteBuffers(weightVboId);
+        glDeleteBuffers(lightVboId);
+        glDeleteBuffers(aoVboId);
         glDeleteBuffers(eboId);
         glDeleteVertexArrays(vaoId);
     }

@@ -101,6 +101,34 @@ public class DataLoader {
         loadParkourAnimations();
         loadScavengeSettings();
         loadPhysicsSettings();
+        loadWorldSettings();
+        loadSkySettings();
+    }
+
+    private static void loadSkySettings() {
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("zenith/registry/celestial.json")) {
+            if (is == null) return;
+            com.za.zenith.engine.graphics.SkySettings settings = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), com.za.zenith.engine.graphics.SkySettings.class);
+            if (settings != null) {
+                com.za.zenith.engine.graphics.SkySettings.setInstance(settings);
+                Logger.info("Loaded sky settings");
+            }
+        } catch (Exception e) {
+            Logger.error("Failed to load sky settings: " + e.getMessage());
+        }
+    }
+
+    private static void loadWorldSettings() {
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("zenith/registry/world.json")) {
+            if (is == null) return;
+            com.za.zenith.world.WorldSettings settings = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), com.za.zenith.world.WorldSettings.class);
+            if (settings != null) {
+                com.za.zenith.world.WorldSettings.setInstance(settings);
+                Logger.info("Loaded world settings");
+            }
+        } catch (Exception e) {
+            Logger.error("Failed to load world settings: " + e.getMessage());
+        }
     }
 
     private static void loadActions(String namespace) {

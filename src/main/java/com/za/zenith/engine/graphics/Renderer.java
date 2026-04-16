@@ -35,13 +35,14 @@ public class Renderer {
     private CarvingRenderer carvingRenderer;
     private BlockHighlightRenderer highlightRenderer;
     private final ParticleRenderer particleRenderer = new ParticleRenderer();
+    private final SkyRenderer skyRenderer = new SkyRenderer();
     private boolean fxaaEnabled = false;
     private Mesh playerMesh;
     private Mesh previewMesh;
     private final Map<Integer, Mesh> blockMeshCache = new java.util.HashMap<>();
     private final Vector3f lightDirection;
-    private final Vector3f lightColor = new Vector3f(0.3f, 0.3f, 0.25f);
-    private final Vector3f ambientLight = new Vector3f(0.85f, 0.85f, 0.9f);
+    private final Vector3f lightColor = new Vector3f(1.0f, 0.95f, 0.85f);
+    private final Vector3f ambientLight = new Vector3f(0.4f, 0.45f, 0.55f);
     
     // Viewmodel
     private final ViewmodelRenderer viewmodelRenderer = new ViewmodelRenderer();
@@ -172,40 +173,77 @@ public class Renderer {
         carvingRenderer = new CarvingRenderer();
         highlightRenderer = new BlockHighlightRenderer();
         particleRenderer.init();
+        skyRenderer.init();
     }
     
     public void render(Window window, Camera camera, World world, RaycastResult highlightedBlock, com.za.zenith.network.GameClient networkClient, float alpha, float deltaTime) {
         vfxManager.update(deltaTime, world.getPlayer(), GameLoop.getInstance().getInputManager().getMiningController());
         framebuffer.resize(window.getWidth(), window.getHeight());
         framebuffer.bind();
-        glClearColor(0.6f, 0.8f, 1.0f, 1.0f);
+
+        // Calculate time of day
+        com.za.zenith.world.WorldSettings worldSettings = com.za.zenith.world.WorldSettings.getInstance();
+        float worldTime = world.getWorldTime();
+        float dayLength = worldSettings.dayLength;
+        float timeRatio = worldTime / dayLength;
+        
+        // 6000 is noon (0.25). 18000 is midnight (0.75).
+        float angle = (timeRatio - 0.25f) * (float)Math.PI * 2.0f;
+
+        lightDirection.set(0.2f, -(float)Math.cos(angle), (float)Math.sin(angle)).normalize();
+        
+        float sunIntensity = Math.max(0.0f, (float)Math.cos(angle));
+        float moonIntensity = Math.max(0.0f, -(float)Math.cos(angle));
+
+        // Use light from the moon if it's night
+        Vector3f finalLightDir = new Vector3f(lightDirection);
+        if (moonIntensity > sunIntensity) {
+            finalLightDir.negate();
+        }
+
+        // Sky color interpolation
+        Vector3f daySky = new Vector3f(0.6f, 0.8f, 1.0f);
+        Vector3f nightSky = new Vector3f(0.02f, 0.02f, 0.05f);
+        Vector3f currentSky = new Vector3f(nightSky).lerp(daySky, sunIntensity);
+
+        glClearColor(currentSky.x, currentSky.y, currentSky.z, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
-        renderScene(camera, world, networkClient, alpha);
-        
+
+        // Render Sky (Sun/Moon)
+        skyRenderer.render(camera, lightDirection);
+
+        // Blend Light Colors
+        Vector3f sunCol = new Vector3f(worldSettings.sunLightColor[0], worldSettings.sunLightColor[1], worldSettings.sunLightColor[2]);
+        Vector3f moonCol = new Vector3f(worldSettings.moonLightColor[0], worldSettings.moonLightColor[1], worldSettings.moonLightColor[2]);
+        Vector3f ambCol = new Vector3f(worldSettings.ambientColor[0], worldSettings.ambientColor[1], worldSettings.ambientColor[2]);
+
+        Vector3f currentLightColor = new Vector3f(sunCol).mul(sunIntensity).add(new Vector3f(moonCol).mul(moonIntensity * 0.5f));
+        Vector3f currentAmbient = new Vector3f(ambCol).mul(0.2f + 0.8f * sunIntensity + 0.3f * moonIntensity);
+
+        renderScene(camera, world, networkClient, alpha, finalLightDir, currentLightColor, currentAmbient);
+
         if (highlightedBlock != null && highlightedBlock.isHit()) renderBlockHighlight(camera, world, highlightedBlock, alpha);
         if (previewPos != null && previewMesh != null) renderPreviewBlock(camera, alpha);
 
         renderViewModel(camera, world.getPlayer());
-        
+
         // Render Particles
-        particleRenderer.render(camera, com.za.zenith.world.particles.ParticleManager.getInstance().getActiveParticles(), atlas, alpha, lightDirection, lightColor, ambientLight);
+        particleRenderer.render(camera, com.za.zenith.world.particles.ParticleManager.getInstance().getActiveParticles(), atlas, alpha, finalLightDir, currentLightColor, currentAmbient);
 
         framebuffer.unbind();
         glViewport(0, 0, window.getWidth(), window.getHeight());
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+
         if (fxaaEnabled) postProcessor.processFXAA(framebuffer.getColorTextureId(), framebuffer.getDepthTextureId(), window.getWidth(), window.getHeight());
         else postProcessor.processPassthrough(framebuffer.getColorTextureId(), framebuffer.getDepthTextureId(), window.getWidth(), window.getHeight());
-        
+
         uiRenderer.renderCrosshair(window.getWidth(), window.getHeight());
         uiRenderer.renderLogo(window.getWidth(), window.getHeight());
         uiRenderer.renderHotbar(window.getWidth(), window.getHeight(), atlas);
         uiRenderer.renderPauseMenu(window.getWidth(), window.getHeight());
     }
 
-    private void renderViewModel(Camera camera, com.za.zenith.entities.Player player) {
-        if (player == null) return;
+    private void renderViewModel(Camera camera, com.za.zenith.entities.Player player) {        if (player == null) return;
         glDisable(GL_CULL_FACE);
         glDepthRange(0.0, 0.05);
         
@@ -253,7 +291,7 @@ public class Renderer {
         glEnable(GL_CULL_FACE);
     }
     
-    private void renderScene(Camera camera, World world, com.za.zenith.network.GameClient networkClient, float alpha) {
+    private void renderScene(Camera camera, World world, com.za.zenith.network.GameClient networkClient, float alpha, Vector3f lightDir, Vector3f lightCol, Vector3f ambient) {
         blockShader.use();
         atlas.bind();
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
@@ -261,6 +299,11 @@ public class Renderer {
         blockShader.setFloat("uTime", (float)org.lwjgl.glfw.GLFW.glfwGetTime());
         blockShader.setFloat("uSwayOverride", -1.0f);
         blockShader.setVector3f("uGrassColor", ColorProvider.getGrassColor());
+        
+        blockShader.setVector3f("lightDirection", lightDir);
+        blockShader.setVector3f("lightColor", lightCol);
+        blockShader.setVector3f("ambientLight", ambient);
+
         blockShader.setBoolean("useMask", false);
         blockShader.setBoolean("previewPass", false);
         blockShader.setBoolean("isHand", false); // Ensure world blocks are not masked as hands
@@ -674,6 +717,7 @@ public class Renderer {
         for (var m : itemMeshCache.values()) m.cleanup();
         if (carvingRenderer != null) carvingRenderer.cleanup();
         particleRenderer.cleanup();
+        skyRenderer.cleanup();
         if (atlas != null) atlas.cleanup();
         if (blockShader != null) blockShader.cleanup();
     }

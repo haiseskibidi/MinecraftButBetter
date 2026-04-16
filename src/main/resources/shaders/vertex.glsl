@@ -6,6 +6,8 @@ layout(location = 2) in vec3 normal;
 layout(location = 3) in float blockTypeAttr;
 layout(location = 4) in float neighborDataAttr;
 layout(location = 5) in float verticalWeightAttr;
+layout(location = 6) in vec2 lightAttr;
+layout(location = 7) in float aoAttr;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -30,10 +32,14 @@ out float blockType;
 out float neighborData;
 out vec3 vLocalPos;
 out float vBreakingIntensity;
+out vec2 vLight;
+out float vAO;
 
 void main() {
     fragTexCoord = texCoord;
     fragNormal = normalize(mat3(model) * normal);
+    vLight = lightAttr;
+    vAO = aoAttr;
     
     vec3 worldPos = vec3(model * vec4(position, 1.0));
     vBreakingIntensity = 0.0;

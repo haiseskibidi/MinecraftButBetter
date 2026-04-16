@@ -10,15 +10,41 @@ public class Chunk {
     
     private final ChunkPos position;
     private final int[] blockData; // Packed data: (type << 8) | metadata
+    private final byte[] lightData; // Packed light: (sunlight << 4) | blocklight
     private boolean needsMeshUpdate = true;
     
     public Chunk(ChunkPos position) {
         this.position = position;
         this.blockData = new int[CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE];
+        this.lightData = new byte[CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE];
     }
     
     private int getIndex(int x, int y, int z) {
         return y * (CHUNK_SIZE * CHUNK_SIZE) + z * CHUNK_SIZE + x;
+    }
+
+    public int getSunlight(int x, int y, int z) {
+        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 15;
+        return (lightData[getIndex(x, y, z)] >> 4) & 0xF;
+    }
+
+    public void setSunlight(int x, int y, int z, int level) {
+        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return;
+        int idx = getIndex(x, y, z);
+        lightData[idx] = (byte) ((lightData[idx] & 0x0F) | ((level & 0xF) << 4));
+        needsMeshUpdate = true;
+    }
+
+    public int getBlockLight(int x, int y, int z) {
+        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 0;
+        return lightData[getIndex(x, y, z)] & 0xF;
+    }
+
+    public void setBlockLight(int x, int y, int z, int level) {
+        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return;
+        int idx = getIndex(x, y, z);
+        lightData[idx] = (byte) ((lightData[idx] & 0xF0) | (level & 0xF));
+        needsMeshUpdate = true;
     }
     
     public Block getBlock(int x, int y, int z) {

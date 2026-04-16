@@ -26,6 +26,8 @@ public class World {
     private final List<Entity> entities;
     private final Map<BlockPos, BlockEntity> blockEntities;
     private final List<ITickable> tickableBlockEntities;
+    private final com.za.zenith.world.lighting.LightEngine lightEngine;
+    private float worldTime; // Stored as float for smooth interpolation
     
     public static class BlockDamageInstance {
         private float damage;
@@ -63,6 +65,8 @@ public class World {
         this.seed = System.currentTimeMillis(); // Random seed each time
         com.za.zenith.utils.Logger.info("Generating new world with seed: %d", seed);
         this.terrainGenerator = new TerrainGenerator(seed);
+        this.lightEngine = new com.za.zenith.world.lighting.LightEngine(this);
+        this.worldTime = WorldSettings.getInstance().initialTime;
         generateWorld();
     }
     
@@ -74,6 +78,8 @@ public class World {
         this.seed = seed;
         com.za.zenith.utils.Logger.info("Generating new world with seed: %d", seed);
         this.terrainGenerator = new TerrainGenerator(seed);
+        this.lightEngine = new com.za.zenith.world.lighting.LightEngine(this);
+        this.worldTime = WorldSettings.getInstance().initialTime;
         generateWorld();
     }
     
@@ -91,14 +97,15 @@ public class World {
             }
         }
         
-        // Second pass: generate structures (trees, etc.)
-        com.za.zenith.utils.Logger.info("Generating structures for %d chunks...", (renderDistance * 2 + 1) * (renderDistance * 2 + 1));
+        // Second pass: generate structures (trees, etc.) and sunlight
+        com.za.zenith.utils.Logger.info("Generating structures and sunlight for %d chunks...", (renderDistance * 2 + 1) * (renderDistance * 2 + 1));
         for (int chunkX = -renderDistance; chunkX <= renderDistance; chunkX++) {
             for (int chunkZ = -renderDistance; chunkZ <= renderDistance; chunkZ++) {
                 ChunkPos pos = new ChunkPos(chunkX, chunkZ);
                 Chunk chunk = chunks.get(pos);
                 if (chunk != null) {
                     terrainGenerator.generateStructures(this, chunk);
+                    lightEngine.generateInitialSunlight(chunk);
                 }
             }
         }
@@ -145,6 +152,12 @@ public class World {
     }
 
     public void update(float deltaTime) {
+        // Advance time
+        worldTime += deltaTime * WorldSettings.getInstance().dayCycleSpeed * 20.0f; // 20 units per real second at 1.0 speed
+        if (worldTime >= WorldSettings.getInstance().dayLength) {
+            worldTime -= WorldSettings.getInstance().dayLength;
+        }
+
         // Update all entities
         for (int i = entities.size() - 1; i >= 0; i--) {
             Entity entity = entities.get(i);
@@ -372,6 +385,10 @@ public class World {
             chunk.setBlock(localX, y, localZ, block);
             chunk.setNeedsMeshUpdate(true);
             
+            // Update lighting
+            lightEngine.updateBlockLight(pos);
+            lightEngine.updateSunlight(pos);
+            
             // Automatically create block entity if defined
             BlockEntity be = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType()).createBlockEntity(pos);
             if (be != null) {
@@ -456,6 +473,10 @@ public class World {
     
     public Iterable<Chunk> getLoadedChunks() {
         return chunks.values();
+    }
+    
+    public float getWorldTime() {
+        return worldTime;
     }
     
     public Chunk getChunk(ChunkPos pos) {

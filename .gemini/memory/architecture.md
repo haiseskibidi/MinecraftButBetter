@@ -6,10 +6,29 @@
     - **Modular Additive Controller**: `ViewmodelController` парсит `version` из JSON. V1 треки пишутся напрямую в Euler, V2 треки конвертируются в `Quaternionf` и накладываются через сферическую интерполяцию (slerp).
     - **Transition Buffer (Cross-fade)**: `ViewmodelController` делает "снимок" позы (`saveSnapshotRecursive`) при смене предметов и плавно сглаживает (lerp/slerp) предыдущий кадр с новым. Логика перенесена в конец кадра (после Инерции и Хвата), что гарантирует отсутствие резких щелчков.
     - **Data-Driven Sockets & Grips**: Центрирование предметов теперь происходит математически точно (через смещения в `ViewmodelComponent`), а сгиб пальцев контролируется через Data-Driven пресеты `GripDefinition` (например, `flat_sheet` для блоков).
-2.  **Unified Coloring System (v1.0)**:
+2.  **Voxel Lighting System (v1.0 NEW)**:
+    - **Dual-Channel Light Storage**: Использование `byte[] lightData` в чанках для хранения 4-битных уровней Sunlight (небесный свет) и Blocklight (свет от ламп).
+    - **Flood-Fill (BFS) Propagation**: Класс `LightEngine` реализует воксельное распространение света с затуханием (1 уровень на блок). Солнечный свет заливается вертикально до первого препятствия.
+    - **Smooth Shading Pipeline**: `ChunkMeshGenerator` интерполирует свет между 4-мя соседними вокселями для каждой вершины, создавая плавные градиенты.
+    - **Vertex Ambient Occlusion**: Алгоритмическое затенение углов на основе проверки соседних блоков при генерации меша.
+3.  **Celestial & Day/Night System (v1.0 NEW)**:
+    - **Procedural Sky Rendering**: `SkyRenderer` отрисовывает Солнце и Луну как билборды, всегда повернутые к камере, с мягким шейдерным свечением.
+    - **Atmospheric Blending**: Динамическая интерполяция цвета неба и интенсивности света в зависимости от `worldTime`.
+    - **Lunar Light Cycles**: Ночью мир освещается мягким синим светом, а направление теней инвертируется (тени падают «от луны»).
+4.  **Unified Coloring System (v1.0)**:
     - **Single Source of Truth**: Класс `ColorProvider` централизованно хранит цвета биома (трава, листва).
     - **Smart Overlays**: Вместо проверки пикселей шейдер использует 4-ю текстурную координату (`OverlayLayer`) для наложения окрашиваемых масок поверх базовых текстур.
     - **Cross-System Consistency**: Единые шейдеры для мира, viewmodel, инвентаря и частиц гарантируют идентичное отображение цветов.
+3.  **Voxel Lighting System (v1.0 NEW)**:
+    - **Dual-Channel Light Storage**: Использование `byte[] lightData` в чанках для хранения 4-битных уровней Sunlight (небесный свет) и Blocklight (свет от ламп).
+    - **Flood-Fill (BFS) Propagation**: Класс `LightEngine` реализует воксельное распространение света с затуханием (1 уровень на блок). Солнечный свет заливается вертикально до первого препятствия.
+    - **Smooth Shading Pipeline**: `ChunkMeshGenerator` интерполирует свет между 4-мя соседними вокселями для каждой вершины, создавая плавные градиенты.
+    - **Vertex Ambient Occlusion**: Алгоритмическое затенение углов на основе проверки соседних блоков при генерации меша.
+4.  **Celestial & Day/Night System (v1.0 NEW)**:
+    - **Procedural Sky Rendering**: `SkyRenderer` отрисовывает Солнце и Луну как билборды, всегда повернутые к камере, с мягким шейдерным свечением.
+    - **Atmospheric Blending**: Динамическая интерполяция цвета неба и интенсивности света в зависимости от `worldTime`.
+    - **Lunar Light Cycles**: Ночью мир освещается мягким синим светом, а направление теней инвертируется (тени падают «от луны»).
+    - **Data-Driven Environment**: Все настройки (цвета, размеры светил, пиксельные сетки) вынесены в `world.json` и `celestial.json`.
 
 2.  **Advanced Rendering Architecture**:
     - **Extended Vertex Format**: Вершины поддерживают `vec4 texCoord` (U, V, BaseLayer, OverlayLayer) и `float verticalWeight` (локация 5).

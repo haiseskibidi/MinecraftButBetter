@@ -41,10 +41,12 @@ public class ChunkMeshGenerator {
         List<Float> blockTypes = new ArrayList<>();
         List<Float> neighborData = new ArrayList<>(); 
         List<Float> weights = new ArrayList<>();
+        List<Float> lightData = new ArrayList<>();
+        List<Float> aoData = new ArrayList<>();
         List<Integer> indices = new ArrayList<>();
         int vertexIndex = 0;
 
-        void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask, float overlayLayer, boolean canSway) {
+        void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask, float overlayLayer, boolean canSway, World world, int wx, int wy, int wz) {
             float minY = fp[1], maxY = fp[1];
             for (int v = 1; v < 4; v++) {
                 minY = Math.min(minY, fp[v*3+1]);
@@ -73,6 +75,25 @@ public class ChunkMeshGenerator {
                     }
                 }
                 weights.add(weight);
+
+                // LIGHT & AO Calculation
+                float vx = fp[v*3];
+                float vy = fp[v*3+1];
+                float vz = fp[v*3+2];
+                
+                // Determine vertex position relative to block center to find neighbors
+                int dx = vx > 0.5f ? 1 : -1;
+                int dy = vy > 0.5f ? 1 : -1;
+                int dz = vz > 0.5f ? 1 : -1;
+
+                // Simple AO based on neighbors
+                float ao = calculateAO(world, wx, wy, wz, face, vx, vy, vz);
+                aoData.add(ao);
+
+                // Smooth Lighting
+                float[] light = calculateSmoothLight(world, wx, wy, wz, face, vx, vy, vz);
+                lightData.add(light[0]); // Sun
+                lightData.add(light[1]); // Block
             }
             for (int v = 0; v < 4; v++) {
                 float vx = fp[v*3];
@@ -103,6 +124,94 @@ public class ChunkMeshGenerator {
             vertexIndex += 4;
         }
 
+        private float calculateAO(World world, int x, int y, int z, int face, float vx, float vy, float vz) {
+            if (world == null) return 1.0f;
+            
+            int nx = (vx > 0.0f) ? 1 : -1;
+            int ny = (vy > 0.0f) ? 1 : -1;
+            int nz = (vz > 0.0f) ? 1 : -1;
+
+            boolean side1 = false, side2 = false, corner = false;
+            
+            switch (face) {
+                case 0: // North (+Z)
+                case 1: // South (-Z)
+                    int fz = z + (face == 0 ? 1 : -1);
+                    side1 = isSolid(world, x + nx, y, fz);
+                    side2 = isSolid(world, x, y + ny, fz);
+                    corner = isSolid(world, x + nx, y + ny, fz);
+                    break;
+                case 2: // East (+X)
+                case 3: // West (-X)
+                    int fx = x + (face == 2 ? 1 : -1);
+                    side1 = isSolid(world, fx, y + ny, z);
+                    side2 = isSolid(world, fx, y, z + nz);
+                    corner = isSolid(world, fx, y + ny, z + nz);
+                    break;
+                case 4: // Up (+Y)
+                case 5: // Down (-Y)
+                    int fy = y + (face == 4 ? 1 : -1);
+                    side1 = isSolid(world, x + nx, fy, z);
+                    side2 = isSolid(world, x, fy, z + nz);
+                    corner = isSolid(world, x + nx, fy, z + nz);
+                    break;
+            }
+
+            if (side1 && side2) return 0.2f;
+            return 1.0f - ((side1 ? 1 : 0) + (side2 ? 1 : 0) + (corner ? 1 : 0)) * 0.25f;
+        }
+
+        private boolean isSolid(World world, int x, int y, int z) {
+            if (world == null) return false;
+            Block b = world.getBlock(x, y, z);
+            return b.getType() != 0 && com.za.zenith.world.blocks.BlockRegistry.getBlock(b.getType()).isSolid();
+        }
+
+        private float[] calculateSmoothLight(World world, int x, int y, int z, int face, float vx, float vy, float vz) {
+            if (world == null) return new float[]{15f, 0f};
+            // Face normal direction
+            com.za.zenith.utils.Direction dir = com.za.zenith.utils.Direction.values()[face];
+            int fx = x + dir.getDx();
+            int fy = y + dir.getDy();
+            int fz = z + dir.getDz();
+
+            // Vertex offset directions
+            int nx = (vx > 0.0f) ? 1 : -1;
+            int ny = (vy > 0.0f) ? 1 : -1;
+            int nz = (vz > 0.0f) ? 1 : -1;
+
+            float totalSun = 0;
+            float totalBlock = 0;
+            int count = 0;
+
+            // Sample 4 voxels around the vertex in the face plane
+            int[][] samples;
+            switch(face) {
+                case 0: case 1: // Z face
+                    samples = new int[][]{{0,0,0}, {nx,0,0}, {0,ny,0}, {nx,ny,0}}; break;
+                case 2: case 3: // X face
+                    samples = new int[][]{{0,0,0}, {0,ny,0}, {0,0,nz}, {0,ny,nz}}; break;
+                default: // Y face
+                    samples = new int[][]{{0,0,0}, {nx,0,0}, {0,0,nz}, {nx,0,nz}}; break;
+            }
+
+            for (int[] s : samples) {
+                Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(fx + s[0], fz + s[2]));
+                int sy = fy + s[1];
+                if (chunk != null && sy >= 0 && sy < Chunk.CHUNK_HEIGHT) {
+                    totalSun += chunk.getSunlight((fx + s[0]) & 15, sy, (fz + s[2]) & 15);
+                    totalBlock += chunk.getBlockLight((fx + s[0]) & 15, sy, (fz + s[2]) & 15);
+                } else {
+                    totalSun += 15; // Unloaded areas are bright
+                    totalBlock += 0;
+                }
+                count++;
+            }
+
+            if (count == 0) return new float[]{15f, 0f};
+            return new float[]{totalSun / count, totalBlock / count};
+        }
+
         void addRawQuad(float[] fp, float[] uv, float[] fn, float blockTypeId, float overlayLayer, boolean canSway, float weightOffset) {
             float minY = fp[1], maxY = fp[1];
             for (int v = 1; v < 4; v++) {
@@ -131,6 +240,11 @@ public class ChunkMeshGenerator {
                     weight = weightOffset + ((fp[v*3+1] > minY + 0.001f) ? 1.0f : 0.0f);
                 }
                 weights.add(weight);
+
+                // For raw quads (cross planes), use full light
+                lightData.add(15f);
+                lightData.add(0f);
+                aoData.add(1.0f);
             }
             for (int idx : FACE_INDICES) indices.add(vertexIndex + idx);
             vertexIndex += 4;
@@ -138,7 +252,7 @@ public class ChunkMeshGenerator {
 
         Mesh build() {
             if (positions.isEmpty()) return null;
-            float[] p = new float[positions.size()], t = new float[texCoords.size()], n = new float[normals.size()], b = new float[blockTypes.size()], nd = new float[neighborData.size()], w = new float[weights.size()];
+            float[] p = new float[positions.size()], t = new float[texCoords.size()], n = new float[normals.size()], b = new float[blockTypes.size()], nd = new float[neighborData.size()], w = new float[weights.size()], l = new float[lightData.size()], a = new float[aoData.size()];
             int[] ind = new int[indices.size()];
             for(int i=0; i<p.length; i++) p[i]=positions.get(i);
             for(int i=0; i<t.length; i++) t[i]=texCoords.get(i);
@@ -146,8 +260,10 @@ public class ChunkMeshGenerator {
             for(int i=0; i<b.length; i++) b[i]=blockTypes.get(i);
             for(int i=0; i<nd.length; i++) nd[i]=neighborData.get(i);
             for(int i=0; i<w.length; i++) w[i]=weights.get(i);
+            for(int i=0; i<l.length; i++) l[i]=lightData.get(i);
+            for(int i=0; i<a.length; i++) a[i]=aoData.get(i);
             for(int i=0; i<ind.length; i++) ind[i]=indices.get(i);
-            return new Mesh(p, t, n, b, nd, w, ind); 
+            return new Mesh(p, t, n, b, nd, w, l, a, ind); 
         }
     }
 
@@ -203,7 +319,7 @@ public class ChunkMeshGenerator {
                         }
                     }
                 }
-                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0, overlayLayer, def.isSway());
+                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0, overlayLayer, def.isSway(), null, 0, 0, 0);
             }
         }
         return data.build();
@@ -223,7 +339,7 @@ public class ChunkMeshGenerator {
             {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
         };
         for (int face = 0; face < 6; face++) {
-            data.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0, -1.0f, canSway);
+            data.addFace(facePositions[face], FACE_NORMALS[face], (float) block.getType(), BlockTextureMapper.uvFor(block, face, atlas), face, 0, 0, 0, 0, -1.0f, canSway, null, 0, 0, 0);
         }
         return data.build();
     }
@@ -275,7 +391,7 @@ public class ChunkMeshGenerator {
                     float oy = dir.getDy();
                     float oz = dir.getDz();
                     
-                    data.addFace(facePositions[oppFace], FACE_NORMALS[oppFace], faceBlockType, BlockTextureMapper.uvFor(nBlock, oppFace, atlas), oppFace, ox, oy, oz, 0, overlayLayer, nDef.isSway());
+                    data.addFace(facePositions[oppFace], FACE_NORMALS[oppFace], faceBlockType, BlockTextureMapper.uvFor(nBlock, oppFace, atlas), oppFace, ox, oy, oz, 0, overlayLayer, nDef.isSway(), world, nPos.x(), nPos.y(), nPos.z());
                 }
             }
         }
@@ -409,7 +525,7 @@ public class ChunkMeshGenerator {
                                 }
                             }
                             
-                            current.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask, overlayLayer, def.isSway());
+                            current.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask, overlayLayer, def.isSway(), world, worldX, worldY, worldZ);
                         }
                     }
                     }
