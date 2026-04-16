@@ -351,27 +351,57 @@ public class ChunkMeshGenerator {
 
     public static Mesh generateHoleMesh(BlockPos pos, World world, DynamicTextureAtlas atlas) {
         MeshData data = new MeshData();
-        Block block = world.getBlock(pos);
-        com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
-        if (def == null) return null;
-        
-        float finalBlockType = (float)block.getType();
-        VoxelShape shape = block.getShape();
-        if (shape == null) return null;
-        for (AABB box : shape.getBoxes()) {
-            Vector3f min = box.getMin(), max = box.getMax();
-            float[][] facePositions = new float[][]{
-                {min.x, min.y, max.z,  max.x, min.y, max.z,  max.x, max.y, max.z,  min.x, max.y, max.z},
-                {max.x, min.y, min.z,  min.x, min.y, min.z,  min.x, max.y, min.z,  max.x, max.y, min.z},
-                {max.x, min.y, max.z,  max.x, min.y, min.z,  max.x, max.y, min.z,  max.x, max.y, max.z},
-                {min.x, min.y, min.z,  min.x, min.y, max.z,  min.x, max.y, max.z,  min.x, max.y, min.z},
-                {min.x, max.y, max.z,  max.x, max.y, max.z,  max.x, max.y, min.z,  min.x, max.y, min.z},
-                {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
-            };
-            for (int face = 0; face < 6; face++) {
-                data.addFace(facePositions[face], FACE_NORMALS[face], finalBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0, -1.0f, def.isSway(), world, pos.x(), pos.y(), pos.z());
+        int[] oppositeFaces = {1, 0, 3, 2, 5, 4}; // N(0)->S(1), S(1)->N(0), E(2)->W(3), W(3)->E(2), U(4)->D(5), D(5)->U(4)
+
+        for (int face = 0; face < 6; face++) {
+            Direction dir = Direction.values()[face];
+            BlockPos nPos = new BlockPos(pos.x() + dir.getDx(), pos.y() + dir.getDy(), pos.z() + dir.getDz());
+            Block nBlock = world.getBlock(nPos);
+            com.za.zenith.world.blocks.BlockDefinition nDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(nBlock.getType());
+
+            if (nBlock.getType() != 0 && nDef != null && nDef.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DEFAULT) {
+                int oppFace = oppositeFaces[face];
+
+                VoxelShape shape = nBlock.getShape();
+                if (shape == null) continue;
+                for (AABB box : shape.getBoxes()) {
+                    Vector3f min = box.getMin(), max = box.getMax();
+                    float[][] facePositions = new float[][]{
+                        {min.x, min.y, max.z,  max.x, min.y, max.z,  max.x, max.y, max.z,  min.x, max.y, max.z},
+                        {max.x, min.y, min.z,  min.x, min.y, min.z,  min.x, max.y, min.z,  max.x, max.y, min.z},
+                        {max.x, min.y, max.z,  max.x, min.y, min.z,  max.x, max.y, min.z,  max.x, max.y, max.z},
+                        {min.x, min.y, min.z,  min.x, min.y, max.z,  min.x, max.y, max.z,  min.x, max.y, min.z},
+                        {min.x, max.y, max.z,  max.x, max.y, max.z,  max.x, max.y, min.z,  min.x, max.y, min.z},
+                        {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
+                    };
+
+                    float faceBlockType = (float)nBlock.getType();
+                    float overlayLayer = -1.0f;
+                    if (nDef.isTinted()) {
+                        faceBlockType = -(faceBlockType + 1.0f);
+                        if (nDef.getTextures() != null) {
+                            String innerKey = nDef.getTextures().getInner();
+                            String sideKey = nDef.getTextures().getTextureForFace(oppFace);
+                            if (oppFace < 4 && innerKey != null && !innerKey.equals(sideKey)) {
+                                float[] innerUv = atlas.uvFor(innerKey);
+                                if (innerUv != null) {
+                                    overlayLayer = innerUv[2];
+                                }
+                            }
+                        }
+                    }
+
+                    // We render the neighbor's opposite face, shifted by the direction offset
+                    float ox = dir.getDx();
+                    float oy = dir.getDy();
+                    float oz = dir.getDz();
+
+                    data.addFace(facePositions[oppFace], FACE_NORMALS[oppFace], faceBlockType, BlockTextureMapper.uvFor(nBlock, oppFace, atlas), oppFace, ox, oy, oz, 0, overlayLayer, nDef.isSway(), world, nPos.x(), nPos.y(), nPos.z());
+                }
             }
         }
+
+        if (data.positions.isEmpty()) return null;
         return data.build();
     }
 
