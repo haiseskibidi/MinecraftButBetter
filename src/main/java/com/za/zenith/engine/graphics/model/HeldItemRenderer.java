@@ -36,7 +36,7 @@ public class HeldItemRenderer {
         Mesh mesh = itemMeshCache.get(item.getId());
         if (mesh == null) {
             if (item.isBlock()) {
-                mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas);
+                mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas, null, null);
             } else {
                 mesh = com.za.zenith.world.items.ItemMeshGenerator.generateItemMesh(
                     item.getTexturePath(), atlas, item.getId()

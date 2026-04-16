@@ -267,7 +267,7 @@ public class ChunkMeshGenerator {
         }
     }
 
-    public static Mesh generateSingleBlockMesh(Block block, DynamicTextureAtlas atlas) {
+    public static Mesh generateSingleBlockMesh(Block block, DynamicTextureAtlas atlas, World world, BlockPos pos) {
         MeshData data = new MeshData();
         com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
         
@@ -277,6 +277,10 @@ public class ChunkMeshGenerator {
         if (def != null && def.isTinted()) {
             finalBlockType = -(finalBlockType + 1.0f);
         }
+
+        int wx = (pos != null) ? pos.x() : 0;
+        int wy = (pos != null) ? pos.y() : 0;
+        int wz = (pos != null) ? pos.z() : 0;
 
         if (def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DOUBLE_PLANT) {
             float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
@@ -319,7 +323,7 @@ public class ChunkMeshGenerator {
                         }
                     }
                 }
-                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0, overlayLayer, def.isSway(), null, 0, 0, 0);
+                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0, overlayLayer, def.isSway(), world, wx, wy, wz);
             }
         }
         return data.build();

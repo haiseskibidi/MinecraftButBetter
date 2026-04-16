@@ -80,18 +80,22 @@ public class Renderer {
         this.lightDirection = new Vector3f(0.2f, -1.0f, 0.2f).normalize();
     }
 
-    public void setBreakingBlock(com.za.zenith.world.BlockPos pos, Block block, float progress, float timer, Vector3f localHitPoint, Vector3f localWeakSpot, Vector3f color, java.util.List<Vector4f> history) {
+    public void setBreakingBlock(com.za.zenith.world.BlockPos pos, Block block, float progress, float timer, Vector3f localHitPoint, Vector3f localWeakSpot, Vector3f color, java.util.List<Vector4f> history, World world) {
         if (block == null) {
             this.breakingPos = null;
             this.currentBreakingBlock = null;
             this.breakingProgress = 0.0f;
             this.wobbleTimer = 0.0f;
+            if (blockShader != null) {
+                blockShader.use();
+                blockShader.setVector3f("uHiddenBlockPos", new Vector3f(0, -100, 0));
+            }
             return;
         }
         
         if (currentBreakingBlock == null || !pos.equals(this.breakingPos) || currentBreakingBlock.getType() != block.getType() || currentBreakingBlock.getMetadata() != block.getMetadata()) {
             if (breakingMesh != null) breakingMesh.cleanup();
-            breakingMesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas);
+            breakingMesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas, world, pos);
             currentBreakingBlock = block;
         }
         this.breakingPos = pos;
@@ -118,7 +122,7 @@ public class Renderer {
         }
         if (currentPreviewBlock == null || currentPreviewBlock.getType() != block.getType() || currentPreviewBlock.getMetadata() != block.getMetadata()) {
             if (previewMesh != null) previewMesh.cleanup();
-            previewMesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas);
+            previewMesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas, null, null);
             currentPreviewBlock = block;
         }
         this.previewPos = pos;
@@ -399,7 +403,7 @@ public class Renderer {
             
             Mesh mesh = blockMeshCache.get(typeId);
             if (mesh == null) {
-                mesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas);
+                mesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas, null, null);
                 if (mesh != null) blockMeshCache.put(typeId, mesh);
             }
 
@@ -514,7 +518,7 @@ public class Renderer {
 
                 if (mesh == null) {
                     if (item.isBlock()) {
-                        mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas);
+                        mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas, null, null);
                     } else {
                         mesh = com.za.zenith.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
                     }
@@ -597,7 +601,7 @@ public class Renderer {
                         com.za.zenith.utils.Identifier blockId = com.za.zenith.utils.Identifier.of(def.texture());
                         com.za.zenith.world.blocks.BlockDefinition blockDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(blockId);
                         if (blockDef != null) {
-                            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(blockDef.getId()), atlas);
+                            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(blockDef.getId()), atlas, null, null);
                         }
                     }
                     if (mesh != null) entityDefMeshCache.put(def, mesh);
@@ -647,7 +651,7 @@ public class Renderer {
                     Mesh mesh = itemMeshCache.get(item);
                     if (mesh == null) {
                         if (item.isBlock()) {
-                            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new com.za.zenith.world.blocks.Block(item.getId()), atlas);
+                            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new com.za.zenith.world.blocks.Block(item.getId()), atlas, null, null);
                         } else {
                             mesh = com.za.zenith.world.items.ItemMeshGenerator.generateItemMesh(item.getTexturePath(), atlas, item.getId());
                         }

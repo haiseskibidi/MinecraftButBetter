@@ -882,7 +882,7 @@ public class InputManager {
                     float rx = raycast.getHitPoint().x - raycast.getBlockPos().x();
                     float ry = raycast.getHitPoint().y - raycast.getBlockPos().y();
                     float rz = raycast.getHitPoint().z - raycast.getBlockPos().z();
-                    miningController.renderVisuals(raycast.getBlockPos(), block, new Vector3f(rx, ry, rz));
+                    miningController.renderVisuals(raycast.getBlockPos(), block, new Vector3f(rx, ry, rz), world);
                 }
             }
             leftMousePressed = lm;

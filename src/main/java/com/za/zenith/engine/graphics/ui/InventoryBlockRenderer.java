@@ -37,7 +37,7 @@ public class InventoryBlockRenderer {
         // 1. Получаем или создаем меш блока
         Mesh mesh = blockMeshCache.get(item.getId());
         if (mesh == null) {
-            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas);
+            mesh = ChunkMeshGenerator.generateSingleBlockMesh(new Block(item.getId()), atlas, null, null);
             if (mesh != null) blockMeshCache.put(item.getId(), mesh);
         }
 
