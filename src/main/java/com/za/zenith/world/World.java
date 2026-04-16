@@ -487,6 +487,27 @@ public class World {
         return seed;
     }
     
+    public int getBlockLight(BlockPos pos) {
+        return getBlockLight(pos.x(), pos.y(), pos.z());
+    }
+
+    public int getBlockLight(int x, int y, int z) {
+        Chunk chunk = getChunk(ChunkPos.fromBlockPos(x, z));
+        if (chunk == null) return 0;
+        return chunk.getBlockLight(x & 15, y, z & 15);
+    }
+
+    public void setBlockLight(BlockPos pos, int level) {
+        setBlockLight(pos.x(), pos.y(), pos.z(), level);
+    }
+
+    public void setBlockLight(int x, int y, int z, int level) {
+        Chunk chunk = getChunk(ChunkPos.fromBlockPos(x, z));
+        if (chunk != null) {
+            chunk.setBlockLight(x & 15, y, z & 15, level);
+        }
+    }
+
     public void setBlock(int x, int y, int z, int blockType) {
         setBlock(x, y, z, new Block(blockType));
     }

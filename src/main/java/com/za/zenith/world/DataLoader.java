@@ -735,6 +735,7 @@ public class DataLoader {
             if (obj.has("wobble_animation")) def.setWobbleAnimation(obj.get("wobble_animation").getAsString());
             if (obj.has("interaction_cooldown")) def.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());
             if (obj.has("healing_speed")) def.setHealingSpeed(obj.get("healing_speed").getAsFloat());
+            if (obj.has("emission")) def.setEmission(obj.get("emission").getAsInt());
             if (obj.has("particle_grid")) def.setParticleGridSize(obj.get("particle_grid").getAsInt());
             if (obj.has("particle_scale")) def.setParticleScale(obj.get("particle_scale").getAsFloat());
             if (obj.has("weak_spot_particles")) def.setWeakSpotParticles(obj.get("weak_spot_particles").getAsInt());
@@ -911,6 +912,7 @@ public class DataLoader {
             if (obj.has("visualScale")) item.setDroppedScale(obj.get("visualScale").getAsFloat()); // Legacy support
             if (obj.has("droppedScale")) item.setDroppedScale(obj.get("droppedScale").getAsFloat());
             if (obj.has("viewmodelScale")) item.setViewmodelScale(obj.get("viewmodelScale").getAsFloat());
+            if (obj.has("lightLevel")) item.setLightLevel(obj.get("lightLevel").getAsInt());
             if (obj.has("miningSpeed")) item.setMiningSpeed(obj.get("miningSpeed").getAsFloat());
             if (obj.has("maxStackSize")) item.setMaxStackSize(obj.get("maxStackSize").getAsInt());
             if (obj.has("interaction_cooldown")) item.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());

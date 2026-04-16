@@ -220,7 +220,13 @@ public class Renderer {
         Vector3f currentLightColor = new Vector3f(sunCol).mul(sunIntensity).add(new Vector3f(moonCol).mul(moonIntensity * 0.5f));
         Vector3f currentAmbient = new Vector3f(ambCol).mul(0.2f + 0.8f * sunIntensity + 0.3f * moonIntensity);
 
-        renderScene(camera, world, networkClient, alpha, finalLightDir, currentLightColor, currentAmbient);
+        Vector3f playerLightPos = world.getPlayer() != null ? new Vector3f(world.getPlayer().getPosition()).add(0, 1.5f, 0) : new Vector3f();
+        float playerLightLevel = 0;
+        if (world.getPlayer() != null && world.getPlayer().getInventory().getSelectedItemStack() != null) {
+            playerLightLevel = world.getPlayer().getInventory().getSelectedItemStack().getItem().getLightLevel();
+        }
+
+        renderScene(camera, world, networkClient, alpha, finalLightDir, currentLightColor, currentAmbient, playerLightPos, playerLightLevel);
 
         if (highlightedBlock != null && highlightedBlock.isHit()) renderBlockHighlight(camera, world, highlightedBlock, alpha);
         if (previewPos != null && previewMesh != null) renderPreviewBlock(camera, alpha);
@@ -291,7 +297,7 @@ public class Renderer {
         glEnable(GL_CULL_FACE);
     }
     
-    private void renderScene(Camera camera, World world, com.za.zenith.network.GameClient networkClient, float alpha, Vector3f lightDir, Vector3f lightCol, Vector3f ambient) {
+    private void renderScene(Camera camera, World world, com.za.zenith.network.GameClient networkClient, float alpha, Vector3f lightDir, Vector3f lightCol, Vector3f ambient, Vector3f playerLightPos, float playerLightLevel) {
         blockShader.use();
         atlas.bind();
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
@@ -303,6 +309,9 @@ public class Renderer {
         blockShader.setVector3f("lightDirection", lightDir);
         blockShader.setVector3f("lightColor", lightCol);
         blockShader.setVector3f("ambientLight", ambient);
+        blockShader.setVector3f("uPlayerLightPos", playerLightPos);
+        blockShader.setVector3f("uPlayerLightPos", playerLightPos);
+        blockShader.setFloat("uPlayerLightLevel", playerLightLevel);
 
         blockShader.setBoolean("useMask", false);
         blockShader.setBoolean("previewPass", false);

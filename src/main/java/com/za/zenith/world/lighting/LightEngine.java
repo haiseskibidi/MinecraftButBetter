@@ -29,6 +29,11 @@ public class LightEngine {
         }
     }
 
+    public void onBlockChanged(BlockPos pos) {
+        updateBlockLight(pos);
+        updateSunlight(pos);
+    }
+
     public void updateBlockLight(BlockPos pos) {
         Queue<LightNode> fillQueue = new LinkedList<>();
         Queue<LightNode> removalQueue = new LinkedList<>();

@@ -35,6 +35,9 @@ uniform vec3 uCondition; // x=dirt, y=blood, z=wetness
 uniform bool isHand = false;
 uniform float uHandPartWeight = 0.0; // 1.0=hand, 0.6=forearm, 0.3=shoulder
 
+uniform vec3 uPlayerLightPos;
+uniform float uPlayerLightLevel; // 0.0 to 15.0
+
 // Modular Includes
 #include "include/noise.glsl"
 #include "include/hand_conditions.glsl"
@@ -112,10 +115,19 @@ void main() {
     float sunlight = vLight.x / 15.0;
     float blocklight = vLight.y / 15.0;
     
+    // Dynamic Point Light (Held Item)
+    float distToLight = distance(fragPos, uPlayerLightPos);
+    float dynamicLight = 0.0;
+    if (uPlayerLightLevel > 0.0) {
+        float attenuation = 1.0 / (1.0 + 0.1 * distToLight + 0.05 * distToLight * distToLight);
+        dynamicLight = (uPlayerLightLevel / 15.0) * attenuation;
+    }
+    
     vec3 lighting = calculateLighting(fragNormal, lightDirection, lightColor * sunlight, ambientLight);
     
-    // Add blocklight as an emissive contribution (warm orange tint)
-    vec3 blocklightCol = vec3(1.0, 0.85, 0.6) * blocklight;
+    // Add blocklight + dynamic light contribution (warm orange tint)
+    float totalBlocklight = max(blocklight, dynamicLight);
+    vec3 blocklightCol = vec3(1.0, 0.85, 0.6) * totalBlocklight;
     lighting += blocklightCol;
     
     // Apply Ambient Occlusion

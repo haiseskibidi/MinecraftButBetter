@@ -1,6 +1,7 @@
 {
   "identifier": "zenith:fire_starter",
   "translationKey": "item.zenith.fire_starter",
+  "lightLevel": 10,
   "texture": "zenith/textures/item/flint_and_steel.png",
   "maxStackSize": 1,
   "components": {

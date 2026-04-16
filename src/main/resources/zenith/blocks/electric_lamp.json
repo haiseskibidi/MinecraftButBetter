@@ -2,8 +2,9 @@
   "identifier": "zenith:electric_lamp",
   "translationKey": "block.zenith.electric_lamp",
   "solid": true,
-  "transparent": false,
+  "transparent": true,
   "type": "lamp",
+  "emission": 15,
   "hardness": 0.5,
   "textures": {
     "all": "sea_lantern.png"

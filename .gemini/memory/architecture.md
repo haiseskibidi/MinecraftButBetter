@@ -6,9 +6,11 @@
     - **Modular Additive Controller**: `ViewmodelController` парсит `version` из JSON. V1 треки пишутся напрямую в Euler, V2 треки конвертируются в `Quaternionf` и накладываются через сферическую интерполяцию (slerp).
     - **Transition Buffer (Cross-fade)**: `ViewmodelController` делает "снимок" позы (`saveSnapshotRecursive`) при смене предметов и плавно сглаживает (lerp/slerp) предыдущий кадр с новым. Логика перенесена в конец кадра (после Инерции и Хвата), что гарантирует отсутствие резких щелчков.
     - **Data-Driven Sockets & Grips**: Центрирование предметов теперь происходит математически точно (через смещения в `ViewmodelComponent`), а сгиб пальцев контролируется через Data-Driven пресеты `GripDefinition` (например, `flat_sheet` для блоков).
-2.  **Voxel Lighting System (v1.0 NEW)**:
+2.  **Voxel Lighting System (v1.1 UPDATED)**:
     - **Dual-Channel Light Storage**: Использование `byte[] lightData` в чанках для хранения 4-битных уровней Sunlight (небесный свет) и Blocklight (свет от ламп).
-    - **Flood-Fill (BFS) Propagation**: Класс `LightEngine` реализует воксельное распространение света с затуханием (1 уровень на блок). Солнечный свет заливается вертикально до первого препятствия.
+    - **Flood-Fill (BFS) Propagation**: Класс `LightEngine` реализует воксельное распространение света с затуханием.
+    - **Hybrid Dynamic Lighting**: Сочетание статического воксельного света (от установленных блоков) и динамического шейдерного света (Point Light вокруг игрока при наличии светящихся предметов в руках).
+    - **Data-Driven Emission**: Уровни излучения настраиваются через поле `emission` в блоках и `lightLevel` в предметах.
     - **Smooth Shading Pipeline**: `ChunkMeshGenerator` интерполирует свет между 4-мя соседними вокселями для каждой вершины, создавая плавные градиенты.
     - **Vertex Ambient Occlusion**: Алгоритмическое затенение углов на основе проверки соседних блоков при генерации меша.
 3.  **Celestial & Day/Night System (v1.0 NEW)**:

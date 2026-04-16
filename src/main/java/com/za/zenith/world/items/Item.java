@@ -18,6 +18,7 @@ public class Item {
     protected float droppedScale = 1.0f;
     protected float viewmodelScale = 1.0f;
     protected float miningSpeed = 0.1f;
+    protected int lightLevel = 0; // 0-15 light emission level
     protected int maxStackSize = -1; // -1 means use type default
     protected float interactionCooldown = -1.0f; 
     protected org.joml.Vector3f visualMin = new org.joml.Vector3f(-0.5f);
@@ -161,6 +162,14 @@ public class Item {
     public float getGripWidth() { 
         if (gripWidth >= 0) return gripWidth;
         return visualMax.x - visualMin.x; 
+    }
+
+    public int getLightLevel() {
+        return lightLevel;
+    }
+
+    public void setLightLevel(int lightLevel) {
+        this.lightLevel = Math.max(0, Math.min(15, lightLevel));
     }
 
     public float getBaseMiningSpeed() {
