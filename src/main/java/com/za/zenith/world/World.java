@@ -4,6 +4,7 @@ import com.za.zenith.world.blocks.Block;
 import com.za.zenith.world.blocks.Blocks;
 import com.za.zenith.world.blocks.entity.BlockEntity;
 import com.za.zenith.world.blocks.entity.ITickable;
+import com.za.zenith.world.lighting.LightEngine;
 import com.za.zenith.world.chunks.Chunk;
 import com.za.zenith.world.chunks.ChunkPos;
 import com.za.zenith.world.generation.TerrainGenerator;
@@ -483,6 +484,20 @@ public class World {
         return chunks.get(pos);
     }
     
+    public int getSunlight(BlockPos pos) {
+        return getSunlight(pos.x(), pos.y(), pos.z());
+    }
+
+    public int getSunlight(int x, int y, int z) {
+        Chunk chunk = getChunk(ChunkPos.fromBlockPos(x, z));
+        if (chunk == null) return 15;
+        return chunk.getSunlight(x & 15, y, z & 15);
+    }
+
+    public LightEngine getLightEngine() {
+        return lightEngine;
+    }
+
     public long getSeed() {
         return seed;
     }

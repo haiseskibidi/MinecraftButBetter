@@ -28,13 +28,10 @@ public class LampBlockEntity extends BlockEntity implements ITickable, IEnergySt
         }
 
         if (wasLit != lit) {
-            // Force light update in world
-            int emission = lit ? 15 : 0;
-            world.setBlockLight(pos, emission);
-            // In a full implementation, LightEngine should handle the propagation
-            // but for now we manually trigger it via world helper or similar
-            // Since we don't have a direct 'propagate' call here, we use the fact
-            // that LightEngine is meant to handle state changes.
+            // Force light update in world with propagation
+            world.setBlockLight(pos, lit ? 15 : 0);
+            world.getLightEngine().updateBlockLight(pos);
+            
             com.za.zenith.utils.Logger.info("Lamp at %s state: %s", pos, lit ? "ON" : "OFF");
         }
     }

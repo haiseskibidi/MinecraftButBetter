@@ -55,7 +55,17 @@ public class LightEngine {
 
     private int calculateBlockLightSource(BlockPos pos) {
         Block block = world.getBlock(pos);
-        int emission = BlockRegistry.getBlock(block.getType()).getEmission();
+        com.za.zenith.world.blocks.BlockDefinition def = BlockRegistry.getBlock(block.getType());
+        int emission = def.getEmission();
+        
+        // If it's a lamp, check if it's actually LIT via BlockEntity
+        if (def.getIdentifier().toString().contains("lamp")) {
+            com.za.zenith.world.blocks.entity.BlockEntity be = world.getBlockEntity(pos);
+            if (be instanceof com.za.zenith.world.blocks.entity.LampBlockEntity) {
+                return world.getBlockLight(pos); 
+            }
+        }
+        
         if (emission > 0) return emission;
 
         int maxNeighbor = 0;
