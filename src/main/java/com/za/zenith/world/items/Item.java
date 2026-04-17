@@ -19,6 +19,7 @@ public class Item {
     protected float viewmodelScale = 1.0f;
     protected float miningSpeed = 0.1f;
     protected int lightLevel = 0; // 0-15 light emission level
+    protected com.za.zenith.world.lighting.LightData lightData = null;
     protected int maxStackSize = -1; // -1 means use type default
     protected float interactionCooldown = -1.0f; 
     protected org.joml.Vector3f visualMin = new org.joml.Vector3f(-0.5f);
@@ -172,6 +173,14 @@ public class Item {
         this.lightLevel = Math.max(0, Math.min(15, lightLevel));
     }
 
+    public com.za.zenith.world.lighting.LightData getLightData() {
+        return lightData;
+    }
+
+    public void setLightData(com.za.zenith.world.lighting.LightData lightData) {
+        this.lightData = lightData;
+    }
+
     public float getBaseMiningSpeed() {
         return miningSpeed;
     }
@@ -290,5 +299,6 @@ public class Item {
         return this.miningSpeed; 
     }
 }
+
 
 

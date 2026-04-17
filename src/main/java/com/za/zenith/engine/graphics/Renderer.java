@@ -41,7 +41,6 @@ public class Renderer {
     private Mesh previewMesh;
     private final Map<Integer, Mesh> blockMeshCache = new java.util.HashMap<>();
     private final Vector3f lightDirection;
-    private final Vector3f lightColor = new Vector3f(1.0f, 0.95f, 0.85f);
     private final Vector3f ambientLight = new Vector3f(0.4f, 0.45f, 0.55f);
     
     // Viewmodel
@@ -58,6 +57,7 @@ public class Renderer {
     private com.za.zenith.world.BlockPos previewPos;
     
     // Impact Wobble
+    private final Map<com.za.zenith.world.BlockPos, Mesh> persistentHoleCache = new java.util.HashMap<>();
     private Block currentBreakingBlock;
     private com.za.zenith.world.BlockPos breakingPos;
     private Vector3f breakingHitPoint = new Vector3f();
@@ -86,10 +86,6 @@ public class Renderer {
             this.currentBreakingBlock = null;
             this.breakingProgress = 0.0f;
             this.wobbleTimer = 0.0f;
-            if (blockShader != null) {
-                blockShader.use();
-                blockShader.setVector3f("uHiddenBlockPos", new Vector3f(0, -100, 0));
-            }
             return;
         }
         
@@ -221,24 +217,31 @@ public class Renderer {
         Vector3f moonCol = new Vector3f(worldSettings.moonLightColor[0], worldSettings.moonLightColor[1], worldSettings.moonLightColor[2]);
         Vector3f ambCol = new Vector3f(worldSettings.ambientColor[0], worldSettings.ambientColor[1], worldSettings.ambientColor[2]);
 
-        Vector3f currentLightColor = new Vector3f(sunCol).mul(sunIntensity).add(new Vector3f(moonCol).mul(moonIntensity * 0.5f));
+        Vector3f playerLightPos = world.getPlayer() != null ? new Vector3f(world.getPlayer().getPosition()).add(0, 1.5f, 0) : new Vector3f();
+        
+        // Update LightManager
+        com.za.zenith.world.lighting.LightManager.update(world, world.getPlayer());
+        
+        // Add Sun as a directional light source
+        com.za.zenith.world.lighting.LightData sunData = new com.za.zenith.world.lighting.LightData();
+        sunData.type = com.za.zenith.world.lighting.LightData.Type.DIRECTIONAL;
+        sunData.color.set(sunCol).mul(sunIntensity).add(new Vector3f(moonCol).mul(moonIntensity * 0.5f));
+        sunData.intensity = 1.0f;
+        com.za.zenith.world.lighting.LightSource sunSource = new com.za.zenith.world.lighting.LightSource(sunData);
+        sunSource.direction.set(finalLightDir);
+        com.za.zenith.world.lighting.LightManager.addDirectionalLight(sunSource);
+
         Vector3f currentAmbient = new Vector3f(ambCol).mul(0.2f + 0.8f * sunIntensity + 0.3f * moonIntensity);
 
-        Vector3f playerLightPos = world.getPlayer() != null ? new Vector3f(world.getPlayer().getPosition()).add(0, 1.5f, 0) : new Vector3f();
-        float playerLightLevel = 0;
-        if (world.getPlayer() != null && world.getPlayer().getInventory().getSelectedItemStack() != null) {
-            playerLightLevel = world.getPlayer().getInventory().getSelectedItemStack().getItem().getLightLevel();
-        }
-
-        renderScene(camera, world, networkClient, alpha, finalLightDir, currentLightColor, currentAmbient, playerLightPos, playerLightLevel);
+        renderScene(camera, world, networkClient, alpha, finalLightDir, currentAmbient);
 
         if (highlightedBlock != null && highlightedBlock.isHit()) renderBlockHighlight(camera, world, highlightedBlock, alpha);
         if (previewPos != null && previewMesh != null) renderPreviewBlock(camera, alpha);
 
-        renderViewModel(camera, world.getPlayer());
+        renderViewModel(camera, world.getPlayer(), currentAmbient);
 
         // Render Particles
-        particleRenderer.render(camera, com.za.zenith.world.particles.ParticleManager.getInstance().getActiveParticles(), atlas, alpha, finalLightDir, currentLightColor, currentAmbient);
+        particleRenderer.render(camera, com.za.zenith.world.particles.ParticleManager.getInstance().getActiveParticles(), atlas, alpha, currentAmbient);
 
         framebuffer.unbind();
         glViewport(0, 0, window.getWidth(), window.getHeight());
@@ -253,7 +256,8 @@ public class Renderer {
         uiRenderer.renderPauseMenu(window.getWidth(), window.getHeight());
     }
 
-    private void renderViewModel(Camera camera, com.za.zenith.entities.Player player) {        if (player == null) return;
+    private void renderViewModel(Camera camera, com.za.zenith.entities.Player player, Vector3f currentAmbient) {
+        if (player == null) return;
         glDisable(GL_CULL_FACE);
         glDepthRange(0.0, 0.05);
         
@@ -262,9 +266,20 @@ public class Renderer {
         Matrix4f viewModelProjection = new Matrix4f().setPerspective((float)Math.toRadians(70.0f), camera.getAspectRatio(), 0.01f, 1000.0f);
         viewmodelShader.setMatrix4f("projection", viewModelProjection);
         viewmodelShader.setMatrix4f("view", new Matrix4f().identity());
-        viewmodelShader.setVector3f("lightDirection", new Vector3f(0.4f, -0.8f, 0.4f).normalize());
-        viewmodelShader.setVector3f("lightColor", lightColor);
-        viewmodelShader.setVector3f("ambientLight", ambientLight);
+        
+        Matrix4f viewMatrix = camera.getViewMatrix(1.0f); // Use current view matrix for transformation
+        java.util.List<com.za.zenith.world.lighting.LightSource> worldLights = com.za.zenith.world.lighting.LightManager.getActiveLights();
+        java.util.List<com.za.zenith.world.lighting.LightSource> viewLights = new java.util.ArrayList<>();
+        
+        for (com.za.zenith.world.lighting.LightSource ls : worldLights) {
+            com.za.zenith.world.lighting.LightSource vls = new com.za.zenith.world.lighting.LightSource(ls.data);
+            viewMatrix.transformPosition(ls.position, vls.position);
+            viewMatrix.transformDirection(ls.direction, vls.direction);
+            viewLights.add(vls);
+        }
+
+        viewmodelShader.setLights("uLights", viewLights);
+        viewmodelShader.setVector3f("ambientLight", currentAmbient);
         viewmodelShader.setVector3f("uGrassColor", ColorProvider.getGrassColor());
         viewmodelShader.setFloat("uTime", (float)org.lwjgl.glfw.GLFW.glfwGetTime());
         
@@ -301,7 +316,7 @@ public class Renderer {
         glEnable(GL_CULL_FACE);
     }
     
-    private void renderScene(Camera camera, World world, com.za.zenith.network.GameClient networkClient, float alpha, Vector3f lightDir, Vector3f lightCol, Vector3f ambient, Vector3f playerLightPos, float playerLightLevel) {
+    private void renderScene(Camera camera, World world, com.za.zenith.network.GameClient networkClient, float alpha, Vector3f lightDir, Vector3f ambient) {
         blockShader.use();
         atlas.bind();
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
@@ -310,16 +325,23 @@ public class Renderer {
         blockShader.setFloat("uSwayOverride", -1.0f);
         blockShader.setVector3f("uGrassColor", ColorProvider.getGrassColor());
         
-        blockShader.setVector3f("lightDirection", lightDir);
-        blockShader.setVector3f("lightColor", lightCol);
+        blockShader.setLights("uLights", com.za.zenith.world.lighting.LightManager.getActiveLights());
         blockShader.setVector3f("ambientLight", ambient);
-        blockShader.setVector3f("uPlayerLightPos", playerLightPos);
-        blockShader.setVector3f("uPlayerLightPos", playerLightPos);
-        blockShader.setFloat("uPlayerLightLevel", playerLightLevel);
+
+        // Collect all positions from damage map to hide them in chunk mesh
+        java.util.Set<com.za.zenith.world.BlockPos> damagedPositions = world.getBlockDamageMap().keySet();
+        int hiddenCount = Math.min(damagedPositions.size(), 16);
+        blockShader.setInt("uHiddenCount", hiddenCount);
+        int idx = 0;
+        for (com.za.zenith.world.BlockPos dpos : damagedPositions) {
+            if (idx >= 16) break;
+            blockShader.setVector3f("uHiddenPositions[" + idx + "]", new Vector3f(dpos.x(), dpos.y(), dpos.z()));
+            idx++;
+        }
 
         blockShader.setBoolean("useMask", false);
         blockShader.setBoolean("previewPass", false);
-        blockShader.setBoolean("isHand", false); // Ensure world blocks are not masked as hands
+        blockShader.setBoolean("isHand", false);
         blockShader.setFloat("brightnessMultiplier", 1.0f);
         blockShader.setInt("highlightPass", 0);
         blockShader.setBoolean("uIsProxy", false);
@@ -336,14 +358,12 @@ public class Renderer {
                 holeMesh = ChunkMeshGenerator.generateHoleMesh(breakingPos, world, atlas);
                 holePos = breakingPos;
             }
-            blockShader.setVector3f("uHiddenBlockPos", new Vector3f(breakingPos.x(), breakingPos.y(), breakingPos.z()));
         } else {
             if (holeMesh != null) {
                 holeMesh.cleanup();
                 holeMesh = null;
                 holePos = null;
             }
-            blockShader.setVector3f("uHiddenBlockPos", new Vector3f(0, -100, 0)); // Hide logic disabled
         }
 
         for (Chunk chunk : world.getLoadedChunks()) {
@@ -367,17 +387,23 @@ public class Renderer {
         glDepthMask(true);
         
         if (holeMesh != null) {
-            blockShader.setVector3f("uHiddenBlockPos", new Vector3f(0, -100, 0)); // Stop discarding for hole
+            blockShader.setInt("uHiddenCount", 0); // Disable discard for hole mesh
             modelMatrix.identity().translate(breakingPos.x(), breakingPos.y(), breakingPos.z());
             blockShader.setMatrix4f("model", modelMatrix);
             holeMesh.render();
         }
         
         if (breakingPos != null && breakingMesh != null && currentBreakingBlock != null) {
+            blockShader.setInt("uHiddenCount", 0); // Disable discard for proxy
             renderBreakingProxyBlock(camera, alpha);
         }
 
+        // Restore hidden count for persistent scars rendering
+        blockShader.setInt("uHiddenCount", hiddenCount);
         renderPersistentScars(camera, world, alpha);
+        
+        // Reset count before rendering entities to avoid accidental discards
+        blockShader.setInt("uHiddenCount", 0);
         
         renderEntities(camera, world, alpha);
         renderBlockEntities(camera, world, alpha);
@@ -385,31 +411,58 @@ public class Renderer {
     }
 
     private void renderPersistentScars(Camera camera, World world, float alpha) {
-        if (world.getBlockDamageMap().isEmpty()) return;
+        if (world.getBlockDamageMap().isEmpty()) {
+            if (!persistentHoleCache.isEmpty()) {
+                persistentHoleCache.values().forEach(Mesh::cleanup);
+                persistentHoleCache.clear();
+            }
+            return;
+        }
         
         blockShader.use();
-        glEnable(GL_POLYGON_OFFSET_FILL);
-        glPolygonOffset(-1.0f, -1.0f);
+        
+        // 1. Cleanup stale hole meshes
+        persistentHoleCache.keySet().removeIf(pos -> {
+            if (!world.getBlockDamageMap().containsKey(pos)) {
+                Mesh m = persistentHoleCache.get(pos);
+                if (m != null) m.cleanup();
+                return true;
+            }
+            return false;
+        });
 
+        // 2. Render all damaged blocks and their holes
         for (Map.Entry<com.za.zenith.world.BlockPos, World.BlockDamageInstance> entry : world.getBlockDamageMap().entrySet()) {
             com.za.zenith.world.BlockPos pos = entry.getKey();
-            // Skip the block that is currently being broken with animations
+            // Skip current breaking block as it has its own special rendering
             if (breakingPos != null && pos.equals(breakingPos)) continue;
 
             World.BlockDamageInstance info = entry.getValue();
-            com.za.zenith.world.blocks.Block block = world.getBlock(pos);
-            int typeId = block.getType();
-            if (typeId == 0) continue; // Should not happen for damage map
+            com.za.zenith.world.blocks.Block block = info.getBlock();
+            if (block == null || block.isAir()) continue;
+
+            // 2a. Render Hole Mesh (Neighbor faces)
+            Mesh hole = persistentHoleCache.get(pos);
+            if (hole == null) {
+                hole = ChunkMeshGenerator.generateHoleMesh(pos, world, atlas);
+                if (hole != null) persistentHoleCache.put(pos, hole);
+            }
             
-            Mesh mesh = blockMeshCache.get(typeId);
-            if (mesh == null) {
-                mesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas, null, null);
-                if (mesh != null) blockMeshCache.put(typeId, mesh);
+            if (hole != null) {
+                blockShader.setBoolean("uIsProxy", false);
+                blockShader.setInt("uHiddenCount", 0); // Temporary disable discard to show hole
+                modelMatrix.identity().translate(pos.x(), pos.y(), pos.z());
+                blockShader.setMatrix4f("model", modelMatrix);
+                hole.render();
+                // Restore hidden count for next operations
+                java.util.Set<com.za.zenith.world.BlockPos> damagedPositions = world.getBlockDamageMap().keySet();
+                blockShader.setInt("uHiddenCount", Math.min(damagedPositions.size(), 16));
             }
 
+            // 2b. Render Proxy Mesh (The block itself with cracks)
+            Mesh mesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas, world, pos);
             if (mesh != null) {
-                com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(typeId);
-                
+                com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
                 blockShader.setBoolean("uIsProxy", true);
                 blockShader.setVector3f("uWobbleScale", new Vector3f(1.0f));
                 blockShader.setVector3f("uWobbleOffset", new Vector3f(0.0f));
@@ -418,7 +471,7 @@ public class Renderer {
                 float maxHealth = def.getHardness() * 10.0f;
                 blockShader.setFloat("uBreakingProgress", info.getDamage() / maxHealth);
                 blockShader.setInt("uBreakingPattern", def.getBreakingPattern());
-                blockShader.setVector3f("uWeakSpotPos", new Vector3f(0, -100, 0)); // No active weak spot
+                blockShader.setVector3f("uWeakSpotPos", new Vector3f(0, -100, 0)); 
                 
                 int hitCount = Math.min(16, info.getHitHistory().size());
                 blockShader.setInt("uHitCount", hitCount);
@@ -428,12 +481,13 @@ public class Renderer {
 
                 modelMatrix.identity().translate(pos.x() + 0.5f, pos.y(), pos.z() + 0.5f);
                 blockShader.setMatrix4f("model", modelMatrix);
+                
                 mesh.render();
+                
+                mesh.cleanup();
             }
         }
-        
         blockShader.setBoolean("uIsProxy", false);
-        glDisable(GL_POLYGON_OFFSET_FILL);
     }
 
     private void renderBreakingProxyBlock(Camera camera, float alpha) {
@@ -718,6 +772,8 @@ public class Renderer {
     public void setPauseMenu(com.za.zenith.engine.graphics.ui.PauseMenu m) { if (uiRenderer != null) uiRenderer.setPauseMenu(m); }
     
     public void cleanup() {
+        persistentHoleCache.values().forEach(Mesh::cleanup);
+        persistentHoleCache.clear();
         for (var r : chunkMeshes.values()) { if (r.opaqueMesh != null) r.opaqueMesh.cleanup(); if (r.translucentMesh != null) r.translucentMesh.cleanup(); }
         if (framebuffer != null) framebuffer.cleanup();
         if (postProcessor != null) postProcessor.cleanup();

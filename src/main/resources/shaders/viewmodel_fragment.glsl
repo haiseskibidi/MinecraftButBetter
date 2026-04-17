@@ -10,8 +10,6 @@ in float neighborData;
 out vec4 fragColor;
 
 uniform sampler2DArray textureSampler;
-uniform vec3 lightDirection;
-uniform vec3 lightColor;
 uniform vec3 ambientLight;
 uniform vec3 uGrassColor = vec3(0.486, 0.784, 0.314);
 
@@ -19,15 +17,18 @@ uniform vec3 uCondition; // x=dirt, y=blood, z=wetness
 uniform bool isHand = false;
 uniform float uHandPartWeight = 0.0; // 1.0=hand, 0.6=forearm, 0.3=shoulder
 
-uniform float uMiningHeat = 0.0; // 0.0 to 1.0 intensity
-uniform float uTime;
-uniform float uAlpha = 1.0;
-
 // Modular Includes
 #include "include/noise.glsl"
 #include "include/hand_conditions.glsl"
 #include "include/block_features.glsl"
 #include "include/lighting.glsl"
+
+uniform ZenithLight uLights[8];
+uniform int uLightCount;
+
+uniform float uMiningHeat = 0.0; // 0.0 to 1.0 intensity
+uniform float uTime;
+uniform float uAlpha = 1.0;
 
 void main() {
     vec4 textureColor = texture(textureSampler, fragTexCoord.xyz);
@@ -67,7 +68,19 @@ void main() {
     }
 
     // 3. Apply Lighting
-    vec3 lighting = calculateLighting(fragNormal, lightDirection, lightColor, ambientLight);
+    vec3 totalDynamicLight = vec3(0.0);
+    vec3 sunlighting = vec3(0.0);
+    
+    for (int i = 0; i < uLightCount; i++) {
+        if (uLights[i].type == 1) { // Directional
+            sunlighting += calculateLighting(fragNormal, uLights[i].direction, uLights[i].color, vec3(0.0));
+        } else {
+            totalDynamicLight += calculateDynamicLighting(fragNormal, fragPos, uLights[i]);
+        }
+    }
+    
+    vec3 lighting = ambientLight * vec3(0.85, 0.88, 0.95);
+    lighting += sunlighting + totalDynamicLight;
     
     // 4. Unified Tinting (Leaves/Grass)
     if (info.isTinted) {

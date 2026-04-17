@@ -101,17 +101,20 @@ void main() {
         float d = LinearizeDepth(rawDepth);
         
         // 1. Stylized Crease AO
-        float dL = LinearizeDepth(texture(depthTexture, fragTexCoord + vec2(-texelSize.x, 0.0)).r);
-        float dR = LinearizeDepth(texture(depthTexture, fragTexCoord + vec2( texelSize.x, 0.0)).r);
-        float dU = LinearizeDepth(texture(depthTexture, fragTexCoord + vec2(0.0,  texelSize.y)).r);
-        float dD = LinearizeDepth(texture(depthTexture, fragTexCoord + vec2(0.0, -texelSize.y)).r);
-        
-        float averageDepth = (dL + dR + dU + dD) * 0.25;
-        float diff = d - averageDepth;
-        
-        if (diff > 0.05) {
-            float ao = smoothstep(0.05, 0.4, diff);
-            blended *= mix(1.0, 0.65, ao);
+        // Disable Crease AO if too close to camera (clipping plane) to prevent RGB artifacting
+        if (d > 0.05) {
+            float dL = LinearizeDepth(texture(depthTexture, fragTexCoord + vec2(-texelSize.x, 0.0)).r);
+            float dR = LinearizeDepth(texture(depthTexture, fragTexCoord + vec2( texelSize.x, 0.0)).r);
+            float dU = LinearizeDepth(texture(depthTexture, fragTexCoord + vec2(0.0,  texelSize.y)).r);
+            float dD = LinearizeDepth(texture(depthTexture, fragTexCoord + vec2(0.0, -texelSize.y)).r);
+            
+            float averageDepth = (dL + dR + dU + dD) * 0.25;
+            float diff = d - averageDepth;
+            
+            if (diff > 0.05) {
+                float ao = smoothstep(0.05, 0.4, diff);
+                blended *= mix(1.0, 0.65, ao);
+            }
         }
         
         // 2. Atmospheric Fog

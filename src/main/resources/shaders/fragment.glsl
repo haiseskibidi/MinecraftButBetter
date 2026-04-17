@@ -9,12 +9,11 @@ in vec3 vLocalPos;
 in float vBreakingIntensity;
 in vec2 vLight;
 in float vAO;
+flat in ivec3 vBlockPos;
 
 out vec4 fragColor;
 
 uniform sampler2DArray textureSampler;
-uniform vec3 lightDirection;
-uniform vec3 lightColor;
 uniform vec3 ambientLight;
 uniform float glassLayer;   
 uniform int highlightPass; // 1 = solid color mode, 0 = texture mode
@@ -27,16 +26,14 @@ uniform int faceMask = 0; // 16-bit mask for 4x4 grid
 uniform bool useMask = false;
 uniform float overlayLayer;
 uniform float uWobbleTime;
-uniform vec3 uHiddenBlockPos;
+uniform vec3 uHiddenPositions[16];
+uniform int uHiddenCount;
 uniform bool uIsProxy;
 uniform vec3 uGrassColor = vec3(0.486, 0.784, 0.314);
 
 uniform vec3 uCondition; // x=dirt, y=blood, z=wetness
 uniform bool isHand = false;
 uniform float uHandPartWeight = 0.0; // 1.0=hand, 0.6=forearm, 0.3=shoulder
-
-uniform vec3 uPlayerLightPos;
-uniform float uPlayerLightLevel; // 0.0 to 15.0
 
 // Modular Includes
 #include "include/noise.glsl"
@@ -45,15 +42,15 @@ uniform float uPlayerLightLevel; // 0.0 to 15.0
 #include "include/lighting.glsl"
 #include "include/breaking_patterns.glsl"
 
+uniform ZenithLight uLights[8];
+uniform int uLightCount;
+
 void main() {
-    if (!uIsProxy && uHiddenBlockPos.y >= 0.0) {
-        vec3 push = fragNormal * 0.01;
-        if (length(fragNormal) < 0.1) {
-            push = vec3(0.0);
-        }
-        vec3 blockPos = floor(fragPos - push);
-        if (distance(blockPos, uHiddenBlockPos) < 0.1) {
-            discard;
+    if (!uIsProxy) {
+        for (int i = 0; i < uHiddenCount; i++) {
+            if (vBlockPos == ivec3(uHiddenPositions[i])) {
+                discard;
+            }
         }
     }
 
@@ -112,26 +109,36 @@ void main() {
     }
 
     // Apply Lighting
-    float sunlight = vLight.x / 15.0;
-    float blocklight = vLight.y / 15.0;
+    vec3 totalDynamicLight = vec3(0.0);
+    vec3 sunLightContribution = vec3(0.0);
     
-    // Dynamic Point Light (Held Item)
-    float distToLight = distance(fragPos, uPlayerLightPos);
-    float dynamicLight = 0.0;
-    if (uPlayerLightLevel > 0.0) {
-        float attenuation = 1.0 / (1.0 + 0.1 * distToLight + 0.05 * distToLight * distToLight);
-        dynamicLight = (uPlayerLightLevel / 15.0) * attenuation;
+    // Process all lights
+    for (int i = 0; i < uLightCount; i++) {
+        if (uLights[i].type == 1) { // Directional (Sun/Moon)
+            // Baked sunlight contribution (vLight.x)
+            float sunlightMask = vLight.x / 15.0;
+            // Base directional lighting (toon-shaded)
+            sunLightContribution += calculateLighting(fragNormal, uLights[i].direction, uLights[i].color * sunlightMask, vec3(0.0));
+        } else {
+            // Point and Spot lights (don't care about sunlight mask, they are internal)
+            totalDynamicLight += calculateDynamicLighting(fragNormal, fragPos, uLights[i]);
+        }
     }
     
-    vec3 lighting = calculateLighting(fragNormal, lightDirection, lightColor * sunlight, ambientLight);
+    // Final lighting assembly
+    vec3 lighting = ambientLight * vec3(0.85, 0.88, 0.95); // Start with ambient
+    lighting += sunLightContribution;                     // Add sun/moon
+    lighting += totalDynamicLight;                        // Add lamps/torches
     
-    // Add blocklight + dynamic light contribution (warm orange tint)
-    float totalBlocklight = max(blocklight, dynamicLight);
-    vec3 blocklightCol = vec3(1.0, 0.85, 0.6) * totalBlocklight;
-    lighting += blocklightCol;
+    // Add baked blocklight (warm orange tint)
+    float blocklightIntensity = vLight.y / 15.0;
+    lighting += vec3(1.0, 0.85, 0.6) * blocklightIntensity;
     
     // Apply Ambient Occlusion
     lighting *= vAO;
+    
+    // Clamp to prevent eye-bleeding brightness
+    lighting = min(lighting, vec3(2.5)); 
     
     fragColor = vec4(lighting * baseColor * brightnessMultiplier, alpha);       
 

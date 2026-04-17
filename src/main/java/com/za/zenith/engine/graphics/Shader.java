@@ -142,6 +142,22 @@ public class Shader {
         setMatrix4f(name, matrix);
     }
     
+    public void setLights(String arrayName, java.util.List<com.za.zenith.world.lighting.LightSource> lights) {
+        int count = Math.min(lights.size(), com.za.zenith.world.lighting.LightManager.MAX_DYNAMIC_LIGHTS);
+        setInt("uLightCount", count);
+        for (int i = 0; i < count; i++) {
+            com.za.zenith.world.lighting.LightSource light = lights.get(i);
+            String prefix = arrayName + "[" + i + "].";
+            setInt(prefix + "type", light.data.type.ordinal());
+            setVector3f(prefix + "position", light.position);
+            setVector3f(prefix + "direction", light.direction);
+            setVector3f(prefix + "color", light.data.color);
+            setFloat(prefix + "intensity", light.data.intensity);
+            setFloat(prefix + "radius", light.data.radius);
+            setFloat(prefix + "spotAngle", (float)Math.cos(Math.toRadians(light.data.spotAngle)));
+        }
+    }
+
     public static void unbind() {
         glUseProgram(0);
     }

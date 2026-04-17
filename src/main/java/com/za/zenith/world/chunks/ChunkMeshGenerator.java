@@ -53,6 +53,11 @@ public class ChunkMeshGenerator {
                 maxY = Math.max(maxY, fp[v*3+1]);
             }
 
+            int packedPos = 0;
+            if (ox >= 0.0f && oy >= 0.0f && oz >= 0.0f) {
+                packedPos = (int)ox + ((int)oz) * 16 + ((int)oy) * 256;
+            }
+
             for (int v = 0; v < 4; v++) {
                 float px = fp[v*3] + ox;
                 float py = fp[v*3+1] + oy;
@@ -88,7 +93,7 @@ public class ChunkMeshGenerator {
 
                 // Simple AO based on neighbors
                 float ao = calculateAO(world, wx, wy, wz, face, vx, vy, vz);
-                aoData.add(ao);
+                aoData.add(ao + packedPos * 10.0f);
 
                 // Smooth Lighting
                 float[] light = calculateSmoothLight(world, wx, wy, wz, face, vx, vy, vz);

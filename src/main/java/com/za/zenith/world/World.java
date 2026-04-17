@@ -32,15 +32,18 @@ public class World {
     
     public static class BlockDamageInstance {
         private float damage;
+        private final Block block;
         private final List<Vector4f> hitHistory;
         private long lastHitTime;
 
-        public BlockDamageInstance(float damage, List<Vector4f> hitHistory) {
+        public BlockDamageInstance(float damage, Block block, List<Vector4f> hitHistory) {
             this.damage = damage;
+            this.block = block;
             this.hitHistory = new ArrayList<>(hitHistory);
             this.lastHitTime = System.currentTimeMillis();
         }
 
+        public Block getBlock() { return block; }
         public float getDamage() { return damage; }
         public void setDamage(float damage) { this.damage = damage; }
         public List<Vector4f> getHitHistory() { return hitHistory; }
@@ -324,7 +327,7 @@ public class World {
                     targetHistory.remove(0);
                 }
             } else {
-                blockDamageMap.put(pos, new BlockDamageInstance(damage, new ArrayList<>(history)));
+                blockDamageMap.put(pos, new BlockDamageInstance(damage, getBlock(pos), new ArrayList<>(history)));
             }
         }
     }
@@ -354,6 +357,12 @@ public class World {
     }
     
     public Block getBlock(int x, int y, int z) {
+        BlockPos pos = new BlockPos(x, y, z);
+        BlockDamageInstance damageInstance = blockDamageMap.get(pos);
+        if (damageInstance != null) {
+            return damageInstance.getBlock();
+        }
+
         ChunkPos chunkPos = ChunkPos.fromBlockPos(x, z);
         Chunk chunk = chunks.get(chunkPos);
         
@@ -377,6 +386,9 @@ public class World {
         // Remove old block entity if it exists
         removeBlockEntity(pos);
         
+        // IMPORTANT: Clear any damage/proxy data at this position immediately
+        blockDamageMap.remove(pos);
+        
         ChunkPos chunkPos = ChunkPos.fromBlockPos(x, z);
         Chunk chunk = chunks.get(chunkPos);
         
@@ -390,8 +402,10 @@ public class World {
             lightEngine.updateBlockLight(pos);
             lightEngine.updateSunlight(pos);
             
+            // Handle block entities
+            com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
             // Automatically create block entity if defined
-            BlockEntity be = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType()).createBlockEntity(pos);
+            BlockEntity be = def.createBlockEntity(pos);
             if (be != null) {
                 setBlockEntity(be);
             }

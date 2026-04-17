@@ -5,6 +5,14 @@
   "transparent": true,
   "type": "lamp",
   "emission": 15,
+  "light": {
+    "type": "point",
+    "color": [1.0, 0.9, 0.7],
+    "intensity": 2.0,
+    "radius": 15.0,
+    "flicker": false,
+    "dynamic": true
+  },
   "hardness": 0.5,
   "textures": {
     "all": "sea_lantern.png"

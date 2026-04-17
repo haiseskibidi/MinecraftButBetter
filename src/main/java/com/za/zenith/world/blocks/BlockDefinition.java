@@ -47,6 +47,7 @@ public class BlockDefinition {
     private float interactionCooldown = -1.0f; // -1 means use PhysicsSettings.baseMiningCooldown
     private float healingSpeed = 0.1f; // Default: heals 10% of max health per second
     private int emission = 0; // Light emission level (0-15)
+    private com.za.zenith.world.lighting.LightData lightData = null;
     private int particleGridSize = 2; // Default 2x2x2 shards for cleaner look
     private int innerTextureIndex = -1;
     private int weakSpotParticles = 2; // Default particles on weak spot hit
@@ -56,6 +57,9 @@ public class BlockDefinition {
 
     public int getParticleMaterial() { return particleMaterial; }
     public void setParticleMaterial(int material) { this.particleMaterial = material; }
+
+    public com.za.zenith.world.lighting.LightData getLightData() { return lightData; }
+    public void setLightData(com.za.zenith.world.lighting.LightData lightData) { this.lightData = lightData; }
 
     public int getEmission() { return emission; }
     public BlockDefinition setEmission(int emission) { this.emission = emission; return this; }

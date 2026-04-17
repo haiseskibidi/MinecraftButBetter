@@ -9,10 +9,13 @@ in float overlayLayer;
 out vec4 fragColor;
 
 uniform sampler2DArray textureSampler;
-uniform vec3 lightDirection;
-uniform vec3 lightColor;
 uniform vec3 ambientLight;
 uniform vec3 uGrassColor = vec3(0.486, 0.784, 0.314);
+
+#include "include/lighting.glsl"
+
+uniform ZenithLight uLights[8];
+uniform int uLightCount;
 
 void main() {
     vec4 texColor = texture(textureSampler, fragTexCoord);
@@ -33,8 +36,8 @@ void main() {
     }
 
     // Standard Lighting
-    float diff = max(dot(normalize(vNormal), -lightDirection), 0.0);
-    vec3 lighting = ambientLight + lightColor * diff;
+    float diff = max(dot(normalize(vNormal), -uLights[0].direction), 0.0);
+    vec3 lighting = ambientLight + uLights[0].color * diff;
 
     fragColor = vec4(baseColor * lighting, texColor.a * fragAlpha);
 }

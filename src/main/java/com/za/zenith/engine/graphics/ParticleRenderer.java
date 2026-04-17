@@ -87,14 +87,13 @@ public class ParticleRenderer {
         glBindVertexArray(0);
     }
 
-    public void render(Camera camera, List<Particle> particles, DynamicTextureAtlas atlas, float alpha, Vector3f lightDir, Vector3f lightCol, Vector3f ambient) {
+    public void render(Camera camera, List<Particle> particles, DynamicTextureAtlas atlas, float alpha, Vector3f ambient) {
         if (particles.isEmpty()) return;
 
         shader.use();
         shader.setMatrix4f("projection", camera.getProjectionMatrix());
         shader.setMatrix4f("view", camera.getViewMatrix(alpha));
-        shader.setVector3f("lightDirection", lightDir);
-        shader.setVector3f("lightColor", lightCol);
+        shader.setLights("uLights", com.za.zenith.world.lighting.LightManager.getActiveLights());
         shader.setVector3f("ambientLight", ambient);
         shader.setVector3f("uGrassColor", ColorProvider.getGrassColor());
         

@@ -1066,6 +1066,22 @@ public class DataLoader {
                 ));
             }
 
+            if (obj.has("light")) {
+                JsonObject lObj = obj.getAsJsonObject("light");
+                com.za.zenith.world.lighting.LightData ld = new com.za.zenith.world.lighting.LightData();
+                if (lObj.has("type")) ld.type = com.za.zenith.world.lighting.LightData.parseType(lObj.get("type").getAsString());
+                if (lObj.has("color")) {
+                    JsonArray c = lObj.getAsJsonArray("color");
+                    ld.color.set(c.get(0).getAsFloat(), c.get(1).getAsFloat(), c.get(2).getAsFloat());
+                }
+                if (lObj.has("intensity")) ld.intensity = lObj.get("intensity").getAsFloat();
+                if (lObj.has("radius")) ld.radius = lObj.get("radius").getAsFloat();
+                if (lObj.has("spotAngle")) ld.spotAngle = lObj.get("spotAngle").getAsFloat();
+                if (lObj.has("flicker")) ld.flicker = lObj.get("flicker").getAsBoolean();
+                if (lObj.has("dynamic")) ld.dynamic = lObj.get("dynamic").getAsBoolean();
+                item.setLightData(ld);
+            }
+
             ItemRegistry.registerItem(item);
         } catch (Exception e) {
             Logger.error("Failed to parse item: " + e.getMessage());
