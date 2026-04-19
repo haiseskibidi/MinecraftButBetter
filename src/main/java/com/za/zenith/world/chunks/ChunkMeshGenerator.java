@@ -169,7 +169,9 @@ public class ChunkMeshGenerator {
         private boolean isSolid(World world, int x, int y, int z) {
             if (world == null) return false;
             Block b = world.getBlock(x, y, z);
-            return b.getType() != 0 && com.za.zenith.world.blocks.BlockRegistry.getBlock(b.getType()).isSolid();
+            if (b.getType() == 0) return false;
+            com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(b.getType());
+            return def != null && def.isSolid() && !def.isTransparent();
         }
 
         private float[] calculateSmoothLight(World world, int x, int y, int z, int face, float vx, float vy, float vz) {

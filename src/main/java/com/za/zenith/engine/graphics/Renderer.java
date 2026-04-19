@@ -351,6 +351,7 @@ public class Renderer {
         blockShader.setVector3f("uBreakingHitPoint", new Vector3f(0.5f));
         blockShader.setVector3f("uWeakSpotPos", new Vector3f(0.5f));
         blockShader.setVector3f("uWeakSpotColor", new Vector3f(1.0f, 1.0f, 1.0f));
+        blockShader.setVector3f("uOverrideLight", new Vector3f(-1.0f, -1.0f, -1.0f));
         
         if (breakingPos != null) {
             if (holeMesh == null || !breakingPos.equals(holePos)) {
@@ -407,7 +408,7 @@ public class Renderer {
         
         renderEntities(camera, world, alpha);
         renderBlockEntities(camera, world, alpha);
-        renderPlayers(camera, networkClient, alpha);
+        renderPlayers(camera, world, networkClient, alpha);
     }
 
     private void renderPersistentScars(Camera camera, World world, float alpha) {
@@ -545,12 +546,28 @@ public class Renderer {
         }
     }
 
+    private void setEntityLight(World world, Vector3f pos) {
+        int x = (int) Math.floor(pos.x());
+        int y = (int) Math.floor(pos.y());
+        int z = (int) Math.floor(pos.z());
+        
+        Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(x, z));
+        if (chunk != null) {
+            float sun = chunk.getSunlight(x & 15, y, z & 15);
+            float block = chunk.getBlockLight(x & 15, y, z & 15);
+            blockShader.setVector3f("uOverrideLight", new Vector3f(sun, block, 1.0f));
+        } else {
+            blockShader.setVector3f("uOverrideLight", new Vector3f(15.0f, 0.0f, 1.0f));
+        }
+    }
+
     private void renderEntities(Camera camera, World world, float alpha) {
         if (world.getEntities().isEmpty()) return;
 
         blockShader.use();
         for (com.za.zenith.entities.Entity entity : world.getEntities()) {
             Vector3f interpPos = entity.getInterpolatedPosition(alpha);
+            setEntityLight(world, interpPos);
             
             if (entity instanceof com.za.zenith.entities.ScoutEntity scout) {
                 if (playerMesh == null) createPlayerMesh();
@@ -697,6 +714,9 @@ public class Renderer {
                 int totalItems = stump.getActiveSlotsCount();
                 if (totalItems == 0) continue;
 
+                BlockPos pos = be.getPos();
+                setEntityLight(world, new Vector3f(pos.x(), pos.y() + 1, pos.z()));
+
                 for (int i = 0; i < 9; i++) {
                     com.za.zenith.world.items.ItemStack stack = stump.getStackInSlot(i);
                     if (stack == null) continue;
@@ -717,7 +737,6 @@ public class Renderer {
                         float scale = item.isBlock() ? 0.4f : item.getDroppedScale() * 0.6f;
                         float finalScale = scale * transform.y; 
 
-                        BlockPos pos = be.getPos();
                         modelMatrix.identity()
                             .translate(pos.x() + 0.5f + transform.x, pos.y() + 1.02f, pos.z() + 0.5f + transform.z);
 
@@ -737,10 +756,11 @@ public class Renderer {
         }
     }
 
-    private void renderPlayers(Camera camera, com.za.zenith.network.GameClient networkClient, float alpha) {
+    private void renderPlayers(Camera camera, World world, com.za.zenith.network.GameClient networkClient, float alpha) {
         if (networkClient == null || !networkClient.isConnected()) return;
         if (playerMesh == null) createPlayerMesh();
         for (var p : networkClient.getRemotePlayers().values()) {
+            setEntityLight(world, new Vector3f(p.getX(), p.getY(), p.getZ()));
             modelMatrix.identity().translate(p.getX(), p.getY(), p.getZ()).scale(0.6f, 1.8f, 0.6f);
             blockShader.setMatrix4f("model", modelMatrix);
             blockShader.setInt("highlightPass", 1);

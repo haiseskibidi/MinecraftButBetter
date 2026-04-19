@@ -120,9 +120,22 @@ public class LightEngine {
     }
 
     public void updateSunlight(BlockPos pos) {
-        // Sunlight BFS is similar but needs to handle vertical columns for 15
-        // For brevity and simplicity in v1, we focus on blocklight and basic sun
-        // Full sunlight logic would involve recalculating columns
+        int x = pos.x();
+        int z = pos.z();
+        Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(x, z));
+        if (chunk == null) return;
+        
+        int localX = x & 15;
+        int localZ = z & 15;
+        
+        int currentSun = 15;
+        for (int y = Chunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
+            Block b = chunk.getBlock(localX, y, localZ);
+            if (isOpaque(b)) {
+                currentSun = 0;
+            }
+            chunk.setSunlight(localX, y, localZ, currentSun);
+        }
     }
 
     private int getBlockLight(int x, int y, int z) {
@@ -156,7 +169,7 @@ public class LightEngine {
     private boolean isOpaque(Block b) {
         if (b.getType() == 0) return false;
         com.za.zenith.world.blocks.BlockDefinition def = BlockRegistry.getBlock(b.getType());
-        return def != null && def.isSolid();
+        return def != null && def.isSolid() && !def.isTransparent();
     }
 
     private boolean isOpaque(int x, int y, int z) {

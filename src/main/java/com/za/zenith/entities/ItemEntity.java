@@ -94,10 +94,8 @@ public class ItemEntity extends Entity {
         float gravityMultiplier = stack.getItem().getWeight();
         
         // Custom gravity, disabled during attraction
-        if (!flying && !onGround && !isBeingAttracted) {
+        if (!flying && !isBeingAttracted) {
             velocity.y = Math.max(velocity.y + GRAVITY * gravityMultiplier * deltaTime, TERMINAL_VELOCITY);
-        } else if (onGround && !isBeingAttracted) {
-            velocity.y = 0;
         }
         
         // Движение с коллизиями

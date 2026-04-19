@@ -20,6 +20,7 @@ uniform float uWobbleShake;
 uniform float uWobbleTime;
 uniform float uTime;
 uniform float uSwayOverride; // -1.0 = use attribute, 0.0 = force static, 1.0 = force sway
+uniform vec3 uOverrideLight; // x=sun, y=block, z=ao. If x >= 0.0, use this instead of attributes.
 
 // Include external modules
 #include "include/foliage_animation.glsl"
@@ -37,12 +38,23 @@ flat out ivec3 vBlockPos;
 
 void main() {
     fragTexCoord = texCoord;
-    vLight = lightAttr;
-    
-    // Unpack block position from aoAttr
-    int packedPos = int(aoAttr / 10.0);
-    vAO = aoAttr - float(packedPos) * 10.0;
-    
+
+    if (uOverrideLight.x >= 0.0) {
+        vLight = uOverrideLight.xy;
+        vAO = uOverrideLight.z;
+    } else {
+        vLight = lightAttr;
+
+        // Unpack block position from aoAttr
+        int packedPos = int(aoAttr / 10.0);
+        vAO = aoAttr - float(packedPos) * 10.0;
+    }
+
+    // Default packedPos for dynamic entities (overridden if attributes used)
+    int packedPos = 0;
+    if (uOverrideLight.x < 0.0) {
+        packedPos = int(aoAttr / 10.0);
+    }    
     int localX = packedPos % 16;
     int localZ = (packedPos / 16) % 16;
     int localY = packedPos / 256;
