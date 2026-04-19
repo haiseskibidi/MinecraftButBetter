@@ -147,6 +147,26 @@
 
 ### com.za.zenith.entities.ResourceEntity (NEW)
 
+### com.za.zenith.engine.graphics.ui.FontRenderer (UPDATED)
+Назначение: Продвинутая отрисовка текста с поддержкой эффектов.
+Функции: Поддерживает цветовые коды `$0-f` и динамические анимации: `$z` (Rainbow), `$g` (Glow), `$v` (Wave), `$q` (Shake). Реализует метод `wrapText` для корректного переноса длинных строк.
+
+### com.za.zenith.world.items.Item (UPDATED)
+Назначение: Базовый класс предмета.
+Функции: Расширен полем `descriptionKey` для Markdown-описаний. Исправлена логика `getMiningSpeed`: инструменты с флагом `isEffectiveAgainstAll` теперь применяют полную эффективность даже к блокам без типа (стекло, бетон).
+
+### com.za.zenith.world.items.ItemStack (UPDATED)
+Назначение: Состояние предмета.
+Функции: Добавлена защита от NPE (null-check) в конструкторе. Реализована поддержка бесконечной прочности (флаг `-1`).
+
+### src/main/resources/shaders/include/post_stack.glsl (NEW)
+Назначение: Унифицированный модуль AAA-постпроцессинга.
+Функции: Применяет Stylized Crease AO, Atmospheric Fog, Filmic Contrast, Balanced Vibrance и Cinematic Vignette. Вызывается из `fxaa_fragment.glsl` и `passthrough_fragment.glsl` до сглаживания.
+
+### com.za.zenith.engine.graphics.model.ViewmodelPhysics (UPDATED)
+Назначение: Физический симулятор рук.
+Функции: Внедрен зажим `deltaTime` (max 0.05s) и проверки `Float.isFinite()`, предотвращающие исчезновение рук при лагах. Иерархия переведена на Semi-implicit Euler интеграцию для стабильности.
+
 ### com.za.zenith.engine.graphics.Shader (UPDATED)
 Назначение: Обертка над шейдерной программой.
 Функции: Добавлен метод `setVector4f()` для передачи координат и интенсивности шрамов.
