@@ -1,0 +1,8 @@
+{
+  "identifier": "zenith:developer",
+  "translationKey": "rarity.zenith.developer",
+  "color": [1.0, 0.5, 1.0],
+  "colorCode": "$z$l",
+  "affixSlots": 10,
+  "weight": 0
+}

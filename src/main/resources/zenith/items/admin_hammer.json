@@ -3,12 +3,15 @@
   "translationKey": "item.zenith.admin_hammer",
   "texture": "zenith/textures/item/nether_star.png",
   "maxStackSize": 1,
+  "rarity": "zenith:developer",
+  "description": "item.zenith.admin_hammer.desc",
   "components": {
     "zenith:tool": {
       "type": "pickaxe",
-      "efficiency": 1000.0,
-      "durability": 9999,
+      "efficiency": 100000.0,
+      "durability": "inf",
       "isEffectiveAgainstAll": true,
+      "attackInterval": 0.02,
       "orientation": "vertical"
     }
   }

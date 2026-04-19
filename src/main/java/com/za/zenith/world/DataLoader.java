@@ -810,7 +810,7 @@ public class DataLoader {
                 def.setPlacementType(com.za.zenith.world.blocks.PlacementType.valueOf(obj.get("placement").getAsString().toUpperCase()));
             }
 
-            if (obj.has("tags")) {
+            if (obj.has("tags") && obj.get("tags").isJsonArray()) {
                 JsonArray tagsArr = obj.getAsJsonArray("tags");
                 for (JsonElement tagEl : tagsArr) {
                     String tag = tagEl.getAsString();
@@ -904,6 +904,9 @@ public class DataLoader {
             
             String translationKey = obj.get("translationKey").getAsString();
             String texture = obj.get("texture").getAsString();
+            if (texture.startsWith("zenith:")) {
+                texture = texture.replace("zenith:", "zenith/");
+            }
             String type = obj.has("type") ? obj.get("type").getAsString() : "default";
 
             Item item = ItemTypeRegistry.create(type, id, identifier, translationKey, texture);
@@ -918,9 +921,10 @@ public class DataLoader {
             if (obj.has("interaction_cooldown")) item.setInteractionCooldown(obj.get("interaction_cooldown").getAsFloat());
             if (obj.has("gender")) item.setGender(Item.Gender.valueOf(obj.get("gender").getAsString().toUpperCase()));
             if (obj.has("rarity")) item.setDefaultRarity(Identifier.of(obj.get("rarity").getAsString()));
+            if (obj.has("description")) item.setDescriptionKey(obj.get("description").getAsString());
 
-            if (obj.has("tags")) {
-                JsonArray tagsArr = obj.getAsJsonArray("tags");
+            if (obj.has("tags") && obj.get("tags").isJsonArray()) {
+                JsonArray tagsArr = obj.get("tags").getAsJsonArray();
                 for (JsonElement elTag : tagsArr) {
                     item.addTag(Identifier.of(elTag.getAsString()));
                 }
@@ -971,11 +975,23 @@ public class DataLoader {
 
                 if (comps.has("zenith:tool") || comps.has("tool")) {
                     JsonObject t = comps.has("zenith:tool") ? comps.getAsJsonObject("zenith:tool") : comps.getAsJsonObject("tool");
+                    
+                    int durability = 100;
+                    if (t.has("durability")) {
+                        String durStr = t.get("durability").getAsString();
+                        if (durStr.equalsIgnoreCase("inf")) {
+                            durability = -1;
+                        } else {
+                            durability = Integer.parseInt(durStr);
+                        }
+                    }
+
                     item.addComponent(ToolComponent.class, new ToolComponent(
                         ToolType.valueOf(t.get("type").getAsString().toUpperCase()),
                         t.get("efficiency").getAsFloat(),
-                        t.get("durability").getAsInt(),
-                        t.has("isEffectiveAgainstAll") && t.get("isEffectiveAgainstAll").getAsBoolean()
+                        durability,
+                        t.has("isEffectiveAgainstAll") && t.get("isEffectiveAgainstAll").getAsBoolean(),
+                        t.has("attackInterval") ? t.get("attackInterval").getAsFloat() : 0.5f
                     ));
                 }
 

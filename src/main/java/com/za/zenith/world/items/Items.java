@@ -44,12 +44,14 @@ public class Items {
     public static Item METAL_SHEET;
     public static Item BACKPACK;
 
-    public static void init() {        for (java.lang.reflect.Field field : Items.class.getFields()) {
+    public static void init() {
+        for (java.lang.reflect.Field field : Items.class.getDeclaredFields()) {
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
                 try {
                     Identifier id = Identifier.of("zenith", field.getName().toLowerCase());
                     Item item = ItemRegistry.getRegistry().get(id);
                     if (item != null) {
+                        field.setAccessible(true);
                         field.set(null, item);
                     }
                 } catch (Exception e) {

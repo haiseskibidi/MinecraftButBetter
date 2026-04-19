@@ -26,6 +26,7 @@ public class Item {
     protected org.joml.Vector3f visualMax = new org.joml.Vector3f(0.5f);
     protected float gripWidth = -1.0f;
     protected com.za.zenith.utils.Identifier defaultRarity = com.za.zenith.world.items.stats.RarityRegistry.COMMON;
+    protected String descriptionKey = null;
     protected final com.za.zenith.world.items.stats.StatContainer baseStats = new com.za.zenith.world.items.stats.StatContainer();
     { baseStats.setUseDefaultValues(false); }
     protected Gender gender = Gender.MASCULINE;
@@ -61,6 +62,14 @@ public class Item {
 
     public void setDefaultRarity(com.za.zenith.utils.Identifier rarity) {
         this.defaultRarity = rarity;
+    }
+
+    public String getDescriptionKey() {
+        return descriptionKey;
+    }
+
+    public void setDescriptionKey(String descriptionKey) {
+        this.descriptionKey = descriptionKey;
     }
 
     public com.za.zenith.world.items.stats.StatContainer getBaseStats() {
@@ -278,13 +287,17 @@ public class Item {
         if (blockDef == null) return 1.0f;
 
         String required = blockDef.getRequiredTool();
+        ToolComponent tool = getComponent(ToolComponent.class);
         
         // Если блок вообще не требует инструментов (например, воздух или простые блоки)
         if (required == null || required.equalsIgnoreCase("none")) {
+            // ФИКС: Если в руках инструмент "на всё", используем его эффективность даже на простых блоках
+            if (tool != null && tool.isEffectiveAgainstAll()) {
+                return tool.efficiency();
+            }
             return 1.0f;
         }
 
-        ToolComponent tool = getComponent(ToolComponent.class);
         if (tool != null) {
             // Если инструмент эффективен против этого типа блоков (или против всех)
             if (tool.isEffectiveAgainstAll() || tool.type().name().equalsIgnoreCase(required)) {

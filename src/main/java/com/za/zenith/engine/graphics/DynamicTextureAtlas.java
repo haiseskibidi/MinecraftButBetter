@@ -159,6 +159,10 @@ public class DynamicTextureAtlas {
     private ByteBuffer loadImageFromPath(MemoryStack stack, String path, IntBuffer w, IntBuffer h, IntBuffer c) {
         try {
             String resourcePath = path.replace("src/main/resources/", "");
+            // Handle Identifier-style pathing (e.g., zenith:textures/item/hand.png -> zenith/textures/item/hand.png)
+            if (resourcePath.contains(":")) {
+                resourcePath = resourcePath.replace(":", "/");
+            }
             var inputStream = getClass().getClassLoader().getResourceAsStream(resourcePath);
             if (inputStream != null) {
                 byte[] imageData = inputStream.readAllBytes();

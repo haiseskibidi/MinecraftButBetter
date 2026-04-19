@@ -1,0 +1,10 @@
+{
+  "identifier": "zenith:water",
+  "translationKey": "block.zenith.water",
+  "solid": false,
+  "transparent": true,
+  "replaceable": true,
+  "textures": {
+    "all": "water.png"
+  }
+}

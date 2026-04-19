@@ -274,7 +274,7 @@ public class InventoryScreenRenderer {
         int maxTooltipWidth = 360;
         int textSize = 14;
         
-        // 1. Name with Rarity Color
+        // 1. Name with Rarity Color/Effects
         com.za.zenith.world.items.stats.RarityDefinition rarity = com.za.zenith.world.items.stats.RarityRegistry.get(stack.getRarity());
         String rarityColor = (rarity != null) ? rarity.colorCode() : "$f";
         
@@ -301,7 +301,66 @@ public class InventoryScreenRenderer {
             lines.add("$7" + I18n.get(rarity.translationKey()));
         }
 
-        // 3. Affixes (SHOW FIRST)
+        // 3. Markdown Description
+        String descKey = item.getDescriptionKey();
+        if (descKey != null) {
+            lines.add("");
+            String rawDesc = I18n.get(descKey);
+            String[] paragraphs = rawDesc.split("\n");
+            
+            for (String p : paragraphs) {
+                String trimmed = p.trim();
+                if (trimmed.isEmpty()) {
+                    lines.add("");
+                    continue;
+                }
+                
+                String processed = trimmed;
+                boolean isListItem = processed.startsWith("- ");
+                
+                if (isListItem) {
+                    processed = processed.substring(2);
+                }
+                
+                // --- Apply Formatting ---
+                // ### Header -> Turquoise Bold
+                if (processed.startsWith("### ")) {
+                    lines.add("$b$l" + processed.substring(4).toUpperCase());
+                    continue;
+                }
+                
+                // **Bold** -> $l...$r$f
+                while (processed.contains("**")) {
+                    processed = processed.replaceFirst("\\*\\*", "\\$l");
+                    processed = processed.replaceFirst("\\*\\*", "\\$r\\$f");
+                }
+                
+                // *Italic/Lore* -> $7$o...$r$f
+                while (processed.contains("*")) {
+                    processed = processed.replaceFirst("\\*", "\\$7\\$o");
+                    processed = processed.replaceFirst("\\*", "\\$r\\$f");
+                }
+
+                // --- Handle Wrapping and Indentation ---
+                int availableWidth = isListItem ? maxTooltipWidth - 20 : maxTooltipWidth;
+                java.util.List<String> wrapped = renderer.getFontRenderer().wrapText(processed, textSize, availableWidth);
+                
+                for (int k = 0; k < wrapped.size(); k++) {
+                    String lineText = wrapped.get(k);
+                    if (isListItem) {
+                        if (k == 0) {
+                            lines.add("  $7• $f" + lineText);
+                        } else {
+                            lines.add("    $f" + lineText); // 4 spaces for perfect alignment
+                        }
+                    } else {
+                        lines.add(lineText);
+                    }
+                }
+            }
+        }
+
+        // 4. Affixes (SHOW AFTER DESC)
         if (!stack.getActiveAffixes().isEmpty()) {
             lines.add("");
             lines.add("$b$l" + I18n.get("ui.affixes").toUpperCase() + ":");

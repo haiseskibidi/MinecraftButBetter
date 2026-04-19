@@ -92,7 +92,13 @@ public class MiningController {
         }
 
         float maxHealth = hardness * 10.0f;
-        boolean isInstantBreak = maxHealth <= 0.1f;
+        
+        float miningDamage = (currentItem != null) ?
+            currentItem.getMiningSpeed(blockType) :
+            Items.HAND.getMiningSpeed(blockType);
+
+        // ФИКС: Если урон за один удар больше ХП блока, это Instant Break
+        boolean isInstantBreak = miningDamage >= maxHealth || maxHealth <= 0.1f;
         boolean shouldHit = false;
 
         float currentDamage = world.getBlockDamage(hitPos);
@@ -100,12 +106,18 @@ public class MiningController {
         float interval = blockDef.getInteractionCooldown();
         if (currentItem != null) {
             com.za.zenith.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.zenith.world.items.component.ToolComponent.class);
-            if (tool != null) interval = tool.attackInterval();
+            if (tool != null) {
+                interval = tool.attackInterval();
+                // ФИКС: Для супер-инструментов (Молот Админа) убираем лишние задержки
+                if (tool.isEffectiveAgainstAll()) {
+                    interval = Math.min(interval, 0.02f);
+                }
+            }
         }
         interval /= Math.max(0.1f, player.getMiningSpeedMultiplier());
 
         if (isInstantBreak) {
-            // Instant break: Always respect breakDelayTimer, NO bypass with clicks
+            // Instant break: respect tiny interval
             if (breakDelayTimer <= 0.0f) {
                 breakingProgress = 1.0f;
                 currentDamage = maxHealth;
@@ -115,10 +127,6 @@ public class MiningController {
             // Re-calculate interval for standard blocks if needed, 
             // but usually we want to stay consistent with tool speeds
             if (hitCooldownTimer <= 0.0f) {
-                float miningDamage = (currentItem != null) ?
-                    currentItem.getMiningSpeed(blockType) :
-                    Items.HAND.getMiningSpeed(blockType);
-
                 MiningSettings mSettings = blockDef.getMiningSettings();
                 boolean isWeakSpotHit = false;
                 if (mSettings.strategy().equals("weak_spots")) {
@@ -292,7 +300,7 @@ public class MiningController {
             hitCooldownTimer = interval;
             if (currentStack != null && currentItem.isTool()) {
                 com.za.zenith.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.zenith.world.items.component.ToolComponent.class);
-                if (tool != null && (tool.isEffectiveAgainstAll() || tool.type().name().equalsIgnoreCase(blockDef.getRequiredTool()))) {
+                if (tool != null && tool.maxDurability() != -1 && (tool.isEffectiveAgainstAll() || tool.type().name().equalsIgnoreCase(blockDef.getRequiredTool()))) {
                     currentStack.setDurability(currentStack.getDurability() - 1);
                     if (currentStack.getDurability() <= 0) player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
                 }

@@ -174,12 +174,14 @@ public class Player extends LivingEntity {
     }
 
     public void updateAnimations(float deltaTime, World world) {
+        // Clamp deltaTime to prevent explicit Euler lerp explosions (NaN) during lag spikes
+        deltaTime = Math.min(deltaTime, 0.05f);
+
         if (isFirstFrame) {
             lastYaw = getRotation().y;
             lastPitch = getRotation().x;
             wasOnGround = onGround;
             isFirstFrame = false;
-            return;
         }
 
         // 1. Mouse Delta & Leaning
@@ -356,6 +358,21 @@ public class Player extends LivingEntity {
 
         // 6. Final Sync
         float syncLerp = 12.0f;
+        
+        if (!physicsInitialized) {
+            parkourCameraTilt = targetTilt;
+            parkourCameraRoll = targetRoll;
+            fovOffset = targetFov;
+            cameraOffsetY = tCamY;
+            cameraOffsetX = tCamX;
+            itemOffsetX = tItX + (leanAmount * 0.1f);
+            itemOffsetY = tItY;
+            itemOffsetZ = tItZ;
+            itemPitchOffset = tItP;
+            itemYawOffset = tItYw;
+            itemRollOffset = tItR + (leanAmount * 0.5f);
+        }
+
         parkourCameraTilt += (targetTilt - parkourCameraTilt) * syncLerp * deltaTime;
         parkourCameraRoll += (targetRoll - parkourCameraRoll) * syncLerp * deltaTime;
         fovOffset += (targetFov - fovOffset) * 4.0f * deltaTime;
@@ -403,11 +420,6 @@ public class Player extends LivingEntity {
             
             if (sh != null && fo != null && hand != null) {
                 Vector3f camForward = com.za.zenith.engine.core.GameLoop.getInstance().getCamera().getDirection();
-                if (!physicsInitialized) {
-                    mainHandPhys.reset(new Vector3f(itemOffsetX, itemOffsetY, itemOffsetZ), 
-                                       new org.joml.Quaternionf().rotateX(itemPitchOffset).rotateY(itemYawOffset).rotateZ(itemRollOffset));
-                    physicsInitialized = true;
-                }
 
                 float currentPitch = com.za.zenith.engine.core.GameLoop.getInstance().getCamera().getRotation().x;
                 float pDelta = currentPitch - lastPitch; lastPitch = currentPitch;
@@ -419,6 +431,11 @@ public class Player extends LivingEntity {
                 tPos.z += (fp != null ? fp.evaluate("item_z", fallingTimer, 1.0f) : 0) * fallIntensity;
 
                 org.joml.Quaternionf tRot = new org.joml.Quaternionf().rotateX(itemPitchOffset + lItP).rotateY(itemYawOffset).rotateZ(itemRollOffset + lItR);
+
+                if (!physicsInitialized) {
+                    mainHandPhys.reset(new Vector3f(tPos), new org.joml.Quaternionf(tRot));
+                    physicsInitialized = true;
+                }
 
 
                 // --- 7.1 WORLD COLLISIONS (Tarkov-style) ---

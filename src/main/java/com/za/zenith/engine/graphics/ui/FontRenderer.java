@@ -54,12 +54,8 @@ public class FontRenderer {
     public void init(Shader shader) {
         this.shader = shader;
         setupColorCodes();
-        // Загружаем ширину для ASCII (fallback)
         loadWidthMap("zenith/textures/font/ascii.png", widthMap);
-        
-        // Загружаем все маппинги из JSON
         loadJsonMapping();
-        
         createQuad();
     }
 
@@ -101,7 +97,6 @@ public class FontRenderer {
                     int rows = charsArr.size();
                     int cols = 0;
                     
-                    // Считаем колонки по кодовым точкам, а не по длине строки char[]
                     for (com.google.gson.JsonElement lineElem : charsArr) {
                         String line = lineElem.getAsString();
                         cols = Math.max(cols, (int) line.codePoints().count());
@@ -178,24 +173,22 @@ public class FontRenderer {
     }
 
     public void drawString(String text, int x, int y, int size, int screenWidth, int screenHeight, float r, float g, float b, float a) {
-        if (text == null || text.isEmpty()) {
-            return;
-        }
+        if (text == null || text.isEmpty()) return;
 
         float scale = (float) size / GLYPH_SIZE;
-
         shader.use();
         shader.setInt("useTexture", 1);
         shader.setInt("useArray", 0);
         
         float currentR = r, currentG = g, currentB = b;
-        boolean bold = false;
+        boolean bold = false, rainbow = false, glow = false, wavy = false, shake = false;
 
         glActiveTexture(GL_TEXTURE0);
         glBindVertexArray(vao);
 
         int drawX = x;
         int lastBoundTexture = -1;
+        long timeMs = System.currentTimeMillis();
 
         for (int i = 0; i < text.length(); ) {
             int cp = text.codePointAt(i);
@@ -203,38 +196,58 @@ public class FontRenderer {
 
             if (cp == '$' && i + charCount < text.length()) {
                 int nextCp = text.codePointAt(i + charCount);
-                int codeIndex = "0123456789abcdefklmnor".indexOf(Character.toLowerCase(nextCp));
+                int codeIndex = "0123456789abcdefklmnorgzvq".indexOf(Character.toLowerCase(nextCp));
 
                 if (codeIndex >= 0 && codeIndex < 16) {
                     currentR = colorCodes[codeIndex][0];
                     currentG = colorCodes[codeIndex][1];
                     currentB = colorCodes[codeIndex][2];
-                } else if (codeIndex == 16) { // k - magic (skip for now)
+                    rainbow = false; glow = false; wavy = false; shake = false;
                 } else if (codeIndex == 17) { // l - bold
                     bold = true;
                 } else if (codeIndex == 21) { // r - reset
                     currentR = r; currentG = g; currentB = b;
-                    bold = false;
+                    bold = false; rainbow = false; glow = false; wavy = false; shake = false;
+                } else if (codeIndex == 22) { // g - glow
+                    glow = true;
+                } else if (codeIndex == 23) { // z - rainbow
+                    rainbow = true;
+                } else if (codeIndex == 24) { // v - wavy
+                    wavy = true;
+                } else if (codeIndex == 25) { // q - shake
+                    shake = true;
                 }
-
                 i += charCount + Character.charCount(nextCp);
                 continue;
             }
 
-            shader.setUniform("tintColor", currentR, currentG, currentB, a);
+            float finalR = currentR, finalG = currentG, finalB = currentB;
+            int finalX = drawX, finalY = y;
+
+            if (rainbow) {
+                float hue = ((timeMs % 3000) / 3000.0f + (drawX * 0.002f)) % 1.0f;
+                org.joml.Vector3f rgb = hslToRgb(hue, 0.8f, 0.6f);
+                finalR = rgb.x; finalG = rgb.y; finalB = rgb.z;
+            }
+            if (glow) {
+                float pulse = (float)(Math.sin(timeMs * 0.005f) * 0.25f + 0.75f);
+                finalR *= pulse; finalG *= pulse; finalB *= pulse;
+            }
+            if (wavy) finalY += (int)(Math.sin(timeMs * 0.008f + drawX * 0.05f) * 2.0f);
+            if (shake) {
+                finalX += (int)(Math.sin(timeMs * 0.1f + drawX) * 1.5f);
+                finalY += (int)(Math.cos(timeMs * 0.13f + drawX * 0.5f) * 1.5f);
+            }
+
+            shader.setUniform("tintColor", finalR, finalG, finalB, a);
 
             int textureToBind;
-            GlyphInfo custom = glyphCustomMap.get(cp);
-            
-            if (custom != null) {
-                textureToBind = custom.textureId;
+            GlyphInfo glyph = glyphCustomMap.get(cp);
+            if (glyph != null) {
+                textureToBind = glyph.textureId;
             } else {
                 int page = cp / 256;
-                if (page == 0 && cp < 128) {
-                    textureToBind = getOrLoadTexture("zenith/textures/font/ascii.png");
-                } else {
-                    textureToBind = getUnicodePageTexture(page);
-                }
+                textureToBind = (page == 0 && cp < 128) ? getOrLoadTexture("zenith/textures/font/ascii.png") : getUnicodePageTexture(page);
             }
             
             if (textureToBind != lastBoundTexture) {
@@ -242,34 +255,21 @@ public class FontRenderer {
                 lastBoundTexture = textureToBind;
             }
 
-            int glyphWidth;
-            if (custom != null) {
-                glyphWidth = custom.width;
-            } else {
-                glyphWidth = getGlyphWidth((char)cp);
-            }
-            
-            float advance = glyphWidth * scale;
+            int gw = (glyph != null) ? glyph.width : getGlyphWidth((char)cp);
+            float advance = gw * scale;
 
-            if (custom != null) {
-                renderCustomGlyph(custom, drawX, y, size, screenWidth, screenHeight);
-                if (bold) renderCustomGlyph(custom, drawX + Math.round(0.5f * scale), y, size, screenWidth, screenHeight);
+            if (glyph != null) {
+                renderCustomGlyph(glyph, finalX, finalY, size, screenWidth, screenHeight);
+                if (bold) renderCustomGlyph(glyph, finalX + Math.round(0.5f * scale), finalY, size, screenWidth, screenHeight);
                 drawX += Math.round(advance + scale);
             } else {
                 int page = cp / 256;
-                if (page != 0 || cp >= 128) {
-                    renderGlyph((char)cp, drawX, y, size, screenWidth, screenHeight);
-                    if (bold) renderGlyph((char)cp, drawX + Math.round(0.5f * scale), y, size, screenWidth, screenHeight);
-                    drawX += Math.round(advance); 
-                } else {
-                    renderGlyph((char)cp, drawX, y, size, screenWidth, screenHeight);
-                    if (bold) renderGlyph((char)cp, drawX + Math.round(0.5f * scale), y, size, screenWidth, screenHeight);
-                    drawX += Math.round(advance + scale);
-                }
+                renderGlyph((char)cp, finalX, finalY, size, screenWidth, screenHeight);
+                if (bold) renderGlyph((char)cp, finalX + Math.round(0.5f * scale), finalY, size, screenWidth, screenHeight);
+                drawX += Math.round(page != 0 || cp >= 128 ? advance : advance + scale);
             }
             i += charCount;
         }
-
         glBindVertexArray(0);
     }
 
@@ -279,12 +279,9 @@ public class FontRenderer {
 
     public void drawWrappedString(String text, int x, int y, int size, int maxWidth, int screenWidth, int screenHeight, float r, float g, float b, float a) {
         if (text == null || text.isEmpty()) return;
-        
         String[] words = text.split(" ");
         StringBuilder currentLine = new StringBuilder();
-        int currentY = y;
-        int lineHeight = (int)(size * 1.3f); // Увеличил интервал для читаемости
-        
+        int currentY = y, lineHeight = (int)(size * 1.3f); 
         for (String word : words) {
             String testLine = currentLine.length() == 0 ? word : currentLine.toString() + " " + word;
             if (getStringWidth(testLine, size) > maxWidth) {
@@ -296,296 +293,174 @@ public class FontRenderer {
                     drawString(word, x, currentY, size, screenWidth, screenHeight, r, g, b, a);
                     currentY += lineHeight;
                 }
-            } else {
-                currentLine = new StringBuilder(testLine);
-            }
+            } else currentLine = new StringBuilder(testLine);
         }
-        
-        if (currentLine.length() > 0) {
-            drawString(currentLine.toString(), x, currentY, size, screenWidth, screenHeight, r, g, b, a);
-        }
+        if (currentLine.length() > 0) drawString(currentLine.toString(), x, currentY, size, screenWidth, screenHeight, r, g, b, a);
     }
 
     public int getWrappedStringHeight(String text, int size, int maxWidth) {
         if (text == null || text.isEmpty()) return 0;
-        
         String[] words = text.split(" ");
         int lines = 1;
         StringBuilder currentLine = new StringBuilder();
         int lineHeight = (int)(size * 1.3f);
-        
         for (String word : words) {
             String testLine = currentLine.length() == 0 ? word : currentLine.toString() + " " + word;
             if (getStringWidth(testLine, size) > maxWidth) {
-                if (currentLine.length() > 0) {
-                    lines++;
-                    currentLine = new StringBuilder(word);
-                } else {
-                    lines++;
-                }
-            } else {
-                currentLine = new StringBuilder(testLine);
-            }
+                if (currentLine.length() > 0) { lines++; currentLine = new StringBuilder(word); }
+                else lines++;
+            } else currentLine = new StringBuilder(testLine);
         }
-        
         return lines * lineHeight;
     }
 
     private void renderCustomGlyph(GlyphInfo glyph, int x, int y, int size, int screenWidth, int screenHeight) {
-        float uvStepX = 1.0f / glyph.totalCols;
-        float uvStepY = 1.0f / glyph.totalRows;
-        float uvX = glyph.gridX * uvStepX;
-        float uvY = glyph.gridY * uvStepY;
-
-        float screenX = (2.0f * (x + size / 2.0f) / screenWidth) - 1.0f;
-        float screenY = 1.0f - (2.0f * (y + size / 2.0f) / screenHeight);
-
+        float uvStepX = 1.0f / glyph.totalCols, uvStepY = 1.0f / glyph.totalRows;
+        float screenX = (2.0f * (x + size / 2.0f) / screenWidth) - 1.0f, screenY = 1.0f - (2.0f * (y + size / 2.0f) / screenHeight);
         shader.setUniform("scale", (float) size / screenWidth, (float) size / screenHeight, 0.0f, 0.0f);
         shader.setUniform("position_offset", screenX, screenY, 0.0f, 0.0f);
-        shader.setUniform("uvOffset", uvX, uvY, 0.0f, 0.0f);
+        shader.setUniform("uvOffset", glyph.gridX * uvStepX, glyph.gridY * uvStepY, 0.0f, 0.0f);
         shader.setUniform("uvScale", uvStepX, uvStepY, 0.0f, 0.0f);
-
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     }
 
     public int getStringWidth(String text, int size) {
-        if (text == null || text.isEmpty()) {
-            return 0;
-        }
+        if (text == null || text.isEmpty()) return 0;
         float scale = (float) size / GLYPH_SIZE;
         int width = 0;
         for (int i = 0; i < text.length(); ) {
-            int cp = text.codePointAt(i);
-            int charCount = Character.charCount(cp);
-
+            int cp = text.codePointAt(i), charCount = Character.charCount(cp);
             if (cp == '$' && i + charCount < text.length()) {
-                int nextCp = text.codePointAt(i + charCount);
-                i += charCount + Character.charCount(nextCp);
+                i += charCount + Character.charCount(text.codePointAt(i + charCount));
                 continue;
             }
-            GlyphInfo custom = glyphCustomMap.get(cp);
-            if (custom != null) {
-                width += Math.round(custom.width * scale + scale);
-            } else {
+            GlyphInfo glyph = glyphCustomMap.get(cp);
+            if (glyph != null) width += Math.round(glyph.width * scale + scale);
+            else {
                 int page = cp / 256;
-                if (page != 0 || cp >= 128) {
-                    width += Math.round(getGlyphWidth((char)cp) * scale);
-                } else {
-                    width += Math.round(getGlyphWidth((char)cp) * scale + scale);
-                }
+                width += Math.round(getGlyphWidth((char)cp) * scale + (page == 0 && cp < 128 ? scale : 0));
             }
             i += charCount;
         }
         return width;
     }
 
-    private int getUnicodePageTexture(int page) {
-        if (unicodePages.containsKey(page)) {
-            return unicodePages.get(page);
+    public java.util.List<String> wrapText(String text, int fontSize, int maxWidth) {
+        java.util.List<String> lines = new java.util.ArrayList<>();
+        if (text == null || text.isEmpty()) return lines;
+        String[] words = text.split(" ");
+        StringBuilder currentLine = new StringBuilder();
+        for (String word : words) {
+            String testLine = currentLine.length() == 0 ? word : currentLine.toString() + " " + word;
+            if (getStringWidth(testLine, fontSize) <= maxWidth) {
+                if (currentLine.length() > 0) currentLine.append(" ");
+                currentLine.append(word);
+            } else {
+                if (currentLine.length() > 0) lines.add(currentLine.toString());
+                currentLine = new StringBuilder(word);
+            }
         }
-        
-        String pageHex = String.format("%02x", page);
-        String path = "zenith/textures/font/unicode_page_" + pageHex + ".png";
+        if (currentLine.length() > 0) lines.add(currentLine.toString());
+        return lines;
+    }
+
+    private org.joml.Vector3f hslToRgb(float h, float s, float l) {
+        float q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+        return new org.joml.Vector3f(hueToRgb(p, q, h + 1.0f/3.0f), hueToRgb(p, q, h), hueToRgb(p, q, h - 1.0f/3.0f));
+    }
+
+    private float hueToRgb(float p, float q, float t) {
+        if (t < 0) t += 1; if (t > 1) t -= 1;
+        if (t < 1.0f/6.0f) return p + (q - p) * 6 * t;
+        if (t < 1.0f/2.0f) return q;
+        if (t < 2.0f/3.0f) return p + (q - p) * (2.0f/3.0f - t) * 6;
+        return p;
+    }
+
+    private int getUnicodePageTexture(int page) {
+        if (unicodePages.containsKey(page)) return unicodePages.get(page);
+        String path = "zenith/textures/font/unicode_page_" + String.format("%02x", page) + ".png";
         loadUnicodeWidthMap(path, page * 256);
-        
-        int textureId = loadTexture(path);
-        unicodePages.put(page, textureId);
-        return textureId;
+        int tid = loadTexture(path); unicodePages.put(page, tid); return tid;
     }
 
     private int loadTexture(String path) {
         try (InputStream stream = FontRenderer.class.getClassLoader().getResourceAsStream(path)) {
             if (stream == null) return 0;
-            BufferedImage image = ImageIO.read(stream);
-            int width = image.getWidth();
-            int height = image.getHeight();
-
-            int[] pixels = new int[width * height];
-            image.getRGB(0, 0, width, height, pixels, 0, width);
-
-            ByteBuffer buffer = MemoryUtil.memAlloc(width * height * 4);
-            for (int pixel : pixels) {
-                buffer.put((byte) ((pixel >> 16) & 0xFF));
-                buffer.put((byte) ((pixel >> 8) & 0xFF));
-                buffer.put((byte) (pixel & 0xFF));
-                buffer.put((byte) ((pixel >> 24) & 0xFF));
-            }
-            buffer.flip();
-
-            int texId = glGenTextures();
-            glBindTexture(GL_TEXTURE_2D, texId);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, buffer);
-
-            MemoryUtil.memFree(buffer);
-            return texId;
-        } catch (IOException e) {
-            return 0;
-        }
+            BufferedImage img = ImageIO.read(stream);
+            int w = img.getWidth(), h = img.getHeight(), pixels[] = new int[w * h];
+            img.getRGB(0, 0, w, h, pixels, 0, w);
+            ByteBuffer buf = MemoryUtil.memAlloc(w * h * 4);
+            for (int p : pixels) { buf.put((byte)((p>>16)&0xFF)); buf.put((byte)((p>>8)&0xFF)); buf.put((byte)(p&0xFF)); buf.put((byte)((p>>24)&0xFF)); }
+            buf.flip();
+            int tid = glGenTextures(); glBindTexture(GL_TEXTURE_2D, tid);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, buf);
+            MemoryUtil.memFree(buf); return tid;
+        } catch (IOException e) { return 0; }
     }
 
     private void renderGlyph(char c, int x, int y, int size, int screenWidth, int screenHeight) {
-        int glyphIndex = c % 256;
-        int gridX = glyphIndex % GRID_SIZE;
-        int gridY = glyphIndex / GRID_SIZE;
-
-        float uvX = gridX / (float) GRID_SIZE;
-        float uvY = gridY / (float) GRID_SIZE;
-        float uvSize = 1.0f / GRID_SIZE;
-
-        float screenX = (2.0f * (x + size / 2.0f) / screenWidth) - 1.0f;
-        float screenY = 1.0f - (2.0f * (y + size / 2.0f) / screenHeight);
-
+        int idx = c % 256, gx = idx % GRID_SIZE, gy = idx / GRID_SIZE;
+        float uvS = 1.0f / GRID_SIZE, sx = (2.0f * (x + size / 2.0f) / screenWidth) - 1.0f, sy = 1.0f - (2.0f * (y + size / 2.0f) / screenHeight);
         shader.setUniform("scale", (float) size / screenWidth, (float) size / screenHeight, 0.0f, 0.0f);
-        shader.setUniform("position_offset", screenX, screenY, 0.0f, 0.0f);
-        shader.setUniform("uvOffset", uvX, uvY, 0.0f, 0.0f);
-        shader.setUniform("uvScale", uvSize, uvSize, 0.0f, 0.0f);
-
+        shader.setUniform("position_offset", sx, sy, 0.0f, 0.0f);
+        shader.setUniform("uvOffset", gx * uvS, gy * uvS, 0.0f, 0.0f);
+        shader.setUniform("uvScale", uvS, uvS, 0.0f, 0.0f);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
     }
 
     private void loadWidthMap(String path, int[] targetMap) {
         try (InputStream stream = FontRenderer.class.getClassLoader().getResourceAsStream(path)) {
             if (stream == null) return;
-            BufferedImage image = ImageIO.read(stream);
-            int width = image.getWidth();
-            int height = image.getHeight();
-            int[] pixels = new int[width * height];
-            image.getRGB(0, 0, width, height, pixels, 0, width);
-
-            int charWidth = width / 16;
-            int charHeight = height / 16;
-
-            for (int i = 0; i < 256; i++) {
-                int col = i % 16;
-                int row = i / 16;
-                int maxColumn = charWidth - 1;
-                boolean emptyColumn;
-                do {
-                    emptyColumn = true;
-                    for (int py = 0; py < charHeight; py++) {
-                        int pixelIndex = (row * charHeight + py) * width + (col * charWidth + maxColumn);
-                        int alpha = (pixels[pixelIndex] >> 24) & 0xFF;
-                        if (alpha > 0x80) {
-                            emptyColumn = false;
-                            break;
-                        }
-                    }
-                    if (emptyColumn && maxColumn >= 0) {
-                        maxColumn--;
-                    }
-                } while (emptyColumn && maxColumn >= 0);
-
-                if (i == 32) targetMap[i] = 4;
-                else targetMap[i] = maxColumn + 2;
+            BufferedImage img = ImageIO.read(stream);
+            int w = img.getWidth(), h = img.getHeight(), pxs[] = new int[w * h];
+            img.getRGB(0, 0, w, h, pxs, 0, w);
+            int cw = w/16, ch = h/16;
+            for (int i=0; i<256; i++) {
+                int col = i%16, row = i/16, maxC = cw-1; boolean empty;
+                do { empty = true; for (int py=0; py<ch; py++) if (((pxs[(row*ch+py)*w + (col*cw+maxC)]>>24)&0xFF) > 0x80) { empty=false; break; }
+                if (empty && maxC>=0) maxC--; } while (empty && maxC>=0);
+                targetMap[i] = (i==32) ? 4 : maxC+2;
             }
-        } catch (IOException e) {
-            Logger.error("Failed to load width map: " + path);
-        }
+        } catch (IOException e) { Logger.error("Failed to load width map: " + path); }
     }
 
-    private void loadUnicodeWidthMap(String path, int startChar) {
-        try (InputStream stream = FontRenderer.class.getClassLoader().getResourceAsStream(path)) {
-            if (stream == null) return;
-            BufferedImage image = ImageIO.read(stream);
-            int width = image.getWidth();
-            int height = image.getHeight();
-            int[] pixels = new int[width * height];
-            image.getRGB(0, 0, width, height, pixels, 0, width);
-
-            int charWidth = width / 16;
-            int charHeight = height / 16;
-
-            for (int i = 0; i < 256; i++) {
-                int col = i % 16;
-                int row = i / 16;
-                int maxColumn = charWidth - 1;
-                boolean emptyColumn;
-                do {
-                    emptyColumn = true;
-                    for (int py = 0; py < charHeight; py++) {
-                        int pixelIndex = (row * charHeight + py) * width + (col * charWidth + maxColumn);
-                        int alpha = (pixels[pixelIndex] >> 24) & 0xFF;
-                        if (alpha > 0x20) {
-                            emptyColumn = false;
-                            break;
-                        }
-                    }
-                    if (emptyColumn && maxColumn >= 0) {
-                        maxColumn--;
-                    }
-                } while (emptyColumn && maxColumn >= 0);
-
-                if (maxColumn < 0) {
-                    unicodeWidthMap[startChar + i] = 0;
-                } else {
-                    unicodeWidthMap[startChar + i] = maxColumn + 2;
-                }
+    private void loadUnicodeWidthMap(String path, int start) {
+        try (InputStream s = FontRenderer.class.getClassLoader().getResourceAsStream(path)) {
+            if (s == null) return;
+            BufferedImage img = ImageIO.read(s);
+            int w = img.getWidth(), h = img.getHeight(), pxs[] = new int[w * h];
+            img.getRGB(0, 0, w, h, pxs, 0, w);
+            int cw = w/16, ch = h/16;
+            for (int i=0; i<256; i++) {
+                int col = i%16, row = i/16, maxC = cw-1; boolean empty;
+                do { empty = true; for (int py=0; py<ch; py++) if (((pxs[(row*ch+py)*w + (col*cw+maxC)]>>24)&0xFF) > 0x20) { empty=false; break; }
+                if (empty && maxC>=0) maxC--; } while (empty && maxC>=0);
+                unicodeWidthMap[start+i] = maxC<0 ? 0 : maxC+2;
             }
-        } catch (IOException e) {
-            Logger.error("Failed to load unicode width map: " + path);
-        }
+        } catch (IOException e) { Logger.error("Failed to load unicode width map: " + path); }
     }
 
-    private int getGlyphWidth(char c) {
-        if (c < 256) return widthMap[c];
-        int w = unicodeWidthMap[c];
-        return (w > 0) ? w : 6;
-    }
+    private int getGlyphWidth(char c) { return c < 256 ? widthMap[c] : (unicodeWidthMap[c] > 0 ? unicodeWidthMap[c] : 6); }
 
     private void createQuad() {
-        vao = glGenVertexArrays();
-        vbo = glGenBuffers();
-        ebo = glGenBuffers();
-
+        vao = glGenVertexArrays(); vbo = glGenBuffers(); ebo = glGenBuffers();
         glBindVertexArray(vao);
-
-        float[] vertices = {
-            -1.0f, -1.0f, 0.0f, 1.0f, // LB
-             1.0f, -1.0f, 1.0f, 1.0f, // RB
-             1.0f,  1.0f, 1.0f, 0.0f, // RT
-            -1.0f,  1.0f, 0.0f, 0.0f  // LT
-        };
-
-        FloatBuffer vertexBuffer = MemoryUtil.memAllocFloat(vertices.length);
-        vertexBuffer.put(vertices).flip();
-
-        glBindBuffer(GL_ARRAY_BUFFER, vbo);
-        glBufferData(GL_ARRAY_BUFFER, vertexBuffer, GL_STATIC_DRAW);
-
-        glVertexAttribPointer(0, 2, GL_FLOAT, false, 4 * Float.BYTES, 0);
-        glEnableVertexAttribArray(0);
-
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, 4 * Float.BYTES, 2 * Float.BYTES);
-        glEnableVertexAttribArray(1);
-
-        int[] indices = {0, 1, 2, 2, 3, 0};
-        IntBuffer indexBuffer = MemoryUtil.memAllocInt(indices.length);
-        indexBuffer.put(indices).flip();
-
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indexBuffer, GL_STATIC_DRAW);
-
-        glBindVertexArray(0);
-
-        MemoryUtil.memFree(vertexBuffer);
-        MemoryUtil.memFree(indexBuffer);
+        float[] vs = {-1,-1,0,1, 1,-1,1,1, 1,1,1,0, -1,1,0,0};
+        FloatBuffer vb = MemoryUtil.memAllocFloat(vs.length); vb.put(vs).flip();
+        glBindBuffer(GL_ARRAY_BUFFER, vbo); glBufferData(GL_ARRAY_BUFFER, vb, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 2, GL_FLOAT, false, 4*Float.BYTES, 0); glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, 4*Float.BYTES, 2*Float.BYTES); glEnableVertexAttribArray(1);
+        int[] is = {0,1,2, 2,3,0}; IntBuffer ib = MemoryUtil.memAllocInt(is.length); ib.put(is).flip();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo); glBufferData(GL_ELEMENT_ARRAY_BUFFER, ib, GL_STATIC_DRAW);
+        glBindVertexArray(0); MemoryUtil.memFree(vb); MemoryUtil.memFree(ib);
     }
 
     public void cleanup() {
-        for (int texId : textureCache.values()) {
-            glDeleteTextures(texId);
-        }
-        for (int texId : unicodePages.values()) {
-            glDeleteTextures(texId);
-        }
-        glDeleteVertexArrays(vao);
-        glDeleteBuffers(vbo);
-        glDeleteBuffers(ebo);
+        for (int t : textureCache.values()) glDeleteTextures(t);
+        for (int t : unicodePages.values()) glDeleteTextures(t);
+        glDeleteVertexArrays(vao); glDeleteBuffers(vbo); glDeleteBuffers(ebo);
     }
 }
-
-

@@ -70,9 +70,11 @@ public class SlotRenderer {
             
             if (stack.getItem().isTool()) {
                 com.za.zenith.world.items.component.ToolComponent tool = stack.getItem().getComponent(com.za.zenith.world.items.component.ToolComponent.class);
-                float dur = (float)stack.getDurability() / tool.maxDurability();
-                if (dur < 1.0f) {
-                    renderDurabilityBar(x + 2, y + size - 4, size - 4, dur, screenWidth, screenHeight);
+                if (tool != null && tool.maxDurability() != -1) {
+                    float dur = (float)stack.getDurability() / tool.maxDurability();
+                    if (dur < 1.0f) {
+                        renderDurabilityBar(x + 2, y + size - 4, size - 4, dur, screenWidth, screenHeight);
+                    }
                 }
             }
         } else if (placeholder != null && !placeholder.isEmpty()) {

@@ -81,12 +81,13 @@ public class Blocks {
     public static BlockDefinition CHEST;
     
     public static void init() {
-        for (java.lang.reflect.Field field : Blocks.class.getFields()) {
+        for (java.lang.reflect.Field field : Blocks.class.getDeclaredFields()) {
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
                 try {
                     Identifier id = Identifier.of("zenith", field.getName().toLowerCase());
                     BlockDefinition def = BlockRegistry.getRegistry().get(id);
                     if (def != null) {
+                        field.setAccessible(true);
                         field.set(null, def);
                     } else {
                         com.za.zenith.utils.Logger.error("Blocks.init: Could not find block in registry for field %s (id: %s)", field.getName(), id.toString());

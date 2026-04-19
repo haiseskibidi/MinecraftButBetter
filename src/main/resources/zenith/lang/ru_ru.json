@@ -194,6 +194,8 @@
   "rarity.zenith.rare": "Редкий",
   "rarity.zenith.epic": "Эпический",
   "rarity.zenith.legendary": "Легендарный",
+  "rarity.zenith.developer": "Предмет Разработчика",
+  "item.zenith.admin_hammer.desc": "### Молот Созидания\n*Инструмент тех, кто соткал этот мир из пустоты.*\n\n**Особенности:**\n- Стирает реальность в один клик\n- Не имеет ограничений прочности\n- Светится первозданной энергией",
   "affix.zenith.heavy": "Тяжелый",
   "affix.zenith.heavy.m": "Тяжелый",
   "affix.zenith.heavy.f": "Тяжелая",

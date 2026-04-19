@@ -27,6 +27,13 @@ public class ItemStack {
     }
 
     public ItemStack(Item item, int count) {
+        if (item == null) {
+            com.za.zenith.utils.Logger.error("Attempted to create ItemStack with null Item!");
+            this.item = Items.HAND; // Fallback to hand to avoid further crashes
+            this.count = 0;
+            this.rarity = com.za.zenith.world.items.stats.RarityRegistry.COMMON;
+            return;
+        }
         this.item = item;
         this.count = count;
         this.rarity = item.getDefaultRarity();
