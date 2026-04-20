@@ -36,6 +36,12 @@
     - **Skeletal Animation**: Иерархия костей (Shoulder -> Forearm -> Hand) для органичных движений.
     - **Spring Physics**: Инерция рук и предметов на основе пружинного симулятора.
 
+4.  **Minimap (Radar) System (v1.0 NEW)**:
+    - **Fast Voxel Sampling**: Прямое чтение `Chunk.blockData` позволяет сканировать ландшафт (128x128) за <0.5ms без аллокации Java-объектов.
+    - **Dynamic Texture Pipeline**: Система обновляет `ByteBuffer` и передает его в GPU через `glTexSubImage2D`, минуя пересоздание текстуры.
+    - **SDF Post-Processing**: Круговая маска, виньетка и эффект сканирования (электронные помехи) вынесены в специализированный `minimap_fragment.glsl`.
+    - **Coordinate Mapping**: Трансформация мировых координат в пространство радара учитывает позицию и поворот (Yaw) игрока для реализации режима "вращающейся карты".
+
 ### Data-Driven Development (v3.5 UPDATED)
 1.  **JSON Schema**: Все игровые параметры (блоки, предметы, анимации, рецепты) загружаются из ресурсов.
 2.  **Identifier-First Dynamic ID System (NEW)**:

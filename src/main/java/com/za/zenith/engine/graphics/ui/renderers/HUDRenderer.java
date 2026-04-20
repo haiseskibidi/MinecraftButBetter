@@ -117,7 +117,29 @@ public class HUDRenderer {
         sonarPhase += dt * (4.0f + noise * 12.0f);
         renderBlueprint("noise_wave", sw, sh, new float[]{noise, sonarPhase, 0, 0});
 
+        renderMinimap(player, sw, sh);
+
         renderLogo(sw, sh);
+    }
+
+    private void renderMinimap(com.za.zenith.entities.Player player, int sw, int sh) {
+        GUIConfig.HUDElementConfig cfg = getHUDConfig("minimap");
+        if (cfg == null || !cfg.visible) return;
+        
+        int size = cfg.width;
+        int[] pos = calculateElementPos(cfg, sw, sh, size, size);
+        
+        MinimapRenderer minimap = renderer.getMinimapRenderer();
+        float dt = GameLoop.getInstance().getTimer().getDeltaF();
+        
+        minimap.update(player, GameLoop.getInstance().getWorld(), dt);
+        minimap.render(pos[0], pos[1], size, player, sw, sh);
+        
+        // Render frame blueprint over the map
+        if (cfg.blueprint != null) {
+            com.za.zenith.utils.Identifier frameId = com.za.zenith.utils.Identifier.of(cfg.blueprint);
+            renderer.getBlueprintRenderer().render(frameId, pos[0], pos[1], size, sw, sh, new float[]{0, 0, 0, 0});
+        }
     }
 
     private void renderBlueprint(String elementId, int sw, int sh, float[] triggers) {

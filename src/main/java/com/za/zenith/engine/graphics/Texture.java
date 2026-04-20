@@ -161,6 +161,11 @@ public class Texture {
     public void bind() {
         glBindTexture(GL_TEXTURE_2D, textureId);
     }
+
+    public void update(ByteBuffer data) {
+        glBindTexture(GL_TEXTURE_2D, textureId);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    }
     
     public void cleanup() {
         glDeleteTextures(textureId);

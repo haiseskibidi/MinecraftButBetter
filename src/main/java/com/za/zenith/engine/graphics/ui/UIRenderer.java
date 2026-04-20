@@ -36,6 +36,7 @@ public class UIRenderer {
     private HUDRenderer hudRenderer;
     private InventoryScreenRenderer inventoryScreenRenderer;
     private MenuRenderer menuRenderer;
+    private MinimapRenderer minimapRenderer;
     private com.za.zenith.engine.graphics.ui.blueprints.BlueprintRenderer blueprintRenderer;
     
     private static final float[] QUAD_VERTICES = {
@@ -71,10 +72,13 @@ public class UIRenderer {
         hudRenderer = new HUDRenderer(this);
         inventoryScreenRenderer = new InventoryScreenRenderer(this);
         menuRenderer = new MenuRenderer(this);
+        minimapRenderer = new MinimapRenderer(this);
         blueprintRenderer = new com.za.zenith.engine.graphics.ui.blueprints.BlueprintRenderer();
 
         Logger.info("UI Renderer initialized (Modular)");
     }
+
+    public MinimapRenderer getMinimapRenderer() { return minimapRenderer; }
 
     public com.za.zenith.engine.graphics.ui.blueprints.BlueprintRenderer getBlueprintRenderer() { return blueprintRenderer; }
 
@@ -228,6 +232,7 @@ public class UIRenderer {
     public void cleanup() {
         if (uiShader != null) uiShader.cleanup();
         if (fontRenderer != null) fontRenderer.cleanup();
+        if (minimapRenderer != null) minimapRenderer.cleanup();
         crosshairRenderer.cleanup();
         blockRenderer.cleanup();
         glDeleteVertexArrays(quadVAO);

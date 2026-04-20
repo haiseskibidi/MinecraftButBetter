@@ -53,6 +53,7 @@
 
 ### src/main/resources/shaders (UPDATED)
 - **sky_vertex/fragment.glsl**: Шейдеры для отрисовки неба. Поддерживают процедурный "Glow" эффект и переключение между текстурой и пиксельной сеткой.
+- **minimap_vertex/fragment.glsl**: (NEW) Шейдеры миникарты с круговой маской, эффектом сканирования и поддержкой динамического вращения.
 - **vertex/fragment.glsl**: Обновлены для приема атрибутов `vLight` и `vAO` и финального расчета освещенности.
 
 ## UI & Animation Editor (v1.1 MODULAR)
@@ -87,7 +88,8 @@
 
 ### com.za.zenith.engine.graphics.ui.UIRenderer (UPDATED)
 Назначение: Модульный рендерер интерфейса (Facade).
-Функции: Является точкой входа для рендеринга всего UI, но делегирует работу специализированным суб-рендерерам: `UIPrimitives` (базовые формы), `SlotRenderer` (предметы/слоты), `HUDRenderer` (игровой оверлей, стамина, голод), `InventoryScreenRenderer` (инвентарь и dev-панель) и `MenuRenderer`.
+Функции: Является точкой входа для рендеринга всего UI, но делегирует работу специализированным суб-рендерерам: `UIPrimitives` (базовые формы), `SlotRenderer` (предметы/слоты), `HUDRenderer` (игровой оверлей, стамина, голод), `MinimapRenderer` (NEW: сэмплирование мира и радар), `InventoryScreenRenderer` (инвентарь и dev-панель) и `MenuRenderer`.
+- **MinimapRegistry.java**: (NEW) Реестр соответствия блоков и цветов для миникарты.
 
 ## World & Items (UPDATED)
 ### com.za.zenith.engine.graphics.Renderer (UPDATED)

@@ -63,6 +63,18 @@
       "height": 75,
       "color": [1.0, 1.0, 1.0, 1.0]
     },
+    "minimap": {
+      "type": "minimap",
+      "anchor": "top_left",
+      "alignX": "left",
+      "alignY": "top",
+      "x": "30px",
+      "y": "30px",
+      "width": 110,
+      "height": 110,
+      "blueprint": "zenith:minimap_frame",
+      "visible": true
+    },
     "logo": {
       "type": "image",
       "texture": "zenith/gui/zenith_logo.png",

@@ -156,6 +156,36 @@ public class World {
         com.za.zenith.utils.Logger.info("World generation completed!");
     }
 
+    public int getFastSurfaceColor(int x, int z) {
+        int cx = x >> 4;
+        int cz = z >> 4;
+        Chunk chunk = getChunk(new ChunkPos(cx, cz));
+        if (chunk == null) return 0xFF000000;
+
+        int lx = x & 15;
+        int lz = z & 15;
+        
+        for (int y = Chunk.CHUNK_HEIGHT - 1; y > 0; y--) {
+            int data = chunk.getRawBlockData(lx, y, lz);
+            int type = data >> 8;
+            if (type == 0) continue; // Air
+            
+            com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(type);
+            if (!def.isSolid() && type != com.za.zenith.world.blocks.Blocks.WATER.getId()) continue;
+
+            int color = com.za.zenith.engine.graphics.ui.renderers.MinimapRegistry.getColor(type);
+            
+            // Apply height-based shading for volume effect
+            float brightness = 0.7f + (y / (float)Chunk.CHUNK_HEIGHT) * 0.6f;
+            int r = (int) ((color & 0xFF) * brightness);
+            int g = (int) (((color >> 8) & 0xFF) * brightness);
+            int b = (int) (((color >> 16) & 0xFF) * brightness);
+            
+            return 0xFF000000 | (Math.min(255, b) << 16) | (Math.min(255, g) << 8) | Math.min(255, r);
+        }
+        return 0xFF000000;
+    }
+
     private int getSurfaceHeight(int x, int z) {
         for (int y = 255; y > 0; y--) {
             Block b = getBlock(x, y, z);

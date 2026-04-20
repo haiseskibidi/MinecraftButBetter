@@ -1,0 +1,33 @@
+{
+  "identifier": "zenith:minimap_frame",
+  "size": 64,
+  "elements": [
+    {
+      "type": "ring",
+      "radius": 0.49,
+      "thickness": 0.02,
+      "color": [1.0, 1.0, 1.0, 0.8],
+      "animation": { "type": "pulse", "triggerSlot": 0, "intensity": 0.1 }
+    },
+    {
+      "type": "ring",
+      "radius": 0.51,
+      "thickness": 0.01,
+      "color": [1.0, 1.0, 1.0, 0.3]
+    },
+    {
+      "type": "radial_lines",
+      "innerRadius": 0.45,
+      "outerRadius": 0.52,
+      "count": 4,
+      "color": [1.0, 1.0, 1.0, 0.9]
+    },
+    {
+      "type": "radial_lines",
+      "innerRadius": 0.48,
+      "outerRadius": 0.5,
+      "count": 36,
+      "color": [1.0, 1.0, 1.0, 0.3]
+    }
+  ]
+}
