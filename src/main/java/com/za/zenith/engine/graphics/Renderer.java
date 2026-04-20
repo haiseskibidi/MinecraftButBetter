@@ -283,7 +283,9 @@ public class Renderer {
         glViewport(0, 0, window.getWidth(), window.getHeight());
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        if (fxaaEnabled) postProcessor.processFXAA(resolveFramebuffer.getColorTextureId(), resolveFramebuffer.getDepthTextureId(), window.getWidth(), window.getHeight());
+        // Don't double-smooth: if we use Hardware MSAA, we don't need FXAA blur on top
+        boolean finalFXAA = fxaaEnabled && msaaFramebuffer.getSamples() <= 1;
+        if (finalFXAA) postProcessor.processFXAA(resolveFramebuffer.getColorTextureId(), resolveFramebuffer.getDepthTextureId(), window.getWidth(), window.getHeight());
         else postProcessor.processPassthrough(resolveFramebuffer.getColorTextureId(), resolveFramebuffer.getDepthTextureId(), window.getWidth(), window.getHeight());
 
         uiRenderer.renderCrosshair(window.getWidth(), window.getHeight());

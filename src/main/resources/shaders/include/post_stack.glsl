@@ -23,9 +23,10 @@ vec3 applyPostProcessing(vec3 color, vec2 fragTexCoord, vec2 texelSize, sampler2
             float averageDepth = (dL + dR + dU + dD) * 0.25;
             float diff = d - averageDepth;
             
-            if (diff > 0.05) {
-                float ao = smoothstep(0.05, 0.4, diff);
-                color *= mix(1.0, 0.65, ao);
+            // Sharper Toon Outlines: tighter threshold to combat MSAA softening
+            if (diff > 0.02) {
+                float ao = smoothstep(0.02, 0.08, diff);
+                color *= mix(1.0, 0.55, ao);
             }
         }
         
