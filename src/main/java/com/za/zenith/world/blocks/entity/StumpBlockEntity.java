@@ -8,9 +8,19 @@ import com.za.zenith.utils.Identifier;
  * Сущность блока для пня (Stump).
  * Хранит предмет, лежащий на пне, и прогресс его обработки.
  */
-public class StumpBlockEntity extends BlockEntity implements ICraftingSurface, ITickable {
+public class StumpBlockEntity extends BlockEntity implements ICraftingSurface, ITickable, com.za.zenith.engine.graphics.ui.interaction.BlockInfoProvider {
     private ItemStack[] inventory = new ItemStack[9];
     private int progress = 0;
+
+    @Override
+    public String getDynamicStatus() {
+        return hasItem() ? "has_item" : "empty";
+    }
+
+    @Override
+    public float getInteractionProgress() {
+        return -1.0f; // У пня пока нет общей полоски прогресса, она индивидуальна для действий
+    }
     private Identifier currentToolId = null;
     private int carvingMask = 0xFFFF; // Default to fully carved for existing stumps
     private float carvingCooldown = 0.0f;
@@ -100,8 +110,8 @@ public class StumpBlockEntity extends BlockEntity implements ICraftingSurface, I
         return false;
     }
 
-    public ItemStack getHeldStack() {
-        // Для обратной совместимости или быстрого доступа к первому предмету
+    @Override
+    public com.za.zenith.world.items.ItemStack getHeldStack() {
         for (ItemStack s : inventory) {
             if (s != null) return s;
         }

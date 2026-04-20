@@ -1,0 +1,18 @@
+{
+  "zenith:stump": [
+    { "condition": "is_empty", "button": "RMB", "hint": "ui.interaction.place_item" },
+    { "condition": "has_item", "sneak": true, "button": "RMB", "hint": "ui.interaction.take_item" }
+  ],
+  "zenith:pit_kiln": [
+    { "condition": "is_burning", "hint": "ui.interaction.firing", "show_progress": true }
+  ],
+  "zenith:electric_lamp": [
+    { "hint": "ui.interaction.toggle" }
+  ],
+  "zenith:chest": [
+    { "hint": "ui.interaction.open" }
+  ],
+  "zenith:campfire": [
+    { "hint": "ui.interaction.warm_up" }
+  ]
+}

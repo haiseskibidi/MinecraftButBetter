@@ -12,38 +12,40 @@ import java.util.Map;
  * Реестр цветов для миникарты. Сопоставляет типы блоков их визуальному представлению на радаре.
  */
 public class MinimapRegistry {
-    private static final Map<Integer, Integer> colorCache = new HashMap<>();
-    private static final int DEFAULT_COLOR = 0xFF888888; // Grey
+    private static final int[] colorArray = new int[4096]; // Максимальное кол-во блоков
+    private static final boolean[] solidArray = new boolean[4096];
+    private static final int DEFAULT_COLOR = 0xFF888888;
 
     static {
-        // Базовые цвета (будут дополнены из JSON в будущем)
-        register(Identifier.of("zenith:grass_block"), pack(ColorProvider.getGrassColor()));
-        register(Identifier.of("zenith:dirt"), 0xFF3B5B8E); // Dirt/Brown (ABGR)
-        register(Identifier.of("zenith:stone"), 0xFF888888);
-        register(Identifier.of("zenith:sand"), 0xFF8FD8E6);
-        register(Identifier.of("zenith:water"), 0xFFFF9933); // Blue
-        register(Identifier.of("zenith:clay"), 0xFF9494A1);
-        register(Identifier.of("zenith:gravel"), 0xFF737373);
-        register(Identifier.of("zenith:asphalt"), 0xFF333333);
-        register(Identifier.of("zenith:bricks"), 0xFF3D3D99);
-        register(Identifier.of("zenith:leaves"), pack(ColorProvider.getFoliageColor()));
-        register(Identifier.of("zenith:oak_leaves"), pack(ColorProvider.getFoliageColor()));
-        register(Identifier.of("zenith:birch_leaves"), pack(ColorProvider.getFoliageColor()));
-        register(Identifier.of("zenith:jungle_leaves"), pack(ColorProvider.getFoliageColor()));
-        register(Identifier.of("zenith:acacia_leaves"), pack(ColorProvider.getFoliageColor()));
-        register(Identifier.of("zenith:dark_oak_leaves"), pack(ColorProvider.getFoliageColor()));
-        register(Identifier.of("zenith:cobblestone"), 0xFF777777);
+        java.util.Arrays.fill(colorArray, DEFAULT_COLOR);
+        // Базовые цвета
+        register(Identifier.of("zenith:grass_block"), pack(ColorProvider.getGrassColor()), true);
+        register(Identifier.of("zenith:dirt"), 0xFF3B5B8E, true);
+        register(Identifier.of("zenith:stone"), 0xFF888888, true);
+        register(Identifier.of("zenith:sand"), 0xFF8FD8E6, true);
+        register(Identifier.of("zenith:water"), 0xFFFF9933, false);
+        register(Identifier.of("zenith:clay"), 0xFF9494A1, true);
+        register(Identifier.of("zenith:gravel"), 0xFF737373, true);
+        register(Identifier.of("zenith:asphalt"), 0xFF333333, true);
+        register(Identifier.of("zenith:bricks"), 0xFF3D3D99, true);
+        register(Identifier.of("zenith:leaves"), pack(ColorProvider.getFoliageColor()), true);
+        register(Identifier.of("zenith:oak_leaves"), pack(ColorProvider.getFoliageColor()), true);
     }
 
-    public static void register(Identifier id, int abgrColor) {
+    public static void register(Identifier id, int abgrColor, boolean isSolid) {
         int type = BlockRegistry.getRegistry().getId(id);
-        if (type != -1) {
-            colorCache.put(type, abgrColor);
+        if (type >= 0 && type < 4096) {
+            colorArray[type] = abgrColor;
+            solidArray[type] = isSolid;
         }
     }
 
     public static int getColor(int type) {
-        return colorCache.getOrDefault(type, DEFAULT_COLOR);
+        return (type >= 0 && type < 4096) ? colorArray[type] : DEFAULT_COLOR;
+    }
+
+    public static boolean isSolid(int type) {
+        return (type >= 0 && type < 4096) && solidArray[type];
     }
 
     private static int pack(Vector3f color) {

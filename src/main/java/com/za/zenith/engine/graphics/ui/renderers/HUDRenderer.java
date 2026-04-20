@@ -115,7 +115,11 @@ public class HUDRenderer {
         if (player.getStamina() < 0.99f) renderBar("stamina", sw, sh, player.getStamina());
         renderBar("noise", sw, sh, noise);
 
-        renderMinimap(player, sw, sh);
+        // renderMinimap(player, sw, sh); // Temporary disabled for FPS
+
+        // --- Contextual Interaction HUD ---
+        com.za.zenith.world.physics.RaycastResult hit = GameLoop.getInstance().getHighlightedBlock();
+        renderer.getInteractionRenderer().updateAndRender(hit, sw, sh);
 
         renderLogo(sw, sh);
     }

@@ -52,8 +52,8 @@ public class MinimapRenderer {
         
         float distSq = player.getPosition().distanceSquared(lastPlayerPos);
         
-        // Update map only if moved significantly or interval passed
-        if (updateTimer >= UPDATE_INTERVAL || distSq > 0.25f) {
+        // Update map only if moved significantly or interval passed (Optimized: distSq > 1.0)
+        if (updateTimer >= UPDATE_INTERVAL || distSq > 1.0f) {
             updateTimer = 0;
             lastPlayerPos.set(player.getPosition());
             sampleWorld(player, world);

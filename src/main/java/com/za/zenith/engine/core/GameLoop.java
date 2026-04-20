@@ -301,16 +301,6 @@ public class GameLoop {
         
         if (inventoryOpen) renderer.getUIRenderer().renderInventory(window.getWidth(), window.getHeight(), renderer.getAtlas());
         else if (currentNappingSession != null) com.za.zenith.engine.graphics.ui.NappingGUI.render(renderer.getUIRenderer(), window.getWidth(), window.getHeight(), currentNappingSession);
-
-        if (highlightedBlock != null && highlightedBlock.isHit()) {
-            com.za.zenith.world.blocks.Block block = world.getBlock(highlightedBlock.getBlockPos());
-            if (block.getType() == com.za.zenith.world.blocks.Blocks.BURNING_PIT_KILN.getId()) {
-                com.za.zenith.world.blocks.entity.BlockEntity be = world.getBlockEntity(highlightedBlock.getBlockPos());
-                if (be instanceof com.za.zenith.world.blocks.entity.PitKilnBlockEntity kiln) {
-                    renderer.getUIRenderer().renderFiringProgress(window.getWidth(), window.getHeight(), kiln.getProgress());
-                }
-            }
-        }
         
         renderer.getUIRenderer().renderHUDOverlay(window.getWidth(), window.getHeight());
         renderer.getUIRenderer().renderLootboxOpening(window.getWidth(), window.getHeight());

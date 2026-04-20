@@ -9,13 +9,23 @@ import com.za.zenith.utils.Identifier;
  * Сущность блока для ямного обжига (Pit Kiln).
  * Управляет процессом обжига сырой глины в течение 20 секунд.
  */
-public class PitKilnBlockEntity extends BlockEntity implements ITickable {
+public class PitKilnBlockEntity extends BlockEntity implements ITickable, com.za.zenith.engine.graphics.ui.interaction.BlockInfoProvider {
     private float cookTime = 0;
     private final float totalTime = 20.0f; // 20 секунд
     private boolean burning = true;
 
     public PitKilnBlockEntity(BlockPos pos) {
         super(pos);
+    }
+
+    @Override
+    public String getDynamicStatus() {
+        return burning ? "burning" : "empty";
+    }
+
+    @Override
+    public float getInteractionProgress() {
+        return getProgress();
     }
 
     @Override

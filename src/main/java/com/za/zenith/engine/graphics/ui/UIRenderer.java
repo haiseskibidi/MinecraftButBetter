@@ -37,6 +37,7 @@ public class UIRenderer {
     private InventoryScreenRenderer inventoryScreenRenderer;
     private MenuRenderer menuRenderer;
     private MinimapRenderer minimapRenderer;
+    private com.za.zenith.engine.graphics.ui.interaction.InteractionRenderer interactionRenderer;
     private com.za.zenith.engine.graphics.ui.blueprints.BlueprintRenderer blueprintRenderer;
     
     private static final float[] QUAD_VERTICES = {
@@ -74,8 +75,14 @@ public class UIRenderer {
         menuRenderer = new MenuRenderer(this);
         minimapRenderer = new MinimapRenderer(this);
         blueprintRenderer = new com.za.zenith.engine.graphics.ui.blueprints.BlueprintRenderer();
+        interactionRenderer = new com.za.zenith.engine.graphics.ui.interaction.InteractionRenderer(this);
+        com.za.zenith.engine.graphics.ui.interaction.InteractionManager.init();
 
         Logger.info("UI Renderer initialized (Modular)");
+    }
+
+    public com.za.zenith.engine.graphics.ui.interaction.InteractionRenderer getInteractionRenderer() {
+        return interactionRenderer;
     }
 
     public MinimapRenderer getMinimapRenderer() { return minimapRenderer; }

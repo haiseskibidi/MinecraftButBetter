@@ -197,6 +197,12 @@
   - **Conditional Entity Tracking**: Маркеры врагов и предметов видны только при наличии `LocatorComponent` в руках/снаряжении.
   - **SDF Shader effects**: Круговая маска, виньетирование и сканирующие линии в `minimap_fragment.glsl`.
   - **Thread Safety**: Исправлено зависание процесса при выходе из игры через корректный shutdown `meshExecutor`.
+- **Contextual Interaction HUD v2.0 (NEW)**:
+  - **Dynamic Input Prefixes**: Система автоматически генерирует префиксы типа `[Shift + ПКМ]`, основываясь на правилах из JSON.
+  - **Data-Driven Conditions**: Поддержка условий `sneak` (обязательно/запрещено) и выбора кнопки (`LMB`/`RMB`) прямо в `interactions.json`.
+  - **Auto-Scaling Layout**: Ширина информационной плашки над прицелом динамически подстраивается под длину текста и префикса.
+  - **Clean Localization**: Из файлов перевода удален весь хардкод кнопок; ключи теперь содержат только чистое описание действия.
+  - **Block State Integration**: Плотная связь с `BlockInfoProvider` позволяет проверять содержимое блоков (например, что именно лежит на пне) для вывода специфических подсказок.
 
 ## В работе
 - **Combat System Integration**: Применение статов (Impact, Penetration) в расчете урона.

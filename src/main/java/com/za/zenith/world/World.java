@@ -170,8 +170,7 @@ public class World {
             int type = data >> 8;
             if (type == 0) continue; // Air
             
-            com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(type);
-            if (!def.isSolid() && type != com.za.zenith.world.blocks.Blocks.WATER.getId()) continue;
+            if (!com.za.zenith.engine.graphics.ui.renderers.MinimapRegistry.isSolid(type) && type != com.za.zenith.world.blocks.Blocks.WATER.getId()) continue;
 
             int color = com.za.zenith.engine.graphics.ui.renderers.MinimapRegistry.getColor(type);
             
