@@ -152,10 +152,15 @@ public class LightEngine {
                 if (isOpaque(nChunk, nx & 15, ny, nz & 15)) continue;
 
                 int neighborLevel = sun ? nChunk.getSunlight(nx & 15, ny, nz & 15) : nChunk.getBlockLight(nx & 15, ny, nz & 15);
-                if (neighborLevel < level - 1) {
-                    if (sun) nChunk.setSunlight(nx & 15, ny, nz & 15, level - 1);
-                    else nChunk.setBlockLight(nx & 15, ny, nz & 15, level - 1);
-                    enqueueFill(pack(nx, ny, nz, level - 1));
+                
+                // Sunlight vertical propagation: 15 stays 15 when going down
+                int nextLevel = (sun && dir == com.za.zenith.utils.Direction.DOWN && level == 15) ? 15 : level - 1;
+                if (nextLevel < 0) nextLevel = 0;
+
+                if (neighborLevel < nextLevel) {
+                    if (sun) nChunk.setSunlight(nx & 15, ny, nz & 15, nextLevel);
+                    else nChunk.setBlockLight(nx & 15, ny, nz & 15, nextLevel);
+                    enqueueFill(pack(nx, ny, nz, nextLevel));
                 }
             }
         }
@@ -181,32 +186,25 @@ public class LightEngine {
 
                 int neighborLevel = sun ? nChunk.getSunlight(nx & 15, ny, nz & 15) : nChunk.getBlockLight(nx & 15, ny, nz & 15);
                 
-                if (neighborLevel != 0 && neighborLevel < level) {
+                int expectedLevel = (sun && dir == com.za.zenith.utils.Direction.DOWN && level == 15) ? 15 : level - 1;
+                if (expectedLevel < 0) expectedLevel = 0;
+
+                if (neighborLevel != 0 && neighborLevel <= expectedLevel) {
+                    // Special case for sunlight: Level 15 should not be removed by horizontal neighbors
+                    // as it can only be 15 if it has a vertical source.
+                    if (sun && neighborLevel == 15 && dir != com.za.zenith.utils.Direction.DOWN) {
+                        enqueueFill(pack(nx, ny, nz, 15));
+                        continue;
+                    }
+
                     if (sun) nChunk.setSunlight(nx & 15, ny, nz & 15, 0);
                     else nChunk.setBlockLight(nx & 15, ny, nz & 15, 0);
                     enqueueRemoval(pack(nx, ny, nz, neighborLevel));
-                } else if (neighborLevel >= level) {
-                    // Sunlight source check: Level 15 MUST be under the sky
-                    if (sun && neighborLevel == 15) {
-                        if (isOpaqueAbove(nx, ny, nz)) {
-                            // Ghost 15 found! Remove it
-                            nChunk.setSunlight(nx & 15, ny, nz & 15, 0);
-                            enqueueRemoval(pack(nx, ny, nz, 15));
-                            continue;
-                        }
-                    }
+                } else if (neighborLevel > 0) {
                     enqueueFill(pack(nx, ny, nz, neighborLevel));
                 }
             }
         }
-    }
-
-    private boolean isOpaqueAbove(int x, int y, int z) {
-        for (int ay = y + 1; ay < Chunk.CHUNK_HEIGHT; ay++) {
-            Block b = world.getBlock(x, ay, z);
-            if (isOpaque(b)) return true;
-        }
-        return false;
     }
 
     private boolean isOpaque(Chunk chunk, int lx, int ly, int lz) {

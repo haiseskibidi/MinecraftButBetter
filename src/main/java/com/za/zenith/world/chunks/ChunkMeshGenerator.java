@@ -217,11 +217,25 @@ public class ChunkMeshGenerator {
             }
 
             for (int[] s : samples) {
-                Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(fx + s[0], fz + s[2]));
+                int sx = fx + s[0];
                 int sy = fy + s[1];
+                int sz = fz + s[2];
+                
+                Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(sx, sz));
                 if (chunk != null && sy >= 0 && sy < Chunk.CHUNK_HEIGHT) {
-                    totalSun += chunk.getSunlight((fx + s[0]) & 15, sy, (fz + s[2]) & 15);
-                    totalBlock += chunk.getBlockLight((fx + s[0]) & 15, sy, (fz + s[2]) & 15);
+                    float sun = chunk.getSunlight(sx & 15, sy, sz & 15);
+                    
+                    // Safety: if it's 0 but we are high up and nothing is above, it's likely a data glitch
+                    if (sun == 0 && sy > 60) {
+                        boolean blocked = false;
+                        for (int ay = sy + 1; ay < sy + 5 && ay < Chunk.CHUNK_HEIGHT; ay++) {
+                            if (isSolid(world, sx, ay, sz)) { blocked = true; break; }
+                        }
+                        if (!blocked) sun = 15;
+                    }
+                    
+                    totalSun += sun;
+                    totalBlock += chunk.getBlockLight(sx & 15, sy, sz & 15);
                 } else {
                     totalSun += 15; // Unloaded areas are bright
                     totalBlock += 0;

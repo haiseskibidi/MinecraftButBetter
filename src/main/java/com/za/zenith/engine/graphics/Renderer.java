@@ -147,10 +147,6 @@ public class Renderer {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
-        // Enable Hardware Anti-Aliasing features
-        glEnable(GL_MULTISAMPLE);
-        glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-        
         blockShader = new Shader("src/main/resources/shaders/vertex.glsl", "src/main/resources/shaders/fragment.glsl");
         atlas = new DynamicTextureAtlas(16);
         for (com.za.zenith.world.blocks.BlockDefinition def : com.za.zenith.world.blocks.BlockRegistry.getRegistry().values()) {
@@ -211,6 +207,8 @@ public class Renderer {
         
         // 1. RENDER SCENE TO MSAA BUFFER
         msaaFramebuffer.bind();
+        glEnable(GL_MULTISAMPLE);
+        glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
 
         // Calculate time of day
         com.za.zenith.world.WorldSettings worldSettings = com.za.zenith.world.WorldSettings.getInstance();
@@ -275,6 +273,8 @@ public class Renderer {
         particleRenderer.render(camera, com.za.zenith.world.particles.ParticleManager.getInstance().getActiveParticles(), atlas, alpha, currentAmbient);
 
         msaaFramebuffer.unbind();
+        glDisable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+        glDisable(GL_MULTISAMPLE);
         
         // 2. RESOLVE MSAA TO NORMAL BUFFER
         msaaFramebuffer.resolveTo(resolveFramebuffer);
