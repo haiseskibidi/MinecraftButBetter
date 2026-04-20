@@ -11,7 +11,7 @@ vec3 applyWoodNotch(vec3 color, vec3 localPos, vec4 notchPosAndIntensity, float 
     vec3 notchPos = notchPosAndIntensity.xyz;
     float intensityMultiplier = notchPosAndIntensity.w;
 
-    // Localize the effect around the notch position
+    // --- Optimization: Exit early if too far from the notch ---
     float dist = distance(localPos, notchPos);
     if (dist > 0.25) return color; 
 

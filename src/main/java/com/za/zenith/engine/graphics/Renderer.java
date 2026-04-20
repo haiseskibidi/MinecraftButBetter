@@ -368,7 +368,7 @@ public class Renderer {
         blockShader.setVector3f("uWeakSpotColor", new Vector3f(1.0f, 1.0f, 1.0f));
         blockShader.setVector3f("uOverrideLight", new Vector3f(-1.0f, -1.0f, -1.0f));
         
-        if (breakingPos != null) {
+        if (breakingPos != null && breakingProgress < 1.0f) { // Skip hole ONLY for instant breaks (1.0)
             if (holeMesh == null || !breakingPos.equals(holePos)) {
                 if (holeMesh != null) holeMesh.cleanup();
                 holeMesh = ChunkMeshGenerator.generateHoleMesh(breakingPos, world, atlas);
@@ -409,9 +409,10 @@ public class Renderer {
 
         // 2. Schedule new mesh updates (with budget)
         int scheduledThisFrame = 0;
+        int maxScheduledPerFrame = (breakingPos != null) ? 4 : 2; // Allow faster updates when mining
         for (Chunk chunk : world.getLoadedChunks()) {
             if (chunk.needsMeshUpdate() && !pendingUpdates.containsKey(chunk)) {
-                if (scheduledThisFrame < 2) { // Max 2 new updates per frame to keep CPU smooth
+                if (scheduledThisFrame < maxScheduledPerFrame) { 
                     Chunk.DataSnapshot snapshot = chunk.getSnapshot();
                     pendingUpdates.put(chunk, meshExecutor.submit(() -> {
                         Chunk tempChunk = new Chunk(snapshot.position());

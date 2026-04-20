@@ -35,9 +35,10 @@ void main() {
         baseColor *= vColor;
     }
 
-    // Standard Lighting
-    float diff = max(dot(normalize(vNormal), -uLights[0].direction), 0.0);
-    vec3 lighting = ambientLight + uLights[0].color * diff;
+    // --- Maximum Performance Lighting ---
+    // Remove all dot products and light loops for shards.
+    // Just use boosted ambient for a clean, consistent look.
+    vec3 lighting = ambientLight * 1.6 + 0.1;
 
     fragColor = vec4(baseColor * lighting, texColor.a * fragAlpha);
 }
