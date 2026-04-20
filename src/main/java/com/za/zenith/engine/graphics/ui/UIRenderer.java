@@ -74,6 +74,7 @@ public class UIRenderer {
         inventoryScreenRenderer = new InventoryScreenRenderer(this);
         menuRenderer = new MenuRenderer(this);
         minimapRenderer = new MinimapRenderer(this);
+        com.za.zenith.engine.graphics.ui.renderers.MinimapRegistry.init();
         blueprintRenderer = new com.za.zenith.engine.graphics.ui.blueprints.BlueprintRenderer();
         interactionRenderer = new com.za.zenith.engine.graphics.ui.interaction.InteractionRenderer(this);
         com.za.zenith.engine.graphics.ui.interaction.InteractionManager.init();

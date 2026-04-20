@@ -180,9 +180,10 @@ public class World {
             int g = (int) (((color >> 8) & 0xFF) * brightness);
             int b = (int) (((color >> 16) & 0xFF) * brightness);
             
-            return 0xFF000000 | (Math.min(255, b) << 16) | (Math.min(255, g) << 8) | Math.min(255, r);
+            // Store Y height in Alpha channel for toon-shading outlines in shader
+            return (y << 24) | (Math.min(255, b) << 16) | (Math.min(255, g) << 8) | Math.min(255, r);
         }
-        return 0xFF000000;
+        return 0;
     }
 
     private int getSurfaceHeight(int x, int z) {

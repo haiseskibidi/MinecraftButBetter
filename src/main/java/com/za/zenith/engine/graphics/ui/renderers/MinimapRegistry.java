@@ -18,18 +18,36 @@ public class MinimapRegistry {
 
     static {
         java.util.Arrays.fill(colorArray, DEFAULT_COLOR);
-        // Базовые цвета
+    }
+
+    public static void init() {
+        // 1. Сначала регистрируем все твердые блоки из общего реестра
+        for (Identifier id : BlockRegistry.getRegistry().getIds()) {
+            int type = BlockRegistry.getRegistry().getId(id);
+            com.za.zenith.world.blocks.BlockDefinition def = BlockRegistry.getBlock(type);
+            
+            // Если блок твердый - он должен быть на карте
+            if (def.isSolid()) {
+                solidArray[type] = true;
+                
+                // Назначаем дефолтные цвета по ключевым словам в ID
+                String path = id.getPath();
+                if (path.contains("log") || path.contains("wood")) colorArray[type] = 0xFF224466; // Brown/Wood
+                else if (path.contains("leaf") || path.contains("leaves")) colorArray[type] = pack(ColorProvider.getFoliageColor());
+                else if (path.contains("stone") || path.contains("cobble")) colorArray[type] = 0xFF888888;
+                else if (path.contains("concrete")) colorArray[type] = 0xFF999999;
+                else if (path.contains("planks")) colorArray[type] = 0xFF335577;
+            }
+        }
+
+        // 2. Перекрываем специфическими цветами для красоты
         register(Identifier.of("zenith:grass_block"), pack(ColorProvider.getGrassColor()), true);
         register(Identifier.of("zenith:dirt"), 0xFF3B5B8E, true);
-        register(Identifier.of("zenith:stone"), 0xFF888888, true);
         register(Identifier.of("zenith:sand"), 0xFF8FD8E6, true);
         register(Identifier.of("zenith:water"), 0xFFFF9933, false);
-        register(Identifier.of("zenith:clay"), 0xFF9494A1, true);
-        register(Identifier.of("zenith:gravel"), 0xFF737373, true);
-        register(Identifier.of("zenith:asphalt"), 0xFF333333, true);
         register(Identifier.of("zenith:bricks"), 0xFF3D3D99, true);
-        register(Identifier.of("zenith:leaves"), pack(ColorProvider.getFoliageColor()), true);
-        register(Identifier.of("zenith:oak_leaves"), pack(ColorProvider.getFoliageColor()), true);
+        register(Identifier.of("zenith:asphalt"), 0xFF333333, true);
+        register(Identifier.of("zenith:glass"), 0x66FFFFFF, false); // Полупрозрачный
     }
 
     public static void register(Identifier id, int abgrColor, boolean isSolid) {
