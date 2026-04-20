@@ -870,6 +870,15 @@ public class Renderer {
     public void setPauseMenu(com.za.zenith.engine.graphics.ui.PauseMenu m) { if (uiRenderer != null) uiRenderer.setPauseMenu(m); }
     
     public void cleanup() {
+        meshExecutor.shutdown();
+        try {
+            if (!meshExecutor.awaitTermination(1, TimeUnit.SECONDS)) {
+                meshExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            meshExecutor.shutdownNow();
+        }
+
         persistentHoleCache.values().forEach(Mesh::cleanup);
         persistentHoleCache.clear();
         for (var r : chunkMeshes.values()) { if (r.opaqueMesh != null) r.opaqueMesh.cleanup(); if (r.translucentMesh != null) r.translucentMesh.cleanup(); }

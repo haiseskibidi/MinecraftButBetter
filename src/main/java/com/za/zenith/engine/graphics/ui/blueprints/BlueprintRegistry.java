@@ -43,7 +43,7 @@ public class BlueprintRegistry {
     }
 
     private static void loadBlueprint(String filename) {
-        String path = "/zenith/gui/blueprints/" + filename;
+        String path = "/zenith/gui/blueprints/" + filename + ".json";
         try (InputStream in = BlueprintRegistry.class.getResourceAsStream(path)) {
             if (in != null) {
                 GraphicBlueprint def = GSON.fromJson(new InputStreamReader(in, StandardCharsets.UTF_8), GraphicBlueprint.class);

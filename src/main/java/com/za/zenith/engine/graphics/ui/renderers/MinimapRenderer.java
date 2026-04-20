@@ -97,6 +97,7 @@ public class MinimapRenderer {
         minimapShader.setInt("textureSampler", 0);
         minimapShader.setFloat("uTime", (float) org.lwjgl.glfw.GLFW.glfwGetTime());
         minimapShader.setFloat("uPulse", (float) Math.sin(org.lwjgl.glfw.GLFW.glfwGetTime() * 4.0f) * 0.5f + 0.5f);
+        minimapShader.setFloat("uNoiseLevel", player.getNoiseLevel());
         
         // Rotate map based on player yaw
         float rotation = (float) Math.toRadians(player.getRotation().y);

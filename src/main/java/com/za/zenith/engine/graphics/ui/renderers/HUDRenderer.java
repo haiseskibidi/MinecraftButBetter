@@ -113,9 +113,7 @@ public class HUDRenderer {
         renderBar("health", sw, sh, player.getHealth() / 20.0f); 
         renderBar("hunger", sw, sh, player.getHunger() / 20.0f);
         if (player.getStamina() < 0.99f) renderBar("stamina", sw, sh, player.getStamina());
-
-        sonarPhase += dt * (4.0f + noise * 12.0f);
-        renderBlueprint("noise_wave", sw, sh, new float[]{noise, sonarPhase, 0, 0});
+        renderBar("noise", sw, sh, noise);
 
         renderMinimap(player, sw, sh);
 
@@ -134,12 +132,6 @@ public class HUDRenderer {
         
         minimap.update(player, GameLoop.getInstance().getWorld(), dt);
         minimap.render(pos[0], pos[1], size, player, sw, sh);
-        
-        // Render frame blueprint over the map
-        if (cfg.blueprint != null) {
-            com.za.zenith.utils.Identifier frameId = com.za.zenith.utils.Identifier.of(cfg.blueprint);
-            renderer.getBlueprintRenderer().render(frameId, pos[0], pos[1], size, sw, sh, new float[]{0, 0, 0, 0});
-        }
     }
 
     private void renderBlueprint(String elementId, int sw, int sh, float[] triggers) {

@@ -51,28 +51,28 @@
       "color": [0.3, 0.9, 0.3, 1.0],
       "backgroundColor": [0.0, 0.0, 0.0, 0.6]
     },
-    "noise_wave": {
-      "type": "blueprint",
-      "blueprint": "zenith:sensory_iris",
-      "anchor": "top_left",
+    "noise": {
+      "type": "bar",
+      "anchor": "bottom_center",
       "alignX": "left",
-      "alignY": "top",
-      "x": "30px",
-      "y": "120px",
-      "width": 75,
-      "height": 75,
-      "color": [1.0, 1.0, 1.0, 1.0]
+      "alignY": "bottom",
+      "x": "210px",
+      "y": "-40px",
+      "width": 130,
+      "height": 5,
+      "segments": 10,
+      "color": [0.9, 0.9, 0.9, 1.0],
+      "backgroundColor": [0.0, 0.0, 0.0, 0.6]
     },
     "minimap": {
       "type": "minimap",
       "anchor": "top_left",
       "alignX": "left",
       "alignY": "top",
-      "x": "30px",
-      "y": "30px",
-      "width": 110,
-      "height": 110,
-      "blueprint": "zenith:minimap_frame",
+      "x": "20px",
+      "y": "20px",
+      "width": 180,
+      "height": 180,
       "visible": true
     },
     "logo": {
