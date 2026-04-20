@@ -71,6 +71,7 @@ public class World {
     private Player player;
     private final TerrainGenerator terrainGenerator;
     private final long seed;
+    private boolean generating = false;
     
     public World() {
         this.chunks = new ConcurrentHashMap<>();
@@ -82,7 +83,10 @@ public class World {
         this.terrainGenerator = new TerrainGenerator(seed);
         this.lightEngine = new com.za.zenith.world.lighting.LightEngine(this);
         this.worldTime = WorldSettings.getInstance().initialTime;
+        
+        generating = true;
         generateWorld();
+        generating = false;
     }
     
     public World(long seed) {
@@ -95,7 +99,10 @@ public class World {
         this.terrainGenerator = new TerrainGenerator(seed);
         this.lightEngine = new com.za.zenith.world.lighting.LightEngine(this);
         this.worldTime = WorldSettings.getInstance().initialTime;
+        
+        generating = true;
         generateWorld();
+        generating = false;
     }
     
     private void generateWorld() {
@@ -421,6 +428,10 @@ public class World {
         setBlock(pos.x(), pos.y(), pos.z(), block);
     }
     
+    public boolean isGenerating() {
+        return generating;
+    }
+
     public void setBlock(int x, int y, int z, Block block) {
         BlockPos pos = new BlockPos(x, y, z);
         
@@ -439,9 +450,11 @@ public class World {
             chunk.setBlock(localX, y, localZ, block);
             chunk.setNeedsMeshUpdate(true);
             
-            // Update lighting
-            lightEngine.updateBlockLight(pos);
-            lightEngine.updateSunlight(pos);
+            // Update lighting (skip during world generation for performance)
+            if (!generating) {
+                lightEngine.updateBlockLight(pos);
+                lightEngine.updateSunlight(pos);
+            }
             
             // Handle block entities
             com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
@@ -458,7 +471,9 @@ public class World {
             if (localZ == Chunk.CHUNK_SIZE - 1) notifyChunkUpdate(chunkPos.x(), chunkPos.z() + 1);
 
             // Notify all 6 neighbors about the block change for survival/logic updates
-            notifyNeighbors(pos);
+            if (!generating) {
+                notifyNeighbors(pos);
+            }
         }
     }
 
