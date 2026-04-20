@@ -22,6 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
 
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL13.*;
 
 import java.util.concurrent.*;
 import java.util.Map;
@@ -35,7 +36,8 @@ public class Renderer {
     private final Map<Chunk, ChunkMeshGenerator.ChunkMeshResult> chunkMeshes;
     private final Matrix4f modelMatrix;
     private DebugRenderer debugRenderer;
-    private Framebuffer framebuffer;
+    private Framebuffer msaaFramebuffer;
+    private Framebuffer resolveFramebuffer;
     private PostProcessor postProcessor;
     private UIRenderer uiRenderer;
     private CarvingRenderer carvingRenderer;
@@ -144,6 +146,11 @@ public class Renderer {
         glEnable(GL_CULL_FACE);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
+        // Enable Hardware Anti-Aliasing features
+        glEnable(GL_MULTISAMPLE);
+        glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
+        
         blockShader = new Shader("src/main/resources/shaders/vertex.glsl", "src/main/resources/shaders/fragment.glsl");
         atlas = new DynamicTextureAtlas(16);
         for (com.za.zenith.world.blocks.BlockDefinition def : com.za.zenith.world.blocks.BlockRegistry.getRegistry().values()) {
@@ -179,7 +186,11 @@ public class Renderer {
         blockShader.setInt("textureSampler", 0);
         float[] glassUV = atlas.uvFor("zenith/textures/block/glass.png");
         blockShader.setFloat("glassLayer", glassUV[2]);
-        framebuffer = new Framebuffer(windowWidth, windowHeight);
+        
+        // Setup MSAA Pipeline
+        msaaFramebuffer = new Framebuffer(windowWidth, windowHeight, 4);
+        resolveFramebuffer = new Framebuffer(windowWidth, windowHeight, 1);
+        
         postProcessor = new PostProcessor();
         postProcessor.init();
         uiRenderer = new UIRenderer();
@@ -193,8 +204,13 @@ public class Renderer {
     
     public void render(Window window, Camera camera, World world, RaycastResult highlightedBlock, com.za.zenith.network.GameClient networkClient, float alpha, float deltaTime) {
         vfxManager.update(deltaTime, world.getPlayer(), GameLoop.getInstance().getInputManager().getMiningController());
-        framebuffer.resize(window.getWidth(), window.getHeight());
-        framebuffer.bind();
+        
+        // Resize framebuffers if window changed
+        msaaFramebuffer.resize(window.getWidth(), window.getHeight());
+        resolveFramebuffer.resize(window.getWidth(), window.getHeight());
+        
+        // 1. RENDER SCENE TO MSAA BUFFER
+        msaaFramebuffer.bind();
 
         // Calculate time of day
         com.za.zenith.world.WorldSettings worldSettings = com.za.zenith.world.WorldSettings.getInstance();
@@ -258,12 +274,17 @@ public class Renderer {
         // Render Particles
         particleRenderer.render(camera, com.za.zenith.world.particles.ParticleManager.getInstance().getActiveParticles(), atlas, alpha, currentAmbient);
 
-        framebuffer.unbind();
+        msaaFramebuffer.unbind();
+        
+        // 2. RESOLVE MSAA TO NORMAL BUFFER
+        msaaFramebuffer.resolveTo(resolveFramebuffer);
+        
+        // 3. APPLY POST-PROCESSING AND UI
         glViewport(0, 0, window.getWidth(), window.getHeight());
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        if (fxaaEnabled) postProcessor.processFXAA(framebuffer.getColorTextureId(), framebuffer.getDepthTextureId(), window.getWidth(), window.getHeight());
-        else postProcessor.processPassthrough(framebuffer.getColorTextureId(), framebuffer.getDepthTextureId(), window.getWidth(), window.getHeight());
+        if (fxaaEnabled) postProcessor.processFXAA(resolveFramebuffer.getColorTextureId(), resolveFramebuffer.getDepthTextureId(), window.getWidth(), window.getHeight());
+        else postProcessor.processPassthrough(resolveFramebuffer.getColorTextureId(), resolveFramebuffer.getDepthTextureId(), window.getWidth(), window.getHeight());
 
         uiRenderer.renderCrosshair(window.getWidth(), window.getHeight());
         uiRenderer.renderLogo(window.getWidth(), window.getHeight());
@@ -883,7 +904,8 @@ public class Renderer {
         persistentHoleCache.values().forEach(Mesh::cleanup);
         persistentHoleCache.clear();
         for (var r : chunkMeshes.values()) { if (r.opaqueMesh != null) r.opaqueMesh.cleanup(); if (r.translucentMesh != null) r.translucentMesh.cleanup(); }
-        if (framebuffer != null) framebuffer.cleanup();
+        if (msaaFramebuffer != null) msaaFramebuffer.cleanup();
+        if (resolveFramebuffer != null) resolveFramebuffer.cleanup();
         if (postProcessor != null) postProcessor.cleanup();
         if (uiRenderer != null) uiRenderer.cleanup();
         if (highlightRenderer != null) highlightRenderer.cleanup();

@@ -104,19 +104,22 @@ public class DynamicTextureAtlas {
 
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_LINEAR);
+        
+        // Proper voxel filtering: LINEAR_MIPMAP_LINEAR for MIN filter to smooth distance,
+        // NEAREST for MAG filter to keep close-up pixels sharp.
+        glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         
         glGenerateMipmap(GL_TEXTURE_2D_ARRAY);
         
-        // Negative LOD bias keeps higher-res mipmaps longer, fixing darkening in distance
-        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_LOD_BIAS, -0.5f); 
+        // Neutral LOD bias avoids artifacts. Negative bias can cause flickering.
+        glTexParameterf(GL_TEXTURE_2D_ARRAY, GL_TEXTURE_LOD_BIAS, 0.0f); 
 
-        // Enable Anisotropic Filtering for better distance quality
+        // Enable 8x Anisotropic Filtering for superior distance quality
         try {
             if (org.lwjgl.opengl.GL.getCapabilities().GL_EXT_texture_filter_anisotropic) {
                 float max = glGetFloat(org.lwjgl.opengl.EXTTextureFilterAnisotropic.GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT);
-                glTexParameterf(GL_TEXTURE_2D_ARRAY, org.lwjgl.opengl.EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, Math.min(4.0f, max));
+                glTexParameterf(GL_TEXTURE_2D_ARRAY, org.lwjgl.opengl.EXTTextureFilterAnisotropic.GL_TEXTURE_MAX_ANISOTROPY_EXT, Math.min(8.0f, max));
             }
         } catch (Exception ignored) {}
 

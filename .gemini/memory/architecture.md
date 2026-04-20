@@ -47,6 +47,12 @@
     - **Dynamic Prefix Generation**: HUD автоматически формирует строку управления (например, `[Shift + ПКМ]`), анализируя правила из `interactions.json`.
     - **Provider Interface**: Блоки через `BlockInfoProvider` передают динамические данные (прогресс, статус) для отображения в реальном времени.
 
+6.  **AAA Graphics & Anti-Aliasing (v1.0 NEW)**:
+    - **Hardware MSAA 4x**: Рендеринг сцены происходит в промежуточный `MSAA Framebuffer`. Использование 4 сэмплов на пиксель аппаратно сглаживает края полигонов.
+    - **Alpha-to-Coverage**: Режим `GL_SAMPLE_ALPHA_TO_COVERAGE` позволяет использовать MSAA-сэмплы для сглаживания прозрачных краев (листва, трава), создавая мягкие переходы без использования тяжелого полупрозрачного рендеринга.
+    - **MSAA Resolve Step**: Финальный этап рендеринга перед пост-обработкой — операция `Resolve` (`glBlitFramebuffer`), которая объединяет мультисэмплы в обычную текстуру.
+    - **High-Fidelity Filtering**: Принудительное включение **8x Anisotropic Filtering** и `LINEAR_MIPMAP_LINEAR` фильтрации для всех текстурных атласов, что устраняет мерцание (moiré) и размытие текстур под углом.
+
 ### Data-Driven Development (v3.5 UPDATED)
 1.  **JSON Schema**: Все игровые параметры (блоки, предметы, анимации, рецепты) загружаются из ресурсов.
 2.  **Identifier-First Dynamic ID System (NEW)**:

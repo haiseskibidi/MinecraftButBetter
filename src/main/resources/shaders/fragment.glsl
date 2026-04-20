@@ -77,7 +77,8 @@ void main() {
             textureColor = applyGlassConnections(textureColor, fragTexCoord.xy, neighborData, fragTexCoord.z, textureSampler);
         }
 
-        if (textureColor.a < 0.5) discard;
+        // With MSAA + Alpha-to-Coverage, we want a lower threshold to let hardware smooth the edges.
+        if (textureColor.a < 0.1) discard;
 
         baseColor = textureColor.rgb;
         alpha = textureColor.a;
