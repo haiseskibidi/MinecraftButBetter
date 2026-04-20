@@ -70,9 +70,6 @@ void main() {
 
     vLocalPos = position;
     if (uIsProxy) {
-        vLocalPos.x += 0.5;
-        vLocalPos.z += 0.5;
-        
         vec3 localDeformed = position; // Start with perfect mathematical alignment
         
         // Only apply deformation math if actually wobbling to prevent floating point drift outlines

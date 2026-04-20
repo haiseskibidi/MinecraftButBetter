@@ -127,6 +127,9 @@ vec3 applyBreakingPattern(int patternId, vec3 color, vec3 localPos, float progre
     vec3 result = color;
     
     if (patternId == 1) { // WOOD
+        // Draw pulsing marker for better visibility on wood too
+        result = applyWeakSpotMarker(result, localPos, uWeakSpotPos, progress);
+
         for (int i = 0; i < uHitCount; i++) {
             if (i < 16) result = applyWoodNotch(result, localPos, uHitHistory[i], progress, false);
         }
