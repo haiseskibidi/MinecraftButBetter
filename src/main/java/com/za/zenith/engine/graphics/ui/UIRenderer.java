@@ -36,6 +36,7 @@ public class UIRenderer {
     private HUDRenderer hudRenderer;
     private InventoryScreenRenderer inventoryScreenRenderer;
     private MenuRenderer menuRenderer;
+    private com.za.zenith.engine.graphics.ui.blueprints.BlueprintRenderer blueprintRenderer;
     
     private static final float[] QUAD_VERTICES = {
         -1.0f, -1.0f, 0.0f, 1.0f,
@@ -70,9 +71,12 @@ public class UIRenderer {
         hudRenderer = new HUDRenderer(this);
         inventoryScreenRenderer = new InventoryScreenRenderer(this);
         menuRenderer = new MenuRenderer(this);
+        blueprintRenderer = new com.za.zenith.engine.graphics.ui.blueprints.BlueprintRenderer();
 
         Logger.info("UI Renderer initialized (Modular)");
     }
+
+    public com.za.zenith.engine.graphics.ui.blueprints.BlueprintRenderer getBlueprintRenderer() { return blueprintRenderer; }
 
     public void setHotbar(Hotbar hotbar) { this.hotbar = hotbar; }
     public void setPauseMenu(PauseMenu pauseMenu) { this.pauseMenu = pauseMenu; }
@@ -146,16 +150,8 @@ public class UIRenderer {
         hudRenderer.renderFiringProgress(screenWidth, screenHeight, progress);
     }
 
-    public void renderHunger(int screenWidth, int screenHeight, float hunger) {
-        hudRenderer.renderHunger(hotbar, screenWidth, screenHeight, hunger);
-    }
-
-    public void renderStamina(int screenWidth, int screenHeight, float stamina) {
-        hudRenderer.renderStamina(hotbar, screenWidth, screenHeight, stamina);
-    }
-
-    public void renderNoise(int screenWidth, int screenHeight, float noise) {
-        hudRenderer.renderNoise(hotbar, screenWidth, screenHeight, noise);
+    public void renderHUDOverlay(int screenWidth, int screenHeight) {
+        hudRenderer.renderOverlay(hotbar, screenWidth, screenHeight);
     }
 
     public void renderLogo(int screenWidth, int screenHeight) {

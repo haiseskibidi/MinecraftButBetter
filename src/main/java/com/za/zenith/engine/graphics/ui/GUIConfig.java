@@ -29,6 +29,9 @@ public class GUIConfig {
         public int maxWidth = 300;
         public int width = 100;
         public int height = 10;
+        public int segments = 0; // 0 for continuous
+        public int barsCount = 10; // For wave type
+        public String blueprint; // For blueprint type
         public float[] color = {1.0f, 1.0f, 1.0f, 1.0f};
         public float[] backgroundColor = {0.0f, 0.0f, 0.0f, 0.5f};
         public boolean visible = true;

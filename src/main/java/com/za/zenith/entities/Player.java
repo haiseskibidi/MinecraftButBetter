@@ -779,7 +779,6 @@ public class Player extends LivingEntity {
             }
         }
     }
-    public float getHunger() { return hunger; }
     public void jump() { if (onGround || flying) { velocity.y = com.za.zenith.world.physics.PhysicsSettings.getInstance().jumpVelocity; onGround = false; performDiscreteAction(com.za.zenith.utils.Identifier.of("zenith:jump")); } }
     public void addVelocity(float vx, float vy, float vz) { velocity.add(vx, vy, vz); }
     public void applyHorizontalAcceleration(float ax, float az, float maxSpeed) {
@@ -792,6 +791,8 @@ public class Player extends LivingEntity {
         return sneaking ? com.za.zenith.world.physics.PhysicsSettings.getInstance().sneakingHeight : 
                          com.za.zenith.world.physics.PhysicsSettings.getInstance().standingHeight;
     }
+
+    public float getHunger() { return hunger; }
 
     public Inventory getInventory() { return inventory; }
     public com.za.zenith.engine.core.PlayerMode getMode() { return mode; }

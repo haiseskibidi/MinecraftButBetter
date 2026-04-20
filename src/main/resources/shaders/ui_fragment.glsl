@@ -21,6 +21,11 @@ uniform int isSlot = 0;
 uniform float cornerRadius = 0.15;
 uniform float hoverProgress = 0.0; // 0.0 to 1.0
 
+// Sensory Iris (Noise Indicator)
+uniform int isIris = 0;
+uniform float uNoise = 0.0;
+uniform float uTime = 0.0;
+
 // SDF for a chamfered rectangle
 float sdChamferedRect(vec2 p, vec2 b, float r) {
     p = abs(p) - b;
@@ -28,6 +33,47 @@ float sdChamferedRect(vec2 p, vec2 b, float r) {
 }
 
 void main() {
+    if (isIris == 1) {
+        vec2 uv = fragTexCoord * 2.0 - 1.0;
+        float dist = length(uv);
+        float angle = atan(uv.y, uv.x);
+        
+        // 1. Procedural Heartbeat & Base Scale
+        float heartbeat = sin(uTime * 3.0) * 0.04 * (1.0 - uNoise);
+        float baseRadius = 0.25 + heartbeat;
+        
+        // 2. Central Ring
+        float ring = smoothstep(0.03, 0.0, abs(dist - baseRadius));
+        
+        // 3. Sensory Needles (Spikes)
+        float n = 36.0; 
+        float angleStep = 6.28318 / n;
+        float a = floor(angle / angleStep + 0.5) * angleStep;
+        
+        // Jitter & Reactivity
+        float jitter = (sin(uTime * 60.0 + a * 100.0) * 0.03) * uNoise;
+        float spikeMask = smoothstep(0.04, 0.0, abs(angle - a));
+        
+        float targetLen = baseRadius + (uNoise * 0.65) + jitter;
+        float spikes = step(dist, targetLen) * step(baseRadius, dist) * spikeMask;
+        
+        // Subtle center glow
+        float glow = exp(-dist * 3.0) * 0.3 * (uNoise + 0.5);
+        
+        // 4. Adaptive Coloring
+        vec3 calmCol = vec3(0.0, 0.9, 1.0);
+        vec3 alertCol = vec3(1.0, 0.8, 0.0);
+        vec3 dangerCol = vec3(1.0, 0.0, 0.1);
+        
+        vec3 col;
+        if (uNoise < 0.4) col = mix(calmCol, alertCol, uNoise / 0.4);
+        else col = mix(alertCol, dangerCol, (uNoise - 0.4) / 0.6);
+        
+        float finalAlpha = clamp(ring + spikes + glow, 0.0, 1.0);
+        fragColor = vec4(col, finalAlpha * tintColor.a);
+        return;
+    }
+
     if (isSlot == 1) {
         vec2 p = fragTexCoord * 2.0 - 1.0;
         float d = sdChamferedRect(p, vec2(0.85), cornerRadius);

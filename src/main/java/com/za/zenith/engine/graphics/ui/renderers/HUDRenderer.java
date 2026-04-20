@@ -22,6 +22,9 @@ import static org.lwjgl.opengl.GL30.glBindVertexArray;
 
 public class HUDRenderer {
     private final UIRenderer renderer;
+    private final float[] waveAmplitudes = new float[32];
+    private float waveTimer = 0;
+    private float sonarPhase = 0;
 
     public HUDRenderer(UIRenderer renderer) {
         this.renderer = renderer;
@@ -37,15 +40,11 @@ public class HUDRenderer {
 
     private int[] calculateElementPos(GUIConfig.HUDElementConfig cfg, int sw, int sh, int width, int height) {
         int baseX = sw / 2, baseY = sh / 2;
-        
         String anchor = cfg.anchor.toLowerCase();
         if (anchor.contains("top")) baseY = 0;
         else if (anchor.contains("bottom")) baseY = sh;
-        
         if (anchor.contains("left")) baseX = 0;
         else if (anchor.contains("right")) baseX = sw;
-        
-        // Special case for centered anchors
         if (anchor.equals("bottom_center")) { baseX = sw / 2; baseY = sh; }
         else if (anchor.equals("top_center")) { baseX = sw / 2; baseY = 0; }
 
@@ -61,10 +60,7 @@ public class HUDRenderer {
     }
 
     public void renderHotbar(Hotbar hotbar, int screenWidth, int screenHeight, com.za.zenith.engine.graphics.DynamicTextureAtlas atlas) {
-        if (hotbar == null) return;
-        
-        if (ScreenManager.getInstance().isAnyScreenOpen()) return;
-
+        if (hotbar == null || ScreenManager.getInstance().isAnyScreenOpen()) return;
         GUIConfig config = GUIRegistry.get(com.za.zenith.utils.Identifier.of("zenith:hotbar"));
         if (config == null || !config.hudVisible) return;
 
@@ -82,27 +78,12 @@ public class HUDRenderer {
 
         if (layout.globalBackground != null) {
             renderer.getPrimitivesRenderer().renderGroupBackground(layout.globalBackground.getX(), layout.globalBackground.getY(), layout.globalBackground.getWidth(), layout.globalBackground.getHeight(), config.background);
-        } else {
-            if ("solid".equals(config.background.type)) {
-                for (GroupUI group : layout.groups) {
-                    renderer.getPrimitivesRenderer().renderGroupBackground(group.getX(), group.getY(), group.getWidth(), group.getHeight(), config.background);
-                }
-            }
         }
 
         int selectedSlot = hotbar.getSelectedSlot();
-        float mx = GameLoop.getInstance().getInputManager().getCurrentMousePos().x;
-        float my = GameLoop.getInstance().getInputManager().getCurrentMousePos().y;
-
         for (int i = 0; i < slots.size(); i++) {
             SlotUI ui = slots.get(i);
-            ItemStack stack = ui.getSlot().getStack();
-            
-            boolean isHovered = mx >= ui.getX() && mx <= ui.getX() + slotSize && my >= ui.getY() && my <= ui.getY() + slotSize;
-            String animId = "hotbar_" + i;
-            
-            renderer.getSlotRenderer().renderSlot(ui.getX(), ui.getY(), slotSize, stack, null, screenWidth, screenHeight, atlas, isHovered, animId, true);
-            
+            renderer.getSlotRenderer().renderSlot(ui.getX(), ui.getY(), slotSize, ui.getSlot().getStack(), null, screenWidth, screenHeight, atlas, false, "hotbar_" + i, true);
             if (i == selectedSlot) {
                 UIEffectsRenderer.renderSelection(renderer, renderer.getShader(), renderer.getQuadVAO(), ui.getX(), ui.getY(), slotSize, screenWidth, screenHeight, config.selection);
             }
@@ -111,52 +92,84 @@ public class HUDRenderer {
         ItemStack selected = hotbar.getSelectedItemStack();
         if (selected != null && !slots.isEmpty()) {
             GUIConfig.HUDElementConfig nameCfg = getHUDConfig("item_name");
-            if (nameCfg == null) {
-                // Legacy Fallback
-                String name = I18n.get(selected.getItem().getName());
-                int nameSize = 20;
-                int textWidth = renderer.getFontRenderer().getStringWidth(name, nameSize);
-                int x = (screenWidth - textWidth) / 2;
-                int y = slots.get(0).getY() - 35;
-                renderer.getFontRenderer().drawString(name, x, y, nameSize, screenWidth, screenHeight);
-            } else if (nameCfg.visible) {
-                com.za.zenith.world.items.stats.RarityDefinition rarity = com.za.zenith.world.items.stats.RarityRegistry.get(selected.getRarity());
-                String rarityColor = (rarity != null) ? rarity.colorCode() : "$f";
-                String nameText = rarityColor + "$l" + selected.getDisplayName();
-                
+            if (nameCfg != null && nameCfg.visible) {
+                String nameText = selected.getDisplayName();
                 int nameSize = nameCfg.fontSize;
                 int textWidth = renderer.getFontRenderer().getStringWidth(nameText, nameSize);
-                
-                // Dynamic Scaling Logic
-                while (textWidth > nameCfg.maxWidth && nameSize > nameCfg.minFontSize) {
-                    nameSize--;
-                    textWidth = renderer.getFontRenderer().getStringWidth(nameText, nameSize);
-                }
-
                 int[] pos = calculateElementPos(nameCfg, screenWidth, screenHeight, textWidth, nameSize);
                 renderer.getFontRenderer().drawString(nameText, pos[0], pos[1], nameSize, screenWidth, screenHeight);
             }
         }
+    }
 
-        glEnable(GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
+    public void renderOverlay(Hotbar hotbar, int sw, int sh) {
+        if (ScreenManager.getInstance().isAnyScreenOpen()) return;
+        com.za.zenith.entities.Player player = hotbar.getPlayer();
+        renderer.setupUIProjection(sw, sh);
+        
+        float dt = GameLoop.getInstance().getTimer().getDeltaF();
+        float noise = player.getNoiseLevel();
+
+        renderBar("health", sw, sh, player.getHealth() / 20.0f); 
+        renderBar("hunger", sw, sh, player.getHunger() / 20.0f);
+        if (player.getStamina() < 0.99f) renderBar("stamina", sw, sh, player.getStamina());
+
+        sonarPhase += dt * (4.0f + noise * 12.0f);
+        renderBlueprint("noise_wave", sw, sh, new float[]{noise, sonarPhase, 0, 0});
+
+        renderLogo(sw, sh);
+    }
+
+    private void renderBlueprint(String elementId, int sw, int sh, float[] triggers) {
+        GUIConfig.HUDElementConfig cfg = getHUDConfig(elementId);
+        if (cfg == null || !cfg.visible || cfg.blueprint == null) return;
+        int size = cfg.width; 
+        int[] pos = calculateElementPos(cfg, sw, sh, size, size);
+        com.za.zenith.utils.Identifier id = com.za.zenith.utils.Identifier.of(cfg.blueprint);
+        renderer.getBlueprintRenderer().render(id, pos[0], pos[1], size, sw, sh, triggers);
+    }
+
+    private void renderBar(String elementId, int sw, int sh, float progress) {
+        GUIConfig.HUDElementConfig cfg = getHUDConfig(elementId);
+        if (cfg == null || !cfg.visible) return;
+        int width = cfg.width, height = cfg.height;
+        int[] pos = calculateElementPos(cfg, sw, sh, width, height);
+        float[] bg = cfg.backgroundColor;
+        renderer.getPrimitivesRenderer().renderRect(pos[0], pos[1], width, height, sw, sh, bg[0], bg[1], bg[2], bg[3]);
+        if (progress <= 0) return;
+        float[] fg = cfg.color;
+        int segments = cfg.segments;
+        if (segments <= 0) {
+            renderer.getPrimitivesRenderer().renderRect(pos[0], pos[1], (int)(width * progress), height, sw, sh, fg[0], fg[1], fg[2], fg[3]);
+        } else {
+            int gap = 2;
+            int segmentWidth = (width - (segments - 1) * gap) / segments;
+            int activeSegments = (int)Math.ceil(progress * segments);
+            for (int i = 0; i < activeSegments; i++) {
+                int sx = pos[0] + i * (segmentWidth + gap);
+                int curWidth = (i == activeSegments - 1) ? (int)(segmentWidth * (progress * segments - i)) : segmentWidth;
+                if (curWidth > 0) renderer.getPrimitivesRenderer().renderRect(sx, pos[1], curWidth, height, sw, sh, fg[0], fg[1], fg[2], fg[3]);
+            }
+        }
+    }
+
+    public void renderLogo(int screenWidth, int screenHeight) {
+        GUIConfig.HUDElementConfig cfg = getHUDConfig("logo");
+        if (cfg == null || !cfg.visible || cfg.texture == null) return;
+        int[] pos = calculateElementPos(cfg, screenWidth, screenHeight, cfg.width, cfg.height);
+        String texturePath = cfg.texture.startsWith("src/main/resources/") ? cfg.texture : "src/main/resources/" + cfg.texture;
+        renderer.getPrimitivesRenderer().renderExternalImage(texturePath, pos[0], pos[1], cfg.width, cfg.height, screenWidth, screenHeight);
     }
 
     public void renderFiringProgress(int screenWidth, int screenHeight, float progress) {
         if (progress <= 0.0f) return;
-
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
         String text = I18n.format("gui.firing_progress", (int)(progress * 100));
         int textSize = 18;
         int textWidth = renderer.getFontRenderer().getStringWidth(text, textSize);
-        int x = (screenWidth - textWidth) / 2;
-        int y = (screenHeight / 2) + 30;
-
-        renderer.getFontRenderer().drawString(text, x, y, textSize, screenWidth, screenHeight);
-
+        renderer.getFontRenderer().drawString(text, (screenWidth - textWidth) / 2, (screenHeight / 2) + 30, textSize, screenWidth, screenHeight);
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
     }
@@ -164,188 +177,21 @@ public class HUDRenderer {
     public void renderLootboxOpening(int sw, int sh) {
         float timer = GameLoop.getInstance().getInputManager().getLootboxOpeningTimer();
         if (timer <= 0) return;
-
         ItemStack stack = GameLoop.getInstance().getInputManager().getLootboxStack();
         if (stack == null) return;
-
         com.za.zenith.world.items.component.LootboxComponent comp = stack.getItem().getComponent(com.za.zenith.world.items.component.LootboxComponent.class);
         if (comp == null) return;
-
         float progress = timer / comp.openingTime();
-        
         glDisable(GL_DEPTH_TEST);
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        int barWidth = 100;
-        int barHeight = 4;
-        int x = (sw - barWidth) / 2;
-        int y = (sh / 2) + 80;
-
-        // Background
+        int barWidth = 100, barHeight = 4, x = (sw - barWidth) / 2, y = (sh / 2) + 80;
         renderer.getPrimitivesRenderer().renderRect(x, y, barWidth, barHeight, sw, sh, 0.1f, 0.1f, 0.1f, 0.5f);
-        // Progress
         renderer.getPrimitivesRenderer().renderRect(x, y, (int)(barWidth * progress), barHeight, sw, sh, 1.0f, 1.0f, 1.0f, 0.9f);
-
-        // Text
         String text = I18n.get("ui.opening_case") + " " + (int)(progress * 100) + "%";
-        int textSize = 14;
-        int textWidth = renderer.getFontRenderer().getStringWidth(text, textSize);
-        renderer.getFontRenderer().drawString(text, (sw - textWidth) / 2, y - 18, textSize, sw, sh, 1.0f, 1.0f, 1.0f, 1.0f);
-
+        int textWidth = renderer.getFontRenderer().getStringWidth(text, 14);
+        renderer.getFontRenderer().drawString(text, (sw - textWidth) / 2, y - 18, 14, sw, sh, 1.0f, 1.0f, 1.0f, 1.0f);
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
-    }
-
-    public void renderHunger(Hotbar hotbar, int screenWidth, int screenHeight, float hunger) {
-        GUIConfig.HUDElementConfig cfg = getHUDConfig("hunger");
-        if (cfg != null && !cfg.visible) return;
-
-        glDisable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        String text = I18n.format("gui.hunger", hunger);
-        int textSize = (cfg != null) ? cfg.fontSize : 18;
-        int textWidth = renderer.getFontRenderer().getStringWidth(text, textSize);
-        
-        int x, y;
-        if (cfg != null) {
-            int[] pos = calculateElementPos(cfg, screenWidth, screenHeight, textWidth, (int)(textSize * 1.2f));
-            x = pos[0]; y = pos[1];
-            renderer.getShader().setUniform("tintColor", cfg.color[0], cfg.color[1], cfg.color[2], cfg.color[3]);
-        } else {
-            x = (screenWidth + (int)(Hotbar.HOTBAR_WIDTH * Hotbar.HOTBAR_SCALE)) / 2 + 20;
-            y = hotbar != null ? hotbar.getScreenY(screenHeight) + 10 : screenHeight - 60;
-        }
-
-        renderer.getFontRenderer().drawString(text, x, y, textSize, screenWidth, screenHeight);
-        renderer.getShader().setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
-
-        glEnable(GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
-    }
-
-    public void renderStamina(Hotbar hotbar, int screenWidth, int screenHeight, float stamina) {
-        if (stamina >= 0.99f) return;
-        
-        GUIConfig.HUDElementConfig cfg = getHUDConfig("stamina");
-        if (cfg != null && !cfg.visible) return;
-
-        glDisable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        Shader uiShader = renderer.getShader();
-        uiShader.use();
-        uiShader.setInt("useTexture", 0);
-        uiShader.setInt("isSlot", 0);
-        
-        int width = (cfg != null) ? cfg.width : 120;
-        int height = (cfg != null) ? cfg.height : 8;
-        int x, y;
-        if (cfg != null) {
-            int[] pos = calculateElementPos(cfg, screenWidth, screenHeight, width, height);
-            x = pos[0]; y = pos[1];
-        } else {
-            x = (screenWidth + (int)(Hotbar.HOTBAR_WIDTH * Hotbar.HOTBAR_SCALE)) / 2 + 20;
-            y = hotbar != null ? hotbar.getScreenY(screenHeight) + 32 : screenHeight - 38;
-        }
-
-        float scaleX = (float)width / screenWidth;
-        float scaleY = (float)height / screenHeight;
-        float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
-        float posY = 1.0f - (2.0f * y / screenHeight) - scaleY;
-
-        glBindVertexArray(renderer.getQuadVAO());
-        
-        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
-        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
-        float[] bgCol = (cfg != null) ? cfg.backgroundColor : new float[]{0.0f, 0.0f, 0.0f, 0.8f};
-        uiShader.setUniform("tintColor", bgCol[0], bgCol[1], bgCol[2], bgCol[3]);
-        glDrawElements(GL_TRIANGLES, renderer.getQuadIndicesLength(), GL_UNSIGNED_INT, 0);
-        
-        float innerScaleX = scaleX - (2.0f / screenWidth);
-        float innerScaleY = scaleY - (2.0f / screenHeight);
-        uiShader.setUniform("scale", innerScaleX, innerScaleY, 0.0f, 0.0f);
-        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
-        uiShader.setUniform("tintColor", 0.2f, 0.2f, 0.2f, 0.8f);
-        glDrawElements(GL_TRIANGLES, renderer.getQuadIndicesLength(), GL_UNSIGNED_INT, 0);
-
-        if (stamina > 0) {
-            float barWidth = innerScaleX * stamina;
-            uiShader.setUniform("scale", barWidth, innerScaleY, 0.0f, 0.0f);
-            uiShader.setUniform("position_offset", posX - (innerScaleX - barWidth), posY, 0.0f, 0.0f);
-            
-            float r, g, b;
-            if (cfg != null) {
-                r = cfg.color[0]; g = cfg.color[1]; b = cfg.color[2];
-            } else {
-                r = 1.0f - stamina; g = stamina; b = 0.0f;
-            }
-            uiShader.setUniform("tintColor", r, g, b, 0.9f);
-            glDrawElements(GL_TRIANGLES, renderer.getQuadIndicesLength(), GL_UNSIGNED_INT, 0);
-        }
-
-        glBindVertexArray(0);
-        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
-
-        glEnable(GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
-    }
-
-    public void renderNoise(Hotbar hotbar, int screenWidth, int screenHeight, float noise) {
-        GUIConfig.HUDElementConfig cfg = getHUDConfig("noise");
-        if (cfg != null && !cfg.visible) return;
-
-        glDisable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-        String text = I18n.format("gui.noise", (int)(noise * 100));
-        int textSize = (cfg != null) ? cfg.fontSize : 18;
-        int textWidth = renderer.getFontRenderer().getStringWidth(text, textSize);
-        
-        int x, y;
-        if (cfg != null) {
-            int[] pos = calculateElementPos(cfg, screenWidth, screenHeight, textWidth, (int)(textSize * 1.2f));
-            x = pos[0]; y = pos[1];
-        } else {
-            x = (screenWidth - (int)(Hotbar.HOTBAR_WIDTH * Hotbar.HOTBAR_SCALE)) / 2 - textWidth - 20;
-            y = hotbar != null ? hotbar.getScreenY(screenHeight) + 10 : screenHeight - 60;
-        }
-
-        float r, g, b;
-        if (cfg != null) {
-            r = cfg.color[0]; g = cfg.color[1]; b = cfg.color[2];
-        } else {
-            r = 1.0f; g = 1.0f - noise; b = 1.0f - noise;
-        }
-        renderer.getShader().setUniform("tintColor", r, g, b, 1.0f);
-
-        renderer.getFontRenderer().drawString(text, x, y, textSize, screenWidth, screenHeight);
-        renderer.getShader().setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
-
-        glEnable(GL_DEPTH_TEST);
-        glDisable(GL_BLEND);
-    }
-
-    public void renderLogo(int screenWidth, int screenHeight) {
-        GUIConfig.HUDElementConfig cfg = getHUDConfig("logo");
-        if (cfg == null || !cfg.visible || cfg.texture == null) return;
-
-        int width = cfg.width;
-        int height = cfg.height;
-        int[] pos = calculateElementPos(cfg, screenWidth, screenHeight, width, height);
-        
-        // Если путь не содержит src/main/resources, добавляем его
-        String texturePath = cfg.texture;
-        if (!texturePath.startsWith("src/main/resources/")) {
-            texturePath = "src/main/resources/" + texturePath;
-        }
-        
-        renderer.getPrimitivesRenderer().renderExternalImage(texturePath, pos[0], pos[1], width, height, screenWidth, screenHeight);
     }
 }
-
-

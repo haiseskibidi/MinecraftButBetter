@@ -81,6 +81,8 @@ public class DataLoader {
             loadEntityDefinitions(ns);
         }
 
+        com.za.zenith.engine.graphics.ui.blueprints.BlueprintRegistry.init();
+
         for (String ns : namespaces) {
             loadRecipes(ns);
         }

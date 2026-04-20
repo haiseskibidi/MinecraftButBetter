@@ -21,6 +21,12 @@
 - `player_inventory.json`: Главное окно игрока.
 - `hotbar.json`: Конфигурация HUD-хотбара.
 - `chest.json`: Интерфейс сундуков.
+- `blueprints/`: Процедурные чертежи для HUD и Дневника (SDF фигуры и матрицы).
+
+### src/main/java/com/za/zenith/engine/graphics/ui/blueprints (NEW)
+- **GraphicBlueprint.java**: Модель данных (слои, SDF фигуры, анимации).
+- **BlueprintRegistry.java**: Загрузка и кэширование чертежей.
+- **BlueprintRenderer.java**: Оркестратор рендеринга (SDF + Матрицы).
 
 ### src/main/java/com/za/zenith/engine/graphics/model (UPDATED)
 - **ModelNode.java**: Узел скелета. Теперь имеет два состояния вращения: `animRotation` (Euler, v1) и `animRotationQuat` (Quaternion, v2).
