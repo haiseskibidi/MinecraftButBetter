@@ -50,6 +50,17 @@ public class RaycastResult {
         return normal;
     }
     
+    public com.za.zenith.utils.Direction getSide() {
+        if (normal == null) return null;
+        if (normal.y > 0.5f) return com.za.zenith.utils.Direction.UP;
+        if (normal.y < -0.5f) return com.za.zenith.utils.Direction.DOWN;
+        if (normal.x > 0.5f) return com.za.zenith.utils.Direction.EAST;
+        if (normal.x < -0.5f) return com.za.zenith.utils.Direction.WEST;
+        if (normal.z > 0.5f) return com.za.zenith.utils.Direction.NORTH;
+        if (normal.z < -0.5f) return com.za.zenith.utils.Direction.SOUTH;
+        return null;
+    }
+    
     public float getDistance() {
         return distance;
     }

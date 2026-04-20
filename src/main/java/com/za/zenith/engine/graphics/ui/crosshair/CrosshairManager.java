@@ -60,8 +60,17 @@ public class CrosshairManager {
 
         if (ray != null && ray.isHit()) {
             int type = game.getWorld().getBlock(ray.getBlockPos()).getType();
-            BlockDefinition def = BlockRegistry.getBlock(type);
-            if (def != null && def.hasOnUse()) return State.INTERACT;
+            com.za.zenith.world.blocks.BlockDefinition def = BlockRegistry.getBlock(type);
+            if (def != null) {
+                org.joml.Vector3f localHit = new org.joml.Vector3f(
+                    ray.getHitPoint().x - ray.getBlockPos().x(),
+                    ray.getHitPoint().y - ray.getBlockPos().y(),
+                    ray.getHitPoint().z - ray.getBlockPos().z()
+                );
+                if (def.isInteractableAt(game.getWorld(), ray.getBlockPos(), localHit)) {
+                    return State.INTERACT;
+                }
+            }
         }
 
         return State.DEFAULT;

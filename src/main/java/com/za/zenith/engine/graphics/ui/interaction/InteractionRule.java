@@ -10,8 +10,9 @@ public record InteractionRule(
     String heldItem,       // ID предмета в руке
     String heldTag,        // Тег предмета в руке
     String blockItemTag,   // Тег предмета внутри блока
-    Boolean sneak,         // true = обязательно приседать, false = нельзя, null = неважно
-    String button,         // "LMB", "RMB" (по умолчанию RMB)
-    String hint,           // Ключ локализации подсказки
+    Boolean sneak,         // true = обязательно приседать
+    String button,         // "LMB", "RMB"
+    Float minY,            // Минимальная локальная высота попадания (0.0 - 1.0)
+    String hint,           // Ключ локализации
     boolean showProgress   // Показывать ли прогресс-бар
 ) {}

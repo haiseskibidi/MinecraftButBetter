@@ -29,6 +29,15 @@ public class StumpBlockDefinition extends BlockDefinition {
     }
 
     @Override
+    public java.util.List<InteractionZone> getInteractionZones(World world, BlockPos pos) {
+        // Рабочая область пня - верхние 20% блока
+        return java.util.List.of(new InteractionZone(
+            new com.za.zenith.world.physics.AABB(0, 0.8f, 0, 1, 1, 1),
+            null
+        ));
+    }
+
+    @Override
     public boolean onUse(World world, BlockPos pos, Player player, ItemStack heldStack, float hitX, float hitY, float hitZ) {
         BlockEntity be = world.getBlockEntity(pos);
         if (!(be instanceof StumpBlockEntity)) {
@@ -36,11 +45,12 @@ public class StumpBlockDefinition extends BlockDefinition {
             world.setBlockEntity(be);
         }
         StumpBlockEntity stump = (StumpBlockEntity) be;
+        org.joml.Vector3f localHit = new org.joml.Vector3f(hitX, hitY, hitZ);
 
         // --- Логика обтёсывания (Carving) ---
         if (!stump.isFullyCarved()) {
-            if (heldStack != null && heldStack.getItem().getIdentifier().getPath().contains("knife") && player.isSneaking() && hitY > 0.8f) {
-                if (!stump.canCarve()) return true; // Consume click but do nothing if on cooldown
+            if (heldStack != null && heldStack.getItem().getIdentifier().getPath().contains("knife") && player.isSneaking() && isInteractableAt(world, pos, localHit)) {
+                if (!stump.canCarve()) return true; 
 
                 // Вычисляем индекс зоны 4x4 через движок
                 int index = CarvingLayoutEngine.getZoneIndex(hitX, hitZ);
@@ -59,12 +69,11 @@ public class StumpBlockDefinition extends BlockDefinition {
                 }
                 return true;
             }
-            com.za.zenith.utils.Logger.info("Carving blocked: item is not knife or not sneaking. Carved: %b", stump.isFullyCarved());
             return false;
         }
 
         // --- Обычная логика крафта ---
-        if (hitY <= 0.8f) return false;
+        if (!isInteractableAt(world, pos, localHit)) return false;
 
         ICraftingSurface surface = stump;
         int slot = CraftingLayoutEngine.getSlotIndex(hitX, hitZ);
@@ -100,8 +109,9 @@ public class StumpBlockDefinition extends BlockDefinition {
         if (!(be instanceof StumpBlockEntity stump) || !stump.isFullyCarved()) return false;
         
         ICraftingSurface surface = stump;
+        org.joml.Vector3f localHit = new org.joml.Vector3f(hitX, hitY, hitZ);
 
-        if (hitY > 0.8f) {
+        if (isInteractableAt(world, pos, localHit)) {
             if (isNewClick) {
                 if (tryCraft(surface, player, heldStack)) {
                     return true;

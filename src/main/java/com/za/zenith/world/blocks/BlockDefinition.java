@@ -431,6 +431,26 @@ public class BlockDefinition {
     }
 
     /**
+     * Возвращает список активных зон взаимодействия.
+     * Если список пуст, взаимодействие работает по всему хитбоксу (если hasOnUse = true).
+     */
+    public java.util.List<InteractionZone> getInteractionZones(com.za.zenith.world.World world, BlockPos pos) {
+        return java.util.Collections.emptyList();
+    }
+
+    public boolean isInteractableAt(com.za.zenith.world.World world, BlockPos pos, org.joml.Vector3f localHit) {
+        if (!hasOnUse()) return false;
+        
+        java.util.List<InteractionZone> zones = getInteractionZones(world, pos);
+        if (zones.isEmpty()) return true; // Весь блок интерактивен
+        
+        for (InteractionZone zone : zones) {
+            if (zone.contains(localHit)) return true;
+        }
+        return false;
+    }
+
+    /**
      * Вызывается при нажатии ПКМ по блоку.
      * @param hitX Относительная координата X клика (0.0-1.0)
      * @param hitY Относительная координата Y клика (0.0-1.0)

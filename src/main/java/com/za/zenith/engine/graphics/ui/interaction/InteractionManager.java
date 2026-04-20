@@ -40,18 +40,23 @@ public class InteractionManager {
         }
     }
 
-    public static InteractionRule getBestRule(com.za.zenith.entities.Player player, Identifier blockId, BlockEntity be, ItemStack held) {
+    public static InteractionRule getBestRule(com.za.zenith.entities.Player player, Identifier blockId, BlockEntity be, ItemStack held, com.za.zenith.utils.Direction side, org.joml.Vector3f localHit) {
         List<InteractionRule> rules = registry.get(blockId);
         if (rules == null) return null;
 
         for (InteractionRule rule : rules) {
-            if (checkRule(player, rule, be, held)) return rule;
+            if (checkRule(player, rule, be, held, side, localHit)) return rule;
         }
         return null;
     }
 
-    private static boolean checkRule(com.za.zenith.entities.Player player, InteractionRule rule, BlockEntity be, ItemStack held) {
-        // 1. Check Held Item
+    private static boolean checkRule(com.za.zenith.entities.Player player, InteractionRule rule, BlockEntity be, ItemStack held, com.za.zenith.utils.Direction side, org.joml.Vector3f localHit) {
+        // 1. Check minY (Vertical range)
+        if (rule.minY() != null) {
+            if (localHit == null || localHit.y < rule.minY()) return false;
+        }
+
+        // 2. Check Held Item
         if (rule.heldItem() != null) {
             if (held == null || !held.getItem().getIdentifier().toString().equals(rule.heldItem())) return false;
         }
