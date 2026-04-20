@@ -16,6 +16,8 @@ public class ItemEntity extends Entity {
     private final Vector3f angularVelocity = new Vector3f();
     private boolean isBeingAttracted = false;
     private boolean isLockedOnPlayer = false; // "Мертвая хватка"
+    private boolean isSleeping = false;
+    private float sleepTimer = 0;
     
     public ItemEntity(Vector3f position, ItemStack stack) {
         super(position, 0.25f, 0.25f);
@@ -33,80 +35,67 @@ public class ItemEntity extends Entity {
         prevPosition.set(position);
         prevRotation.set(rotation);
         
+        age += deltaTime;
+        if (pickupDelay > 0) pickupDelay -= deltaTime;
+
         Player player = world.getPlayer();
-        boolean hasMagnet = false;
         
-        if (player != null) {
-            // Проверяем наличие MagneticComponent в любом активном слоте оборудования (аксессуары, offhand и т.д.)
-            if (player.getInventory().hasActiveComponent(com.za.zenith.world.items.component.MagneticComponent.class)) {
-                hasMagnet = true;
-            }
-        }
-        
+        // 1. MAGNETIC OPTIMIZATION
         if (canBePickedUp() && player != null) {
             Vector3f playerCenter = new Vector3f(player.getPosition());
             playerCenter.y += player.getHeight() * 0.5f;
-            
             float distSq = position.distanceSquared(playerCenter);
-            
-            // Ищем магнит в инвентаре (в активном оборудовании)
-            com.za.zenith.world.items.component.MagneticComponent magnet = null;
-            SlotGroup equipment = player.getInventory().getGroup("equipment");
-            if (equipment != null) {
-                for (Slot slot : equipment.getSlots()) {
-                    ItemStack stack = slot.getStack();
-                    if (stack != null) {
-                        com.za.zenith.world.items.component.MagneticComponent m = stack.getItem().getComponent(com.za.zenith.world.items.component.MagneticComponent.class);
-                        if (m != null) {
-                            magnet = m;
-                            break;
-                        }
-                    }
+
+            if (isLockedOnPlayer || distSq < 100.0f) { // Check only within 10 blocks
+                com.za.zenith.world.items.component.MagneticComponent magnet = player.getInventory().getActiveComponent(com.za.zenith.world.items.component.MagneticComponent.class);
+                
+                if (magnet != null && (distSq < magnet.attractionRadius * magnet.attractionRadius || isLockedOnPlayer)) {
+                    isBeingAttracted = true;
+                    isLockedOnPlayer = true;
+                    isSleeping = false; 
+                    
+                    float distance = (float)Math.sqrt(distSq);
+                    Vector3f direction = new Vector3f(playerCenter).sub(position).normalize();
+                    float approachSpeed = 12.0f + (1.0f - Math.min(1.0f, distance / 4.0f)) * (magnet.attractionForce * 0.2f);
+                    
+                    velocity.set(player.getVelocity());
+                    velocity.add(direction.mul(approachSpeed));
+                    onGround = false; 
+                } else {
+                    isBeingAttracted = false;
+                    isLockedOnPlayer = false;
                 }
             }
+        }
 
-            // Если вошел в радиус - захватываем навсегда
-            if (magnet != null && (distSq < magnet.attractionRadius * magnet.attractionRadius || isLockedOnPlayer)) {
-                isBeingAttracted = true;
-                isLockedOnPlayer = true;
-                
-                float distance = (float)Math.sqrt(distSq);
-                Vector3f toPlayer = new Vector3f(playerCenter).sub(position);
-                Vector3f direction = new Vector3f(toPlayer).normalize();
-                
-                // --- ГРАМОТНАЯ ФИЗИКА МАГНИТА ---
-                // Параметры теперь из компонента
-                float approachSpeed = 12.0f + (1.0f - Math.min(1.0f, distance / 4.0f)) * (magnet.attractionForce * 0.2f);
-                
-                Vector3f targetVelocity = new Vector3f(player.getVelocity());
-                targetVelocity.add(direction.mul(approachSpeed));
-                
-                float followSharpness = 5.0f + (1.0f - Math.min(1.0f, distance / 2.0f)) * 15.0f;
-                velocity.lerp(targetVelocity, deltaTime * followSharpness);
-                
-                onGround = false; 
+        // 2. PHYSICS SLEEPING
+        if (onGround && velocity.lengthSquared() < 0.01f && !isBeingAttracted) {
+            // Fast support check: if block below is air, wake up immediately
+            if (world.getBlock((int)Math.floor(position.x), (int)Math.floor(position.y - 0.01f), (int)Math.floor(position.z)).isAir()) {
+                isSleeping = false;
+                onGround = false;
+                sleepTimer = 0;
+            } else {
+                sleepTimer += deltaTime;
+                if (sleepTimer > 1.0f) isSleeping = true;
             }
         } else {
-            isBeingAttracted = false;
-            isLockedOnPlayer = false;
+            isSleeping = false;
+            sleepTimer = 0;
         }
-        
+
+        if (isSleeping) {
+            velocity.set(0, 0, 0);
+            return;
+        }
+
         float gravityMultiplier = stack.getItem().getWeight();
-        
-        // Custom gravity, disabled during attraction
         if (!flying && !isBeingAttracted) {
             velocity.y = Math.max(velocity.y + GRAVITY * gravityMultiplier * deltaTime, TERMINAL_VELOCITY);
         }
         
-        // Движение с коллизиями
         move(world, velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
 
-        age += deltaTime;
-        if (pickupDelay > 0) {
-            pickupDelay -= deltaTime;
-        }
-        
-        // Трение (в режиме магнита трения нет, мы управляем вектором напрямую)
         float friction = isBeingAttracted ? 1.0f : (onGround ? 0.85f : 0.98f);
         velocity.mul(friction);
         
@@ -115,16 +104,11 @@ public class ItemEntity extends Entity {
             rotation.z = lerpAngle(rotation.z, 0, deltaTime * 5.0f);
             angularVelocity.mul(0.85f);
         } else if (isBeingAttracted) {
-            // Визуальный "вихрь"
             angularVelocity.y += deltaTime * 20.0f;
             angularVelocity.x += deltaTime * 5.0f;
         }
         
-        rotation.add(
-            angularVelocity.x * deltaTime,
-            angularVelocity.y * deltaTime,
-            angularVelocity.z * deltaTime
-        );
+        rotation.add(angularVelocity.x * deltaTime, angularVelocity.y * deltaTime, angularVelocity.z * deltaTime);
     }
 
     private float lerpAngle(float start, float end, float t) {
@@ -144,6 +128,10 @@ public class ItemEntity extends Entity {
     
     public float getAge() {
         return age;
+    }
+
+    public boolean isBeingAttracted() {
+        return isBeingAttracted;
     }
 }
 

@@ -23,6 +23,8 @@ public class ParticleManager {
     private static ParticleManager instance;
     private final List<Particle> particles = new ArrayList<>();
     private final List<Particle> pendingAdd = new ArrayList<>();
+    private int spawnedThisTick = 0;
+    private static final int TICK_BUDGET = 400;
 
     public static ParticleManager getInstance() {
         if (instance == null) instance = new ParticleManager();
@@ -30,6 +32,7 @@ public class ParticleManager {
     }
 
     public void update(float deltaTime, World world) {
+        spawnedThisTick = 0;
         if (!pendingAdd.isEmpty()) {
             particles.addAll(pendingAdd);
             pendingAdd.clear();
@@ -77,6 +80,12 @@ public class ParticleManager {
         if (baseCount <= 0) return;
 
         int count = Math.max(1, (int)(baseCount * (damage * 2.5f)));
+        if (spawnedThisTick + count > TICK_BUDGET) {
+            count = Math.max(0, TICK_BUDGET - spawnedThisTick);
+        }
+        if (count <= 0) return;
+        spawnedThisTick += count;
+
         com.za.zenith.engine.graphics.DynamicTextureAtlas atlas = com.za.zenith.engine.core.GameLoop.getInstance().getRenderer().getAtlas();
         
         // 1. ОПРЕДЕЛЯЕМ ГРАНЬ ПО НОРМАЛИ
@@ -153,6 +162,10 @@ public class ParticleManager {
 
         float sizeX = maxX - minX, sizeY = maxY - minY, sizeZ = maxZ - minZ;
         int grid = (sizeX * sizeY * sizeZ < 0.15f) ? 1 : 2; 
+
+        if (spawnedThisTick + grid * grid * grid > TICK_BUDGET) return;
+        spawnedThisTick += grid * grid * grid;
+
         float stepX = sizeX / grid, stepY = sizeY / grid, stepZ = sizeZ / grid;
         
         com.za.zenith.engine.graphics.DynamicTextureAtlas atlas = com.za.zenith.engine.core.GameLoop.getInstance().getRenderer().getAtlas();

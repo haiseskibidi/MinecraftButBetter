@@ -23,6 +23,12 @@ import java.util.Map;
 
 import static org.lwjgl.opengl.GL11.*;
 
+import java.util.concurrent.*;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Set;
+import java.util.HashSet;
+
 public class Renderer {
     private Shader blockShader;
     private DynamicTextureAtlas atlas;
@@ -68,11 +74,20 @@ public class Renderer {
     private Mesh breakingMesh;
     private Mesh holeMesh;
     private com.za.zenith.world.BlockPos holePos;
+    private final Map<com.za.zenith.world.BlockPos, Mesh> proxyMeshCache = new java.util.HashMap<>();
     private float breakingProgress = 0.0f;
     private float wobbleTimer = 0.0f;
 
     private final Map<com.za.zenith.world.items.Item, Mesh> itemMeshCache = new java.util.HashMap<>();
     private final Map<com.za.zenith.entities.EntityDefinition, Mesh> entityDefMeshCache = new java.util.HashMap<>();
+
+    // L1 Entity Light Cache
+    private Chunk lastEntityChunk;
+    private com.za.zenith.world.chunks.ChunkPos lastEntityChunkPos;
+
+    // Async Meshing
+    private final ExecutorService meshExecutor = Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
+    private final Map<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>> pendingUpdates = new ConcurrentHashMap<>();
 
     public Renderer() {
         this.chunkMeshes = new ConcurrentHashMap<>();
@@ -367,8 +382,50 @@ public class Renderer {
             }
         }
 
+        // 1. Process pending mesh updates (Check for finished tasks)
+        pendingUpdates.entrySet().removeIf(entry -> {
+            if (entry.getValue().isDone()) {
+                try {
+                    ChunkMeshGenerator.RawChunkMeshResult rawResult = entry.getValue().get();
+                    ChunkMeshGenerator.ChunkMeshResult result = rawResult.upload();
+                    Chunk chunk = entry.getKey();
+                    
+                    // Cleanup old mesh in MAIN thread
+                    ChunkMeshGenerator.ChunkMeshResult old = chunkMeshes.get(chunk);
+                    if (old != null) {
+                        if (old.opaqueMesh != null) old.opaqueMesh.cleanup();
+                        if (old.translucentMesh != null) old.translucentMesh.cleanup();
+                    }
+                    
+                    chunkMeshes.put(chunk, result);
+                    chunk.setMeshUpdated();
+                    return true;
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            return false;
+        });
+
+        // 2. Schedule new mesh updates (with budget)
+        int scheduledThisFrame = 0;
         for (Chunk chunk : world.getLoadedChunks()) {
-            if (chunk.needsMeshUpdate() || !chunkMeshes.containsKey(chunk)) updateChunkMesh(chunk, world);
+            if (chunk.needsMeshUpdate() && !pendingUpdates.containsKey(chunk)) {
+                if (scheduledThisFrame < 2) { // Max 2 new updates per frame to keep CPU smooth
+                    Chunk.DataSnapshot snapshot = chunk.getSnapshot();
+                    pendingUpdates.put(chunk, meshExecutor.submit(() -> {
+                        Chunk tempChunk = new Chunk(snapshot.position());
+                        System.arraycopy(snapshot.blockData(), 0, tempChunk.getBlockData(), 0, snapshot.blockData().length);
+                        System.arraycopy(snapshot.lightData(), 0, tempChunk.getLightData(), 0, snapshot.lightData().length);
+                        return ChunkMeshGenerator.generateRawMesh(tempChunk, world, atlas);
+                    }));
+                    scheduledThisFrame++;
+                }
+            }
+        }
+
+        // 3. Render loaded meshes
+        for (Chunk chunk : world.getLoadedChunks()) {
             ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.get(chunk);
             if (result != null && result.opaqueMesh != null) {
                 modelMatrix.identity().translate(chunk.getPosition().x() * Chunk.CHUNK_SIZE, 0, chunk.getPosition().z() * Chunk.CHUNK_SIZE);
@@ -417,15 +474,28 @@ public class Renderer {
                 persistentHoleCache.values().forEach(Mesh::cleanup);
                 persistentHoleCache.clear();
             }
+            if (!proxyMeshCache.isEmpty()) {
+                proxyMeshCache.values().forEach(Mesh::cleanup);
+                proxyMeshCache.clear();
+            }
             return;
         }
         
         blockShader.use();
         
-        // 1. Cleanup stale hole meshes
+        // 1. Cleanup stale meshes
         persistentHoleCache.keySet().removeIf(pos -> {
             if (!world.getBlockDamageMap().containsKey(pos)) {
                 Mesh m = persistentHoleCache.get(pos);
+                if (m != null) m.cleanup();
+                return true;
+            }
+            return false;
+        });
+
+        proxyMeshCache.keySet().removeIf(pos -> {
+            if (!world.getBlockDamageMap().containsKey(pos)) {
+                Mesh m = proxyMeshCache.get(pos);
                 if (m != null) m.cleanup();
                 return true;
             }
@@ -461,7 +531,12 @@ public class Renderer {
             }
 
             // 2b. Render Proxy Mesh (The block itself with cracks)
-            Mesh mesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas, world, pos);
+            Mesh mesh = proxyMeshCache.get(pos);
+            if (mesh == null) {
+                mesh = ChunkMeshGenerator.generateSingleBlockMesh(block, atlas, world, pos);
+                if (mesh != null) proxyMeshCache.put(pos, mesh);
+            }
+
             if (mesh != null) {
                 com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
                 blockShader.setBoolean("uIsProxy", true);
@@ -484,8 +559,6 @@ public class Renderer {
                 blockShader.setMatrix4f("model", modelMatrix);
                 
                 mesh.render();
-                
-                mesh.cleanup();
             }
         }
         blockShader.setBoolean("uIsProxy", false);
@@ -551,10 +624,15 @@ public class Renderer {
         int y = (int) Math.floor(pos.y());
         int z = (int) Math.floor(pos.z());
         
-        Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(x, z));
-        if (chunk != null) {
-            float sun = chunk.getSunlight(x & 15, y, z & 15);
-            float block = chunk.getBlockLight(x & 15, y, z & 15);
+        com.za.zenith.world.chunks.ChunkPos cp = com.za.zenith.world.chunks.ChunkPos.fromBlockPos(x, z);
+        if (lastEntityChunk == null || !cp.equals(lastEntityChunkPos)) {
+            lastEntityChunk = world.getChunk(cp);
+            lastEntityChunkPos = cp;
+        }
+
+        if (lastEntityChunk != null) {
+            float sun = lastEntityChunk.getSunlight(x & 15, y, z & 15);
+            float block = lastEntityChunk.getBlockLight(x & 15, y, z & 15);
             blockShader.setVector3f("uOverrideLight", new Vector3f(sun, block, 1.0f));
         } else {
             blockShader.setVector3f("uOverrideLight", new Vector3f(15.0f, 0.0f, 1.0f));

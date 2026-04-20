@@ -94,6 +94,32 @@ public class Inventory implements IInventory {
         groups.add(pouch);
     }
 
+    public boolean isFull() {
+        for (int i = 0; i < START_EQUIPMENT; i++) {
+            if (slots[i] == null) return false;
+        }
+        return true;
+    }
+
+    public <T extends com.za.zenith.world.items.component.ItemComponent> T getActiveComponent(Class<T> componentClass) {
+        ItemStack selected = getSelectedItemStack();
+        if (selected != null) {
+            T comp = selected.getItem().getComponent(componentClass);
+            if (comp != null) return comp;
+        }
+
+        SlotGroup equipment = getGroup("equipment");
+        if (equipment != null) {
+            for (Slot slot : equipment.getSlots()) {
+                if (slot.getStack() != null) {
+                    T comp = slot.getStack().getItem().getComponent(componentClass);
+                    if (comp != null) return comp;
+                }
+            }
+        }
+        return null;
+    }
+
     public boolean hasActiveComponent(Class<? extends com.za.zenith.world.items.component.ItemComponent> componentClass) {
         SlotGroup equipment = getGroup("equipment");
         if (equipment == null) return false;

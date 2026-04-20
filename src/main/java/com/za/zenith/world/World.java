@@ -29,7 +29,18 @@ public class World {
     private final List<ITickable> tickableBlockEntities;
     private final com.za.zenith.world.lighting.LightEngine lightEngine;
     private float worldTime; // Stored as float for smooth interpolation
-    
+
+    // L1 Chunk Cache
+    private Chunk lastAccessedChunk;
+    private ChunkPos lastAccessedPos;
+
+    public Chunk getChunk(ChunkPos pos) {
+        if (pos != null && pos.equals(lastAccessedPos)) return lastAccessedChunk;
+        lastAccessedChunk = chunks.get(pos);
+        lastAccessedPos = pos;
+        return lastAccessedChunk;
+    }
+
     public static class BlockDamageInstance {
         private float damage;
         private final Block block;
@@ -163,6 +174,7 @@ public class World {
         }
 
         // Update all entities
+        boolean inventoryFull = (player != null && player.getInventory().isFull());
         for (int i = entities.size() - 1; i >= 0; i--) {
             Entity entity = entities.get(i);
             
@@ -174,29 +186,28 @@ public class World {
             entity.update(deltaTime, this);
             
             // Item Pickup logic
-            if (entity instanceof com.za.zenith.entities.ItemEntity itemEntity) {
+            if (!inventoryFull && entity instanceof com.za.zenith.entities.ItemEntity itemEntity) {
                 if (player != null && itemEntity.canBePickedUp()) {
                     float pickupRadius = com.za.zenith.world.physics.PhysicsSettings.getInstance().itemPickupRadius;
                     
                     Vector3f playerCenter = new Vector3f(player.getPosition());
                     playerCenter.y += player.getHeight() * 0.5f;
                     
-                    // Центр предмета (чуть выше его базовой позиции)
-                    Vector3f itemCenter = new Vector3f(itemEntity.getPosition());
-                    itemCenter.y += 0.125f; 
+                    Vector3f itemPos = itemEntity.getPosition();
+                    float distSq = playerCenter.distanceSquared(itemPos);
                     
-                    float dist = playerCenter.distance(itemCenter);
-                    
-                    // 100% надежный подбор: пересечение хитбоксов ИЛИ вхождение в радиус
-                    // Если предмет уже летит к нам (magnetic), мы расширяем окно подбора для стабильности
-                    boolean isMagnetic = itemEntity.getVelocity().lengthSquared() > 25.0f; // Признак активного полета
+                    boolean isMagnetic = itemEntity.isBeingAttracted();
                     float effectiveRadius = isMagnetic ? pickupRadius * 1.5f : pickupRadius;
                     
-                    if (dist < effectiveRadius || player.getBoundingBox().intersects(itemEntity.getBoundingBox())) {
+                    if (distSq < effectiveRadius * effectiveRadius || player.getBoundingBox().intersects(itemEntity.getBoundingBox())) {
                         if (player.getInventory().addItem(itemEntity.getStack())) {
                             entities.remove(i);
                             com.za.zenith.utils.Logger.info("Picked up item: %s", itemEntity.getStack().getItem().getName());
+                            // Re-check fullness after adding
+                            inventoryFull = player.getInventory().isFull();
                             continue;
+                        } else {
+                            inventoryFull = true; // Inventory became full
                         }
                     }
                 }
@@ -515,10 +526,6 @@ public class World {
     
     public float getWorldTime() {
         return worldTime;
-    }
-    
-    public Chunk getChunk(ChunkPos pos) {
-        return chunks.get(pos);
     }
     
     public int getSunlight(BlockPos pos) {

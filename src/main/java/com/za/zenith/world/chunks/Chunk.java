@@ -93,6 +93,34 @@ public class Chunk {
             position.z() * CHUNK_SIZE + z
         );
     }
+
+    /**
+     * Снапшот данных чанка для асинхронной генерации меша.
+     * Содержит глубокую копию blockData и lightData.
+     */
+    public record DataSnapshot(ChunkPos position, int[] blockData, byte[] lightData) {
+        public int getRawBlockData(int x, int y, int z) {
+            if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 0;
+            return blockData[y * (CHUNK_SIZE * CHUNK_SIZE) + z * CHUNK_SIZE + x];
+        }
+        
+        public int getSunlight(int x, int y, int z) {
+            if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 15;
+            return (lightData[y * (CHUNK_SIZE * CHUNK_SIZE) + z * CHUNK_SIZE + x] >> 4) & 0xF;
+        }
+
+        public int getBlockLight(int x, int y, int z) {
+            if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 0;
+            return lightData[y * (CHUNK_SIZE * CHUNK_SIZE) + z * CHUNK_SIZE + x] & 0xF;
+        }
+    }
+
+    public int[] getBlockData() { return blockData; }
+    public byte[] getLightData() { return lightData; }
+
+    public DataSnapshot getSnapshot() {
+        return new DataSnapshot(position, blockData.clone(), lightData.clone());
+    }
 }
 
 

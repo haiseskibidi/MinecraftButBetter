@@ -34,6 +34,20 @@ public class ChunkMeshGenerator {
         }
     }
 
+    public record RawMeshData(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, float[] weights, float[] lightData, float[] aoData, int[] indices) {
+        public Mesh createMesh() {
+            return new Mesh(positions, texCoords, normals, blockTypes, neighborData, weights, lightData, aoData, indices);
+        }
+    }
+
+    public record RawChunkMeshResult(RawMeshData opaque, RawMeshData translucent) {
+        public ChunkMeshResult upload() {
+            Mesh opaqueMesh = opaque != null ? opaque.createMesh() : null;
+            Mesh translucentMesh = translucent != null ? translucent.createMesh() : null;
+            return new ChunkMeshResult(opaqueMesh, translucentMesh);
+        }
+    }
+
     private static class MeshData {
         List<Float> positions = new ArrayList<>();
         List<Float> texCoords = new ArrayList<>();
@@ -257,7 +271,7 @@ public class ChunkMeshGenerator {
             vertexIndex += 4;
         }
 
-        Mesh build() {
+        RawMeshData buildRaw() {
             if (positions.isEmpty()) return null;
             float[] p = new float[positions.size()], t = new float[texCoords.size()], n = new float[normals.size()], b = new float[blockTypes.size()], nd = new float[neighborData.size()], w = new float[weights.size()], l = new float[lightData.size()], a = new float[aoData.size()];
             int[] ind = new int[indices.size()];
@@ -270,7 +284,12 @@ public class ChunkMeshGenerator {
             for(int i=0; i<l.length; i++) l[i]=lightData.get(i);
             for(int i=0; i<a.length; i++) a[i]=aoData.get(i);
             for(int i=0; i<ind.length; i++) ind[i]=indices.get(i);
-            return new Mesh(p, t, n, b, nd, w, l, a, ind); 
+            return new RawMeshData(p, t, n, b, nd, w, l, a, ind); 
+        }
+
+        Mesh build() {
+            RawMeshData raw = buildRaw();
+            return raw != null ? raw.createMesh() : null;
         }
     }
 
@@ -413,6 +432,10 @@ public class ChunkMeshGenerator {
     }
 
     public static ChunkMeshResult generateMesh(Chunk chunk, World world, DynamicTextureAtlas atlas) {
+        return generateRawMesh(chunk, world, atlas).upload();
+    }
+
+    public static RawChunkMeshResult generateRawMesh(Chunk chunk, World world, DynamicTextureAtlas atlas) {
         MeshData opaque = new MeshData();
         MeshData translucent = new MeshData();
         Direction[] directions = Direction.values();
@@ -544,7 +567,7 @@ public class ChunkMeshGenerator {
                 }
             }
         }
-        return new ChunkMeshResult(opaque.build(), translucent.build());
+        return new RawChunkMeshResult(opaque.buildRaw(), translucent.buildRaw());
     }
 
     private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float z0, float x1, float z1, float[] uvs, float blockTypeId, float overlayLayer, float weightOffset) {

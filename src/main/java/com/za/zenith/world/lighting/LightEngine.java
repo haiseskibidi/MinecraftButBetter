@@ -7,11 +7,15 @@ import com.za.zenith.world.blocks.BlockRegistry;
 import com.za.zenith.world.blocks.Blocks;
 import com.za.zenith.world.chunks.Chunk;
 
-import java.util.LinkedList;
+import java.util.ArrayDeque;
 import java.util.Queue;
+import java.util.Stack;
 
 public class LightEngine {
     private final World world;
+    private final Queue<LightNode> fillQueue = new ArrayDeque<>();
+    private final Queue<LightNode> removalQueue = new ArrayDeque<>();
+    private final Stack<LightNode> nodePool = new Stack<>();
 
     public LightEngine(World world) {
         this.world = world;
@@ -29,23 +33,34 @@ public class LightEngine {
         }
     }
 
+    private LightNode obtainNode(int x, int y, int z, int level) {
+        if (nodePool.isEmpty()) return new LightNode(x, y, z, level);
+        LightNode node = nodePool.pop();
+        node.x = x; node.y = y; node.z = z; node.level = level;
+        return node;
+    }
+
+    private void releaseNode(LightNode node) {
+        if (nodePool.size() < 2000) nodePool.push(node);
+    }
+
     public void onBlockChanged(BlockPos pos) {
         updateBlockLight(pos);
         updateSunlight(pos);
     }
 
     public void updateBlockLight(BlockPos pos) {
-        Queue<LightNode> fillQueue = new LinkedList<>();
-        Queue<LightNode> removalQueue = new LinkedList<>();
+        fillQueue.clear();
+        removalQueue.clear();
 
         int oldLevel = getBlockLight(pos.x(), pos.y(), pos.z());
         int newLevel = calculateBlockLightSource(pos);
 
         if (newLevel > oldLevel) {
-            fillQueue.add(new LightNode(pos.x(), pos.y(), pos.z(), newLevel));
+            fillQueue.add(obtainNode(pos.x(), pos.y(), pos.z(), newLevel));
             setBlockLight(pos.x(), pos.y(), pos.z(), newLevel);
         } else if (newLevel < oldLevel) {
-            removalQueue.add(new LightNode(pos.x(), pos.y(), pos.z(), oldLevel));
+            removalQueue.add(obtainNode(pos.x(), pos.y(), pos.z(), oldLevel));
             setBlockLight(pos.x(), pos.y(), pos.z(), 0);
         }
 
@@ -91,9 +106,10 @@ public class LightEngine {
                 int neighborLevel = getBlockLight(nx, ny, nz);
                 if (neighborLevel < node.level - 1) {
                     setBlockLight(nx, ny, nz, node.level - 1);
-                    queue.add(new LightNode(nx, ny, nz, node.level - 1));
+                    queue.add(obtainNode(nx, ny, nz, node.level - 1));
                 }
             }
+            releaseNode(node);
         }
     }
 
@@ -110,12 +126,13 @@ public class LightEngine {
 
                 int neighborLevel = getBlockLight(nx, ny, nz);
                 if (neighborLevel != 0 && neighborLevel < node.level) {
-                    removalQueue.add(new LightNode(nx, ny, nz, neighborLevel));
+                    removalQueue.add(obtainNode(nx, ny, nz, neighborLevel));
                     setBlockLight(nx, ny, nz, 0);
                 } else if (neighborLevel >= node.level) {
-                    fillQueue.add(new LightNode(nx, ny, nz, neighborLevel));
+                    fillQueue.add(obtainNode(nx, ny, nz, neighborLevel));
                 }
             }
+            releaseNode(node);
         }
     }
 
