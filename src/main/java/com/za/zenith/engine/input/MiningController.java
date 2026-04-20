@@ -236,55 +236,6 @@ public class MiningController {
                     }
                 }
                 if (world.onBlockBreak(hitPos, player)) {
-                    java.util.List<com.za.zenith.world.blocks.DropRule> rules = blockDef.getDropRules();
-                    
-                    if (!rules.isEmpty()) {
-                        String currentToolStr = "none";
-                        if (currentItem != null && currentItem.isTool()) {
-                            com.za.zenith.world.items.component.ToolComponent tool = currentItem.getComponent(com.za.zenith.world.items.component.ToolComponent.class);
-                            if (tool != null) currentToolStr = tool.type().name().toLowerCase();
-                        }
-                        
-                        for (com.za.zenith.world.blocks.DropRule rule : rules) {
-                            if (!rule.dropOnHit() && (rule.requiredToolType().equalsIgnoreCase("none") || rule.requiredToolType().equalsIgnoreCase(currentToolStr))) {
-                                if (Math.random() <= rule.chance()) {
-                                    Item itemToGive = com.za.zenith.world.items.ItemRegistry.getItem(com.za.zenith.utils.Identifier.of(rule.dropItemIdentifier()));
-                                    if (itemToGive != null) {
-                                        Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
-                                        com.za.zenith.entities.ItemEntity drop = new com.za.zenith.entities.ItemEntity(dropPos, new ItemStack(itemToGive));
-                                        drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
-                                        drop.setAngularVelocity(new Vector3f((float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f));
-                                        world.spawnEntity(drop);
-                                    }
-                                }
-                            }
-                        }
-                    } else {
-                        String dropId = blockDef.getDropItem();
-                        float chance = blockDef.getDropChance();
-                        if (Math.random() <= chance) {
-                            Item itemToGive = (dropId != null) ? com.za.zenith.world.items.ItemRegistry.getItem(com.za.zenith.utils.Identifier.of(dropId)) : com.za.zenith.world.items.ItemRegistry.getItem(blockDef.getIdentifier());
-                            if (itemToGive != null) {
-                                Vector3f dropPos = new Vector3f(hitPos.x() + 0.5f, hitPos.y() + 0.5f, hitPos.z() + 0.5f);
-                                com.za.zenith.entities.ItemEntity drop = new com.za.zenith.entities.ItemEntity(dropPos, new ItemStack(itemToGive));   
-                                drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
-                                drop.setAngularVelocity(new Vector3f((float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f));
-                                world.spawnEntity(drop);
-                            }
-                        }
-                    }
-
-                    if (blockDef.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DOUBLE_PLANT) {
-                        int meta = world.getBlock(hitPos).getMetadata();
-                        BlockPos otherPos = (meta == 0) ? hitPos.up() : hitPos.down();
-                        if (world.getBlock(otherPos).getType() == blockType) {
-                            world.setBlock(otherPos, new Block(com.za.zenith.world.blocks.Blocks.AIR.getId()));
-                            if (networkClient != null && networkClient.isConnected()) {
-                                networkClient.sendBlockUpdate(otherPos.x(), otherPos.y(), otherPos.z(), com.za.zenith.world.blocks.Blocks.AIR.getId());  
-                            }
-                        }
-                    }
-
                     world.destroyBlock(hitPos, player);
                     if (networkClient != null && networkClient.isConnected()) {
                         networkClient.sendBlockUpdate(hitPos.x(), hitPos.y(), hitPos.z(), Blocks.AIR.getId());

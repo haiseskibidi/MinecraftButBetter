@@ -4,6 +4,7 @@
   "solid": false,
   "transparent": true,
   "placement": "CROSS_PLANE",
+  "requires_support": true,
   "replaceable": true,
   "sway": true,
   "hardness": 0.01,

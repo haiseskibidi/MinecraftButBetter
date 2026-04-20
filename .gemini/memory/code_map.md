@@ -86,19 +86,15 @@
 ## World & Items (UPDATED)
 ### com.za.zenith.world.World (UPDATED)
 Назначение: Управление состоянием мира, сущностями и чанками.
-Функции: Хранит `blockDamageMap` с объектами `BlockDamageInstance` (урон + история шрамов). Реализует логику регенерации блоков и постепенного удаления шрамов в методе `update()`.
-
-### com.za.zenith.world.actions (NEW)
-Назначение: Data-Driven система действий игрока (бег, прыжок, добыча, паркур).
-Функции: `ActionDefinition` парсит JSON-файлы с параметрами шума, выносливости и голода. `ActionRegistry` хранит их для использования в `Player` и `ParkourHandler`.
+Функции: Хранит `blockDamageMap` с объектами `BlockDamageInstance`. Реализует `notifyNeighbors(BlockPos)` для запуска обновлений выживания. Метод `destroyBlock(pos, player)` теперь является единой точкой входа для разрушения блоков с выпадением лута и частицами.
 
 ### com.za.zenith.world.blocks.BlockDefinition (UPDATED)
 Назначение: Физические и визуальные свойства блока.
-Функции: Хранит `interaction_cooldown` и `healing_speed` (скорость регенерации).
+Функции: Хранит `requiresSupport`. Реализует `onNeighborChange` для логики выживания и цепочек `DOUBLE_PLANT`. Метод `spawnDrops` инкапсулирует логику выпадения предметов (включая `DropRule`).
 
 ### com.za.zenith.engine.input.MiningController (UPDATED)
 Назначение: Контроллер процесса добычи блоков.
-Функции: Синхронизирует прогресс разрушения и историю ударов (`hitHistory`) с данными из `World`. Обрабатывает механику `drop_on_hit` (выпадение лута при ударе) и штрафы к прочности.
+Функции: Синхронизирует прогресс разрушения. Теперь полностью очищен от ручной логики дропа и обработки двойных растений, делегируя это `World.destroyBlock`.
 
 ### com.za.zenith.world.items.Item (UPDATED)
 Назначение: Базовый класс предмета.

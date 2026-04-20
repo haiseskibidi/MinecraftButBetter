@@ -4,6 +4,7 @@
   "solid": false,
   "transparent": true,
   "placement": "DOUBLE_PLANT",
+  "requires_support": true,
   "replaceable": true,
   "hardness": 0.01,
   "interaction_cooldown": 0.5,

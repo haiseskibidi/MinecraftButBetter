@@ -798,6 +798,7 @@ public class DataLoader {
             }
 
             if (obj.has("supportScavenge")) def.setSupportScavenge(obj.get("supportScavenge").getAsBoolean());
+            if (obj.has("requires_support")) def.setRequiresSupport(obj.get("requires_support").getAsBoolean());
             if (obj.has("alwaysRender")) def.setAlwaysRender(obj.get("alwaysRender").getAsBoolean());
             if (obj.has("replaceable")) def.setReplaceable(obj.get("replaceable").getAsBoolean());
             if (obj.has("sway")) def.setSway(obj.get("sway").getAsBoolean());

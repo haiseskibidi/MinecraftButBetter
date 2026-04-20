@@ -26,6 +26,17 @@ public enum Direction {
     public int getDy() { return dy; }
     public int getDz() { return dz; }
 
+    public Direction getOpposite() {
+        return switch (this) {
+            case NORTH -> SOUTH;
+            case SOUTH -> NORTH;
+            case EAST -> WEST;
+            case WEST -> EAST;
+            case UP -> DOWN;
+            case DOWN -> UP;
+        };
+    }
+
     public BlockPos offset(BlockPos pos) {
         return new BlockPos(pos.x() + dx, pos.y() + dy, pos.z() + dz);
     }

@@ -5,6 +5,10 @@ import com.za.zenith.utils.Identifier;
 import com.za.zenith.world.BlockPos;
 import com.za.zenith.world.blocks.entity.BlockEntity;
 import com.za.zenith.world.physics.VoxelShape;
+import com.za.zenith.world.items.Item;
+import com.za.zenith.world.items.ItemStack;
+import com.za.zenith.entities.ItemEntity;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +35,7 @@ public class BlockDefinition {
     private Identifier nextStage = null;
     private boolean alwaysRender = false;
     private boolean replaceable = false;
+    private boolean requiresSupport = false;
     private boolean tinted = false;
     private boolean sway = false;
     private String upperTexture = null;
@@ -351,6 +356,51 @@ public class BlockDefinition {
         return solid;
     }
 
+    public void setRequiresSupport(boolean requiresSupport) {
+        this.requiresSupport = requiresSupport;
+    }
+
+    public boolean requiresSupport() {
+        return requiresSupport;
+    }
+
+    /**
+     * Вызывается, когда один из соседних блоков изменяется.
+     * @param world Мир
+     * @param pos Позиция текущего блока
+     * @param neighborBlock Новый блок соседа
+     * @param dir Направление к изменившемуся соседу
+     */
+    public void onNeighborChange(com.za.zenith.world.World world, BlockPos pos, Block neighborBlock, com.za.zenith.utils.Direction dir) {
+        // Базовая логика: если блоку нужна опора и блок снизу стал воздухом — разрушаемся
+        if (requiresSupport && dir == com.za.zenith.utils.Direction.DOWN) {
+            if (neighborBlock.isAir()) {
+                world.destroyBlock(pos, null);
+                return;
+            }
+        }
+
+        // Логика DOUBLE_PLANT
+        if (placementType == PlacementType.DOUBLE_PLANT) {
+            Block current = world.getBlock(pos);
+            if (current.getMetadata() == 0) { // Низ
+                // Если верх (UP) стал воздухом или не является верхом этого же растения
+                if (dir == com.za.zenith.utils.Direction.UP) {
+                    if (neighborBlock.isAir() || neighborBlock.getType() != id || neighborBlock.getMetadata() != 1) {
+                        world.destroyBlock(pos, null);
+                    }
+                }
+            } else if (current.getMetadata() == 1) { // Верх
+                // Если низ (DOWN) стал воздухом или не является низом этого же растения
+                if (dir == com.za.zenith.utils.Direction.DOWN) {
+                    if (neighborBlock.isAir() || neighborBlock.getType() != id || neighborBlock.getMetadata() != 0) {
+                        world.destroyBlock(pos, null);
+                    }
+                }
+            }
+        }
+    }
+
     public boolean isTransparent() {
         return transparent;
     }
@@ -410,6 +460,49 @@ public class BlockDefinition {
      * Вызывается непосредственно перед тем, как блок будет заменен на воздух или другой блок игроком.
      */
     public void onDestroyed(com.za.zenith.world.World world, BlockPos pos, Block block, com.za.zenith.entities.Player player) {
+    }
+
+    /**
+     * Спавнит предметы при разрушении блока.
+     */
+    public void spawnDrops(com.za.zenith.world.World world, BlockPos pos, Block block, com.za.zenith.entities.Player player) {
+        // Advanced drops
+        if (!dropRules.isEmpty()) {
+            String heldTool = "none";
+            if (player != null && player.getInventory().getSelectedItemStack() != null) {
+                Item item = player.getInventory().getSelectedItemStack().getItem();
+                com.za.zenith.world.items.component.ToolComponent tool = item.getComponent(com.za.zenith.world.items.component.ToolComponent.class);
+                if (tool != null) heldTool = tool.type().name().toLowerCase();
+            }
+
+            for (DropRule rule : dropRules) {
+                if (rule.requiredToolType().equalsIgnoreCase("none") || rule.requiredToolType().equalsIgnoreCase(heldTool)) {
+                    if (Math.random() <= rule.chance()) {
+                        Item itemToGive = com.za.zenith.world.items.ItemRegistry.getItem(Identifier.of(rule.dropItemIdentifier()));
+                        if (itemToGive != null) {
+                            spawnDropEntity(world, pos, new ItemStack(itemToGive));
+                        }
+                    }
+                }
+            }
+        } else {
+            // Legacy drops
+            float chance = dropChance;
+            if (Math.random() <= chance) {
+                Item itemToGive = (dropItem != null) ? com.za.zenith.world.items.ItemRegistry.getItem(Identifier.of(dropItem)) : com.za.zenith.world.items.ItemRegistry.getItem(identifier);
+                if (itemToGive != null) {
+                    spawnDropEntity(world, pos, new ItemStack(itemToGive));
+                }
+            }
+        }
+    }
+
+    private void spawnDropEntity(com.za.zenith.world.World world, BlockPos pos, ItemStack stack) {
+        Vector3f dropPos = new Vector3f(pos.x() + 0.5f, pos.y() + 0.5f, pos.z() + 0.5f);
+        ItemEntity drop = new ItemEntity(dropPos, stack);
+        drop.getVelocity().set((float)Math.random() * 0.2f - 0.1f, 0.2f, (float)Math.random() * 0.2f - 0.1f);
+        drop.setAngularVelocity(new Vector3f((float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f, (float)(Math.random() - 0.5) * 10f));
+        world.spawnEntity(drop);
     }
 
     /**

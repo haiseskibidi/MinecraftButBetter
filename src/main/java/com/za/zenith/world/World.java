@@ -415,6 +415,28 @@ public class World {
             if (localX == Chunk.CHUNK_SIZE - 1) notifyChunkUpdate(chunkPos.x() + 1, chunkPos.z());
             if (localZ == 0) notifyChunkUpdate(chunkPos.x(), chunkPos.z() - 1);
             if (localZ == Chunk.CHUNK_SIZE - 1) notifyChunkUpdate(chunkPos.x(), chunkPos.z() + 1);
+
+            // Notify all 6 neighbors about the block change for survival/logic updates
+            notifyNeighbors(pos);
+        }
+    }
+
+    /**
+     * Уведомляет 6 соседних блоков об изменении в текущей позиции.
+     * Это запускает логику выживания (requiresSupport) и другие обновления.
+     */
+    public void notifyNeighbors(BlockPos pos) {
+        Block centerBlock = getBlock(pos);
+        for (com.za.zenith.utils.Direction dir : com.za.zenith.utils.Direction.values()) {
+            BlockPos neighborPos = dir.offset(pos);
+            Block neighborBlock = getBlock(neighborPos);
+            
+            // Воздух не обрабатывает обновления
+            if (neighborBlock.isAir()) continue;
+            
+            com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(neighborBlock.getType());
+            // Передаем направление от соседа к ИЗМЕНИВШЕМУСЯ блоку
+            def.onNeighborChange(this, neighborPos, centerBlock, dir.getOpposite());
         }
     }
 
@@ -438,6 +460,7 @@ public class World {
         if (block.isAir()) return;
 
         com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
+        def.spawnDrops(this, pos, block, player);
         def.onDestroyed(this, pos, block, player);
 
         com.za.zenith.world.particles.ParticleManager.getInstance().spawnShatter(pos, block);
