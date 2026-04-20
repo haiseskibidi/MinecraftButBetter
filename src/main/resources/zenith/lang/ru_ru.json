@@ -13,6 +13,8 @@
   "gui.stamina": "Выносливость: %d%%",
   "gui.noise": "Шум: %d%%",
   "menu.resume": "Продолжить",
+  "menu.settings": "Настройки",
+  "menu.main_menu": "В главное меню",
   "menu.exit": "Выйти из игры",
   "item.zenith.hand": "Рука",
   "item.zenith.stone_knife": "Каменный нож",

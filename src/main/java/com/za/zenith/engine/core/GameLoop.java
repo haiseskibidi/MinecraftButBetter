@@ -27,7 +27,6 @@ public class GameLoop {
     private World world;
     private Player player;
     private Hotbar hotbar;
-    private com.za.zenith.engine.graphics.ui.PauseMenu pauseMenu;
     private boolean running;
     private boolean paused = false;
     private boolean inventoryOpen = false;
@@ -101,8 +100,6 @@ public class GameLoop {
         player.getInventory().setStackInSlot(0, new com.za.zenith.world.items.ItemStack(com.za.zenith.world.items.Items.ADMIN_HAMMER));
         hotbar = new Hotbar(player);
         renderer.setHotbar(hotbar);
-        pauseMenu = new com.za.zenith.engine.graphics.ui.PauseMenu();
-        renderer.setPauseMenu(pauseMenu);
         
         if (gameMode != GameMode.SINGLEPLAYER) {
             String ip = (gameMode == GameMode.MULTIPLAYER_HOST) ? "localhost" : serverAddress;
@@ -223,8 +220,14 @@ public class GameLoop {
 
     public void togglePause() {
         paused = !paused;
-        if (paused) inputManager.disableMouseCapture(window);
-        else if (!inventoryOpen && currentNappingSession == null) inputManager.enableMouseCapture(window);
+        if (paused) {
+            inputManager.disableMouseCapture(window);
+            com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().openScreen(
+                new com.za.zenith.engine.graphics.ui.PauseScreen(), window.getWidth(), window.getHeight());
+        } else {
+            com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
+            if (!inventoryOpen && currentNappingSession == null) inputManager.enableMouseCapture(window);
+        }
     }
 
     public void startNapping(com.za.zenith.world.items.Item item) {
@@ -304,6 +307,12 @@ public class GameLoop {
         
         renderer.getUIRenderer().renderHUDOverlay(window.getWidth(), window.getHeight());
         renderer.getUIRenderer().renderLootboxOpening(window.getWidth(), window.getHeight());
+        
+        // Render Active Screen (like Pause Menu) at the very end
+        if (active != null && !active.isScene()) {
+            renderer.getUIRenderer().renderPauseMenu(window.getWidth(), window.getHeight(), renderer.getAtlas());
+        }
+
         renderer.renderDebug(currentFps, window.getWidth(), window.getHeight());
         
         window.update();

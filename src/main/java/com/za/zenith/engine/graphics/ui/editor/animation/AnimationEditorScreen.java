@@ -130,10 +130,11 @@ public class AnimationEditorScreen implements Screen {
     }
 
     @Override
-    public void handleMouseRelease(int button) {
+    public boolean handleMouseRelease(float mx, float my, int button) {
         if (viewmodel != null) viewmodel.updateHierarchy(new org.joml.Matrix4f().identity());
         inputHandler.handleMouseRelease(button, state, getPartsList());
         state.isScrubbing = false;
+        return true;
     }
 
     @Override

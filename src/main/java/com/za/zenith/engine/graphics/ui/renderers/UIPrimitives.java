@@ -73,20 +73,9 @@ public class UIPrimitives {
     }
 
     public void renderDarkenedBackground() {
-        Shader uiShader = renderer.getShader();
-        uiShader.use();
-        uiShader.setInt("useTexture", 0);
-        uiShader.setInt("isSlot", 0);
-        uiShader.setUniform("scale", 1.0f, 1.0f, 0.0f, 0.0f);
-        uiShader.setUniform("position_offset", 0.0f, 0.0f, 0.0f, 0.0f);
-        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
-        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
-        uiShader.setUniform("tintColor", 0.0f, 0.0f, 0.0f, 0.6f);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glBindVertexArray(renderer.getQuadVAO());
-        glDrawElements(GL_TRIANGLES, renderer.getQuadIndicesLength(), GL_UNSIGNED_INT, 0);
-        glBindVertexArray(0);
-        uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 1.0f);
+        int sw = com.za.zenith.engine.core.GameLoop.getInstance().getWindow().getWidth();
+        int sh = com.za.zenith.engine.core.GameLoop.getInstance().getWindow().getHeight();
+        renderRect(0, 0, sw, sh, sw, sh, 0.0f, 0.0f, 0.0f, 0.6f);
     }
 
     public void renderExternalImage(String path, int x, int y, int width, int height, int sw, int sh) {

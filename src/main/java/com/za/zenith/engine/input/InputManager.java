@@ -136,6 +136,8 @@ public class InputManager {
             
             if (action == GLFW_PRESS) {
                 if (active != null && active.handleMouseClick(currentPos.x, currentPos.y, button)) {
+                    if (button == GLFW_MOUSE_BUTTON_1) leftMousePressed = true;
+                    if (button == GLFW_MOUSE_BUTTON_2) rightMousePressed = true;
                     return;
                 }
 
@@ -157,8 +159,10 @@ public class InputManager {
                     }
                 }
             } else if (action == GLFW_RELEASE) {
-                if (active != null) {
-                    active.handleMouseRelease(button);
+                if (active != null && active.handleMouseRelease(currentPos.x, currentPos.y, button)) {
+                    if (button == GLFW_MOUSE_BUTTON_1) leftMousePressed = false;
+                    if (button == GLFW_MOUSE_BUTTON_2) rightMousePressed = false;
+                    return;
                 }
 
                 if (GameLoop.getInstance().isInventoryOpen()) {

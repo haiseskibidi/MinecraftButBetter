@@ -88,7 +88,10 @@
 
 ### com.za.zenith.engine.graphics.ui.UIRenderer (UPDATED)
 Назначение: Модульный рендерер интерфейса (Facade).
-Функции: Является точкой входа для рендеринга всего UI, но делегирует работу специализированным суб-рендерерам: `UIPrimitives` (базовые формы), `SlotRenderer` (предметы/слоты), `HUDRenderer` (игровой оверлей, стамина, голод), `MinimapRenderer` (NEW: сэмплирование мира и радар), `InventoryScreenRenderer` (инвентарь и dev-панель) и `MenuRenderer`.
+Функции: Является точкой входа для рендеринга всего UI, но делегирует работу специализированным суб-рендерерам: `UIPrimitives` (базовые формы), `SlotRenderer` (предметы/слоты), `HUDRenderer` (игровой оверлей, стамина, голод), `MinimapRenderer` (NEW: сэмплирование мира и радар), `InventoryScreenRenderer` (инвентарь и dev-панель).
+- **PauseScreen.java**: (NEW) Реализация меню паузы в стиле Zenith. Работает как оверлей поверх мира, использует `GUIConfig` для конфигурации кнопок.
+- **Screen.java**: (UPDATED) Базовый интерфейс окон. Добавлен метод `handleMouseRelease(float mx, float my, int button)` для безопасной обработки кликов на отпускание.
+- **UIPrimitives.java**: (UPDATED) Добавлен метод `renderDarkenedBackground()` для унифицированного затемнения мира.
 - **MinimapRegistry.java**: (NEW) Реестр соответствия блоков и цветов для миникарты.
 
 ## World & Items (UPDATED)

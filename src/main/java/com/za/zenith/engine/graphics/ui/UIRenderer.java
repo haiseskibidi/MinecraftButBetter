@@ -26,7 +26,6 @@ public class UIRenderer {
     private int quadVBO;
     private int quadEBO;
     private Hotbar hotbar;
-    private PauseMenu pauseMenu;
     private FontRenderer fontRenderer;
     private final InventoryBlockRenderer blockRenderer = new InventoryBlockRenderer();
     
@@ -35,7 +34,6 @@ public class UIRenderer {
     private SlotRenderer slotRenderer;
     private HUDRenderer hudRenderer;
     private InventoryScreenRenderer inventoryScreenRenderer;
-    private MenuRenderer menuRenderer;
     private MinimapRenderer minimapRenderer;
     private com.za.zenith.engine.graphics.ui.interaction.InteractionRenderer interactionRenderer;
     private com.za.zenith.engine.graphics.ui.blueprints.BlueprintRenderer blueprintRenderer;
@@ -72,7 +70,6 @@ public class UIRenderer {
         slotRenderer = new SlotRenderer(this);
         hudRenderer = new HUDRenderer(this);
         inventoryScreenRenderer = new InventoryScreenRenderer(this);
-        menuRenderer = new MenuRenderer(this);
         minimapRenderer = new MinimapRenderer(this);
         com.za.zenith.engine.graphics.ui.renderers.MinimapRegistry.init();
         blueprintRenderer = new com.za.zenith.engine.graphics.ui.blueprints.BlueprintRenderer();
@@ -91,7 +88,6 @@ public class UIRenderer {
     public com.za.zenith.engine.graphics.ui.blueprints.BlueprintRenderer getBlueprintRenderer() { return blueprintRenderer; }
 
     public void setHotbar(Hotbar hotbar) { this.hotbar = hotbar; }
-    public void setPauseMenu(PauseMenu pauseMenu) { this.pauseMenu = pauseMenu; }
     
     private void createQuad() {
         quadVAO = glGenVertexArrays();
@@ -190,8 +186,8 @@ public class UIRenderer {
 
     // --- DELEGATED MENUS ---
 
-    public void renderPauseMenu(int screenWidth, int screenHeight) {
-        menuRenderer.renderPauseMenu(pauseMenu, screenWidth, screenHeight);
+    public void renderPauseMenu(int screenWidth, int screenHeight, com.za.zenith.engine.graphics.DynamicTextureAtlas atlas) {
+        ScreenManager.getInstance().render(this, screenWidth, screenHeight, atlas);
     }
 
     // --- DELEGATED PRIMITIVES ---
@@ -235,7 +231,6 @@ public class UIRenderer {
     public SlotRenderer getSlotRenderer() { return slotRenderer; }
     public HUDRenderer getHudRenderer() { return hudRenderer; }
     public InventoryScreenRenderer getInventoryScreenRenderer() { return inventoryScreenRenderer; }
-    public MenuRenderer getMenuRenderer() { return menuRenderer; }
 
     public void cleanup() {
         if (uiShader != null) uiShader.cleanup();

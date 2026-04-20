@@ -8,9 +8,10 @@
 Система полностью отделяет данные (хранилища) от представления (GUI).
 
 ### 1.1. Слой UI и Экранов
-- **Screen Interface**: Базовый контракт (`init`, `render`, `handleMouseClick`, `handleKeyPress`, `handleScroll`).
+- **Screen Interface**: Базовый контракт (`init`, `render`, `handleMouseClick`, `handleMouseRelease`, `handleKeyPress`, `handleScroll`).
+- **Mouse Safety**: Метод `handleMouseRelease(float mx, float my, int button)` рекомендуется для всех триггерных действий (кнопки, закрытие). Это предотвращает передачу клика в игровой мир ("сквозной клик").
 - **ScrollPanel**: Прокрутка с использованием `glScissor` для отсечения контента. OpenGL координаты инвертированы (Y-bottom).
-- **UIRenderer**: Фасад рендеринга. Делегирует работу суб-рендерерам: `UIPrimitives`, `SlotRenderer`, `HUDRenderer`, `InventoryScreenRenderer`, `MenuRenderer`.
+- **UIRenderer**: Фасад рендеринга. Делегирует работу суб-рендерерам: `UIPrimitives`, `SlotRenderer`, `HUDRenderer`, `InventoryScreenRenderer`, `PauseScreen`.
 
 ### 1.2. Слой Данных (Storage)
 - **IInventory**: Базовый интерфейс хранилища.

@@ -1,0 +1,40 @@
+{
+  "identifier": "zenith:pause_menu",
+  "title": "$l$gПАУЗА$r",
+  "background": {
+    "type": "solid",
+    "color": [0.03, 0.03, 0.03, 0.98],
+    "padding": 12,
+    "borderRadius": 4
+  },
+  "buttons": [
+    {
+      "id": "resume",
+      "text": "menu.resume",
+      "action": "resume",
+      "color": [0.4, 0.7, 1.0, 1.0],
+      "y": -60
+    },
+    {
+      "id": "settings",
+      "text": "menu.settings",
+      "action": "settings",
+      "color": [1.0, 1.0, 1.0, 1.0],
+      "y": -15
+    },
+    {
+      "id": "main_menu",
+      "text": "menu.main_menu",
+      "action": "main_menu",
+      "color": [1.0, 1.0, 1.0, 1.0],
+      "y": 30
+    },
+    {
+      "id": "exit",
+      "text": "menu.exit",
+      "action": "exit",
+      "color": [1.0, 0.4, 0.4, 1.0],
+      "y": 75
+    }
+  ]
+}

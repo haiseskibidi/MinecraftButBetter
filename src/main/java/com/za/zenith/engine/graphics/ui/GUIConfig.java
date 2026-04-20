@@ -12,9 +12,21 @@ public class GUIConfig {
     public String title;
     public boolean hudVisible = false; // If true, this GUI can be rendered as part of the HUD
     public List<GroupConfig> groups;
+    public List<ButtonConfig> buttons;
     public java.util.Map<String, HUDElementConfig> hudElements;
     public SelectionStyle selection = new SelectionStyle();
     public BackgroundConfig background = new BackgroundConfig();
+
+    public static class ButtonConfig {
+        public String id;
+        public String text;
+        public String action;
+        public float[] color = {1.0f, 1.0f, 1.0f, 1.0f};
+        public int x;
+        public int y;
+        public int width = 200;
+        public int height = 40;
+    }
 
     public static class HUDElementConfig {
         public String type = "text"; // text, bar

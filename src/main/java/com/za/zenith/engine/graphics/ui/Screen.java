@@ -26,8 +26,10 @@ public interface Screen {
 
     /**
      * Handles mouse releases.
+     * @return true if the release was consumed.
      */
-    default void handleMouseRelease(int button) {
+    default boolean handleMouseRelease(float mx, float my, int button) {
+        return false;
     }
 
     /**
