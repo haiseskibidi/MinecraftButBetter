@@ -33,10 +33,13 @@ public class NotificationManager {
     public void pushPickup(ItemStack stack) {
         if (stack == null || stack.getCount() <= 0) return;
 
-        // Traverse backwards to find the most recent notification for this item type
+        Identifier stackRarity = stack.getRarity();
+        List<Identifier> stackAffixes = new ArrayList<>(stack.getActiveAffixes());
+
+        // Traverse backwards to find the most recent notification for this item type AND rarity AND affixes
         for (int i = pickupNotes.size() - 1; i >= 0; i--) {
             PickupNote note = pickupNotes.get(i);
-            if (note.item.getId() == stack.getItem().getId()) {
+            if (note.item.getId() == stack.getItem().getId() && note.rarity.equals(stackRarity) && note.affixes.equals(stackAffixes)) {
                 // If the item was picked up recently, stack it with the existing notification
                 if (note.timeSinceLastAdd < 1.0f) {
                     note.count += stack.getCount();
@@ -44,12 +47,11 @@ public class NotificationManager {
                     note.timeSinceLastAdd = 0.0f; // Reset accumulation window
                     return;
                 }
-                // If older than accumulation window, break to create a NEW notification
                 break;
             }
         }
 
-        pickupNotes.add(new PickupNote(stack.getItem(), stack.getCount()));
+        pickupNotes.add(new PickupNote(stack.getItem(), stack.getCount(), stackRarity, stackAffixes));
     }
 
     /**
@@ -95,7 +97,6 @@ public class NotificationManager {
         int fontSize = cfg.fontSize;
         int spacing = cfg.spacing; 
         
-        // Calculate base position (anchor + x/y offset from JSON)
         int[] basePos = com.za.zenith.engine.graphics.ui.renderers.HUDRenderer.calculateElementPos(cfg, sw, sh, 100, fontSize);
         int x = basePos[0];
         int y = basePos[1];
@@ -106,16 +107,32 @@ public class NotificationManager {
             PickupNote note = pickupNotes.get(i);
             float alpha = Math.min(1.0f, note.timer);
             
-            String pluralName = getPluralName(note.item, note.count);
-            String text = "+" + note.count + " " + pluralName;
+            // Create a temporary stack to use getFullDisplayName()
+            ItemStack tempStack = new ItemStack(note.item, note.count);
+            tempStack.setRarity(note.rarity);
+            for (Identifier affix : note.affixes) {
+                tempStack.addAffix(affix);
+            }
             
-            int textWidth = renderer.getFontRenderer().getStringWidth(text, fontSize);
+            // Format: rarityColor + bold + "+Count " + FullName (which already includes color+bold)
+            com.za.zenith.world.items.stats.RarityDefinition rarityDef = com.za.zenith.world.items.stats.RarityRegistry.get(note.rarity);
+            String formatPrefix = (rarityDef != null ? rarityDef.colorCode() : "$f") + "$l";
+            
+            String text = formatPrefix + "+" + note.count + " " + tempStack.getFullDisplayName();
+            
+            int currentFontSize = fontSize;
+            int textWidth = renderer.getFontRenderer().getStringWidth(text, currentFontSize);
+            
+            int maxWidth = cfg.maxWidth > 0 ? cfg.maxWidth : 250;
+            while (textWidth > maxWidth && currentFontSize > cfg.minFontSize) {
+                currentFontSize--;
+                textWidth = renderer.getFontRenderer().getStringWidth(text, currentFontSize);
+            }
             
             int renderX = x;
             if (cfg.alignX.equals("right")) renderX = x - textWidth;
             else if (cfg.alignX.equals("center")) renderX = x - textWidth / 2;
 
-            // Grow downwards from the anchor point if it's top/center, or upwards if it's bottom
             int renderY = y;
             if (cfg.anchor.contains("top") || cfg.anchor.equals("center") || cfg.anchor.equals("left")) {
                 renderY = y + i * spacing;
@@ -123,7 +140,7 @@ public class NotificationManager {
                 renderY = y - i * spacing;
             }
 
-            renderer.getFontRenderer().drawString(text, renderX, renderY, fontSize, sw, sh, 1.0f, 1.0f, 1.0f, alpha);
+            renderer.getFontRenderer().drawString(text, renderX, renderY, currentFontSize, sw, sh, 1.0f, 1.0f, 1.0f, alpha);
         }
     }
 
@@ -136,61 +153,30 @@ public class NotificationManager {
         int textWidth = renderer.getFontRenderer().getStringWidth(activeAlert.message, fontSize);
         int[] pos = com.za.zenith.engine.graphics.ui.renderers.HUDRenderer.calculateElementPos(cfg, sw, sh, textWidth, fontSize);
         
-        // Render blueprint icon
         if (activeAlert.blueprint != null) {
             int iconSize = (int)(fontSize * 1.5f);
             renderer.getBlueprintRenderer().render(activeAlert.blueprint, pos[0] - iconSize - 10, pos[1] - (iconSize - fontSize) / 2, iconSize, sw, sh, new float[]{1.0f});
         }
 
-        // Reset state after blueprint renderer which uses its own shader
         renderer.setupUIProjection(sw, sh);
 
         float[] color = cfg.color != null ? cfg.color : new float[]{1.0f, 0.2f, 0.2f, 1.0f};
         renderer.getFontRenderer().drawString(activeAlert.message, pos[0], pos[1], fontSize, sw, sh, color[0], color[1], color[2], alpha * color[3]);
     }
 
-    /**
-     * Logic for Russian plural forms (1, 2, 5).
-     */
-    private String getPluralName(Item item, int count) {
-        String baseKey = item.getIdentifier().toString().replace(":", ".");
-        int form = getRussianPluralForm(count);
-        
-        // 1. Try item prefix (item.zenith.oak_log.1)
-        String itemKey = "item." + baseKey + "." + form;
-        String translated = I18n.get(itemKey);
-        
-        // 2. Try block prefix (block.zenith.oak_log.1) if item key failed
-        if (translated.equals(itemKey)) {
-            String blockKey = "block." + baseKey + "." + form;
-            translated = I18n.get(blockKey);
-            if (translated.equals(blockKey)) {
-                // 3. Fallback to original item name (which should already be capitalized in JSON)
-                return item.getName();
-            }
-        }
-        
-        return translated;
-    }
-
-    private int getRussianPluralForm(int n) {
-        n = Math.abs(n) % 100;
-        int n1 = n % 10;
-        if (n > 10 && n < 20) return 5;
-        if (n1 > 1 && n1 < 5) return 2;
-        if (n1 == 1) return 1;
-        return 5;
-    }
-
     private static class PickupNote {
         Item item;
         int count;
+        Identifier rarity;
+        List<Identifier> affixes;
         float timer = 4.0f;
         float timeSinceLastAdd = 0.0f;
 
-        PickupNote(Item item, int count) {
+        PickupNote(Item item, int count, Identifier rarity, List<Identifier> affixes) {
             this.item = item;
             this.count = count;
+            this.rarity = rarity;
+            this.affixes = affixes;
         }
     }
 

@@ -124,6 +124,15 @@ public class ItemStack {
         return name.toString();
     }
 
+    /**
+     * Returns the display name with rarity color and bold formatting codes.
+     */
+    public String getFullDisplayName() {
+        com.za.zenith.world.items.stats.RarityDefinition rarityDef = com.za.zenith.world.items.stats.RarityRegistry.get(this.rarity);
+        String rarityColor = (rarityDef != null) ? rarityDef.colorCode() : "$f";
+        return rarityColor + "$l" + getDisplayName();
+    }
+
     private String getGenderedTranslationKey(String baseKey) {
         return switch (item.getGender()) {
             case MASCULINE -> baseKey + ".m";

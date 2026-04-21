@@ -93,9 +93,17 @@ public class HUDRenderer {
         if (selected != null && !slots.isEmpty()) {
             GUIConfig.HUDElementConfig nameCfg = getHUDConfig("item_name");
             if (nameCfg != null && nameCfg.visible) {
-                String nameText = selected.getDisplayName();
+                String nameText = selected.getFullDisplayName();
+
                 int nameSize = nameCfg.fontSize;
                 int textWidth = renderer.getFontRenderer().getStringWidth(nameText, nameSize);
+
+                // Dynamic Scaling Logic
+                while (textWidth > nameCfg.maxWidth && nameSize > nameCfg.minFontSize) {
+                    nameSize--;
+                    textWidth = renderer.getFontRenderer().getStringWidth(nameText, nameSize);
+                }
+
                 int[] pos = calculateElementPos(nameCfg, screenWidth, screenHeight, textWidth, nameSize);
                 renderer.getFontRenderer().drawString(nameText, pos[0], pos[1], nameSize, screenWidth, screenHeight);
             }
