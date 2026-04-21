@@ -123,6 +123,11 @@ public class HUDRenderer {
 
         renderLogo(sw, sh);
         renderDebugOverlay(sw, sh);
+
+        // --- Notification System v1.0 ---
+        com.za.zenith.engine.graphics.ui.NotificationTriggers.getInstance().checkDurability(hotbar.getSelectedItemStack());
+        com.za.zenith.engine.graphics.ui.NotificationManager.getInstance().update(dt);
+        com.za.zenith.engine.graphics.ui.NotificationManager.getInstance().render(renderer, sw, sh);
     }
 
     public void renderDebugOverlay(int sw, int sh) {

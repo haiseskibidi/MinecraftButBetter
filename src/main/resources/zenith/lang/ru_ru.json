@@ -268,5 +268,16 @@
   "settings.sensitivity": "Чувствительность",
   "settings.vsync": "Вертикальная синхронизация",
   "settings.dev_mode": "Режим разработчика",
-  "menu.back": "Назад"
+  "menu.back": "Назад",
+  "ui.warning.low_durability": "Инструмент почти сломан (%d%%)!",
+  "ui.warning.inventory_full": "Инвентарь переполнен!",
+  "item.zenith.stick.1": "палка",
+  "item.zenith.stick.2": "палки",
+  "item.zenith.stick.5": "палок",
+  "item.zenith.stone.1": "камень",
+  "item.zenith.stone.2": "камня",
+  "item.zenith.stone.5": "камней",
+  "item.zenith.oak_log.1": "дубовое бревно",
+  "item.zenith.oak_log.2": "дубовых бревна",
+  "item.zenith.oak_log.5": "дубовых бревен"
 }

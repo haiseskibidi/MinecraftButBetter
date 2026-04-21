@@ -1,0 +1,10 @@
+{
+  "durability": {
+    "threshold": 0.15,
+    "cooldown": 60.0,
+    "alert_duration": 5.0
+  },
+  "inventory": {
+    "alert_duration": 3.0
+  }
+}

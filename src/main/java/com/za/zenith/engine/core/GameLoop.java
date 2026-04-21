@@ -318,7 +318,7 @@ public class GameLoop {
         renderer.getUIRenderer().renderLootboxOpening(window.getWidth(), window.getHeight());
         
         // Render Active Screen (like Pause Menu) at the very end
-        if (active != null && !active.isScene()) {
+        if (active != null && !active.isScene() && !inventoryOpen) {
             renderer.getUIRenderer().renderPauseMenu(window.getWidth(), window.getHeight(), renderer.getAtlas());
         }
 

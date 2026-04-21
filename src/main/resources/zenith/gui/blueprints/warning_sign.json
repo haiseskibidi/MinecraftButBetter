@@ -1,0 +1,41 @@
+{
+  "identifier": "zenith:warning_sign",
+  "size": 1,
+  "elements": [
+    {
+      "type": "circle",
+      "radius": 0.45,
+      "thickness": 0.05,
+      "color": [1.0, 0.8, 0.0, 0.9],
+      "comment": "Triangle-like circle background"
+    },
+    {
+      "type": "ring",
+      "radius": 0.4,
+      "thickness": 0.02,
+      "color": [1.0, 0.2, 0.0, 1.0],
+      "animation": {
+        "type": "pulse",
+        "intensity": 0.5
+      }
+    },
+    {
+      "type": "rect",
+      "x": -0.05,
+      "y": -0.2,
+      "width": 0.1,
+      "height": 0.3,
+      "color": [1.0, 1.0, 1.0, 1.0],
+      "comment": "Exclamation mark upper part"
+    },
+    {
+      "type": "rect",
+      "x": -0.05,
+      "y": 0.2,
+      "width": 0.1,
+      "height": 0.1,
+      "color": [1.0, 1.0, 1.0, 1.0],
+      "comment": "Exclamation mark dot"
+    }
+  ]
+}

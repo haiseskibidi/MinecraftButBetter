@@ -34,31 +34,31 @@ public class SlotRenderer {
         float hoverProgress = UIAnimationManager.getHoverProgress(animId, isHovered, delta);
         Shader uiShader = renderer.getShader();
 
+        uiShader.use();
+
         if (drawBackground) {
-            uiShader.use();
             uiShader.setInt("useTexture", 0);
             uiShader.setInt("isSlot", 0); // Disable SDF Octagon for now
-            
+
             float scaleX = (float)size / screenWidth;
             float scaleY = (float)size / screenHeight;
             float posX = (2.0f * x / screenWidth) - 1.0f + scaleX;
             float posY = 1.0f - (2.0f * y / screenHeight) - scaleY;
-            
+
             uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
             uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
             uiShader.setFloat("hoverProgress", hoverProgress);
-            
+
             float bgBrightness = 0.35f; 
             uiShader.setUniform("tintColor", bgBrightness, bgBrightness, bgBrightness, 0.9f);
-            
+
             glBindVertexArray(renderer.getQuadVAO());
             glDrawElements(GL_TRIANGLES, renderer.getQuadIndicesLength(), GL_UNSIGNED_INT, 0);
         }
         
         uiShader.setInt("isSlot", 0);
 
-        if (stack != null) {
-            float itemRotation = hoverProgress * 360.0f;
+        if (stack != null) {            float itemRotation = hoverProgress * 360.0f;
             float itemScaleMod = 1.0f + (float)Math.sin(System.currentTimeMillis() * 0.005f) * 0.05f * hoverProgress;
             
             renderItemIcon(stack.getItem(), x + 2, y + 2, (size - 4) * itemScaleMod, screenWidth, screenHeight, atlas, itemRotation, hoverProgress);

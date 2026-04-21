@@ -206,8 +206,14 @@ public class Inventory implements IInventory {
     }
 
     public boolean addItem(ItemStack stack) {
+        return addItem(stack, false);
+    }
+
+    public boolean addItem(ItemStack stack, boolean isFromWorld) {
         if (stack == null || stack.getCount() <= 0) return false;
         
+        int originalCount = stack.getCount();
+
         // 1. Try to stack in active groups (skipping equipment by default for auto-add)
         for (SlotGroup group : groups) {
             if (!group.isActive() || group.getId().equals("equipment")) continue;
@@ -221,27 +227,47 @@ public class Inventory implements IInventory {
                     existing.setCount(existing.getCount() + toAdd);
                     stack.setCount(stack.getCount() - toAdd);
                     
-                    if (stack.getCount() <= 0) return true;
+                    if (stack.getCount() <= 0) break;
                 }
             }
+            if (stack.getCount() <= 0) break;
         }
         
         // 2. Try to find empty in active groups
-        for (SlotGroup group : groups) {
-            if (!group.isActive() || group.getId().equals("equipment")) continue;
-            
-            for (com.za.zenith.entities.inventory.Slot slot : group.getSlots()) {
-                if (slot.getStack() == null && slot.isItemValid(stack)) {
-                    slot.setStack(stack.copy());
-                    stack.setCount(0);
-                    return true;
+        if (stack.getCount() > 0) {
+            for (SlotGroup group : groups) {
+                if (!group.isActive() || group.getId().equals("equipment")) continue;
+                
+                for (com.za.zenith.entities.inventory.Slot slot : group.getSlots()) {
+                    if (slot.getStack() == null && slot.isItemValid(stack)) {
+                        slot.setStack(stack.copy());
+                        stack.setCount(0);
+                        break;
+                    }
                 }
+                if (stack.getCount() <= 0) break;
             }
         }
+
+        int addedCount = originalCount - stack.getCount();
+        if (addedCount > 0) {
+            if (isFromWorld) {
+                ItemStack addedStack = stack.copy();
+                addedStack.setCount(addedCount);
+                com.za.zenith.engine.graphics.ui.NotificationManager.getInstance().pushPickup(addedStack);
+                
+                if (isFull() && stack.getCount() > 0) {
+                    com.za.zenith.engine.graphics.ui.NotificationTriggers.getInstance().onInventoryFull();
+                }
+            }
+            return true;
+        } else if (isFromWorld) {
+            com.za.zenith.engine.graphics.ui.NotificationTriggers.getInstance().onInventoryFull();
+        }
         
-        return stack.getCount() <= 0;
+        return false;
     }
-    
+
     public void nextSlot() {
         selectedSlot = (selectedSlot + 1) % HOTBAR_SIZE;
         logSelection();
