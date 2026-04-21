@@ -105,7 +105,26 @@ public class HUDRenderer {
                 }
 
                 int[] pos = calculateElementPos(nameCfg, screenWidth, screenHeight, textWidth, nameSize);
-                renderer.getFontRenderer().drawString(nameText, pos[0], pos[1], nameSize, screenWidth, screenHeight);
+                
+                // 1. Draw Background Gradient if enabled
+                if (nameCfg.useGradient) {
+                    int gradWidth = textWidth + 300;
+                    int gradHeight = (int)(nameSize * 1.8f);
+                    int gradX = pos[0] - (gradWidth - textWidth) / 2;
+                    int gradY = pos[1] - (gradHeight - nameSize) / 2;
+                    
+                    float[] c1 = nameCfg.backgroundColor;
+                    float[] c2 = new float[]{c1[0], c1[1], c1[2], 0.0f};
+                    
+                    renderer.getPrimitivesRenderer().renderGradientRect(gradX, gradY, gradWidth / 2, gradHeight, screenWidth, screenHeight, c2, c1);
+                    renderer.getPrimitivesRenderer().renderGradientRect(gradX + gradWidth / 2, gradY, gradWidth / 2, gradHeight, screenWidth, screenHeight, c1, c2);
+                }
+
+                if (nameCfg.textShadow) {
+                    renderer.getPrimitivesRenderer().renderTextWithShadow(nameText, pos[0], pos[1], nameSize, screenWidth, screenHeight, 1.0f, 1.0f, 1.0f, 1.0f);
+                } else {
+                    renderer.getFontRenderer().drawString(nameText, pos[0], pos[1], nameSize, screenWidth, screenHeight);
+                }
             }
         }
     }

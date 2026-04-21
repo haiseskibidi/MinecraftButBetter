@@ -49,6 +49,8 @@ public class GUIConfig {
         public String blueprint; // For blueprint type
         public float[] color = {1.0f, 1.0f, 1.0f, 1.0f};
         public float[] backgroundColor = {0.0f, 0.0f, 0.0f, 0.5f};
+        public boolean textShadow = false;
+        public boolean useGradient = false;
         public boolean visible = true;
     }
 

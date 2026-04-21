@@ -26,6 +26,7 @@ public class UIPrimitives {
         uiShader.use();
         uiShader.setInt("useTexture", 0);
         uiShader.setInt("isSlot", 0);
+        uiShader.setInt("isGradient", 0);
         
         float scaleX = (float)width / sw;
         float scaleY = (float)height / sh;
@@ -34,11 +35,43 @@ public class UIPrimitives {
 
         uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
         uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
         uiShader.setUniform("tintColor", r, g, b, a);
 
         glBindVertexArray(renderer.getQuadVAO());
         glDrawElements(GL_TRIANGLES, renderer.getQuadIndicesLength(), GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+    }
+
+    public void renderGradientRect(int x, int y, int width, int height, int sw, int sh, float[] c1, float[] c2) {
+        Shader uiShader = renderer.getShader();
+        uiShader.use();
+        uiShader.setInt("useTexture", 0);
+        uiShader.setInt("isSlot", 0);
+        uiShader.setInt("isGradient", 1);
+        
+        float scaleX = (float)width / sw;
+        float scaleY = (float)height / sh;
+        float posX = (2.0f * x / sw) - 1.0f + scaleX;
+        float posY = 1.0f - (2.0f * y / sh) - scaleY;
+
+        uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
+        uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("tintColor", c1[0], c1[1], c1[2], c1[3]);
+        uiShader.setUniform("tintColor2", c2[0], c2[1], c2[2], c2[3]);
+
+        glBindVertexArray(renderer.getQuadVAO());
+        glDrawElements(GL_TRIANGLES, renderer.getQuadIndicesLength(), GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+        uiShader.setInt("isGradient", 0);
+    }
+
+    public void renderTextWithShadow(String text, int x, int y, int fontSize, int sw, int sh, float r, float g, float b, float a) {
+        // Single crisp shadow layer, but darker (85% opacity instead of 60%), ignoring embedded color codes
+        renderer.getFontRenderer().drawString(text, x + 1, y + 1, fontSize, sw, sh, 0.0f, 0.0f, 0.0f, a * 0.85f, true);
+        // Main text
+        renderer.getFontRenderer().drawString(text, x, y, fontSize, sw, sh, r, g, b, a, false);
     }
 
     public void renderGroupBackground(int x, int y, int width, int height, com.za.zenith.engine.graphics.ui.GUIConfig.BackgroundConfig bg) {
@@ -63,6 +96,8 @@ public class UIPrimitives {
         
         uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
         uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
         uiShader.setUniform("tintColor", r, g, b, a);
         
         glBindTexture(GL_TEXTURE_2D, 0); 

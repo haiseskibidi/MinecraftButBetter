@@ -7,10 +7,12 @@ out vec4 fragColor;
 uniform sampler2D textureSampler;
 uniform sampler2DArray arraySampler;
 uniform vec4 tintColor = vec4(1.0, 1.0, 1.0, 1.0);
+uniform vec4 tintColor2 = vec4(1.0, 1.0, 1.0, 0.0); // Second color for gradients
 uniform int useTexture = 1;
 uniform int useArray = 0;
 uniform float layerIndex = 0.0;
 uniform int isGrayscale = 0;
+uniform int isGradient = 0; // 0: None, 1: Horizontal
 
 // Mining / Action Progress
 uniform float uProgress = 0.0;
@@ -94,6 +96,12 @@ void main() {
     if (useTexture == 0) {
         vec4 finalColor = tintColor;
         
+        if (isGradient == 1) {
+            // Smooth S-curve for "soft" feel
+            float edge = smoothstep(0.0, 1.0, fragTexCoord.x);
+            finalColor = mix(tintColor, tintColor2, edge);
+        }
+        
         if (isCrosshair == 1 && uProgress > 0.001) {
             // Subtle color change towards the end of mining
             vec3 focusColor = mix(vec3(1.0), vec3(1.0, 0.8, 0.4), uProgress);
@@ -117,7 +125,7 @@ void main() {
         fragColor = textureColor * tintColor;
     }
     
-    if (fragColor.a < 0.1) {
+    if (fragColor.a < 0.005) {
         discard;
     }
 }

@@ -173,6 +173,10 @@ public class FontRenderer {
     }
 
     public void drawString(String text, int x, int y, int size, int screenWidth, int screenHeight, float r, float g, float b, float a) {
+        drawString(text, x, y, size, screenWidth, screenHeight, r, g, b, a, false);
+    }
+
+    public void drawString(String text, int x, int y, int size, int screenWidth, int screenHeight, float r, float g, float b, float a, boolean ignoreColors) {
         if (text == null || text.isEmpty()) return;
 
         float scale = (float) size / GLYPH_SIZE;
@@ -199,9 +203,11 @@ public class FontRenderer {
                 int codeIndex = "0123456789abcdefklmnorgzvq".indexOf(Character.toLowerCase(nextCp));
 
                 if (codeIndex >= 0 && codeIndex < 16) {
-                    currentR = colorCodes[codeIndex][0];
-                    currentG = colorCodes[codeIndex][1];
-                    currentB = colorCodes[codeIndex][2];
+                    if (!ignoreColors) {
+                        currentR = colorCodes[codeIndex][0];
+                        currentG = colorCodes[codeIndex][1];
+                        currentB = colorCodes[codeIndex][2];
+                    }
                     rainbow = false; glow = false; wavy = false; shake = false;
                 } else if (codeIndex == 17) { // l - bold
                     bold = true;
@@ -211,7 +217,7 @@ public class FontRenderer {
                 } else if (codeIndex == 22) { // g - glow
                     glow = true;
                 } else if (codeIndex == 23) { // z - rainbow
-                    rainbow = true;
+                    if (!ignoreColors) rainbow = true;
                 } else if (codeIndex == 24) { // v - wavy
                     wavy = true;
                 } else if (codeIndex == 25) { // q - shake

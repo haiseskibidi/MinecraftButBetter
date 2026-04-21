@@ -107,17 +107,14 @@ public class NotificationManager {
             PickupNote note = pickupNotes.get(i);
             float alpha = Math.min(1.0f, note.timer);
             
-            // Create a temporary stack to use getFullDisplayName()
             ItemStack tempStack = new ItemStack(note.item, note.count);
             tempStack.setRarity(note.rarity);
             for (Identifier affix : note.affixes) {
                 tempStack.addAffix(affix);
             }
             
-            // Format: rarityColor + bold + "+Count " + FullName (which already includes color+bold)
             com.za.zenith.world.items.stats.RarityDefinition rarityDef = com.za.zenith.world.items.stats.RarityRegistry.get(note.rarity);
             String formatPrefix = (rarityDef != null ? rarityDef.colorCode() : "$f") + "$l";
-            
             String text = formatPrefix + "+" + note.count + " " + tempStack.getFullDisplayName();
             
             int currentFontSize = fontSize;
@@ -140,7 +137,37 @@ public class NotificationManager {
                 renderY = y - i * spacing;
             }
 
-            renderer.getFontRenderer().drawString(text, renderX, renderY, currentFontSize, sw, sh, 1.0f, 1.0f, 1.0f, alpha);
+            // 1. Draw Background Gradient
+            if (cfg.useGradient) {
+                int gradHeight = (int)(currentFontSize * 1.4f);
+                int gradY = renderY - (gradHeight - currentFontSize) / 2;
+                float[] c1 = cfg.backgroundColor;
+                float[] c2 = new float[]{c1[0], c1[1], c1[2], 0.0f}; // Fade to transparent
+                
+                if (cfg.anchor.contains("left")) {
+                    // Wide fade from Left edge
+                    int gradWidth = Math.max(sw / 3, renderX + textWidth + 120);
+                    renderer.getPrimitivesRenderer().renderGradientRect(0, gradY, gradWidth, gradHeight, sw, sh, c1, c2);
+                } else if (cfg.anchor.contains("right")) {
+                    // Wide fade from Right edge
+                    int gradWidth = Math.max(sw / 3, (sw - renderX) + 120);
+                    int gradX = sw - gradWidth;
+                    renderer.getPrimitivesRenderer().renderGradientRect(gradX, gradY, gradWidth, gradHeight, sw, sh, c2, c1);
+                } else {
+                    // Center - double sided soft fade (Transparent -> Black -> Transparent)
+                    int gradWidth = textWidth + 240;
+                    int gradX = renderX - (gradWidth - textWidth) / 2;
+                    renderer.getPrimitivesRenderer().renderGradientRect(gradX, gradY, gradWidth / 2, gradHeight, sw, sh, c2, c1);
+                    renderer.getPrimitivesRenderer().renderGradientRect(gradX + gradWidth / 2, gradY, gradWidth / 2, gradHeight, sw, sh, c1, c2);
+                }
+            }
+
+            // 2. Draw Text (Shadowed if configured)
+            if (cfg.textShadow) {
+                renderer.getPrimitivesRenderer().renderTextWithShadow(text, renderX, renderY, currentFontSize, sw, sh, 1.0f, 1.0f, 1.0f, alpha);
+            } else {
+                renderer.getFontRenderer().drawString(text, renderX, renderY, currentFontSize, sw, sh, 1.0f, 1.0f, 1.0f, alpha);
+            }
         }
     }
 
@@ -151,17 +178,41 @@ public class NotificationManager {
         int fontSize = cfg.fontSize;
         
         int textWidth = renderer.getFontRenderer().getStringWidth(activeAlert.message, fontSize);
-        int[] pos = com.za.zenith.engine.graphics.ui.renderers.HUDRenderer.calculateElementPos(cfg, sw, sh, textWidth, fontSize);
+        int padding = 20;
+        int plaqueWidth = textWidth + padding * 2 + (activeAlert.blueprint != null ? fontSize * 2 : 0);
+        int plaqueHeight = (int)(fontSize * 2.5f);
         
+        int[] pos = com.za.zenith.engine.graphics.ui.renderers.HUDRenderer.calculateElementPos(cfg, sw, sh, plaqueWidth, plaqueHeight);
+        int plaqueX = pos[0];
+        int plaqueY = pos[1];
+
+        // 1. Render Plaque Background
+        float[] bg = cfg.backgroundColor != null ? cfg.backgroundColor : new float[]{0.05f, 0.05f, 0.05f, 0.8f};
+        renderer.getPrimitivesRenderer().renderRect(plaqueX, plaqueY, plaqueWidth, plaqueHeight, sw, sh, bg[0], bg[1], bg[2], bg[3] * alpha);
+        
+        // 2. Render Accent Line (Top)
+        float[] accentCol = cfg.color != null ? cfg.color : new float[]{1.0f, 0.2f, 0.2f, 1.0f};
+        renderer.getPrimitivesRenderer().renderRect(plaqueX, plaqueY, plaqueWidth, 2, sw, sh, accentCol[0], accentCol[1], accentCol[2], accentCol[3] * alpha);
+
+        // 3. Render Blueprint Icon
+        int textX = plaqueX + padding;
         if (activeAlert.blueprint != null) {
             int iconSize = (int)(fontSize * 1.5f);
-            renderer.getBlueprintRenderer().render(activeAlert.blueprint, pos[0] - iconSize - 10, pos[1] - (iconSize - fontSize) / 2, iconSize, sw, sh, new float[]{1.0f});
+            int iconX = plaqueX + padding;
+            int iconY = plaqueY + (plaqueHeight - iconSize) / 2;
+            renderer.getBlueprintRenderer().render(activeAlert.blueprint, iconX, iconY, iconSize, sw, sh, new float[]{1.0f});
+            textX += iconSize + 10;
         }
 
         renderer.setupUIProjection(sw, sh);
 
-        float[] color = cfg.color != null ? cfg.color : new float[]{1.0f, 0.2f, 0.2f, 1.0f};
-        renderer.getFontRenderer().drawString(activeAlert.message, pos[0], pos[1], fontSize, sw, sh, color[0], color[1], color[2], alpha * color[3]);
+        // 4. Render Message
+        int textY = plaqueY + (plaqueHeight - fontSize) / 2;
+        if (cfg.textShadow) {
+            renderer.getPrimitivesRenderer().renderTextWithShadow(activeAlert.message, textX, textY, fontSize, sw, sh, 1.0f, 1.0f, 1.0f, alpha);
+        } else {
+            renderer.getFontRenderer().drawString(activeAlert.message, textX, textY, fontSize, sw, sh, 1.0f, 1.0f, 1.0f, alpha);
+        }
     }
 
     private static class PickupNote {

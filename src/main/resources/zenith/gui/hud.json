@@ -10,7 +10,10 @@
       "x": "0px",
       "y": "-85px",
       "fontSize": 22,
-      "color": [1.0, 1.0, 1.0, 1.0]
+      "color": [1.0, 1.0, 1.0, 1.0],
+      "textShadow": true,
+      "useGradient": true,
+      "backgroundColor": [0.0, 0.0, 0.0, 0.5]
     },
     "health": {
       "type": "bar",
@@ -83,7 +86,10 @@
       "x": "20px",
       "y": "0px",
       "fontSize": 16,
-      "spacing": 25
+      "spacing": 25,
+      "textShadow": true,
+      "useGradient": true,
+      "backgroundColor": [0.0, 0.0, 0.0, 0.6]
     },
     "alerts": {
       "type": "text",
@@ -93,7 +99,9 @@
       "x": "0px",
       "y": "60px",
       "fontSize": 18,
-      "color": [1.0, 0.2, 0.2, 1.0]
+      "color": [1.0, 0.2, 0.2, 1.0],
+      "textShadow": true,
+      "backgroundColor": [0.02, 0.02, 0.02, 0.85]
     }
   }
 }
