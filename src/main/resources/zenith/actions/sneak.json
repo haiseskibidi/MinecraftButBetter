@@ -1,3 +1,7 @@
 {
-  "noiseLevel": 0.02
+  "staminaCostPerSecond": 0.0,
+  "staminaCostPerUse": 0.0,
+  "noiseLevel": 0.02,
+  "hungerCostPerSecond": 0.0,
+  "hungerCostPerUse": 0.0
 }

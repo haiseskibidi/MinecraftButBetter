@@ -21,6 +21,10 @@ public class AnimationTrack {
         this.mirror = mirror;
     }
 
+    public void sort() {
+        keyframes.sort(Comparator.comparingDouble(Keyframe::time));
+    }
+
     public float evaluate(float t) {
         if (keyframes.isEmpty()) return 0.0f;
         if (t <= keyframes.get(0).time()) return keyframes.get(0).value();
@@ -39,16 +43,7 @@ public class AnimationTrack {
     }
 
     private float interpolate(float start, float end, float t, String easing) {
-        float easedT = switch (easing.toLowerCase()) {
-            case "sine" -> (float) (Math.sin(t * Math.PI / 2.0));
-            case "sine_pi" -> (float) (Math.sin(t * Math.PI));
-            case "smoothstep" -> t * t * (3 - 2 * t);
-            case "smootherstep" -> t * t * t * (t * (t * 6 - 15) + 10);
-            case "quad_in" -> t * t;
-            case "quad_out" -> 1.0f - (1.0f - t) * (1.0f - t);
-            case "linear" -> t;
-            default -> t;
-        };
+        float easedT = EasingRegistry.evaluate(easing, t);
         return start + (end - start) * easedT;
     }
 }

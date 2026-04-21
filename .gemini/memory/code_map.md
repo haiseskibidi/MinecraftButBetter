@@ -4,6 +4,7 @@
 ### src/main/resources/zenith/registry
 Назначение: Глобальные конфигурации и реестры данных.
 - `physics.json`: Физические параметры мира.
+- `easings.json`: (NEW) Реестр функций интерполяции (builtin, expressions, bezier).
 - `world.json`: Настройки времени, скорости цикла дня/ночи и цветов освещения (Sun/Moon/Ambient).
 - `celestial.json`: Визуальные параметры небесных тел (текстуры, масштаб, процедурные пиксельные сетки).
 - `wood_types.json`: Список пород деревьев.
@@ -28,9 +29,15 @@
 - **BlueprintRegistry.java**: Загрузка и кэширование чертежей.
 - **BlueprintRenderer.java**: Оркестратор рендеринга (SDF + Матрицы).
 
-### src/main/java/com/za/zenith/engine/graphics/model (UPDATED)
-- **ModelNode.java**: Узел скелета. Теперь имеет два состояния вращения: `animRotation` (Euler, v1) и `animRotationQuat` (Quaternion, v2).
+### com.za.zenith.entities.parkour.animation
+- **EasingRegistry.java**: (NEW) Ядро системы интерполяций. Запекает формулы из JSON в LUT для O(1) производительности.
+- **Keyframe.java**: (UPDATED) Модель ключевого кадра. Конвертирована в класс для поддержки рефлексии и гибкой сериализации.
+- **AnimationProfile.java**: (UPDATED) Контейнер анимации. Реализует `LiveReloadable` для авто-сортировки треков при редактировании.
+- **AnimationTrack.java**: (UPDATED) Отдельный канал анимации. Использует `EasingRegistry` для расчета значений.
 - **ViewmodelController.java**: Парсер треков. Отвечает за применение AnimationProfile. Внедрена система `Snapshot Buffer` для хранения прошлых поз и плавной `slerp`-интерполяции (Cross-fade) при смене анимаций или предметов.
+
+### com.za.zenith.engine.graphics.model
+- **ModelNode.java**: Узел скелета. Теперь имеет два состояния вращения: `animRotation` (Euler, v1) и `animRotationQuat` (Quaternion, v2).
 - **HeldItemRenderer.java**: Отрисовывает предметы в руках. Очищен от хардкода.
 - **ViewmodelRenderer.java**: Центрирует блоки математически точно в сокете (socket_palm), опираясь на параметры `ViewmodelComponent`.
 - **GripRegistry.java** / **GripDefinition.java**: Система Data-Driven пресетов для костей пальцев (например, `flat_sheet` для удержания блоков снизу).
@@ -296,6 +303,14 @@
 ### com.za.zenith.world.inventory.ItemInventory
 Назначение: Реализация `IInventory` для предметов-контейнеров (рюкзаки, мешочки).
 Функции: Позволяет предмету (`ItemStack`) хранить внутри себя другие предметы, поддерживает динамический размер из `BagComponent`, запрещает вложенность рюкзаков.
+
+### com.za.zenith.utils.math
+- **EasingFunctions.java**: (NEW) Статическая библиотека стандартных математических функций сглаживания.
+
+### com.za.zenith.engine.graphics.ui
+- **DevInspectorScreen.java**: (v3.2 UPDATED) Профессиональный редактор ресурсов (F9). Поддерживает Deep Traversal вложенных структур, персистентность состояния, авто-выбор интерполяций и автоматическое сохранение в JSON.
+- **EditorHistoryManager.java**: (NEW) Глобальный менеджер истории (Undo/Redo) для Инспектора.
+- **ScrollPanel.java**: Универсальный компонент прокрутки.
 
 ## Particle & Shard System (v1.0 NEW)
 ### com.za.zenith.world.particles

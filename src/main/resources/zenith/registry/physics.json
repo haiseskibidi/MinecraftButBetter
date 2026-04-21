@@ -4,6 +4,9 @@
   "sneakingHeight": 1.45,
   "standingEyeHeight": 1.62,
   "sneakingEyeHeight": 1.25,
+  "sprintMultiplier": 1.45,
+  "sneakSpeedMultiplier": 0.3,
+  "flySprintMultiplier": 1.8,
   "maxGrabHeight": 2.45,
   "minGrabHeight": 1.25,
   "grabDistance": 0.7,
@@ -11,9 +14,9 @@
   "jumpVelocity": 8.0,
   "baseMoveSpeed": 3.8,
   "flySpeed": 9.0,
-  "sprintMultiplier": 1.45,
-  "sneakSpeedMultiplier": 0.3,
   "baseMiningCooldown": 0.5,
   "mouseSensitivity": 0.002,
-  "flySprintMultiplier": 1.8
-  }
+  "itemAttractionRadius": 3.2,
+  "itemPickupRadius": 0.4,
+  "itemAttractionForce": 12.0
+}

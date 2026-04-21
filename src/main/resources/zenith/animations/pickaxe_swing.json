@@ -1,66 +1,270 @@
 {
-  "looping": false,
+  "name": "pickaxe_swing",
   "duration": 1.0,
+  "looping": false,
   "tracks": {
-    "item_pitch": [
-      [0.0, 0.0, "linear"],
-      [0.2, 20.0, "quad_out"],
-      [0.45, -70.0, "smootherstep"],
-      [0.6, -60.0, "sine"],
-      [1.0, 0.0, "smootherstep"]
-    ],
-    "item_x": [
-      [0.0, 0.0, "linear"],
-      [0.2, 1.0, "quad_out"],
-      [0.45, -1.5, "smootherstep"],
-      [1.0, 0.0, "smootherstep"]
-    ],
-    "item_y": [
-      [0.0, 0.0, "linear"],
-      [0.2, 3.5, "quad_out"],
-      [0.45, -4.0, "smootherstep"],
-      [0.6, -2.5, "sine"],
-      [1.0, 0.0, "smootherstep"]
-    ],
-    "item_z": [
-      [0.0, 0.0, "linear"],
-      [0.2, 4.0, "quad_out"],
-      [0.45, -6.0, "smootherstep"],
-      [0.6, -3.0, "sine"],
-      [1.0, 0.0, "smootherstep"]
-    ],
-    "item_yaw": [
-      [0.0, 0.0, "linear"],
-      [0.2, -10.0, "quad_out"],
-      [0.45, 10.0, "smootherstep"],
-      [1.0, 0.0, "smootherstep"]
-    ],
-    "shoulder_r:pitch": [
-      [0.0, 0.0, "linear"],
-      [0.2, 30.0, "quad_out"],
-      [0.45, -40.0, "smootherstep"],
-      [0.6, -30.0, "sine"],
-      [1.0, 0.0, "smootherstep"]
-    ],
-    "forearm_r:pitch": [
-      [0.0, 0.0, "linear"],
-      [0.2, -50.0, "quad_out"],
-      [0.45, 10.0, "smootherstep"],
-      [1.0, 0.0, "smootherstep"]
-    ],
-    "hand_r:pitch": [
-      [0.0, 0.0, "linear"],
-      [0.2, -20.0, "quad_out"],
-      [0.45, 15.0, "smootherstep"],
-      [0.6, 5.0, "sine"],
-      [1.0, 0.0, "smootherstep"]
-    ],
-    "camera_tilt": [
-      [0.0, 0.0, "linear"],
-      [0.2, -0.015, "quad_out"],
-      [0.45, 0.02, "smootherstep"],
-      [0.7, 0.0, "smootherstep"],
-      [1.0, 0.0, "linear"]
-    ]
-  }
+    "item_z": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 0.0,
+          "easing": "linear"
+        },
+        {
+          "time": 0.2,
+          "value": 4.0,
+          "easing": "quad_out"
+        },
+        {
+          "time": 0.45,
+          "value": -6.0,
+          "easing": "smootherstep"
+        },
+        {
+          "time": 0.6,
+          "value": -3.0,
+          "easing": "sine"
+        },
+        {
+          "time": 1.0,
+          "value": 0.0,
+          "easing": "smootherstep"
+        }
+      ],
+      "mirror": false
+    },
+    "item_y": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 0.0,
+          "easing": "linear"
+        },
+        {
+          "time": 0.2,
+          "value": 3.5,
+          "easing": "quad_out"
+        },
+        {
+          "time": 0.45,
+          "value": -4.0,
+          "easing": "smootherstep"
+        },
+        {
+          "time": 0.6,
+          "value": -2.5,
+          "easing": "sine"
+        },
+        {
+          "time": 1.0,
+          "value": 0.0,
+          "easing": "smootherstep"
+        }
+      ],
+      "mirror": false
+    },
+    "shoulder_r:pitch": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 0.0,
+          "easing": "linear"
+        },
+        {
+          "time": 0.2,
+          "value": 30.0,
+          "easing": "quad_out"
+        },
+        {
+          "time": 0.45,
+          "value": -40.0,
+          "easing": "smootherstep"
+        },
+        {
+          "time": 0.6,
+          "value": -30.0,
+          "easing": "sine"
+        },
+        {
+          "time": 1.0,
+          "value": 0.0,
+          "easing": "smootherstep"
+        }
+      ],
+      "mirror": false
+    },
+    "item_pitch": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 0.0,
+          "easing": "linear"
+        },
+        {
+          "time": 0.2,
+          "value": 20.0,
+          "easing": "quad_out"
+        },
+        {
+          "time": 0.45,
+          "value": -70.0,
+          "easing": "smootherstep"
+        },
+        {
+          "time": 0.6,
+          "value": -60.0,
+          "easing": "sine"
+        },
+        {
+          "time": 1.0,
+          "value": 0.0,
+          "easing": "smootherstep"
+        }
+      ],
+      "mirror": false
+    },
+    "item_x": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 0.0,
+          "easing": "linear"
+        },
+        {
+          "time": 0.2,
+          "value": 1.0,
+          "easing": "quad_out"
+        },
+        {
+          "time": 0.45,
+          "value": -1.5,
+          "easing": "smootherstep"
+        },
+        {
+          "time": 1.0,
+          "value": 0.0,
+          "easing": "smootherstep"
+        }
+      ],
+      "mirror": false
+    },
+    "item_yaw": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 0.0,
+          "easing": "linear"
+        },
+        {
+          "time": 0.2,
+          "value": -10.0,
+          "easing": "quad_out"
+        },
+        {
+          "time": 0.45,
+          "value": 10.0,
+          "easing": "smootherstep"
+        },
+        {
+          "time": 1.0,
+          "value": 0.0,
+          "easing": "smootherstep"
+        }
+      ],
+      "mirror": false
+    },
+    "forearm_r:pitch": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 0.0,
+          "easing": "linear"
+        },
+        {
+          "time": 0.2,
+          "value": -50.0,
+          "easing": "quad_out"
+        },
+        {
+          "time": 0.45,
+          "value": 10.0,
+          "easing": "smootherstep"
+        },
+        {
+          "time": 1.0,
+          "value": 0.0,
+          "easing": "smootherstep"
+        }
+      ],
+      "mirror": false
+    },
+    "camera_tilt": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 0.0,
+          "easing": "linear"
+        },
+        {
+          "time": 0.2,
+          "value": -0.015,
+          "easing": "quad_out"
+        },
+        {
+          "time": 0.45,
+          "value": 0.02,
+          "easing": "smootherstep"
+        },
+        {
+          "time": 0.7,
+          "value": 0.0,
+          "easing": "smootherstep"
+        },
+        {
+          "time": 1.0,
+          "value": 0.0,
+          "easing": "linear"
+        }
+      ],
+      "mirror": false
+    },
+    "hand_r:pitch": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 0.0,
+          "easing": "linear"
+        },
+        {
+          "time": 0.2,
+          "value": -20.0,
+          "easing": "quad_out"
+        },
+        {
+          "time": 0.45,
+          "value": 15.0,
+          "easing": "smootherstep"
+        },
+        {
+          "time": 0.6,
+          "value": 5.0,
+          "easing": "sine"
+        },
+        {
+          "time": 1.0,
+          "value": 0.0,
+          "easing": "smootherstep"
+        }
+      ],
+      "mirror": false
+    }
+  },
+  "pathType": "linear",
+  "pathInterpolation": "linear",
+  "apexYOffset": 0.0,
+  "jitterEnabled": false,
+  "jitterStart": 0.0,
+  "jitterEnd": 1.0,
+  "jitterIntensity": 0.0,
+  "version": 1
 }

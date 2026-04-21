@@ -12,6 +12,13 @@ public class AnimationProfile implements com.za.zenith.utils.LiveReloadable {
     @Override
     public void setSourcePath(String path) { this.sourcePath = path; }
 
+    @Override
+    public void onLiveReload() {
+        for (AnimationTrack track : tracks.values()) {
+            track.sort();
+        }
+    }
+
     private final String name;
     private float duration = 0.5f;
     private String durationKey = null;

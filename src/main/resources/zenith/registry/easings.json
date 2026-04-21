@@ -1,0 +1,26 @@
+{
+  "linear": { "type": "builtin" },
+  "sine": { "type": "builtin" },
+  "sine_pi": { "type": "builtin" },
+  "smoothstep": { "type": "builtin" },
+  "smootherstep": { "type": "builtin" },
+  "quad_in": { "type": "builtin" },
+  "quad_out": { "type": "builtin" },
+  "quad_in_out": { "type": "builtin" },
+  "cubic_in": { "type": "builtin" },
+  "cubic_out": { "type": "builtin" },
+  "cubic_in_out": { "type": "builtin" },
+  "back_in": { "type": "builtin" },
+  "back_out": { "type": "builtin" },
+  "elastic_out": { "type": "builtin" },
+  "bounce_out": { "type": "builtin" },
+  
+  "standard_bezier": {
+    "type": "bezier",
+    "points": [0.42, 0.0, 0.58, 1.0]
+  },
+  "sharp_swing": {
+    "type": "expression",
+    "formula": "t * t * (2 - t)"
+  }
+}

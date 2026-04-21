@@ -33,6 +33,11 @@ import java.util.List;
 
 public class DataLoader {
     private static final Gson GSON = new Gson();
+    private static final java.util.Map<String, String> factorySnapshots = new java.util.HashMap<>();
+
+    public static String getSnapshot(String path) {
+        return factorySnapshots.get(path);
+    }
 
     public static void loadAll() {
         // Гарантируем наличие AIR как ID 0
@@ -41,6 +46,7 @@ public class DataLoader {
         BlockRegistry.registerBlock(airDef);
         
         List<String> namespaces = loadNamespaces();
+        com.za.zenith.entities.parkour.animation.EasingRegistry.init();
         for (String ns : namespaces) {
             loadBlocks(ns);
         }
@@ -107,33 +113,39 @@ public class DataLoader {
         loadSkySettings();
     }
 
+    private static String readAndSnapshot(String path) {
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path)) {
+            if (is == null) return null;
+            String rawJson = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            factorySnapshots.put(path, rawJson);
+            return rawJson;
+        } catch (Exception e) {
+            Logger.error("Failed to read and snapshot " + path + ": " + e.getMessage());
+            return null;
+        }
+    }
+
     private static void loadSkySettings() {
         String path = "zenith/registry/celestial.json";
-        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path)) {
-            if (is == null) return;
-            com.za.zenith.engine.graphics.SkySettings settings = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), com.za.zenith.engine.graphics.SkySettings.class);
-            if (settings != null) {
-                settings.setSourcePath(path);
-                com.za.zenith.engine.graphics.SkySettings.setInstance(settings);
-                Logger.info("Loaded sky settings");
-            }
-        } catch (Exception e) {
-            Logger.error("Failed to load sky settings: " + e.getMessage());
+        String raw = readAndSnapshot(path);
+        if (raw == null) return;
+        com.za.zenith.engine.graphics.SkySettings settings = GSON.fromJson(raw, com.za.zenith.engine.graphics.SkySettings.class);
+        if (settings != null) {
+            settings.setSourcePath(path);
+            com.za.zenith.engine.graphics.SkySettings.setInstance(settings);
+            Logger.info("Loaded sky settings");
         }
     }
 
     private static void loadWorldSettings() {
         String path = "zenith/registry/world.json";
-        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path)) {
-            if (is == null) return;
-            com.za.zenith.world.WorldSettings settings = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), com.za.zenith.world.WorldSettings.class);
-            if (settings != null) {
-                settings.setSourcePath(path);
-                com.za.zenith.world.WorldSettings.setInstance(settings);
-                Logger.info("Loaded world settings");
-            }
-        } catch (Exception e) {
-            Logger.error("Failed to load world settings: " + e.getMessage());
+        String raw = readAndSnapshot(path);
+        if (raw == null) return;
+        com.za.zenith.world.WorldSettings settings = GSON.fromJson(raw, com.za.zenith.world.WorldSettings.class);
+        if (settings != null) {
+            settings.setSourcePath(path);
+            com.za.zenith.world.WorldSettings.setInstance(settings);
+            Logger.info("Loaded world settings");
         }
     }
 
@@ -141,16 +153,14 @@ public class DataLoader {
         List<String> actionNames = listResources(namespace + "/actions");
         for (String name : actionNames) {
             String path = namespace + "/actions/" + name + ".json";
-            try (java.io.InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path)) {
-                if (is == null) {
-                    com.za.zenith.utils.Logger.warn("Action file not found: " + path);
-                    continue;
-                }
-                com.za.zenith.world.actions.ActionDefinition def = GSON.fromJson(new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8), com.za.zenith.world.actions.ActionDefinition.class);
+            String raw = readAndSnapshot(path);
+            if (raw == null) continue;
+            try {
+                com.za.zenith.world.actions.ActionDefinition def = GSON.fromJson(raw, com.za.zenith.world.actions.ActionDefinition.class);
                 def.setSourcePath(path);
                 com.za.zenith.world.actions.ActionRegistry.register(com.za.zenith.utils.Identifier.of(namespace + ":" + name), def);
             } catch (Exception e) {
-                com.za.zenith.utils.Logger.error("Failed to load action " + path + ": " + e.getMessage());
+                Logger.error("Failed to load action " + path + ": " + e.getMessage());
             }
         }
     }
@@ -159,9 +169,10 @@ public class DataLoader {
         List<String> files = listResources("zenith/animations");
         for (String fileName : files) {
             String path = "zenith/animations/" + fileName + ".json";
-            try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path)) {
-                if (is == null) continue;
-                JsonObject animObj = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonObject.class);
+            String raw = readAndSnapshot(path);
+            if (raw == null) continue;
+            try {
+                JsonObject animObj = GSON.fromJson(raw, JsonObject.class);
                 com.za.zenith.entities.parkour.animation.AnimationProfile anim = new com.za.zenith.entities.parkour.animation.AnimationProfile(fileName);
                 anim.setSourcePath(path);
                 
@@ -200,12 +211,16 @@ public class DataLoader {
                         }
                         
                         for (com.google.gson.JsonElement ke : keys) {
-                            JsonArray ka = ke.getAsJsonArray();
-                            track.addKeyframe(new com.za.zenith.entities.parkour.animation.Keyframe(
-                                ka.get(0).getAsFloat(),
-                                ka.get(1).getAsFloat(),
-                                ka.get(2).getAsString()
-                            ));
+                            if (ke.isJsonArray()) {
+                                JsonArray ka = ke.getAsJsonArray();
+                                track.addKeyframe(new com.za.zenith.entities.parkour.animation.Keyframe(
+                                    ka.get(0).getAsFloat(),
+                                    ka.get(1).getAsFloat(),
+                                    ka.get(2).getAsString()
+                                ));
+                            } else if (ke.isJsonObject()) {
+                                track.addKeyframe(GSON.fromJson(ke, com.za.zenith.entities.parkour.animation.Keyframe.class));
+                            }
                         }
                         anim.addTrack(trackKey, track);
                     }
@@ -219,10 +234,13 @@ public class DataLoader {
     }
 
     private static void loadPhysicsSettings() {
-        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("zenith/registry/physics.json")) {
-            if (is == null) return;
-            com.za.zenith.world.physics.PhysicsSettings settings = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), com.za.zenith.world.physics.PhysicsSettings.class);
+        String path = "zenith/registry/physics.json";
+        String raw = readAndSnapshot(path);
+        if (raw == null) return;
+        try {
+            com.za.zenith.world.physics.PhysicsSettings settings = GSON.fromJson(raw, com.za.zenith.world.physics.PhysicsSettings.class);
             if (settings != null) {
+                settings.setSourcePath(path);
                 com.za.zenith.world.physics.PhysicsSettings.setInstance(settings);
                 Logger.info("Loaded physics settings");
             }
@@ -511,7 +529,15 @@ public class DataLoader {
         List<String> files = listResources(namespace + "/entities");
         if (!files.isEmpty()) {
             for (String file : files) {
-                loadResource(namespace + "/entities/" + file, DataLoader::parseEntityDefinition);
+                String path = namespace + "/entities/" + file;
+                String raw = readAndSnapshot(path);
+                if (raw == null) continue;
+                try {
+                    JsonElement root = GSON.fromJson(raw, JsonElement.class);
+                    parseEntityDefinition(root);
+                } catch (Exception e) {
+                    Logger.error("Failed to load entity definition " + path + ": " + e.getMessage());
+                }
             }
             Logger.info("Loaded entity definitions for namespace: " + namespace);
         }
@@ -709,7 +735,9 @@ public class DataLoader {
     private static void loadResource(String path, java.util.function.Consumer<JsonElement> parser) {
         try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path)) {
             if (is == null) return;
-            JsonElement root = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonElement.class);
+            String rawJson = new String(is.readAllBytes(), StandardCharsets.UTF_8);
+            factorySnapshots.put(path, rawJson);
+            JsonElement root = GSON.fromJson(rawJson, JsonElement.class);
             if (root.isJsonArray()) {
                 for (JsonElement el : root.getAsJsonArray()) {
                     parser.accept(el);
