@@ -100,6 +100,10 @@
 4. **Stylized AAA Post-Stack**:
     - **FXAA + Stylized effects**: Combined anti-aliasing with Vignette, Fog, and Vibrance in a single pass.
     - **Viewmodel Depth Mapping**: Uses `glDepthRange` to overlay hands into the depth-aware post-stack without clearing buffer.
+5. **Notification & UI Overlay Pipeline (NEW)**:
+    - **Buffer Reset**: Принудительный вызов `glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)` перед отрисовкой HUD и экранов. Это гарантирует отсутствие артефактов накопления кадров ("шлейфов") на прозрачных оверлеях.
+    - **Projection Isolation**: Метод `setupUIProjection` сбрасывает стейт шейдера (`isSlot = 0`, `uvScale = 1.0`), предотвращая утечку состояний между разными типами UI-элементов (шрифт, иконки, SDF-фигуры).
+    - **Data-Driven Positioning**: Координаты уведомлений рассчитываются динамически через `HUDRenderer.calculateElementPos` на основе конфигурации из `hud.json`.
 
 ### Classic Voxel Particle System (v2.0 NEW)
 1. **Billboard Quad Primitive**:

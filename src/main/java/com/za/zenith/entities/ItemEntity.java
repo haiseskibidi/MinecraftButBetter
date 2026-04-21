@@ -41,7 +41,7 @@ public class ItemEntity extends Entity {
         Player player = world.getPlayer();
         
         // 1. MAGNETIC OPTIMIZATION
-        if (canBePickedUp() && player != null) {
+        if (canBePickedUp() && player != null && !player.getInventory().isFull()) {
             Vector3f playerCenter = new Vector3f(player.getPosition());
             playerCenter.y += player.getHeight() * 0.5f;
             float distSq = position.distanceSquared(playerCenter);

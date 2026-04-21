@@ -82,7 +82,7 @@ public class StumpBlockDefinition extends BlockDefinition {
         // 1. Снятие предмета (Shift + ПКМ)
         if (player.isSneaking()) {
             if (inSlot != null) {
-                player.getInventory().addItem(inSlot);
+                player.getInventory().addItem(inSlot, true);
                 surface.setStackInSlot(slot, null);
                 surface.resetProgress();
                 return true;

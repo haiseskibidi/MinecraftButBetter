@@ -74,6 +74,26 @@
       "width": 180,
       "height": 180,
       "visible": true
+    },
+    "pickups": {
+      "type": "text",
+      "anchor": "left",
+      "alignX": "left",
+      "alignY": "center",
+      "x": "20px",
+      "y": "0px",
+      "fontSize": 16,
+      "spacing": 25
+    },
+    "alerts": {
+      "type": "text",
+      "anchor": "top_center",
+      "alignX": "center",
+      "alignY": "top",
+      "x": "0px",
+      "y": "60px",
+      "fontSize": 18,
+      "color": [1.0, 0.2, 0.2, 1.0]
     }
   }
 }

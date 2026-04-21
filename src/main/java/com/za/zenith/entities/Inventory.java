@@ -95,8 +95,11 @@ public class Inventory implements IInventory {
     }
 
     public boolean isFull() {
-        for (int i = 0; i < START_EQUIPMENT; i++) {
-            if (slots[i] == null) return false;
+        for (SlotGroup group : groups) {
+            if (!group.isActive() || group.getId().equals("equipment")) continue;
+            for (com.za.zenith.entities.inventory.Slot slot : group.getSlots()) {
+                if (slot.getStack() == null) return false;
+            }
         }
         return true;
     }
@@ -252,9 +255,9 @@ public class Inventory implements IInventory {
         int addedCount = originalCount - stack.getCount();
         if (addedCount > 0) {
             if (isFromWorld) {
-                ItemStack addedStack = stack.copy();
-                addedStack.setCount(addedCount);
-                com.za.zenith.engine.graphics.ui.NotificationManager.getInstance().pushPickup(addedStack);
+                ItemStack notifyStack = stack.copy();
+                notifyStack.setCount(addedCount);
+                com.za.zenith.engine.graphics.ui.NotificationManager.getInstance().pushPickup(notifyStack);
                 
                 if (isFull() && stack.getCount() > 0) {
                     com.za.zenith.engine.graphics.ui.NotificationTriggers.getInstance().onInventoryFull();

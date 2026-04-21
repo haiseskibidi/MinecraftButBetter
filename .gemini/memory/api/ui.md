@@ -105,10 +105,36 @@
 
 ---
 
-## 4. Survivor's Tablet (Дневник)
+## 7. Notification System (v2.0 NEW)
+Централизованная система для подбора предметов и статусных алертов.
+
+### 7.1. NotificationManager
+- **pushPickup(ItemStack)**: Добавляет уведомление о подборе. Автоматически суммирует количество, если предмет того же типа уже отображается.
+- **pushAlert(String message, Identifier blueprint, float duration)**: Выводит высокоприоритетный баннер с иконкой чертежа.
+- **render(UIRenderer, sw, sh)**: Интегрирован в `HUDRenderer`. Использует `setupUIProjection` для гарантии изоляции стейта шейдера.
+
+### 7.2. Data-Driven HUD Integration
+Уведомления настраиваются в `hud.json`:
+- **"pickups"**: Список предметов (рекомендуется `anchor: left`).
+  - `fontSize`: Размер шрифта.
+  - `spacing`: Вертикальный отступ между строками.
+- **"alerts"**: Баннеры (рекомендуется `anchor: top_center`).
+  - `color`: RGBA массив для текста алертов.
+
+### 7.3. Triggers
+Условия срабатывания (`NotificationTriggers`):
+- **onInventoryFull()**: Срабатывает при попытке подбора в заполненный инвентарь (включая сумки).
+- **checkDurability(ItemStack)**: Срабатывает при < 15% прочности предмета (с кулдауном 60с из `triggers.json`).
 Модульная система обучения.
 
-### 4.1. Алгоритм добавления статьи:
+---
+
+---
+
+## 8. Survivor's Tablet (Дневник)
+Модульная система обучения.
+
+### 8.1. Алгоритм добавления статьи:
 1. Создать JSON в `journal/entries/`.
 2. Добавить имя в `.index` этого каталога.
 3. Добавить Identifier в массив `entries` категории в `journal/categories/`.
@@ -127,3 +153,4 @@
   ]
 }
 ```
+

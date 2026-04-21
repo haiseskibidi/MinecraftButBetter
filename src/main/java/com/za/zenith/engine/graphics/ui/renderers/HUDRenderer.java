@@ -38,7 +38,7 @@ public class HUDRenderer {
         return null;
     }
 
-    private int[] calculateElementPos(GUIConfig.HUDElementConfig cfg, int sw, int sh, int width, int height) {
+    public static int[] calculateElementPos(GUIConfig.HUDElementConfig cfg, int sw, int sh, int width, int height) {
         int baseX = sw / 2, baseY = sh / 2;
         String anchor = cfg.anchor.toLowerCase();
         if (anchor.contains("top")) baseY = 0;

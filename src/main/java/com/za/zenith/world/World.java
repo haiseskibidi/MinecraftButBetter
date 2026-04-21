@@ -223,7 +223,7 @@ public class World {
             entity.update(deltaTime, this);
             
             // Item Pickup logic
-            if (!inventoryFull && entity instanceof com.za.zenith.entities.ItemEntity itemEntity) {
+            if (entity instanceof com.za.zenith.entities.ItemEntity itemEntity) {
                 if (player != null && itemEntity.canBePickedUp()) {
                     float pickupRadius = com.za.zenith.world.physics.PhysicsSettings.getInstance().itemPickupRadius;
                     
@@ -237,14 +237,17 @@ public class World {
                     float effectiveRadius = isMagnetic ? pickupRadius * 1.5f : pickupRadius;
                     
                     if (distSq < effectiveRadius * effectiveRadius || player.getBoundingBox().intersects(itemEntity.getBoundingBox())) {
-                        if (player.getInventory().addItem(itemEntity.getStack())) {
-                            entities.remove(i);
+                        if (itemEntity.isRemoved()) continue; // Skip if already handled this frame
+                        
+                        if (inventoryFull) {
+                             com.za.zenith.engine.graphics.ui.NotificationTriggers.getInstance().onInventoryFull();
+                        } else if (player.getInventory().addItem(itemEntity.getStack(), true)) {
+                            itemEntity.setRemoved();
                             com.za.zenith.utils.Logger.info("Picked up item: %s", itemEntity.getStack().getItem().getName());
-                            // Re-check fullness after adding
                             inventoryFull = player.getInventory().isFull();
                             continue;
                         } else {
-                            inventoryFull = true; // Inventory became full
+                            inventoryFull = true; 
                         }
                     }
                 }

@@ -882,7 +882,7 @@ public class InputManager {
                 } else if (isNewLeftClick && hitEntity instanceof com.za.zenith.entities.ItemEntity itemEntity) {
                     if (!player.isSwinging()) {
                         player.interact(PhysicsSettings.getInstance().baseMiningCooldown);
-                        if (player.getInventory().addItem(itemEntity.getStack())) {
+                        if (player.getInventory().addItem(itemEntity.getStack(), true)) {
                             itemEntity.setRemoved();
                             com.za.zenith.utils.Logger.info("Picked up item %s", itemEntity.getStack().getItem().getName());
                         }

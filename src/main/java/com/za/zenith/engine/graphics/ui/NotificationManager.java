@@ -28,16 +28,24 @@ public class NotificationManager {
     }
 
     /**
-     * Pushes a new item pickup notification. Merges with existing if possible.
+     * Pushes a new item pickup notification.
      */
     public void pushPickup(ItemStack stack) {
         if (stack == null || stack.getCount() <= 0) return;
 
-        for (PickupNote note : pickupNotes) {
-            if (note.item == stack.getItem()) {
-                note.count += stack.getCount();
-                note.timer = 4.0f; // Reset timer
-                return;
+        // Traverse backwards to find the most recent notification for this item type
+        for (int i = pickupNotes.size() - 1; i >= 0; i--) {
+            PickupNote note = pickupNotes.get(i);
+            if (note.item.getId() == stack.getItem().getId()) {
+                // If the item was picked up recently, stack it with the existing notification
+                if (note.timeSinceLastAdd < 1.0f) {
+                    note.count += stack.getCount();
+                    note.timer = 4.0f; // Reset display timer
+                    note.timeSinceLastAdd = 0.0f; // Reset accumulation window
+                    return;
+                }
+                // If older than accumulation window, break to create a NEW notification
+                break;
             }
         }
 
@@ -57,6 +65,7 @@ public class NotificationManager {
         while (it.hasNext()) {
             PickupNote note = it.next();
             note.timer -= dt;
+            note.timeSinceLastAdd += dt;
             if (note.timer <= 0) {
                 it.remove();
             }
@@ -72,14 +81,26 @@ public class NotificationManager {
     }
 
     public void render(UIRenderer renderer, int sw, int sh) {
-        renderPickups(renderer, sw, sh);
-        renderAlert(renderer, sw, sh);
+        com.za.zenith.utils.Identifier hudId = com.za.zenith.utils.Identifier.of("zenith:hud");
+        GUIConfig config = GUIRegistry.get(hudId);
+        if (config == null || config.hudElements == null) return;
+
+        renderPickups(renderer, sw, sh, config.hudElements.get("pickups"));
+        renderAlert(renderer, sw, sh, config.hudElements.get("alerts"));
     }
 
-    private void renderPickups(UIRenderer renderer, int sw, int sh) {
-        int x = sw - 20;
-        int y = sh - 100; // Above hotbar
-        int spacing = 20;
+    private void renderPickups(UIRenderer renderer, int sw, int sh, GUIConfig.HUDElementConfig cfg) {
+        if (cfg == null || !cfg.visible || pickupNotes.isEmpty()) return;
+
+        int fontSize = cfg.fontSize;
+        int spacing = cfg.spacing; 
+        
+        // Calculate base position (anchor + x/y offset from JSON)
+        int[] basePos = com.za.zenith.engine.graphics.ui.renderers.HUDRenderer.calculateElementPos(cfg, sw, sh, 100, fontSize);
+        int x = basePos[0];
+        int y = basePos[1];
+
+        renderer.setupUIProjection(sw, sh);
 
         for (int i = 0; i < pickupNotes.size(); i++) {
             PickupNote note = pickupNotes.get(i);
@@ -88,24 +109,44 @@ public class NotificationManager {
             String pluralName = getPluralName(note.item, note.count);
             String text = "+" + note.count + " " + pluralName;
             
-            int textWidth = renderer.getFontRenderer().getStringWidth(text, 14);
-            renderer.getFontRenderer().drawString(text, x - textWidth, y - i * spacing, 14, sw, sh, 1.0f, 1.0f, 1.0f, alpha);
+            int textWidth = renderer.getFontRenderer().getStringWidth(text, fontSize);
+            
+            int renderX = x;
+            if (cfg.alignX.equals("right")) renderX = x - textWidth;
+            else if (cfg.alignX.equals("center")) renderX = x - textWidth / 2;
+
+            // Grow downwards from the anchor point if it's top/center, or upwards if it's bottom
+            int renderY = y;
+            if (cfg.anchor.contains("top") || cfg.anchor.equals("center") || cfg.anchor.equals("left")) {
+                renderY = y + i * spacing;
+            } else {
+                renderY = y - i * spacing;
+            }
+
+            renderer.getFontRenderer().drawString(text, renderX, renderY, fontSize, sw, sh, 1.0f, 1.0f, 1.0f, alpha);
         }
     }
 
-    private void renderAlert(UIRenderer renderer, int sw, int sh) {
-        if (activeAlert == null) return;
+    private void renderAlert(UIRenderer renderer, int sw, int sh, GUIConfig.HUDElementConfig cfg) {
+        if (activeAlert == null || cfg == null || !cfg.visible) return;
 
         float alpha = Math.min(1.0f, activeAlert.timer * 2.0f);
-        int y = 60;
+        int fontSize = cfg.fontSize;
+        
+        int textWidth = renderer.getFontRenderer().getStringWidth(activeAlert.message, fontSize);
+        int[] pos = com.za.zenith.engine.graphics.ui.renderers.HUDRenderer.calculateElementPos(cfg, sw, sh, textWidth, fontSize);
         
         // Render blueprint icon
         if (activeAlert.blueprint != null) {
-            renderer.getBlueprintRenderer().render(activeAlert.blueprint, sw / 2 - 80, y - 10, 30, sw, sh, new float[]{1.0f});
+            int iconSize = (int)(fontSize * 1.5f);
+            renderer.getBlueprintRenderer().render(activeAlert.blueprint, pos[0] - iconSize - 10, pos[1] - (iconSize - fontSize) / 2, iconSize, sw, sh, new float[]{1.0f});
         }
 
-        int textWidth = renderer.getFontRenderer().getStringWidth(activeAlert.message, 18);
-        renderer.getFontRenderer().drawString(activeAlert.message, (sw - textWidth) / 2, y, 18, sw, sh, 1.0f, 0.2f, 0.2f, alpha);
+        // Reset state after blueprint renderer which uses its own shader
+        renderer.setupUIProjection(sw, sh);
+
+        float[] color = cfg.color != null ? cfg.color : new float[]{1.0f, 0.2f, 0.2f, 1.0f};
+        renderer.getFontRenderer().drawString(activeAlert.message, pos[0], pos[1], fontSize, sw, sh, color[0], color[1], color[2], alpha * color[3]);
     }
 
     /**
@@ -114,11 +155,22 @@ public class NotificationManager {
     private String getPluralName(Item item, int count) {
         String baseKey = item.getIdentifier().toString().replace(":", ".");
         int form = getRussianPluralForm(count);
-        String key = "item." + baseKey + "." + form;
         
-        String translated = I18n.get(key);
-        // Fallback to base name if specific plural form is missing
-        return translated.equals(key) ? item.getName() : translated;
+        // 1. Try item prefix (item.zenith.oak_log.1)
+        String itemKey = "item." + baseKey + "." + form;
+        String translated = I18n.get(itemKey);
+        
+        // 2. Try block prefix (block.zenith.oak_log.1) if item key failed
+        if (translated.equals(itemKey)) {
+            String blockKey = "block." + baseKey + "." + form;
+            translated = I18n.get(blockKey);
+            if (translated.equals(blockKey)) {
+                // 3. Fallback to original item name (which should already be capitalized in JSON)
+                return item.getName();
+            }
+        }
+        
+        return translated;
     }
 
     private int getRussianPluralForm(int n) {
@@ -134,6 +186,7 @@ public class NotificationManager {
         Item item;
         int count;
         float timer = 4.0f;
+        float timeSinceLastAdd = 0.0f;
 
         PickupNote(Item item, int count) {
             this.item = item;

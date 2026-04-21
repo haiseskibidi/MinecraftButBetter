@@ -39,6 +39,7 @@ public class GUIConfig {
         public Object x = 0;
         public Object y = 0;
         public int fontSize = 18;
+        public int spacing = 20;
         public int minFontSize = 12;
         public int maxWidth = 300;
         public int width = 100;
@@ -78,6 +79,7 @@ public class GUIConfig {
         public int cols = 1;       // For grid type
         public int rows = 1;       // For grid type (can be auto if -1)
         public int spacing = 2;
+        public int padding = 0;
         public String inventorySource = "player"; // "player" or "container"
         public int startIndex = 0;
         public int slotsCount = -1; // -1 means use all available slots starting from startIndex
@@ -88,8 +90,8 @@ public class GUIConfig {
         // Custom dimensions for special group types
         public int width = 0;
         public int height = 0;
-        public int padding = 0;
         public int textSize = 14;
+        public int fontSize = 14; // Compatibility with both names
         public BackgroundConfig background;
     }
 
