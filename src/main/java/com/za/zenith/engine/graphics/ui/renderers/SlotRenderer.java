@@ -160,6 +160,9 @@ public class SlotRenderer {
             tex.bind();
             uiShader.setInt("useTexture", 1);
             uiShader.setInt("isGrayscale", 1);
+            uiShader.setInt("isSlot", 0); 
+            uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+            uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
             uiShader.setUniform("scale", gsX, gsY, 0.0f, 0.0f);
             uiShader.setUniform("position_offset", gpX, gpY, 0.0f, 0.0f);
             uiShader.setUniform("tintColor", 1.0f, 1.0f, 1.0f, 0.4f); 

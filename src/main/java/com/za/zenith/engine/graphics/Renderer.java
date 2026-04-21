@@ -282,6 +282,7 @@ public class Renderer {
         
         // 3. APPLY POST-PROCESSING AND UI
         glViewport(0, 0, window.getWidth(), window.getHeight());
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // Don't double-smooth: if we use Hardware MSAA, we don't need FXAA blur on top
         boolean finalFXAA = fxaaEnabled && msaaFramebuffer.getSamples() <= 1;

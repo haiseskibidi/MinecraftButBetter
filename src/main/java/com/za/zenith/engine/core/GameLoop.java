@@ -311,19 +311,19 @@ public class GameLoop {
 
         renderer.render(window, camera, world, highlightedBlock, networkClient, alpha, deltaTime);
         
-        if (inventoryOpen) renderer.getUIRenderer().renderInventory(window.getWidth(), window.getHeight(), renderer.getAtlas());
-        else if (currentNappingSession != null) com.za.zenith.engine.graphics.ui.NappingGUI.render(renderer.getUIRenderer(), window.getWidth(), window.getHeight(), currentNappingSession);
+        if (currentNappingSession != null) com.za.zenith.engine.graphics.ui.NappingGUI.render(renderer.getUIRenderer(), window.getWidth(), window.getHeight(), currentNappingSession);
         
         renderer.getUIRenderer().renderHUDOverlay(window.getWidth(), window.getHeight());
         renderer.getUIRenderer().renderLootboxOpening(window.getWidth(), window.getHeight());
-        
-        // Render Active Screen (like Pause Menu) at the very end
-        if (active != null && !active.isScene() && !inventoryOpen) {
+
+        // Render Active Screen (like Pause Menu) or Inventory
+        if (inventoryOpen) {
+            renderer.getUIRenderer().renderInventory(window.getWidth(), window.getHeight(), renderer.getAtlas());
+        } else if (active != null && !active.isScene()) {
             renderer.getUIRenderer().renderPauseMenu(window.getWidth(), window.getHeight(), renderer.getAtlas());
         }
 
-        renderer.renderDebug(currentFps, window.getWidth(), window.getHeight());
-        
+        renderer.renderDebug(currentFps, window.getWidth(), window.getHeight());        
         window.update();
     }
     
