@@ -92,10 +92,18 @@ public class InventoryScreenRenderer {
                 }
             }
 
-            if (player.getMode() == PlayerMode.DEVELOPER) {
-                int spacing = (int)(2 * Hotbar.HOTBAR_SCALE);
-                int devX = screenWidth - (7 * (slotSize + spacing)) - 25;
-                renderDeveloperPanel(devX, 64, slotSize, spacing, screenWidth, screenHeight, atlas);
+            if (player.getMode() == PlayerMode.DEVELOPER && activeScreen instanceof com.za.zenith.engine.graphics.ui.PlayerInventoryScreen pScreen) {
+                for (com.za.zenith.engine.graphics.ui.GroupUI group : pScreen.getGroupsUI()) {
+                    if ("developer_items".equals(group.getConfig().type)) {
+                        int devX = group.getX();
+                        int startY = group.getY();
+                        int cols = group.getConfig().cols > 0 ? group.getConfig().cols : 7;
+                        int rows = group.getConfig().rows > 0 ? group.getConfig().rows : 14;
+                        int spacing = group.getConfig().spacing;
+                        
+                        renderDeveloperPanel(devX, startY, cols, rows, slotSize, spacing, screenWidth, screenHeight, atlas, group.getConfig());
+                    }
+                }
             }
 
             ItemStack held = GameLoop.getInstance().getInputManager().getHeldStack();
@@ -134,10 +142,8 @@ public class InventoryScreenRenderer {
         return allItems;
     }
 
-    public void renderDeveloperPanel(int devX, int startY, int slotSize, int spacing, int sw, int sh, com.za.zenith.engine.graphics.DynamicTextureAtlas atlas) {
-        int cols = 7;
-        int rows = 14; 
-        int padding = 12;
+    public void renderDeveloperPanel(int devX, int startY, int cols, int rows, int slotSize, int spacing, int sw, int sh, com.za.zenith.engine.graphics.DynamicTextureAtlas atlas, com.za.zenith.engine.graphics.ui.GUIConfig.GroupConfig config) {
+        int padding = config.background != null ? config.background.padding : 12;
         int searchHeight = 24;
         
         int slotsWidth = cols * (slotSize + spacing) - spacing; 
@@ -148,7 +154,12 @@ public class InventoryScreenRenderer {
         int bgY = startY - padding;
         
         // 1. Panel Background
-        renderer.getPrimitivesRenderer().renderRect(bgX, bgY - 24 - searchHeight - 4, devWidth, devHeight + 24 + searchHeight + 4, sw, sh, 0.05f, 0.05f, 0.05f, 0.95f); 
+        if (config.background != null && config.background.color != null) {
+            float[] bg = config.background.color;
+            renderer.getPrimitivesRenderer().renderRect(bgX, bgY - 24 - searchHeight - 4, devWidth, devHeight + 24 + searchHeight + 4, sw, sh, bg[0], bg[1], bg[2], bg[3]); 
+        } else {
+            renderer.getPrimitivesRenderer().renderRect(bgX, bgY - 24 - searchHeight - 4, devWidth, devHeight + 24 + searchHeight + 4, sw, sh, 0.05f, 0.05f, 0.05f, 0.95f); 
+        }
         
         // 2. Title
         renderer.getPrimitivesRenderer().renderRect(bgX, bgY - 24 - searchHeight - 4, devWidth, 24, sw, sh, 0.15f, 0.15f, 0.15f, 1.0f); 
@@ -163,7 +174,6 @@ public class InventoryScreenRenderer {
         List<Item> allItems = getFilteredDevItems();
         
         int totalRows = (allItems.size() + cols - 1) / cols;
-        // Content height: padding top + slots height + padding bottom
         int slotsHeight = totalRows * (slotSize + spacing) - spacing;
         devScroller.updateContentHeight(slotsHeight + padding * 2);
 
@@ -179,7 +189,7 @@ public class InventoryScreenRenderer {
             int x = devX + col * (slotSize + spacing);
             int y = startY + row * (slotSize + spacing) - (int)offset;
             
-            // CPU Culling (Match glScissor area)
+            // CPU Culling
             if (y + slotSize < bgY || y > bgY + devHeight) continue;
             
             boolean isHovered = mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize;
@@ -196,7 +206,6 @@ public class InventoryScreenRenderer {
                 int x = devX + col * (slotSize + spacing);
                 int y = startY + row * (slotSize + spacing) - (int)offset;
                 
-                // Tooltip culling: only show for visible items
                 if (y + slotSize < bgY || y > bgY + devHeight) continue;
                 
                 if (mx >= x && mx <= x + slotSize && my >= y && my <= y + slotSize) {

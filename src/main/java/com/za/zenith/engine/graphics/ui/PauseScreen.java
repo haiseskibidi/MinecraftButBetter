@@ -123,12 +123,16 @@ public class PauseScreen implements Screen {
     private void handleAction(String action) {
         if (action == null) return;
         
+        GameLoop game = GameLoop.getInstance();
+        int sw = game.getWindow().getWidth();
+        int sh = game.getWindow().getHeight();
+
         switch (action) {
             case "resume":
-                GameLoop.getInstance().togglePause();
+                game.togglePause();
                 break;
             case "settings":
-                com.za.zenith.utils.Logger.info("Settings not implemented yet");
+                ScreenManager.getInstance().openScreen(new SettingsScreen(), sw, sh);
                 break;
             case "main_menu":
                 com.za.zenith.utils.Logger.info("Returning to main menu...");

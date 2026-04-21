@@ -225,15 +225,24 @@
   - **Markdown-styled Headers**: Название блока выводится бирюзовым жирным капсом (### формат) над действием, создавая иерархию информации.
   - **Interaction Zone System**: Блоки могут определять «живые» области (например, только верх пня). При наведении на неактивные части прицел не меняется, а HUD не появляется.
   - **Polished UI Animations**: Плавная интерполяция размеров плашки, debounce-таймеры и content-locking при затухании для исключения мерцания.
-
+- **Settings System & Keybinds (v1.5 UPDATED)**:
+  - **SettingsManager Engine**: Централизованное управление настройками через `options.json` (FOV, Mouse Sensitivity, VSync, DevMode). Сохранение состояния при выходе и загрузка при старте.
+  - **Dynamic Engine Variables**: Камера и мышь теперь каждый кадр (динамически) считывают FOV и Sensitivity из `SettingsManager`, мгновенно применяя изменения без перезапуска. Чувствительность нормализована к стандарту 800 DPI.
+  - **Modular Settings UI**: Внедрен модульный дизайн числовых (`renderNumericSetting`) и булевых (`renderBooleanSetting`) параметров. Поддержка инкремента/декремента через кнопки `[-]/[+]` и прямого ручного ввода значений с клавиатуры (включая плавающую точку).
+  - **Data-Driven Debug Overlay (F3)**: Хардкод экрана отладки вырезан. Теперь он полностью настраивается через `debug_hud.json` с поддержкой парсинга переменных (`{fps}`, `{x}`, `{cx}`). 
+  - **Data-Driven Dev Panel**: Панель разработчика вынесена в тип группы `developer_items` в `player_inventory.json`. Движок динамически генерирует слоты предметов на основе конфигурации группы (сетка, отступы, фон).
+  - **Live Registry Inspector (v0.1)**: Выделенный экран (F9) для исследования данных в реестрах (Blocks, Items, Animations) через Reflection. Позволяет видеть текущие значения полей объектов прямо в игре.
+- **Admin Polish & Enhanced Tooltips (v1.3 NEW)**:
+...
 ## В работе
+- **Live JSON Editing**: Добавление возможности редактирования значений в Инспекторе и Hot-Reload ресурсов (сохранение в файлы ресурсов).
 - **Combat System Integration**: Применение статов (Impact, Penetration) в расчете урона.
 - **Survival Mechanics v2**: Учет веса инвентаря в штрафах мобильности.
-- **Scout AI Refinement**: Улучшение поведения патрулирования и поиска.
 
 ## Roadmap
 - [x] Milestone 2: Базовые механики выживания (Inventory v3, Hunger, Noise, Parkour v1).
 - [x] Milestone 3: Моддинг-API и Расширяемость (Registry Events, Data-Driven GUI, Physics Registry).
+- [x] Интегрированная система настроек и биндов.
 - [/] Milestone 4: Полноценный геймплей (RPG System Core, Combat AI).
 - [ ] Milestone 5: Прогрессия и Металлургия.
 

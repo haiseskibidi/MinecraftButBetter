@@ -59,7 +59,8 @@ public class Camera {
     public void setFovOffset(float offset) { this.fovOffset = offset; }
     
     public Matrix4f getProjectionMatrix() {
-        return projectionMatrix.setPerspective(fov + fovOffset, aspectRatio, Z_NEAR, Z_FAR);
+        float currentFov = (float) Math.toRadians(com.za.zenith.engine.core.SettingsManager.getInstance().getFov());
+        return projectionMatrix.setPerspective(currentFov + fovOffset, aspectRatio, Z_NEAR, Z_FAR);
     }
     
     public void updateAspectRatio(float aspectRatio) { this.aspectRatio = aspectRatio; }

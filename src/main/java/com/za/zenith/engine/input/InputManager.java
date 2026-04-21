@@ -85,7 +85,14 @@ public class InputManager {
     public float getLootboxOpeningTimer() { return lootboxOpeningTimer; }
     public com.za.zenith.world.items.ItemStack getLootboxStack() { return lootboxStack; }
 
-    public InputManager() {        previousPos = new Vector2f();
+    public boolean isActionPressed(String actionId) {
+        int keyCode = com.za.zenith.engine.core.SettingsManager.getInstance().getKeyCode(actionId);
+        if (keyCode == -1) return false;
+        return GameLoop.getInstance().getWindow().isKeyPressed(keyCode);
+    }
+
+    public InputManager() {
+        previousPos = new Vector2f();
         currentPos = new Vector2f();
         this.miningController = new MiningController();
     }
@@ -430,14 +437,23 @@ public class InputManager {
         
         if (!scroller.isMouseOver(mx, my)) return null;
 
-        // Dev Panel metrics (MUST match InventoryScreenRenderer.renderDeveloperPanel)
-        int cols = 7;
+        com.za.zenith.engine.graphics.ui.Screen screen = com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
+        if (!(screen instanceof com.za.zenith.engine.graphics.ui.PlayerInventoryScreen pScreen)) return null;
+
+        com.za.zenith.engine.graphics.ui.GroupUI devGroup = null;
+        for (com.za.zenith.engine.graphics.ui.GroupUI group : pScreen.getGroupsUI()) {
+            if ("developer_items".equals(group.getConfig().type)) {
+                devGroup = group;
+                break;
+            }
+        }
+        if (devGroup == null) return null;
+
+        int cols = devGroup.getConfig().cols > 0 ? devGroup.getConfig().cols : 7;
         int slotSize = (int)(18 * com.za.zenith.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
-        int spacing = (int)(2 * com.za.zenith.engine.graphics.ui.Hotbar.HOTBAR_SCALE);
-        int sw = GameLoop.getInstance().getWindow().getWidth();
-        int devX = sw - (cols * (slotSize + spacing)) - 25;
-        int startY = 64; 
-        int padding = 12;
+        int spacing = devGroup.getConfig().spacing;
+        int devX = devGroup.getX();
+        int startY = devGroup.getY();
 
         java.util.List<Item> allItems = invRenderer.getFilteredDevItems();
         float offset = scroller.getOffset();
@@ -528,8 +544,10 @@ public class InputManager {
         com.za.zenith.world.physics.PhysicsSettings settings = com.za.zenith.world.physics.PhysicsSettings.getInstance();
         com.za.zenith.entities.parkour.ParkourHandler parkour = player.getParkourHandler();
 
-        // Блокируем хотбар во время скалывания или инвентаря
-        if (!nappingOpen && !inventoryOpen) {
+        boolean anyScreen = com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().isAnyScreenOpen();
+
+        // Блокируем хотбар во время скалывания, инвентаря или любых других экранов (настройки, инспектор)
+        if (!nappingOpen && !anyScreen) {
             for (int i = 0; i < 9; i++) {
                 if (window.isKeyPressed(GLFW_KEY_1 + i)) {
                     player.getInventory().setSelectedSlot(i);
@@ -661,8 +679,10 @@ public class InputManager {
         previousPos.y = currentPos.y;
 
         if (!inventoryOpen && !paused && !nappingOpen) {
-            float deltaPitch = rotVec.x * settings.mouseSensitivity;
-            float deltaYaw = rotVec.y * settings.mouseSensitivity;
+            float baseSens = 0.002f; // Base sensitivity for 800 DPI
+            float currentSens = com.za.zenith.engine.core.SettingsManager.getInstance().getMouseSensitivity() * baseSens;
+            float deltaPitch = rotVec.x * currentSens;
+            float deltaYaw = rotVec.y * currentSens;
 
             if (parkour.isRestrictingCamera()) {
                 float baseYaw = parkour.getBaseYaw();
@@ -698,14 +718,14 @@ public class InputManager {
         Vector2f moveVector = new Vector2f();
 
         if (!inventoryOpen && !paused && !nappingOpen) {
-            if (window.isKeyPressed(GLFW_KEY_W)) moveVector.y = 1;
-            if (window.isKeyPressed(GLFW_KEY_S)) moveVector.y = -1;
-            if (window.isKeyPressed(GLFW_KEY_A)) moveVector.x = -1;
-            if (window.isKeyPressed(GLFW_KEY_D)) moveVector.x = 1;
+            if (isActionPressed("move_forward")) moveVector.y = 1;
+            if (isActionPressed("move_back")) moveVector.y = -1;
+            if (isActionPressed("move_left")) moveVector.x = -1;
+            if (isActionPressed("move_right")) moveVector.x = 1;
         }
         
         float moveY = 0;
-        boolean spaceDown = window.isKeyPressed(GLFW_KEY_SPACE);
+        boolean spaceDown = isActionPressed("jump");
         boolean spaceNewPress = spaceDown && !spaceKeyPressed;
         spaceKeyPressed = spaceDown;
 
@@ -713,7 +733,7 @@ public class InputManager {
             if (spaceDown) moveY = 1;
         }
         
-        boolean shiftPressed = window.isKeyPressed(GLFW_KEY_LEFT_SHIFT);
+        boolean shiftPressed = isActionPressed("sneak");
         if (shiftPressed && !inventoryOpen && !paused && !nappingOpen) moveY = -1;
         
         boolean sneaking = shiftPressed && !player.isFlying() && !inventoryOpen && !paused && !nappingOpen;
@@ -722,7 +742,7 @@ public class InputManager {
         boolean inParkour = parkour.isInParkour();
 
         boolean physicallySneaking = player.isPhysicallySneaking();
-        boolean sprinting = (window.isKeyPressed(GLFW_KEY_LEFT_CONTROL) || window.isKeyPressed(GLFW_KEY_RIGHT_CONTROL)) && !inventoryOpen && !paused && !nappingOpen;
+        boolean sprinting = isActionPressed("sprint") && !inventoryOpen && !paused && !nappingOpen;
         player.setSprinting(sprinting);
         
         float baseSpeed = player.isFlying() ? settings.flySpeed : (physicallySneaking ? settings.baseMoveSpeed * settings.sneakSpeedMultiplier : settings.baseMoveSpeed);
@@ -776,12 +796,14 @@ public class InputManager {
         if (fKeyCurrentlyPressed && !fKeyPressed && !inventoryOpen && !paused && !nappingOpen) player.setFlying(!player.isFlying());
         fKeyPressed = fKeyCurrentlyPressed;
 
-        boolean f3KeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_F3);
+        boolean f3KeyCurrentlyPressed = isActionPressed("debug_menu");
         if (f3KeyCurrentlyPressed && !f3KeyPressed && !inventoryOpen && !paused && !nappingOpen) {
-            PlayerMode newMode = (player.getMode() == PlayerMode.SURVIVAL) 
-                ? PlayerMode.DEVELOPER : PlayerMode.SURVIVAL;
+            boolean visible = !com.za.zenith.engine.core.SettingsManager.getInstance().isDebugOverlayVisible();
+            com.za.zenith.engine.core.SettingsManager.getInstance().setDebugOverlayVisible(visible);
+            
+            PlayerMode newMode = visible ? PlayerMode.DEVELOPER : PlayerMode.SURVIVAL;
             player.setMode(newMode);
-            com.za.zenith.utils.Logger.info("Player mode changed to: %s", newMode);
+            com.za.zenith.utils.Logger.info("Debug HUD: %b, Player mode: %s", visible, newMode);
         }
         f3KeyPressed = f3KeyCurrentlyPressed;
         

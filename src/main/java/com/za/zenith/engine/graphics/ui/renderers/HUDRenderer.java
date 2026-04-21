@@ -122,6 +122,49 @@ public class HUDRenderer {
         renderer.getInteractionRenderer().updateAndRender(hit, sw, sh);
 
         renderLogo(sw, sh);
+        renderDebugOverlay(sw, sh);
+    }
+
+    public void renderDebugOverlay(int sw, int sh) {
+        if (!com.za.zenith.engine.core.SettingsManager.getInstance().isDebugOverlayVisible()) return;
+
+        GUIConfig config = GUIRegistry.get(com.za.zenith.utils.Identifier.of("zenith:debug_hud"));
+        if (config == null || config.hudElements == null) return;
+
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+        GameLoop game = GameLoop.getInstance();
+        com.za.zenith.entities.Player player = game.getPlayer();
+        org.joml.Vector3f pos = player.getPosition();
+
+        for (GUIConfig.HUDElementConfig el : config.hudElements.values()) {
+            if (!el.visible || !"text".equals(el.type) || el.text == null) continue;
+            if (el.condition != null && el.condition.equals("debug_mode") && !com.za.zenith.engine.core.SettingsManager.getInstance().isDebugOverlayVisible()) continue;
+
+            String text = el.text
+                .replace("{fps}", String.valueOf((int)game.getCurrentFps()))
+                .replace("{x}", String.format(java.util.Locale.US, "%.2f", pos.x))
+                .replace("{y}", String.format(java.util.Locale.US, "%.2f", pos.y))
+                .replace("{z}", String.format(java.util.Locale.US, "%.2f", pos.z))
+                .replace("{cx}", String.valueOf((int)pos.x >> 4))
+                .replace("{cz}", String.valueOf((int)pos.z >> 4));
+
+            int fontSize = el.fontSize;
+            int textWidth = renderer.getFontRenderer().getStringWidth(text, fontSize);
+            int[] elementPos = calculateElementPos(el, sw, sh, textWidth, fontSize);
+
+            // Shadow
+            renderer.getFontRenderer().drawString(text, elementPos[0] + 1, elementPos[1] + 1, fontSize, sw, sh, 0.0f, 0.0f, 0.0f, 0.5f);
+            
+            // Main text
+            float[] color = el.color != null ? el.color : new float[]{1.0f, 1.0f, 1.0f, 1.0f};
+            renderer.getFontRenderer().drawString(text, elementPos[0], elementPos[1], fontSize, sw, sh, color[0], color[1], color[2], color[3]);
+        }
+
+        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_BLEND);
     }
 
     private void renderMinimap(com.za.zenith.entities.Player player, int sw, int sh) {

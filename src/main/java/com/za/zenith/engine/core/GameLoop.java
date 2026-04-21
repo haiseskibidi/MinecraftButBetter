@@ -34,6 +34,7 @@ public class GameLoop {
     private boolean f8Pressed = false;
     private boolean ePressed = false;
     private boolean escPressed = false;
+    private boolean f9Pressed = false;
     
     private GameMode gameMode;
     private GameServer localServer;
@@ -78,8 +79,9 @@ public class GameLoop {
     }
     
     private void init() {
+        SettingsManager.getInstance().load();
         com.za.zenith.world.DataLoader.loadAll();
-        window = new Window("Protocol: Grounding", 1280, 720, true);
+        window = new Window("Protocol: Grounding", 1280, 720, SettingsManager.getInstance().isVsync());
         window.init();
         timer = new Timer();
         camera = new Camera(new Vector3f(8, 65, 8));
@@ -137,32 +139,32 @@ public class GameLoop {
     private void input() {
         com.za.zenith.engine.graphics.ui.Screen active = com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
         
-        boolean f8Key = window.isKeyPressed(GLFW_KEY_F8);
-        if (f8Key && !f8Pressed && !paused && !inputManager.isKeyHandled(GLFW_KEY_F8)) {
+        boolean f8Key = inputManager.isActionPressed("editor_toggle");
+        if (f8Key && !f8Pressed && !paused && !inputManager.isKeyHandled(SettingsManager.getInstance().getKeyCode("editor_toggle"))) {
             toggleAnimationEditor();
         }
         f8Pressed = f8Key;
 
-        boolean eKey = window.isKeyPressed(GLFW_KEY_E);
-        if (eKey && !ePressed && !paused && !inputManager.isKeyHandled(GLFW_KEY_E)) {
+        boolean eKey = inputManager.isActionPressed("inventory");
+        if (eKey && !ePressed && !paused && !inputManager.isKeyHandled(SettingsManager.getInstance().getKeyCode("inventory"))) {
             if (active != null) {
-                if (active.handleKeyPress(GLFW_KEY_E)) return;
+                if (active.handleKeyPress(SettingsManager.getInstance().getKeyCode("inventory"))) return;
                 com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
                 toggleInventory();
             } else toggleInventory();
         }
         ePressed = eKey;
 
-        boolean jKey = window.isKeyPressed(GLFW_KEY_J);
-        if (jKey && !jPressed && !paused && !inputManager.isKeyHandled(GLFW_KEY_J)) {
-            if (active != null && active.handleKeyPress(GLFW_KEY_J)) { }
+        boolean jKey = inputManager.isActionPressed("journal");
+        if (jKey && !jPressed && !paused && !inputManager.isKeyHandled(SettingsManager.getInstance().getKeyCode("journal"))) {
+            if (active != null && active.handleKeyPress(SettingsManager.getInstance().getKeyCode("journal"))) { }
             else toggleJournal();
         }
         jPressed = jKey;
 
-        boolean escKey = window.isKeyPressed(GLFW_KEY_ESCAPE);
-        if (escKey && !escPressed && !inputManager.isKeyHandled(GLFW_KEY_ESCAPE)) {
-            if (active != null && active.handleKeyPress(GLFW_KEY_ESCAPE)) { }
+        boolean escKey = inputManager.isActionPressed("pause");
+        if (escKey && !escPressed && !inputManager.isKeyHandled(SettingsManager.getInstance().getKeyCode("pause"))) {
+            if (active != null && active.handleKeyPress(SettingsManager.getInstance().getKeyCode("pause"))) { }
             else if (inventoryOpen) {
                 com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().closeScreen();
                 toggleInventory();
@@ -170,6 +172,13 @@ public class GameLoop {
             else togglePause();
         }
         escPressed = escKey;
+
+        boolean f9Key = window.isKeyPressed(GLFW_KEY_F9);
+        if (f9Key && !f9Pressed && SettingsManager.getInstance().isDevMode()) {
+            inputManager.disableMouseCapture(window);
+            com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().openScreen(new com.za.zenith.engine.graphics.ui.DevInspectorScreen(), window.getWidth(), window.getHeight());
+        }
+        f9Pressed = f9Key;
 
         highlightedBlock = inputManager.input(window, camera, player, timer.getDeltaF(), renderer, world, networkClient);
     }
@@ -326,6 +335,7 @@ public class GameLoop {
     }
     
     private void cleanup() {
+        SettingsManager.getInstance().save();
         if (networkClient != null) networkClient.disconnect();
         if (localServer != null) localServer.stop();
         if (renderer != null) renderer.cleanup();
@@ -335,6 +345,7 @@ public class GameLoop {
     public boolean isInventoryOpen() { return inventoryOpen; }
     public boolean isPaused() { return paused; }
     public Window getWindow() { return window; }
+    public float getCurrentFps() { return currentFps; }
 }
 
 

@@ -1,0 +1,42 @@
+{
+  "identifier": "zenith:debug_hud",
+  "hudVisible": true,
+  "hudElements": {
+    "fps": {
+      "type": "text",
+      "text": "FPS: {fps}",
+      "anchor": "top_right",
+      "alignX": "right",
+      "alignY": "top",
+      "x": "-10px",
+      "y": "10px",
+      "fontSize": 14,
+      "color": [0.0, 0.8, 1.0, 1.0],
+      "condition": "debug_mode"
+    },
+    "xyz": {
+      "type": "text",
+      "text": "XYZ: {x} / {y} / {z}",
+      "anchor": "top_right",
+      "alignX": "right",
+      "alignY": "top",
+      "x": "-10px",
+      "y": "28px",
+      "fontSize": 14,
+      "color": [0.0, 0.8, 1.0, 1.0],
+      "condition": "debug_mode"
+    },
+    "chunk": {
+      "type": "text",
+      "text": "Chunk: {cx}, {cz}",
+      "anchor": "top_right",
+      "alignX": "right",
+      "alignY": "top",
+      "x": "-10px",
+      "y": "46px",
+      "fontSize": 14,
+      "color": [0.0, 0.8, 1.0, 1.0],
+      "condition": "debug_mode"
+    }
+  }
+}

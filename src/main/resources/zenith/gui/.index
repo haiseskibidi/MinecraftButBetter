@@ -2,4 +2,5 @@ player_inventory.json
 hotbar.json
 chest.json
 hud.json
+debug_hud.json
 pause_menu.json

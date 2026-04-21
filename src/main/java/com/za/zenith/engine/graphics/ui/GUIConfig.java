@@ -31,6 +31,8 @@ public class GUIConfig {
     public static class HUDElementConfig {
         public String type = "text"; // text, bar
         public String texture; // Для типа image
+        public String text; // Для текстовых элементов с поддержкой переменных
+        public String condition; // Условие видимости (напр. "debug_mode")
         public String anchor = "center"; // top, bottom, left, right, center
         public String alignX = "center";
         public String alignY = "center";

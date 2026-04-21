@@ -211,10 +211,6 @@ public class UIRenderer {
         primitivesRenderer.renderExternalImage(path, x, y, width, height, sw, sh);
     }
 
-    public void renderDeveloperPanel(int devX, int startY, int slotSize, int spacing, int sw, int sh, com.za.zenith.engine.graphics.DynamicTextureAtlas atlas) {
-        inventoryScreenRenderer.renderDeveloperPanel(devX, startY, slotSize, spacing, sw, sh, atlas);
-    }
-
     public ScrollPanel getDevScroller() {
         return inventoryScreenRenderer.getDevScroller();
     }

@@ -32,6 +32,10 @@ public class AnimationRegistry {
     public static boolean exists(String groupName) {
         return groups.containsKey(groupName);
     }
+
+    public static java.util.Set<String> getKeys() {
+        return groups.keySet();
+    }
 }
 
 

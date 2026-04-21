@@ -71,11 +71,16 @@ public class InventoryLayout {
                 }
             }
 
-            if (targetSlots.isEmpty() && !groupCfg.type.equals("stats")) continue;
+            if (targetSlots.isEmpty() && !groupCfg.type.equals("stats") && !groupCfg.type.equals("developer_items")) continue;
             resolvedSlots.put(groupCfg.id, targetSlots);
 
             int groupWidth = 0, groupHeight = 0;
-            if (groupCfg.type.equals("stats")) {
+            if (groupCfg.type.equals("developer_items")) {
+                int cols = groupCfg.cols > 0 ? groupCfg.cols : 7;
+                int rows = groupCfg.rows > 0 ? groupCfg.rows : 14;
+                groupWidth = cols * slotSize + (cols - 1) * groupCfg.spacing;
+                groupHeight = rows * slotSize + (rows - 1) * groupCfg.spacing;
+            } else if (groupCfg.type.equals("stats")) {
                 // Calculate actual width based on content if not specified or as a minimum
                 int maxLineWidth = 0;
                 int textSize = groupCfg.textSize;

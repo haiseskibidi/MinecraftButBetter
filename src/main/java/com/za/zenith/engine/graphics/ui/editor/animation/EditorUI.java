@@ -24,7 +24,11 @@ public class EditorUI {
         int slotSize = (int)(18 * Hotbar.HOTBAR_SCALE);
         int spacing = (int)(2 * Hotbar.HOTBAR_SCALE);
         int devX = sw - (7 * (slotSize + spacing)) - 25;
-        renderer.renderDeveloperPanel(devX, 40, slotSize, spacing, sw, sh, atlas);
+        com.za.zenith.engine.graphics.ui.GUIConfig.GroupConfig devCfg = new com.za.zenith.engine.graphics.ui.GUIConfig.GroupConfig();
+        devCfg.cols = 7;
+        devCfg.rows = 14;
+        devCfg.spacing = spacing;
+        renderer.getInventoryScreenRenderer().renderDeveloperPanel(devX, 40, devCfg.cols, devCfg.rows, slotSize, spacing, sw, sh, atlas, devCfg);
 
         if (state.heldStack != null) {
             int cols = 7;

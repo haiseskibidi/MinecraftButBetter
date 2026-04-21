@@ -97,17 +97,21 @@
     },
     {
       "id": "developer_panel",
-      "type": "grid",
-      "inventorySource": "player",
-      "anchor": "top-right",
+      "type": "developer_items",
+      "anchor": "top_right",
       "alignX": "right",
       "alignY": "top",
       "x": "-10px",
-      "y": "10px",
+      "y": "40px",
       "cols": 7,
-      "rows": 12,
+      "rows": 14,
       "spacing": 4,
-      "condition": "developer_mode"
+      "condition": "developer_mode",
+      "background": {
+        "type": "solid",
+        "color": [0.05, 0.05, 0.05, 0.95],
+        "padding": 12
+      }
     }
   ]
 }

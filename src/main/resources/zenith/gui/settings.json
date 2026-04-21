@@ -1,0 +1,48 @@
+{
+  "identifier": "zenith:settings",
+  "title": "$l$gНАСТРОЙКИ$r",
+  "background": {
+    "type": "solid",
+    "color": [0.03, 0.03, 0.03, 0.98],
+    "padding": 12,
+    "borderRadius": 4
+  },
+  "buttons": [
+    {
+      "id": "controls",
+      "text": "settings.tab.controls",
+      "action": "tab_controls",
+      "x": -100,
+      "y": -120,
+      "width": 80,
+      "height": 20
+    },
+    {
+      "id": "video",
+      "text": "settings.tab.video",
+      "action": "tab_video",
+      "x": 0,
+      "y": -120,
+      "width": 80,
+      "height": 20
+    },
+    {
+      "id": "developer",
+      "text": "settings.tab.developer",
+      "action": "tab_developer",
+      "x": 100,
+      "y": -120,
+      "width": 80,
+      "height": 20
+    },
+    {
+      "id": "back",
+      "text": "menu.back",
+      "action": "back",
+      "x": 0,
+      "y": 140,
+      "width": 100,
+      "height": 20
+    }
+  ]
+}
