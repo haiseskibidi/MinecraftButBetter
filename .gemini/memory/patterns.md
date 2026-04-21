@@ -215,10 +215,22 @@ public class MyNewEntity extends Entity {
 }
 ```
 
-### Blueprint: Проверка коллизий и AABB
+## 9. Настройки и Абстрактный Ввод (Dynamic Settings Pattern)
+**Правило:** Запрещено хардкодить клавиши GLFW в логике игры. Запрещено кэшировать настройки FOV или мыши при старте игры.
+
+### Blueprint: Проверка нажатия клавиши
 ```java
-// Использование AABB сущности
-if (this.boundingBox.intersects(otherAABB)) {
-    // Столкновение
+// НЕПРАВИЛЬНО: if (window.isKeyPressed(GLFW_KEY_W))
+// ПРАВИЛЬНО:
+if (inputManager.isActionPressed("move_forward")) {
+    moveVector.y = 1;
 }
+```
+
+### Blueprint: Динамическое применение настроек
+```java
+// Внутри метода, который вызывается каждый кадр (например, update или render)
+float baseSens = 0.002f; // Базовый множитель
+float currentSens = SettingsManager.getInstance().getMouseSensitivity() * baseSens;
+float deltaYaw = rotVec.y * currentSens;
 ```

@@ -53,6 +53,12 @@
     - **MSAA Resolve Step**: Финальный этап рендеринга перед пост-обработкой — операция `Resolve` (`glBlitFramebuffer`), которая объединяет мультисэмплы в обычную текстуру.
     - **High-Fidelity Filtering**: Принудительное включение **8x Anisotropic Filtering** и `LINEAR_MIPMAP_LINEAR` фильтрации для всех текстурных атласов, что устраняет мерцание (moiré) и размытие текстур под углом.
 
+### Core Engine Systems (NEW)
+1. **Settings & Input Architecture**:
+    - **SettingsManager (SSOT)**: Централизованный синглтон для `options.json`. Хранит FOV, Sensitivity, VSync, DevMode и бинды (Map<String, Integer>).
+    - **Dynamic Evaluation**: Камера и мышь считывают настройки (FOV, Sens) **каждый кадр** напрямую из `SettingsManager`, что позволяет применять изменения мгновенно без перезапуска подсистем.
+    - **Abstract Action Mapping**: `InputManager` оперирует логическими экшенами (`isActionPressed("move_forward")`), а не физическими кодами GLFW, сверяясь с мапой биндов.
+
 ### Data-Driven Development (v3.5 UPDATED)
 1.  **JSON Schema**: Все игровые параметры (блоки, предметы, анимации, рецепты) загружаются из ресурсов.
 2.  **Identifier-First Dynamic ID System (NEW)**:
