@@ -59,6 +59,7 @@ public class SettingsManager {
         keyBinds.put("journal", GLFW.GLFW_KEY_J);
         keyBinds.put("debug_menu", GLFW.GLFW_KEY_F3);
         keyBinds.put("editor_toggle", GLFW.GLFW_KEY_F8);
+        keyBinds.put("live_inspector", GLFW.GLFW_KEY_F9);
     }
 
     public void load() {

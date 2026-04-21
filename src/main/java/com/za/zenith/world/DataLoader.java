@@ -108,10 +108,12 @@ public class DataLoader {
     }
 
     private static void loadSkySettings() {
-        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("zenith/registry/celestial.json")) {
+        String path = "zenith/registry/celestial.json";
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path)) {
             if (is == null) return;
             com.za.zenith.engine.graphics.SkySettings settings = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), com.za.zenith.engine.graphics.SkySettings.class);
             if (settings != null) {
+                settings.setSourcePath(path);
                 com.za.zenith.engine.graphics.SkySettings.setInstance(settings);
                 Logger.info("Loaded sky settings");
             }
@@ -121,10 +123,12 @@ public class DataLoader {
     }
 
     private static void loadWorldSettings() {
-        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream("zenith/registry/world.json")) {
+        String path = "zenith/registry/world.json";
+        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path)) {
             if (is == null) return;
             com.za.zenith.world.WorldSettings settings = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), com.za.zenith.world.WorldSettings.class);
             if (settings != null) {
+                settings.setSourcePath(path);
                 com.za.zenith.world.WorldSettings.setInstance(settings);
                 Logger.info("Loaded world settings");
             }
@@ -143,6 +147,7 @@ public class DataLoader {
                     continue;
                 }
                 com.za.zenith.world.actions.ActionDefinition def = GSON.fromJson(new java.io.InputStreamReader(is, java.nio.charset.StandardCharsets.UTF_8), com.za.zenith.world.actions.ActionDefinition.class);
+                def.setSourcePath(path);
                 com.za.zenith.world.actions.ActionRegistry.register(com.za.zenith.utils.Identifier.of(namespace + ":" + name), def);
             } catch (Exception e) {
                 com.za.zenith.utils.Logger.error("Failed to load action " + path + ": " + e.getMessage());
@@ -158,6 +163,7 @@ public class DataLoader {
                 if (is == null) continue;
                 JsonObject animObj = GSON.fromJson(new InputStreamReader(is, StandardCharsets.UTF_8), JsonObject.class);
                 com.za.zenith.entities.parkour.animation.AnimationProfile anim = new com.za.zenith.entities.parkour.animation.AnimationProfile(fileName);
+                anim.setSourcePath(path);
                 
                 if (animObj.has("duration")) anim.setDuration(animObj.get("duration").getAsFloat());
                 if (animObj.has("duration_key")) anim.setDurationKey(animObj.get("duration_key").getAsString());
@@ -586,7 +592,15 @@ public class DataLoader {
             Logger.warn("No blocks found in namespace: " + namespace);
         } else {
             for (String file : files) {
-                loadResource(namespace + "/blocks/" + file, DataLoader::parseBlock);
+                String path = namespace + "/blocks/" + file;
+                loadResource(path, el -> {
+                    parseBlock(el);
+                    try {
+                        Identifier id = Identifier.of(el.getAsJsonObject().get("identifier").getAsString());
+                        BlockDefinition def = BlockRegistry.getBlock(id);
+                        if (def != null) def.setSourcePath(path + ".json");
+                    } catch (Exception e) {}
+                });
             }
         }
     }
@@ -632,7 +646,15 @@ public class DataLoader {
         List<String> files = listResources(namespace + "/items");
         if (!files.isEmpty()) {
             for (String file : files) {
-                loadResource(namespace + "/items/" + file, DataLoader::parseItem);
+                String path = namespace + "/items/" + file;
+                loadResource(path, el -> {
+                    parseItem(el);
+                    try {
+                        Identifier id = Identifier.of(el.getAsJsonObject().get("identifier").getAsString());
+                        Item item = ItemRegistry.getItem(id);
+                        if (item != null) item.setSourcePath(path + ".json");
+                    } catch (Exception e) {}
+                });
             }
         }
     }

@@ -666,9 +666,9 @@ public class Player extends LivingEntity {
     public void performDiscreteAction(com.za.zenith.utils.Identifier id) {
         com.za.zenith.world.actions.ActionDefinition def = com.za.zenith.world.actions.ActionRegistry.get(id);
         if (def != null) {
-            addNoise(def.noiseLevel());
-            stamina = Math.max(0.0f, stamina - def.staminaCostPerUse());
-            hunger = Math.max(0.0f, hunger - def.hungerCostPerUse());
+            addNoise(def.noiseLevel);
+            stamina = Math.max(0.0f, stamina - def.staminaCostPerUse);
+            hunger = Math.max(0.0f, hunger - def.hungerCostPerUse);
         }
     }
 
@@ -696,12 +696,12 @@ public class Player extends LivingEntity {
         for (com.za.zenith.utils.Identifier id : activeActions) {
             com.za.zenith.world.actions.ActionDefinition def = com.za.zenith.world.actions.ActionRegistry.get(id);
             if (def != null) {
-                if (def.staminaCostPerSecond() > 0) {
+                if (def.staminaCostPerSecond > 0) {
                     staminaConsumingAction = true;
-                    stamina = Math.max(0.0f, stamina - def.staminaCostPerSecond() * deltaTime);
+                    stamina = Math.max(0.0f, stamina - def.staminaCostPerSecond * deltaTime);
                 }
-                hunger = Math.max(0.0f, hunger - def.hungerCostPerSecond() * deltaTime);
-                floorNoise = Math.max(floorNoise, def.noiseLevel());
+                hunger = Math.max(0.0f, hunger - def.hungerCostPerSecond * deltaTime);
+                floorNoise = Math.max(floorNoise, def.noiseLevel);
             }
         }
 

@@ -1,5 +1,6 @@
 package com.za.zenith.world.blocks;
 
+import com.google.gson.annotations.SerializedName;
 import com.za.zenith.utils.I18n;
 import com.za.zenith.utils.Identifier;
 import com.za.zenith.world.BlockPos;
@@ -13,52 +14,93 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BlockDefinition {
-    private final int id;
-    private final Identifier identifier;
-    private final String name;
-    private final boolean solid;
-    private final boolean transparent;
+public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
+    private transient String sourcePath;
+
+    @Override
+    public String getSourcePath() { return sourcePath; }
+
+    @Override
+    public void setSourcePath(String path) { this.sourcePath = path; }
+
+    @Override
+    public void onLiveReload() {
+        // Мгновенное обновление мира при изменении свойств блока
+        com.za.zenith.engine.graphics.Renderer r = com.za.zenith.engine.core.GameLoop.getInstance().getRenderer();
+        if (r != null) r.rebuildAllChunks();
+    }
+
+    private transient final int id;
+    private Identifier identifier;
+    @SerializedName("translationKey")
+    private String name;
+    private boolean solid;
+    private boolean transparent;
     private float hardness = 1.0f; // Default hardness
     private String requiredTool = "none"; // pickaxe, shovel, axe, crowbar, knife
     
     // Legacy support fields
+    @SerializedName("dropItem")
     private String dropItem = null;
+    @SerializedName("dropChance")
     private float dropChance = 1.0f;
     
     // Advanced drop rules
-    private final List<DropRule> dropRules = new ArrayList<>();
-    private final List<String> tags = new ArrayList<>();
+    private transient final List<DropRule> dropRules = new ArrayList<>();
+    private transient final List<String> tags = new ArrayList<>();
     
+    @SerializedName("supportScavenge")
     private boolean canSupportScavenge = false;
+    @SerializedName("fellingStages")
     private int fellingStages = 0;
+    @SerializedName("nextStage")
     private Identifier nextStage = null;
+    @SerializedName("alwaysRender")
     private boolean alwaysRender = false;
+    @SerializedName("replaceable")
     private boolean replaceable = false;
+    @SerializedName("requires_support")
     private boolean requiresSupport = false;
-    private boolean tinted = false;
+    private transient boolean tinted = false;
+    @SerializedName("sway")
     private boolean sway = false;
+    @SerializedName("upperTexture")
     private String upperTexture = null;
  // Текстура для верхней части DOUBLE_PLANT
+    @SerializedName("placement")
     private PlacementType placementType = PlacementType.DEFAULT;
     private BlockTextures textures;
+    @SerializedName("fullCube")
     private boolean fullCube = true;
+    @SerializedName("soilingAmount")
     private float soilingAmount = 0.0f;
+    @SerializedName("cleaningAmount")
     private float cleaningAmount = 0.0f;
+    @SerializedName("firingTemperature")
     private float firingTemperature = 0.0f;
+    @SerializedName("wobble_animation")
     private String wobbleAnimation = "block_wobble";
+    @SerializedName("breaking_pattern")
     private int breakingPattern = 0; // 0=Generic, 1=Wood, 2=Stone, etc.
+    @SerializedName("mining_logic")
     private MiningSettings miningSettings = MiningSettings.DEFAULT;
+    @SerializedName("interaction_cooldown")
     private float interactionCooldown = -1.0f; // -1 means use PhysicsSettings.baseMiningCooldown
+    @SerializedName("healing_speed")
     private float healingSpeed = 0.1f; // Default: heals 10% of max health per second
+    @SerializedName("emission")
     private int emission = 0; // Light emission level (0-15)
-    private com.za.zenith.world.lighting.LightData lightData = null;
+    private transient com.za.zenith.world.lighting.LightData lightData = null;
+    @SerializedName("particle_grid")
     private int particleGridSize = 2; // Default 2x2x2 shards for cleaner look
-    private int innerTextureIndex = -1;
+    private transient int innerTextureIndex = -1;
+    @SerializedName("weak_spot_particles")
     private int weakSpotParticles = 2; // Default particles on weak spot hit
+    @SerializedName("particle_scale")
     private float particleScale = 1.0f; // Multiplier for destruction shards
+    @SerializedName("weak_spot_particle_scale")
     private float weakSpotParticleScale = 1.0f; // Multiplier for impact shards
-    private int particleMaterial = com.za.zenith.world.particles.ShardParticle.MAT_GENERIC;
+    private transient int particleMaterial = com.za.zenith.world.particles.ShardParticle.MAT_GENERIC;
 
     public int getParticleMaterial() { return particleMaterial; }
     public void setParticleMaterial(int material) { this.particleMaterial = material; }

@@ -3,7 +3,15 @@ package com.za.zenith.entities.parkour.animation;
 import java.util.HashMap;
 import java.util.Map;
 
-public class AnimationProfile {
+public class AnimationProfile implements com.za.zenith.utils.LiveReloadable {
+    private transient String sourcePath;
+
+    @Override
+    public String getSourcePath() { return sourcePath; }
+
+    @Override
+    public void setSourcePath(String path) { this.sourcePath = path; }
+
     private final String name;
     private float duration = 0.5f;
     private String durationKey = null;

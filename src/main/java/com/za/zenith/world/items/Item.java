@@ -1,5 +1,6 @@
 package com.za.zenith.world.items;
 
+import com.google.gson.annotations.SerializedName;
 import com.za.zenith.utils.I18n;
 import com.za.zenith.utils.Identifier;
 import com.za.zenith.world.items.component.FoodComponent;
@@ -9,28 +10,41 @@ import com.za.zenith.world.items.component.ToolComponent;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Item {
-    protected final int id;
-    protected final Identifier identifier;
-    protected final String name;
-    protected final String texturePath;
+public class Item implements com.za.zenith.utils.LiveReloadable {
+    private transient String sourcePath;
+
+    @Override
+    public String getSourcePath() { return sourcePath; }
+
+    @Override
+    public void setSourcePath(String path) { this.sourcePath = path; }
+
+    protected transient final int id;
+    protected Identifier identifier;
+    @SerializedName("translationKey")
+    protected String name;
+    @SerializedName("texture")
+    protected String texturePath;
     protected float weight = 1.0f;
     protected float droppedScale = 1.0f;
     protected float viewmodelScale = 1.0f;
     protected float miningSpeed = 0.1f;
     protected int lightLevel = 0; // 0-15 light emission level
-    protected com.za.zenith.world.lighting.LightData lightData = null;
+    private transient com.za.zenith.world.lighting.LightData lightData = null;
     protected int maxStackSize = -1; // -1 means use type default
+    @SerializedName("interaction_cooldown")
     protected float interactionCooldown = -1.0f; 
-    protected org.joml.Vector3f visualMin = new org.joml.Vector3f(-0.5f);
-    protected org.joml.Vector3f visualMax = new org.joml.Vector3f(0.5f);
-    protected float gripWidth = -1.0f;
+    protected transient org.joml.Vector3f visualMin = new org.joml.Vector3f(-0.5f);
+    protected transient org.joml.Vector3f visualMax = new org.joml.Vector3f(0.5f);
+    protected transient float gripWidth = -1.0f;
+    @SerializedName("rarity")
     protected com.za.zenith.utils.Identifier defaultRarity = com.za.zenith.world.items.stats.RarityRegistry.COMMON;
+    @SerializedName("description")
     protected String descriptionKey = null;
-    protected final com.za.zenith.world.items.stats.StatContainer baseStats = new com.za.zenith.world.items.stats.StatContainer();
+    private transient final com.za.zenith.world.items.stats.StatContainer baseStats = new com.za.zenith.world.items.stats.StatContainer();
     { baseStats.setUseDefaultValues(false); }
     protected Gender gender = Gender.MASCULINE;
-    protected final java.util.Set<Identifier> tags = new java.util.HashSet<>();
+    private transient final java.util.Set<Identifier> tags = new java.util.HashSet<>();
 
     public enum Gender {
         MASCULINE, FEMININE, NEUTER

@@ -1,7 +1,7 @@
 {
   "fov": 80.0,
   "mouseSensitivity": 1.0,
-  "devMode": false,
+  "devMode": true,
   "debugOverlayVisible": false,
   "vsync": true,
   "keyBinds": {
@@ -10,6 +10,7 @@
     "sprint": 341,
     "move_right": 68,
     "inventory": 69,
+    "live_inspector": 298,
     "move_forward": 87,
     "editor_toggle": 297,
     "pause": 256,

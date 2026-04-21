@@ -1,42 +1,155 @@
 {
-  "version": 2,
-  "looping": true,
+  "name": "block_walk",
   "duration": 1.4,
+  "looping": true,
   "tracks": {
-    "item_x": [
-      [0.0, 0.0, "sine"],
-      [0.25, 0.015, "sine"],
-      [0.5, 0.0, "sine"],
-      [0.75, -0.015, "sine"],
-      [1.0, 0.0, "linear"]
-    ],
-    "item_y": [
-      [0.0, 0.0, "sine"],
-      [0.5, 0.015, "sine"],
-      [1.0, 0.0, "linear"]
-    ],
-    "item_pitch": [
-      [0.0, 0.0, "sine"],
-      [0.25, 1.0, "sine"],
-      [0.5, -0.5, "sine"],
-      [0.75, 1.0, "sine"],
-      [1.0, 0.0, "linear"]
-    ],
-    "hand_r:roll": [
-      [0.0, -50, "linear"],
-      [1.0, -50, "linear"]
-    ],
-    "hand_r:yaw": [
-      [0.0, -10, "linear"],
-      [1.0, -10, "linear"]
-    ],
-    "hand_r:pitch": [
-      [0.0, -10, "linear"],
-      [1.0, -10, "linear"]
-    ],
-    "forearm_r:yaw": [
-      [0.0, 10, "linear"],
-      [1.0, 10, "linear"]
-    ]
-  }
+    "item_y": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 0.0,
+          "easing": "sine"
+        },
+        {
+          "time": 0.5,
+          "value": 0.015,
+          "easing": "sine"
+        },
+        {
+          "time": 1.0,
+          "value": 0.0,
+          "easing": "linear"
+        }
+      ],
+      "mirror": false
+    },
+    "item_x": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 0.0,
+          "easing": "sine"
+        },
+        {
+          "time": 0.25,
+          "value": 0.015,
+          "easing": "sine"
+        },
+        {
+          "time": 0.5,
+          "value": 0.0,
+          "easing": "sine"
+        },
+        {
+          "time": 0.75,
+          "value": -0.015,
+          "easing": "sine"
+        },
+        {
+          "time": 1.0,
+          "value": 0.0,
+          "easing": "linear"
+        }
+      ],
+      "mirror": false
+    },
+    "item_pitch": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 0.0,
+          "easing": "sine"
+        },
+        {
+          "time": 0.25,
+          "value": 1.0,
+          "easing": "sine"
+        },
+        {
+          "time": 0.5,
+          "value": -0.5,
+          "easing": "sine"
+        },
+        {
+          "time": 0.75,
+          "value": 1.0,
+          "easing": "sine"
+        },
+        {
+          "time": 1.0,
+          "value": 0.0,
+          "easing": "linear"
+        }
+      ],
+      "mirror": false
+    },
+    "hand_r:yaw": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": -10.0,
+          "easing": "linear"
+        },
+        {
+          "time": 1.0,
+          "value": -10.0,
+          "easing": "linear"
+        }
+      ],
+      "mirror": false
+    },
+    "hand_r:roll": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": -50.0,
+          "easing": "linear"
+        },
+        {
+          "time": 1.0,
+          "value": -50.0,
+          "easing": "linear"
+        }
+      ],
+      "mirror": false
+    },
+    "forearm_r:yaw": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": 10.0,
+          "easing": "linear"
+        },
+        {
+          "time": 1.0,
+          "value": 10.0,
+          "easing": "linear"
+        }
+      ],
+      "mirror": false
+    },
+    "hand_r:pitch": {
+      "keyframes": [
+        {
+          "time": 0.0,
+          "value": -10.0,
+          "easing": "linear"
+        },
+        {
+          "time": 1.0,
+          "value": -10.0,
+          "easing": "linear"
+        }
+      ],
+      "mirror": false
+    }
+  },
+  "pathType": "linear",
+  "pathInterpolation": "linear",
+  "apexYOffset": 0.0,
+  "jitterEnabled": false,
+  "jitterStart": 0.0,
+  "jitterEnd": 1.0,
+  "jitterIntensity": 0.0,
+  "version": 2
 }

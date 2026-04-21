@@ -1,7 +1,19 @@
 package com.za.zenith.engine.graphics;
 
-public class SkySettings {
+public class SkySettings implements com.za.zenith.utils.LiveReloadable {
     private static SkySettings instance = new SkySettings();
+    private transient String sourcePath;
+
+    @Override
+    public String getSourcePath() { return sourcePath; }
+
+    @Override
+    public void setSourcePath(String path) { this.sourcePath = path; }
+
+    @Override
+    public void onLiveReload() {
+        com.za.zenith.utils.Logger.info("SkySettings: Applied live changes");
+    }
 
     public BodyConfig sun = new BodyConfig("procedural", null, 15.0f, new float[]{1.0f, 1.0f, 0.8f, 1.0f});
     public BodyConfig moon = new BodyConfig("procedural", null, 10.0f, new float[]{0.7f, 0.7f, 1.0f, 1.0f});

@@ -13,6 +13,7 @@ import com.za.zenith.world.items.ItemStack;
 import com.za.zenith.engine.graphics.model.ViewmodelRenderer;
 import com.za.zenith.engine.graphics.model.Viewmodel;
 import com.za.zenith.engine.graphics.model.ModelNode;
+import com.za.zenith.utils.Logger;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
@@ -882,6 +883,19 @@ public class Renderer {
         if (old != null) { if (old.opaqueMesh != null) old.opaqueMesh.cleanup(); if (old.translucentMesh != null) old.translucentMesh.cleanup(); }
         chunkMeshes.put(chunk, ChunkMeshGenerator.generateMesh(chunk, world, atlas));
         chunk.setMeshUpdated();
+    }
+
+    public void rebuildAllChunks() {
+        for (var r : chunkMeshes.values()) {
+            if (r.opaqueMesh != null) r.opaqueMesh.cleanup();
+            if (r.translucentMesh != null) r.translucentMesh.cleanup();
+        }
+        chunkMeshes.clear();
+        blockMeshCache.values().forEach(Mesh::cleanup);
+        blockMeshCache.clear();
+        itemMeshCache.values().forEach(Mesh::cleanup);
+        itemMeshCache.clear();
+        Logger.info("Renderer: All meshes cleared for rebuild");
     }
 
     public void renderDebug(float fps, int w, int h) { if (debugRenderer != null) debugRenderer.renderFPS(fps, w, h); }

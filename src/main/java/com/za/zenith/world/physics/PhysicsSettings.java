@@ -3,8 +3,20 @@ package com.za.zenith.world.physics;
 /**
  * Global physics and player configuration loaded from JSON.
  */
-public class PhysicsSettings {
+public class PhysicsSettings implements com.za.zenith.utils.LiveReloadable {
     private static PhysicsSettings instance = new PhysicsSettings();
+    private transient String sourcePath;
+
+    @Override
+    public String getSourcePath() { return sourcePath; }
+
+    @Override
+    public void setSourcePath(String path) { this.sourcePath = path; }
+
+    @Override
+    public void onLiveReload() {
+        com.za.zenith.utils.Logger.info("PhysicsSettings: Applied live changes");
+    }
 
     // Player Dimensions
     public float playerWidth = 0.6f;

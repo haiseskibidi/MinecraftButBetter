@@ -262,6 +262,7 @@
   "settings.action.pause": "Меню паузы",
   "settings.action.debug_menu": "Экран отладки",
   "settings.action.editor_toggle": "Редактор анимаций",
+  "settings.action.live_inspector": "Инспектор ресурсов",
   "settings.waiting": "> НАЖМИТЕ КЛАВИШУ <",
   "settings.fov": "Угол обзора (FOV)",
   "settings.sensitivity": "Чувствительность",

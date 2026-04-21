@@ -41,6 +41,7 @@ public class InputManager {
     private boolean rKeyPressed = false;
     private boolean zKeyPressed = false;
     private boolean f3KeyPressed = false;
+    private boolean f9KeyPressed = false;
     private boolean qKeyPressed = false;
     private boolean verticalMode = false;
     private ItemStack heldStack = null;
@@ -669,7 +670,7 @@ public class InputManager {
             previousPos.x = currentPos.x;
             previousPos.y = currentPos.y;
             firstMouse = false;
-        } else if (inWindow && !inventoryOpen && !paused && !nappingOpen) {
+        } else if (inWindow && !anyScreen && !nappingOpen) {
             double deltaX = currentPos.x - previousPos.x;
             double deltaY = currentPos.y - previousPos.y;
             rotVec.y = (float) -deltaX;
@@ -678,7 +679,7 @@ public class InputManager {
         previousPos.x = currentPos.x;
         previousPos.y = currentPos.y;
 
-        if (!inventoryOpen && !paused && !nappingOpen) {
+        if (!anyScreen && !nappingOpen) {
             float baseSens = 0.002f; // Base sensitivity for 800 DPI
             float currentSens = com.za.zenith.engine.core.SettingsManager.getInstance().getMouseSensitivity() * baseSens;
             float deltaPitch = rotVec.x * currentSens;
@@ -717,7 +718,7 @@ public class InputManager {
 
         Vector2f moveVector = new Vector2f();
 
-        if (!inventoryOpen && !paused && !nappingOpen) {
+        if (!anyScreen && !nappingOpen) {
             if (isActionPressed("move_forward")) moveVector.y = 1;
             if (isActionPressed("move_back")) moveVector.y = -1;
             if (isActionPressed("move_left")) moveVector.x = -1;
@@ -729,20 +730,20 @@ public class InputManager {
         boolean spaceNewPress = spaceDown && !spaceKeyPressed;
         spaceKeyPressed = spaceDown;
 
-        if (!inventoryOpen && !paused && !nappingOpen) {
+        if (!anyScreen && !nappingOpen) {
             if (spaceDown) moveY = 1;
         }
         
         boolean shiftPressed = isActionPressed("sneak");
-        if (shiftPressed && !inventoryOpen && !paused && !nappingOpen) moveY = -1;
+        if (shiftPressed && !anyScreen && !nappingOpen) moveY = -1;
         
-        boolean sneaking = shiftPressed && !player.isFlying() && !inventoryOpen && !paused && !nappingOpen;
+        boolean sneaking = shiftPressed && !player.isFlying() && !anyScreen && !nappingOpen;
         player.setSneaking(sneaking);
 
         boolean inParkour = parkour.isInParkour();
 
         boolean physicallySneaking = player.isPhysicallySneaking();
-        boolean sprinting = isActionPressed("sprint") && !inventoryOpen && !paused && !nappingOpen;
+        boolean sprinting = isActionPressed("sprint") && !anyScreen && !nappingOpen;
         player.setSprinting(sprinting);
         
         float baseSpeed = player.isFlying() ? settings.flySpeed : (physicallySneaking ? settings.baseMoveSpeed * settings.sneakSpeedMultiplier : settings.baseMoveSpeed);
@@ -768,7 +769,7 @@ public class InputManager {
         }
         
         // Parkour and Jump logic
-        if (!inventoryOpen && !paused && !nappingOpen) {
+        if (!anyScreen && !nappingOpen) {
             if (spaceNewPress) {
                 if (parkour.isHanging()) {
                     parkour.startClimb(player);
@@ -793,11 +794,11 @@ public class InputManager {
         }
         
         boolean fKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_F);
-        if (fKeyCurrentlyPressed && !fKeyPressed && !inventoryOpen && !paused && !nappingOpen) player.setFlying(!player.isFlying());
+        if (fKeyCurrentlyPressed && !fKeyPressed && !anyScreen && !nappingOpen) player.setFlying(!player.isFlying());
         fKeyPressed = fKeyCurrentlyPressed;
 
         boolean f3KeyCurrentlyPressed = isActionPressed("debug_menu");
-        if (f3KeyCurrentlyPressed && !f3KeyPressed && !inventoryOpen && !paused && !nappingOpen) {
+        if (f3KeyCurrentlyPressed && !f3KeyPressed && !anyScreen && !nappingOpen) {
             boolean visible = !com.za.zenith.engine.core.SettingsManager.getInstance().isDebugOverlayVisible();
             com.za.zenith.engine.core.SettingsManager.getInstance().setDebugOverlayVisible(visible);
             
@@ -806,13 +807,21 @@ public class InputManager {
             com.za.zenith.utils.Logger.info("Debug HUD: %b, Player mode: %s", visible, newMode);
         }
         f3KeyPressed = f3KeyCurrentlyPressed;
+
+        boolean f9KeyCurrentlyPressed = isActionPressed("live_inspector");
+        if (f9KeyCurrentlyPressed && !f9KeyPressed && !anyScreen && !nappingOpen) {
+            com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().openScreen(
+                new com.za.zenith.engine.graphics.ui.DevInspectorScreen(), window.getWidth(), window.getHeight());
+            disableMouseCapture(window);
+        }
+        f9KeyPressed = f9KeyCurrentlyPressed;
         
         boolean rKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_R);
-        if (rKeyCurrentlyPressed && !rKeyPressed && !inventoryOpen && !paused && !nappingOpen) verticalMode = !verticalMode;
+        if (rKeyCurrentlyPressed && !rKeyPressed && !anyScreen && !nappingOpen) verticalMode = !verticalMode;
         rKeyPressed = rKeyCurrentlyPressed;
         
         boolean gKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_G);
-        if (gKeyCurrentlyPressed && !gKeyPressed && !inventoryOpen && !paused && !nappingOpen) renderer.toggleFXAA();
+        if (gKeyCurrentlyPressed && !gKeyPressed && !anyScreen && !nappingOpen) renderer.toggleFXAA();
         gKeyPressed = gKeyCurrentlyPressed;
 
         boolean qKeyCurrentlyPressed = window.isKeyPressed(GLFW_KEY_Q);
@@ -839,7 +848,7 @@ public class InputManager {
         
         this.hitEntity = Raycast.raycastEntity(world, camera.getPosition(), lookDir);
         
-        if (!inventoryOpen && !paused && !nappingOpen) {
+        if (!anyScreen && !nappingOpen) {
             boolean lm = window.isMouseButtonPressed(GLFW_MOUSE_BUTTON_1);
             boolean isNewLeftClick = lm && !leftMousePressed;
 
@@ -1091,7 +1100,7 @@ public class InputManager {
             rightMousePressed = rm;
         }
 
-        if (!inventoryOpen && !paused && !nappingOpen && player.isSneaking() && raycast.isHit() && currentItem != null && currentItem.isBlock() && !isSpecialInteracting(player, raycast, currentStack)) {
+        if (!anyScreen && !nappingOpen && player.isSneaking() && raycast.isHit() && currentItem != null && currentItem.isBlock() && !isSpecialInteracting(player, raycast, currentStack)) {
             int blockType = currentItem.getId();
             Vector3f normal = raycast.getNormal();
             BlockPos pPos = new BlockPos(raycast.getBlockPos().x() + (int)normal.x, raycast.getBlockPos().y() + (int)normal.y, raycast.getBlockPos().z() + (int)normal.z);

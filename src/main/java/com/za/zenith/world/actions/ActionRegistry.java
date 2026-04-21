@@ -15,6 +15,10 @@ public class ActionRegistry {
         return registry.getOrDefault(id, new ActionDefinition());
     }
 
+    public static java.util.Set<com.za.zenith.utils.Identifier> getKeys() {
+        return registry.keySet();
+    }
+
     public static void clear() {
         registry.clear();
     }
