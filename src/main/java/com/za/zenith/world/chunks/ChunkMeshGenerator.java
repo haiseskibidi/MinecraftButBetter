@@ -61,6 +61,10 @@ public class ChunkMeshGenerator {
         int vertexIndex = 0;
 
         void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask, float overlayLayer, boolean canSway, World world, int wx, int wy, int wz) {
+            addFace(fp, fn, blockTypeId, fullUv, face, ox, oy, oz, neighborMask, overlayLayer, canSway, world, wx, wy, wz, null);
+        }
+
+        void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask, float overlayLayer, boolean canSway, World world, int wx, int wy, int wz, BlockPos ignorePos) {
             float minY = fp[1], maxY = fp[1];
             for (int v = 1; v < 4; v++) {
                 minY = Math.min(minY, fp[v*3+1]);
@@ -106,11 +110,11 @@ public class ChunkMeshGenerator {
                 int dz = vz > 0.5f ? 1 : -1;
 
                 // Simple AO based on neighbors
-                float ao = calculateAO(world, wx, wy, wz, face, vx, vy, vz);
+                float ao = calculateAO(world, wx, wy, wz, face, vx, vy, vz, ignorePos);
                 aoData.add(ao + packedPos * 10.0f);
 
                 // Smooth Lighting
-                float[] light = calculateSmoothLight(world, wx, wy, wz, face, vx, vy, vz);
+                float[] light = calculateSmoothLight(world, wx, wy, wz, face, vx, vy, vz, ignorePos);
                 lightData.add(light[0]); // Sun
                 lightData.add(light[1]); // Block
             }
@@ -143,7 +147,7 @@ public class ChunkMeshGenerator {
             vertexIndex += 4;
         }
 
-        private float calculateAO(World world, int x, int y, int z, int face, float vx, float vy, float vz) {
+        private float calculateAO(World world, int x, int y, int z, int face, float vx, float vy, float vz, BlockPos ignorePos) {
             if (world == null) return 1.0f;
             
             int nx = (vx > 0.0f) ? 1 : -1;
@@ -156,23 +160,23 @@ public class ChunkMeshGenerator {
                 case 0: // North (+Z)
                 case 1: // South (-Z)
                     int fz = z + (face == 0 ? 1 : -1);
-                    side1 = isSolid(world, x + nx, y, fz);
-                    side2 = isSolid(world, x, y + ny, fz);
-                    corner = isSolid(world, x + nx, y + ny, fz);
+                    side1 = isSolid(world, x + nx, y, fz, ignorePos);
+                    side2 = isSolid(world, x, y + ny, fz, ignorePos);
+                    corner = isSolid(world, x + nx, y + ny, fz, ignorePos);
                     break;
                 case 2: // East (+X)
                 case 3: // West (-X)
                     int fx = x + (face == 2 ? 1 : -1);
-                    side1 = isSolid(world, fx, y + ny, z);
-                    side2 = isSolid(world, fx, y, z + nz);
-                    corner = isSolid(world, fx, y + ny, z + nz);
+                    side1 = isSolid(world, fx, y + ny, z, ignorePos);
+                    side2 = isSolid(world, fx, y, z + nz, ignorePos);
+                    corner = isSolid(world, fx, y + ny, z + nz, ignorePos);
                     break;
                 case 4: // Up (+Y)
                 case 5: // Down (-Y)
                     int fy = y + (face == 4 ? 1 : -1);
-                    side1 = isSolid(world, x + nx, fy, z);
-                    side2 = isSolid(world, x, fy, z + nz);
-                    corner = isSolid(world, x + nx, fy, z + nz);
+                    side1 = isSolid(world, x + nx, fy, z, ignorePos);
+                    side2 = isSolid(world, x, fy, z + nz, ignorePos);
+                    corner = isSolid(world, x + nx, fy, z + nz, ignorePos);
                     break;
             }
 
@@ -180,15 +184,16 @@ public class ChunkMeshGenerator {
             return 1.0f - ((side1 ? 1 : 0) + (side2 ? 1 : 0) + (corner ? 1 : 0)) * 0.25f;
         }
 
-        private boolean isSolid(World world, int x, int y, int z) {
+        private boolean isSolid(World world, int x, int y, int z, BlockPos ignorePos) {
             if (world == null) return false;
+            if (ignorePos != null && x == ignorePos.x() && y == ignorePos.y() && z == ignorePos.z()) return false;
             Block b = world.getBlock(x, y, z);
             if (b.getType() == 0) return false;
             com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(b.getType());
             return def != null && def.isSolid() && !def.isTransparent();
         }
 
-        private float[] calculateSmoothLight(World world, int x, int y, int z, int face, float vx, float vy, float vz) {
+        private float[] calculateSmoothLight(World world, int x, int y, int z, int face, float vx, float vy, float vz, BlockPos ignorePos) {
             if (world == null) return new float[]{15f, 0f};
             // Face normal direction
             com.za.zenith.utils.Direction dir = com.za.zenith.utils.Direction.values()[face];
@@ -221,25 +226,53 @@ public class ChunkMeshGenerator {
                 int sy = fy + s[1];
                 int sz = fz + s[2];
                 
-                Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(sx, sz));
-                if (chunk != null && sy >= 0 && sy < Chunk.CHUNK_HEIGHT) {
-                    float sun = chunk.getSunlight(sx & 15, sy, sz & 15);
-                    
-                    // Safety: if it's 0 but we are high up and nothing is above, it's likely a data glitch
-                    if (sun == 0 && sy > 60) {
-                        boolean blocked = false;
-                        for (int ay = sy + 1; ay < sy + 5 && ay < Chunk.CHUNK_HEIGHT; ay++) {
-                            if (isSolid(world, sx, ay, sz)) { blocked = true; break; }
+                float sun = 0, block = 0;
+                boolean sampled = false;
+
+                // If this is the ignored block (breaking block), it has no light of its own (it's solid).
+                // But we are rendering a hole through it, so we sample light from ITS neighbors!
+                if (ignorePos != null && sx == ignorePos.x() && sy == ignorePos.y() && sz == ignorePos.z()) {
+                    // Sample light from the neighbor in the face normal direction (away from the face)
+                    // or just take the maximum of its neighbors that are NOT solid.
+                    int[] dx = {1, -1, 0, 0, 0, 0};
+                    int[] dy = {0, 0, 1, -1, 0, 0};
+                    int[] dz = {0, 0, 0, 0, 1, -1};
+                    float maxSun = 0, maxBlock = 0;
+                    for(int i=0; i<6; i++) {
+                        int nxp = sx + dx[i], nyp = sy + dy[i], nzp = sz + dz[i];
+                        if (ignorePos != null && nxp == ignorePos.x() && nyp == ignorePos.y() && nzp == ignorePos.z()) continue;
+                        if (!isSolid(world, nxp, nyp, nzp, ignorePos)) {
+                            maxSun = Math.max(maxSun, world.getSunlight(nxp, nyp, nzp));
+                            maxBlock = Math.max(maxBlock, world.getBlockLight(nxp, nyp, nzp));
                         }
-                        if (!blocked) sun = 15;
                     }
-                    
-                    totalSun += sun;
-                    totalBlock += chunk.getBlockLight(sx & 15, sy, sz & 15);
-                } else {
-                    totalSun += 15; // Unloaded areas are bright
-                    totalBlock += 0;
+                    sun = maxSun;
+                    block = maxBlock;
+                    sampled = true;
                 }
+
+                if (!sampled) {
+                    Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(sx, sz));
+                    if (chunk != null && sy >= 0 && sy < Chunk.CHUNK_HEIGHT) {
+                        sun = chunk.getSunlight(sx & 15, sy, sz & 15);
+                        
+                        // Safety: if it's 0 but we are high up and nothing is above, it's likely a data glitch
+                        if (sun == 0 && sy > 60) {
+                            boolean blocked = false;
+                            for (int ay = sy + 1; ay < sy + 5 && ay < Chunk.CHUNK_HEIGHT; ay++) {
+                                if (isSolid(world, sx, ay, sz, ignorePos)) { blocked = true; break; }
+                            }
+                            if (!blocked) sun = 15;
+                        }
+                        block = chunk.getBlockLight(sx & 15, sy, sz & 15);
+                    } else {
+                        sun = 15; // Unloaded areas are bright
+                        block = 0;
+                    }
+                }
+                
+                totalSun += sun;
+                totalBlock += block;
                 count++;
             }
 
@@ -364,7 +397,7 @@ public class ChunkMeshGenerator {
                         }
                     }
                 }
-                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0, overlayLayer, def.isSway(), world, wx, wy, wz);
+                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0, overlayLayer, def.isSway(), world, wx, wy, wz, pos);
             }
         }
         return data.build();
@@ -436,7 +469,7 @@ public class ChunkMeshGenerator {
                     float oy = dir.getDy();
                     float oz = dir.getDz();
 
-                    data.addFace(facePositions[oppFace], FACE_NORMALS[oppFace], faceBlockType, BlockTextureMapper.uvFor(nBlock, oppFace, atlas), oppFace, ox, oy, oz, 0, overlayLayer, nDef.isSway(), world, nPos.x(), nPos.y(), nPos.z());
+                    data.addFace(facePositions[oppFace], FACE_NORMALS[oppFace], faceBlockType, BlockTextureMapper.uvFor(nBlock, oppFace, atlas), oppFace, ox, oy, oz, 0, overlayLayer, nDef.isSway(), world, nPos.x(), nPos.y(), nPos.z(), pos);
                 }
             }
         }

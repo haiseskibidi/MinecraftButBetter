@@ -368,11 +368,11 @@ public class Renderer {
 
         // Collect all positions from damage map to hide them in chunk mesh
         java.util.Set<com.za.zenith.world.BlockPos> damagedPositions = world.getBlockDamageMap().keySet();
-        int hiddenCount = Math.min(damagedPositions.size(), 16);
+        int hiddenCount = Math.min(damagedPositions.size(), 64);
         blockShader.setInt("uHiddenCount", hiddenCount);
         int idx = 0;
         for (com.za.zenith.world.BlockPos dpos : damagedPositions) {
-            if (idx >= 16) break;
+            if (idx >= 64) break;
             blockShader.setVector3f("uHiddenPositions[" + idx + "]", new Vector3f(dpos.x(), dpos.y(), dpos.z()));
             idx++;
         }
@@ -422,6 +422,7 @@ public class Renderer {
                     
                     chunkMeshes.put(chunk, result);
                     chunk.setMeshUpdated();
+                    persistentHoleCache.clear(); // Refresh lighting on holes
                     return true;
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -550,8 +551,8 @@ public class Renderer {
                 blockShader.setMatrix4f("model", modelMatrix);
                 hole.render();
                 // Restore hidden count for next operations
-                java.util.Set<com.za.zenith.world.BlockPos> damagedPositions = world.getBlockDamageMap().keySet();
-                blockShader.setInt("uHiddenCount", Math.min(damagedPositions.size(), 16));
+                java.util.Set<com.za.zenith.world.BlockPos> dPosSet = world.getBlockDamageMap().keySet();
+                blockShader.setInt("uHiddenCount", Math.min(dPosSet.size(), 64));
             }
 
             // 2b. Render Proxy Mesh (The block itself with cracks)

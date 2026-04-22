@@ -26,7 +26,7 @@ uniform int faceMask = 0; // 16-bit mask for 4x4 grid
 uniform bool useMask = false;
 uniform float overlayLayer;
 uniform float uWobbleTime;
-uniform vec3 uHiddenPositions[16];
+uniform vec3 uHiddenPositions[64];
 uniform int uHiddenCount;
 uniform bool uIsProxy;
 uniform vec3 uGrassColor = vec3(0.486, 0.784, 0.314);
