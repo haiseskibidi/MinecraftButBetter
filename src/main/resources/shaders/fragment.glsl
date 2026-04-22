@@ -113,13 +113,21 @@ void main() {
     vec3 totalDynamicLight = vec3(0.0);
     vec3 sunLightContribution = vec3(0.0);
     
+    // Sunlight Intensity (0-1)
+    float sunlightMask = vLight.x / 15.0;
+
     // Process all lights
     for (int i = 0; i < uLightCount; i++) {
         if (uLights[i].type == 1) { // Directional (Sun/Moon)
-            // Baked sunlight contribution (vLight.x)
-            float sunlightMask = vLight.x / 15.0;
-            // Base directional lighting (toon-shaded)
-            sunLightContribution += calculateLighting(fragNormal, uLights[i].direction, uLights[i].color * sunlightMask, vec3(0.0));
+            // 1. Direct toon-shaded sunlight (provides volume and steps)
+            // Scaled to 0.8 to leave room for scattered component and prevent overexposure
+            vec3 directSun = calculateLighting(fragNormal, uLights[i].direction, uLights[i].color * sunlightMask * 0.8, vec3(0.0));
+            
+            // 2. Scattered/Volumetric sunlight (illuminates backfaces in lit areas)
+            // Scaled to 0.2. Total (Direct + Scattered) will be 1.0 on the surface.
+            vec3 scatteredSun = uLights[i].color * sunlightMask * 0.2; 
+            
+            sunLightContribution += directSun + scatteredSun;
         } else {
             // Point and Spot lights (don't care about sunlight mask, they are internal)
             totalDynamicLight += calculateDynamicLighting(fragNormal, fragPos, uLights[i]);
