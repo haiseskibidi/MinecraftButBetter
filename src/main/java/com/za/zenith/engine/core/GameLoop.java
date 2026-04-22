@@ -279,17 +279,17 @@ public class GameLoop {
         if (networkClient != null && networkClient.isConnected()) {
             networkClient.sendPlayerPosition();
         }
-        
-        fpsTimer += interval;
+    }
+    
+    private void render(float alpha, float deltaTime) {
+        fpsTimer += deltaTime;
         fpsCounter++;
         if (fpsTimer >= 1.0f) {
             currentFps = fpsCounter;
             fpsCounter = 0;
             fpsTimer = 0;
         }
-    }
-    
-    private void render(float alpha, float deltaTime) {
+
         com.za.zenith.engine.graphics.ui.Screen active = com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
         if (active != null && active.isScene()) {
             active.render(renderer.getUIRenderer(), window.getWidth(), window.getHeight(), renderer.getAtlas());
