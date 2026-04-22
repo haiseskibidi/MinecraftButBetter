@@ -176,8 +176,8 @@ public class ChunkMeshGenerator {
                     break;
             }
 
-            if (side1 && side2) return 0.2f;
-            return 1.0f - ((side1 ? 1 : 0) + (side2 ? 1 : 0) + (corner ? 1 : 0)) * 0.25f;
+            if (side1 && side2) return 0.3f;
+            return 1.0f - ((side1 ? 1 : 0) + (side2 ? 1 : 0) + (corner ? 1 : 0)) * 0.2f;
         }
 
         private boolean isSolid(World world, int x, int y, int z) {
@@ -185,6 +185,8 @@ public class ChunkMeshGenerator {
             Block b = world.getBlock(x, y, z);
             if (b.getType() == 0) return false;
             com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(b.getType());
+            // Leaves are semi-transparent for AO to keep trees bright
+            if (def != null && def.getIdentifier().toString().contains("leaves")) return false;
             return def != null && def.isSolid() && !def.isTransparent();
         }
 
@@ -225,7 +227,7 @@ public class ChunkMeshGenerator {
                 if (chunk != null && sy >= 0 && sy < Chunk.CHUNK_HEIGHT) {
                     float sun = chunk.getSunlight(sx & 15, sy, sz & 15);
                     
-                    // Safety: if it's 0 but we are high up and nothing is above, it's likely a data glitch
+                    // Safety: if it's 0 but we are high up and nothing is above, it's likely a data glitch/boundary issue
                     if (sun == 0 && sy > 60) {
                         boolean blocked = false;
                         for (int ay = sy + 1; ay < sy + 5 && ay < Chunk.CHUNK_HEIGHT; ay++) {
@@ -237,7 +239,7 @@ public class ChunkMeshGenerator {
                     totalSun += sun;
                     totalBlock += chunk.getBlockLight(sx & 15, sy, sz & 15);
                 } else {
-                    totalSun += 15; // Unloaded areas are bright
+                    totalSun += 15; 
                     totalBlock += 0;
                 }
                 count++;

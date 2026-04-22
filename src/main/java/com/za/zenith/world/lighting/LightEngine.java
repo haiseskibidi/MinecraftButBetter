@@ -119,11 +119,19 @@ public class LightEngine {
                     setSunlight(x, y, z, 0);
                     enqueueRemoval(pack(x, y, z, old));
                 }
-            } else if (light == 0) {
-                // If we reached opaque blocks and light is already 0, we might still need to 
-                // check for horizontal light bleeding if this was the block that changed.
-                // But generally vertical scan stops here.
-                if (y < pos.y()) break;
+            }
+
+            // Fix: Check neighbors to pull light into newly created air blocks (under ceiling)
+            if (light < 15) {
+                for (com.za.zenith.utils.Direction dir : com.za.zenith.utils.Direction.values()) {
+                    int nx = x + dir.getDx();
+                    int ny = y + dir.getDy();
+                    int nz = z + dir.getDz();
+                    int nl = getSunlight(nx, ny, nz);
+                    if (nl > light + 1) {
+                        enqueueFill(pack(nx, ny, nz, nl));
+                    }
+                }
             }
         }
 
@@ -154,7 +162,18 @@ public class LightEngine {
                 int neighborLevel = sun ? nChunk.getSunlight(nx & 15, ny, nz & 15) : nChunk.getBlockLight(nx & 15, ny, nz & 15);
                 
                 // Sunlight vertical propagation: 15 stays 15 when going down
-                int nextLevel = (sun && dir == com.za.zenith.utils.Direction.DOWN && level == 15) ? 15 : level - 1;
+                int opacityLoss = 1;
+                if (sun) {
+                    Block b = nChunk.getBlock(nx & 15, ny, nz & 15);
+                    if (b.getType() != 0) {
+                        com.za.zenith.world.blocks.BlockDefinition def = BlockRegistry.getBlock(b.getType());
+                        if (def != null && def.getIdentifier().toString().contains("leaves")) {
+                            opacityLoss = 3; // Leaves darken sunlight significantly
+                        }
+                    }
+                }
+
+                int nextLevel = (sun && dir == com.za.zenith.utils.Direction.DOWN && level == 15 && opacityLoss == 1) ? 15 : level - opacityLoss;
                 if (nextLevel < 0) nextLevel = 0;
 
                 if (neighborLevel < nextLevel) {
@@ -263,8 +282,8 @@ public class LightEngine {
     }
 
     public void generateInitialSunlight(Chunk chunk) {
-        // Just do vertical scan, the world will trigger BFS if needed 
-        // or we can just leave it to the world generator to call updateSunlight
+        fillHead = fillTail = 0;
+        
         for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
             for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
                 int light = 15;
@@ -274,14 +293,27 @@ public class LightEngine {
                         light = 0;
                     }
                     chunk.setSunlight(x, y, z, light);
+                    
+                    // If we have sunlight 15, we are a potential source for horizontal propagation
+                    if (light == 15) {
+                        int wx = chunk.getPosition().x() * Chunk.CHUNK_SIZE + x;
+                        int wz = chunk.getPosition().z() * Chunk.CHUNK_SIZE + z;
+                        enqueueFill(pack(wx, y, wz, 15));
+                    }
                 }
             }
         }
+        
+        // After vertical scan, propagate horizontally to fill structures
+        processLightFill(true);
     }
 
     private boolean isOpaque(Block b) {
         if (b.getType() == 0) return false;
         com.za.zenith.world.blocks.BlockDefinition def = BlockRegistry.getBlock(b.getType());
-        return def != null && def.isSolid() && !def.isTransparent();
+        if (def == null) return false;
+        // Leaves are semi-transparent: they block vertical 15, but let light propagate with loss
+        if (def.getIdentifier().toString().contains("leaves")) return true; 
+        return def.isSolid() && !def.isTransparent();
     }
 }

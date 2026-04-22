@@ -135,8 +135,12 @@ void main() {
     float blocklightIntensity = vLight.y / 15.0;
     lighting += vec3(1.0, 0.85, 0.6) * blocklightIntensity;
     
-    // Apply Ambient Occlusion
+    // Apply Ambient Occlusion (always apply for volume)
     lighting *= vAO;
+    
+    // Ensure absolute minimum brightness (eye adaptation / night vision)
+    // Apply AFTER AO so corners are slightly darker but still visible
+    lighting = max(lighting, vec3(0.05));
     
     // Clamp to prevent eye-bleeding brightness
     lighting = min(lighting, vec3(2.5)); 
