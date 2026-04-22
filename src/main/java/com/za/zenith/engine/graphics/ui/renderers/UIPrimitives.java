@@ -58,6 +58,8 @@ public class UIPrimitives {
 
         uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
         uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);
+        uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
+        uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
         uiShader.setUniform("tintColor", c1[0], c1[1], c1[2], c1[3]);
         uiShader.setUniform("tintColor2", c2[0], c2[1], c2[2], c2[3]);
 

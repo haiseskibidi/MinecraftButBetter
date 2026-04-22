@@ -142,23 +142,25 @@ public class NotificationManager {
                 int gradHeight = (int)(currentFontSize * 1.4f);
                 int gradY = renderY - (gradHeight - currentFontSize) / 2;
                 float[] c1 = cfg.backgroundColor;
-                float[] c2 = new float[]{c1[0], c1[1], c1[2], 0.0f}; // Fade to transparent
+                float bgAlpha = c1[3] * alpha; // Fade out background together with text
+                float[] colCenter = new float[]{c1[0], c1[1], c1[2], bgAlpha};
+                float[] colEdge = new float[]{c1[0], c1[1], c1[2], 0.0f}; // Fade to transparent
                 
                 if (cfg.anchor.contains("left")) {
                     // Wide fade from Left edge
                     int gradWidth = Math.max(sw / 3, renderX + textWidth + 120);
-                    renderer.getPrimitivesRenderer().renderGradientRect(0, gradY, gradWidth, gradHeight, sw, sh, c1, c2);
+                    renderer.getPrimitivesRenderer().renderGradientRect(0, gradY, gradWidth, gradHeight, sw, sh, colCenter, colEdge);
                 } else if (cfg.anchor.contains("right")) {
                     // Wide fade from Right edge
                     int gradWidth = Math.max(sw / 3, (sw - renderX) + 120);
                     int gradX = sw - gradWidth;
-                    renderer.getPrimitivesRenderer().renderGradientRect(gradX, gradY, gradWidth, gradHeight, sw, sh, c2, c1);
+                    renderer.getPrimitivesRenderer().renderGradientRect(gradX, gradY, gradWidth, gradHeight, sw, sh, colEdge, colCenter);
                 } else {
                     // Center - double sided soft fade (Transparent -> Black -> Transparent)
                     int gradWidth = textWidth + 240;
                     int gradX = renderX - (gradWidth - textWidth) / 2;
-                    renderer.getPrimitivesRenderer().renderGradientRect(gradX, gradY, gradWidth / 2, gradHeight, sw, sh, c2, c1);
-                    renderer.getPrimitivesRenderer().renderGradientRect(gradX + gradWidth / 2, gradY, gradWidth / 2, gradHeight, sw, sh, c1, c2);
+                    renderer.getPrimitivesRenderer().renderGradientRect(gradX, gradY, gradWidth / 2, gradHeight, sw, sh, colEdge, colCenter);
+                    renderer.getPrimitivesRenderer().renderGradientRect(gradX + gradWidth / 2, gradY, gradWidth / 2, gradHeight, sw, sh, colCenter, colEdge);
                 }
             }
 
