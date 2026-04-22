@@ -123,7 +123,24 @@ public class ParkourHandler {
             int by = (int) Math.floor(rayEnd.y);
             int bz = (int) Math.floor(rayEnd.z);
 
-            if (world.getBlock(bx, by, bz).isAir() && world.getBlock(bx, by - 1, bz).isSolid()) {
+            // Determine the block in front of the ledge (where the player's body will hang)
+            int fbx = bx;
+            int fbz = bz;
+            if (Math.abs(horizontalDir.x) > Math.abs(horizontalDir.z)) {
+                fbx -= (int) Math.signum(horizontalDir.x);
+            } else {
+                fbz -= (int) Math.signum(horizontalDir.z);
+            }
+
+            // Require at least a 2-block high vertical surface and ensure there's room to hang.
+            // This prevents grabbing 1-block high obstacles sitting on the ground because
+            // the block at (fbx, by - 2, fbz) would be the ground (solid).
+            if (world.getBlock(bx, by, bz).isAir() &&                     // Room above ledge
+                world.getBlock(bx, by - 1, bz).isSolid() &&              // The ledge
+                world.getBlock(bx, by - 2, bz).isSolid() &&              // The wall below
+                world.getBlock(fbx, by - 1, fbz).isAir() &&              // Room for arms/head
+                world.getBlock(fbx, by - 2, fbz).isAir()) {               // Room for torso/feet
+                
                 if (canClimbTo(player, world, rayEnd)) {
                     float offsetFromCenter = 0.5f + (settings.playerWidth / 2.0f) + 0.05f;
                     
