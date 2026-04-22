@@ -1,0 +1,15 @@
+{
+  "identifier": "zenith:forest",
+  "temperature": 0.45,
+  "humidity": 0.6,
+  "base_height": 68,
+  "height_variation": 20,
+  "surface_block": "zenith:grass_block",
+  "underground_block": "zenith:dirt",
+  "tree_density": 0.4,
+  "erosion_factor": 0.8,
+  "features": [
+    { "id": "zenith:oak_tree", "weight": 50 },
+    { "id": "zenith:birch_tree", "weight": 50 }
+  ]
+}

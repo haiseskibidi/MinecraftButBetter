@@ -1,0 +1,14 @@
+{
+  "identifier": "zenith:taiga",
+  "temperature": 0.2,
+  "humidity": 0.7,
+  "base_height": 72,
+  "height_variation": 40,
+  "surface_block": "zenith:grass_block",
+  "underground_block": "zenith:dirt",
+  "tree_density": 0.3,
+  "erosion_factor": 0.6,
+  "features": [
+    { "id": "zenith:spruce_tree", "weight": 100 }
+  ]
+}

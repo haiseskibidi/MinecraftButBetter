@@ -1,0 +1,59 @@
+{
+  "identifier": "zenith:spruce_tree",
+  "palette": {
+    "L": "zenith:spruce_log",
+    "A": "zenith:spruce_leaves",
+    " ": "-1"
+  },
+  "layers": [
+    [
+      "     ",
+      "     ",
+      "  L  ",
+      "     ",
+      "     "
+    ],
+    [
+      "     ",
+      "  A  ",
+      " ALA ",
+      "  A  ",
+      "     "
+    ],
+    [
+      "  A  ",
+      " AAA ",
+      "AALAA",
+      " AAA ",
+      "  A  "
+    ],
+    [
+      "     ",
+      "  A  ",
+      " ALA ",
+      "  A  ",
+      "     "
+    ],
+    [
+      "  A  ",
+      " AAA ",
+      "AALAA",
+      " AAA ",
+      "  A  "
+    ],
+    [
+      "     ",
+      "  A  ",
+      " ALA ",
+      "  A  ",
+      "     "
+    ],
+    [
+      "     ",
+      "     ",
+      "  A  ",
+      "     ",
+      "     "
+    ]
+  ]
+}

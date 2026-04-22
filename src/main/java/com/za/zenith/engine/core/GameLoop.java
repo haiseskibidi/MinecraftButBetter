@@ -97,7 +97,7 @@ public class GameLoop {
             localServer.start();
         }
         world = new World(seed);
-        player = new Player(new Vector3f(8, 65, 8));
+        player = new Player(new Vector3f(8, 150, 8));
         world.setPlayer(player);
         player.getInventory().setStackInSlot(0, new com.za.zenith.world.items.ItemStack(com.za.zenith.world.items.Items.ADMIN_HAMMER));
         hotbar = new Hotbar(player);

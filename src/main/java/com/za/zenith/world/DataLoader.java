@@ -80,6 +80,7 @@ public class DataLoader {
         // 3. Register structures (depends on blocks)
         for (String ns : namespaces) {
             loadStructures(ns);
+            loadBiomes(ns);
         }
         com.za.zenith.world.generation.structures.PrefabManager.init();
 
@@ -682,6 +683,26 @@ public class DataLoader {
                     } catch (Exception e) {}
                 });
             }
+        }
+    }
+
+    private static void loadBiomes(String namespace) {
+        List<String> files = listResources(namespace + "/generation/biomes");
+        if (!files.isEmpty()) {
+            for (String file : files) {
+                loadResource(namespace + "/generation/biomes/" + file, DataLoader::parseBiome);
+            }
+        }
+    }
+
+    private static void parseBiome(JsonElement el) {
+        try {
+            JsonObject obj = el.getAsJsonObject();
+            com.za.zenith.world.generation.BiomeDefinition biome = GSON.fromJson(obj, com.za.zenith.world.generation.BiomeDefinition.class);
+            biome.setId(Identifier.of(obj.get("identifier").getAsString()));
+            com.za.zenith.world.generation.BiomeRegistry.register(biome);
+        } catch (Exception e) {
+            Logger.error("Failed to parse biome: " + e.getMessage());
         }
     }
 

@@ -1,0 +1,52 @@
+{
+  "identifier": "zenith:oak_tree",
+  "palette": {
+    "L": "zenith:oak_log",
+    "A": "zenith:oak_leaves",
+    " ": "-1"
+  },
+  "layers": [
+    [
+      "     ",
+      "     ",
+      "  L  ",
+      "     ",
+      "     "
+    ],
+    [
+      "     ",
+      "     ",
+      "  L  ",
+      "     ",
+      "     "
+    ],
+    [
+      "     ",
+      "     ",
+      "  L  ",
+      "     ",
+      "     "
+    ],
+    [
+      "AAAAA",
+      "AAAAA",
+      "AALAA",
+      "AAAAA",
+      "AAAAA"
+    ],
+    [
+      " AAA ",
+      "AAAAA",
+      "AALAA",
+      "AAAAA",
+      " AAA "
+    ],
+    [
+      "     ",
+      " AAA ",
+      " A A ",
+      " AAA ",
+      "     "
+    ]
+  ]
+}

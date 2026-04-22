@@ -1,25 +1,29 @@
 package com.za.zenith.world.generation.pipeline.steps;
 
+import com.za.zenith.utils.Identifier;
 import com.za.zenith.world.World;
 import com.za.zenith.world.blocks.Block;
-import com.za.zenith.world.blocks.BlockDefinition;
-import com.za.zenith.world.blocks.BlockRegistry;
 import com.za.zenith.world.blocks.Blocks;
-import com.za.zenith.world.blocks.WoodTypeRegistry;
 import com.za.zenith.world.chunks.Chunk;
+import com.za.zenith.world.generation.BiomeDefinition;
+import com.za.zenith.world.generation.BiomeGenerator;
 import com.za.zenith.world.generation.SimplexNoise;
 import com.za.zenith.world.generation.pipeline.GenerationStep;
+import com.za.zenith.world.generation.structures.StructureRegistry;
+import com.za.zenith.world.generation.structures.StructureTemplate;
 
+import java.util.List;
 import java.util.Random;
 
 public class OvergrowthStep implements GenerationStep {
     private final SimplexNoise vegetationNoise;
     private final Random random;
-    private static final int CITY_LEVEL = 60;
+    private final BiomeGenerator biomeGenerator;
 
     public OvergrowthStep(long seed) {
         this.vegetationNoise = new SimplexNoise(seed + 300);
         this.random = new Random(seed);
+        this.biomeGenerator = new BiomeGenerator(seed);
     }
 
     @Override
@@ -37,45 +41,49 @@ public class OvergrowthStep implements GenerationStep {
                 int worldZ = chunkZ * Chunk.CHUNK_SIZE + z;
 
                 int surfaceY = findSurfaceY(world, worldX, worldZ);
-                
-                if (surfaceY >= CITY_LEVEL) {
-                    Block groundBlock = world.getBlock(worldX, surfaceY, worldZ);
-                    double vNoise = (vegetationNoise.noise(worldX * 0.05, worldZ * 0.05) + 1.0) / 2.0;
+                if (surfaceY > 0) {
+                    BiomeDefinition biome = biomeGenerator.getBiome(worldX, worldZ);
+                    if (biome == null) continue;
 
-                    if (vNoise > 0.6) {
-                        if (groundBlock.getType() == Blocks.ASPHALT.getId() || groundBlock.getType() == Blocks.COBBLESTONE.getId()) {
-                            if (random.nextFloat() < 0.3f) {
-                                world.setBlock(worldX, surfaceY, worldZ, new Block(Blocks.GRASS_BLOCK.getId()));
-                                world.setBlock(worldX, surfaceY - 1, worldZ, new Block(Blocks.DIRT.getId()));
-                            }
-                        }
-                        else if (groundBlock.getType() == Blocks.RUSTY_METAL.getId()) {
-                            if (random.nextFloat() < 0.15f) {
-                                // Random leaf type
-                                int woodIdx = random.nextInt(WoodTypeRegistry.size());
-                                com.za.zenith.utils.Identifier logId = WoodTypeRegistry.getLogId(woodIdx);
-                                com.za.zenith.utils.Identifier leafId = com.za.zenith.utils.Identifier.of(logId.getNamespace(), logId.getPath().replace("_log", "_leaves"));
-                                BlockDefinition leafDef = BlockRegistry.getRegistry().get(leafId);
-                                if (leafDef != null) {
-                                    world.setBlock(worldX, surfaceY + 1, worldZ, new Block(leafDef.getId()));
-                                } else {
-                                    world.setBlock(worldX, surfaceY + 1, worldZ, new Block(Blocks.OAK_LEAVES.getId()));
-                                }
-                            }
-                        }
+                    double vNoise = (vegetationNoise.octaveNoise(worldX, worldZ, 2, 0.5, 0.05) + 1.0) / 2.0;
 
+                    if (vNoise > 0.4) {
+                        Block groundBlock = world.getBlock(worldX, surfaceY, worldZ);
+
+                        // Flowers, grass, etc.
                         if (groundBlock.getType() == Blocks.DIRT.getId() || groundBlock.getType() == Blocks.GRASS_BLOCK.getId()) {
-                            if (random.nextFloat() < 0.05f) {
-                                generateMutatedTree(world, worldX, surfaceY + 1, worldZ);
-                            } else if (random.nextFloat() < 0.4f) {
-                                if (random.nextFloat() < 0.2f) {
-                                    // Высокая трава (DOUBLE_PLANT) - ставим низ и верх
+                            if (random.nextFloat() < 0.3f) {
+                                if (random.nextFloat() < 0.1f) {
                                     if (world.getBlock(worldX, surfaceY + 2, worldZ).isAir()) {
                                         world.setBlock(worldX, surfaceY + 1, worldZ, new Block(Blocks.TALL_GRASS.getId(), (byte)0));
                                         world.setBlock(worldX, surfaceY + 2, worldZ, new Block(Blocks.TALL_GRASS.getId(), (byte)1));
                                     }
                                 } else {
                                     world.setBlock(worldX, surfaceY + 1, worldZ, new Block(Blocks.SHORT_GRASS.getId()));
+                                }
+                            }
+                        }
+
+                        // Generate Trees / Features based on Biome
+                        if (random.nextFloat() < biome.getTreeDensity() * 0.05f) { // Adjusted density multiplier
+                            List<BiomeDefinition.FeatureEntry> features = biome.getFeatures();
+                            if (features != null && !features.isEmpty()) {
+                                int totalWeight = features.stream().mapToInt(BiomeDefinition.FeatureEntry::getWeight).sum();
+                                int roll = random.nextInt(totalWeight);
+                                Identifier selectedFeature = null;
+                                for (BiomeDefinition.FeatureEntry f : features) {
+                                    roll -= f.getWeight();
+                                    if (roll < 0) {
+                                        selectedFeature = f.getId();
+                                        break;
+                                    }
+                                }
+
+                                if (selectedFeature != null) {
+                                    StructureTemplate template = StructureRegistry.get(selectedFeature);
+                                    if (template != null) {
+                                        template.build(world, worldX - template.getWidth() / 2, surfaceY + 1, worldZ - template.getDepth() / 2);
+                                    }
                                 }
                             }
                         }
@@ -86,49 +94,13 @@ public class OvergrowthStep implements GenerationStep {
     }
 
     private int findSurfaceY(World world, int x, int z) {
-        for (int y = Chunk.CHUNK_HEIGHT - 1; y >= CITY_LEVEL; y--) {
+        for (int y = Chunk.CHUNK_HEIGHT - 1; y >= 20; y--) {
             Block b = world.getBlock(x, y, z);
-            if (!b.isAir() && !b.isTransparent()) {
+            if (!b.isAir() && !b.isTransparent() && b.getType() != Blocks.SHORT_GRASS.getId() && b.getType() != Blocks.TALL_GRASS.getId()) {
                 return y;
             }
         }
         return -1;
-    }
-
-    private void generateMutatedTree(World world, int x, int y, int z) {
-        int woodIdx = random.nextInt(com.za.zenith.world.blocks.WoodTypeRegistry.size());
-        com.za.zenith.utils.Identifier logId = com.za.zenith.world.blocks.WoodTypeRegistry.getLogId(woodIdx);
-        com.za.zenith.utils.Identifier leafId = com.za.zenith.utils.Identifier.of(logId.getNamespace(), logId.getPath().replace("_log", "_leaves"));
-        
-        com.za.zenith.world.blocks.BlockDefinition logDef = com.za.zenith.world.blocks.BlockRegistry.getRegistry().get(logId);
-        com.za.zenith.world.blocks.BlockDefinition leafDef = com.za.zenith.world.blocks.BlockRegistry.getRegistry().get(leafId);
-        
-        int logIdVal = logDef != null ? logDef.getId() : Blocks.OAK_LOG.getId();
-        int leafIdVal = leafDef != null ? leafDef.getId() : Blocks.OAK_LEAVES.getId();
-
-        int height = 3 + random.nextInt(4);
-        // Trunk
-        for (int dy = 0; dy < height; dy++) {
-            world.setBlock(x, y + dy, z, new Block(logIdVal, Block.BIT_NATURAL));
-        }
-
-        // Leaves
-        int crownY = y + height - 2;
-        for (int dy = 0; dy <= 3; dy++) {
-            for (int dx = -2; dx <= 2; dx++) {
-                for (int dz = -2; dz <= 2; dz++) {
-                    if (Math.abs(dx) + Math.abs(dy) + Math.abs(dz) <= 3) {
-                        if (random.nextFloat() > 0.3f) {
-                            com.za.zenith.world.BlockPos pos = new com.za.zenith.world.BlockPos(x + dx, crownY + dy, z + dz);
-                            Block existing = world.getBlock(pos);
-                            if (existing.isAir()) {
-                                world.setBlock(pos, new Block(leafIdVal, Block.BIT_NATURAL));
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

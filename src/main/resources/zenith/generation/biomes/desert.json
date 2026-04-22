@@ -1,0 +1,14 @@
+{
+  "identifier": "zenith:desert",
+  "temperature": 0.8,
+  "humidity": 0.1,
+  "base_height": 62,
+  "height_variation": 8,
+  "surface_block": "zenith:sand",
+  "underground_block": "zenith:sand",
+  "tree_density": 0.01,
+  "erosion_factor": 1.5,
+  "features": [
+    { "id": "zenith:dead_tree", "weight": 100 }
+  ]
+}

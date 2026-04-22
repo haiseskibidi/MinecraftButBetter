@@ -1,0 +1,59 @@
+{
+  "identifier": "zenith:birch_tree",
+  "palette": {
+    "L": "zenith:birch_log",
+    "A": "zenith:birch_leaves",
+    " ": "-1"
+  },
+  "layers": [
+    [
+      "     ",
+      "     ",
+      "  L  ",
+      "     ",
+      "     "
+    ],
+    [
+      "     ",
+      "     ",
+      "  L  ",
+      "     ",
+      "     "
+    ],
+    [
+      "     ",
+      "     ",
+      "  L  ",
+      "     ",
+      "     "
+    ],
+    [
+      "     ",
+      "     ",
+      "  L  ",
+      "     ",
+      "     "
+    ],
+    [
+      " AAA ",
+      "AAAAA",
+      "AALAA",
+      "AAAAA",
+      " AAA "
+    ],
+    [
+      " AAA ",
+      "AAAAA",
+      "AALAA",
+      "AAAAA",
+      " AAA "
+    ],
+    [
+      "     ",
+      " AAA ",
+      " A A ",
+      " AAA ",
+      "     "
+    ]
+  ]
+}
