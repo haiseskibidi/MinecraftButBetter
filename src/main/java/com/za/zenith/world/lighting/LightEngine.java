@@ -329,31 +329,54 @@ public class LightEngine {
         java.util.Set<Chunk> affected = new java.util.HashSet<>(sunByChunk.keySet());
         affected.addAll(blockByChunk.keySet());
 
+        java.util.Set<Chunk> chunksToUpdate = new java.util.HashSet<>(affected);
+
         for (Chunk chunk : affected) {
             synchronized (chunk) {
                 java.util.List<java.util.Map.Entry<Long, Byte>> suns = sunByChunk.get(chunk);
                 if (suns != null) {
                     for (java.util.Map.Entry<Long, Byte> e : suns) {
                         long p = e.getKey();
-                        chunk.setSunlight(unpackX(p) & 15, unpackY(p), unpackZ(p) & 15, e.getValue());
+                        int lx = unpackX(p) & 15;
+                        int lz = unpackZ(p) & 15;
+                        chunk.setSunlight(lx, unpackY(p), lz, e.getValue());
+                        
+                        if (lx == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() - 1, chunk.getPosition().z())));
+                        if (lx == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() + 1, chunk.getPosition().z())));
+                        if (lz == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x(), chunk.getPosition().z() - 1)));
+                        if (lz == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x(), chunk.getPosition().z() + 1)));
+                        
+                        if (lx == 0 && lz == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() - 1, chunk.getPosition().z() - 1)));
+                        if (lx == 15 && lz == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() + 1, chunk.getPosition().z() - 1)));
+                        if (lx == 0 && lz == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() - 1, chunk.getPosition().z() + 1)));
+                        if (lx == 15 && lz == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() + 1, chunk.getPosition().z() + 1)));
                     }
                 }
                 java.util.List<java.util.Map.Entry<Long, Byte>> blocks = blockByChunk.get(chunk);
                 if (blocks != null) {
                     for (java.util.Map.Entry<Long, Byte> e : blocks) {
                         long p = e.getKey();
-                        chunk.setBlockLight(unpackX(p) & 15, unpackY(p), unpackZ(p) & 15, e.getValue());
-                    }
-                }
-                chunk.setNeedsMeshUpdate(true);
-                ChunkPos cp = chunk.getPosition();
-                for (int nx = -1; nx <= 1; nx++) {
-                    for (int nz = -1; nx == 0 && nz == 0 ? false : nz <= 1; nz++) {
-                        Chunk neighbor = world.getChunkInternal(new ChunkPos(cp.x() + nx, cp.z() + nz));
-                        if (neighbor != null) neighbor.setNeedsMeshUpdate(true);
+                        int lx = unpackX(p) & 15;
+                        int lz = unpackZ(p) & 15;
+                        chunk.setBlockLight(lx, unpackY(p), lz, e.getValue());
+
+                        if (lx == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() - 1, chunk.getPosition().z())));
+                        if (lx == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() + 1, chunk.getPosition().z())));
+                        if (lz == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x(), chunk.getPosition().z() - 1)));
+                        if (lz == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x(), chunk.getPosition().z() + 1)));
+                        
+                        if (lx == 0 && lz == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() - 1, chunk.getPosition().z() - 1)));
+                        if (lx == 15 && lz == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() + 1, chunk.getPosition().z() - 1)));
+                        if (lx == 0 && lz == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() - 1, chunk.getPosition().z() + 1)));
+                        if (lx == 15 && lz == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() + 1, chunk.getPosition().z() + 1)));
                     }
                 }
             }
+        }
+        
+        chunksToUpdate.remove(null);
+        for (Chunk c : chunksToUpdate) {
+            c.setNeedsMeshUpdate(true);
         }
     }
 

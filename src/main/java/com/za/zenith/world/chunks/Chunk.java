@@ -26,6 +26,14 @@ public class Chunk {
         java.util.Arrays.fill(this.heightMap, (short)-1);
     }
 
+    public Chunk(ChunkPos position, int[] blockData, byte[] lightData) {
+        this.position = position;
+        this.blockData = blockData;
+        this.lightData = lightData;
+        this.heightMap = new short[CHUNK_SIZE * CHUNK_SIZE];
+        java.util.Arrays.fill(this.heightMap, (short)-1);
+    }
+
     public boolean isReady() { return isReady; }
     public void setReady(boolean ready) { this.isReady = ready; }
 

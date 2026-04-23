@@ -415,34 +415,38 @@ public class Renderer {
         }
 
         // 1. Process pending mesh updates (Check for finished tasks)
-        pendingUpdates.entrySet().removeIf(entry -> {
+        int uploadedThisFrame = 0;
+        java.util.Iterator<Map.Entry<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>>> it = pendingUpdates.entrySet().iterator();
+        while (it.hasNext() && uploadedThisFrame < 2) {
+            Map.Entry<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>> entry = it.next();
             if (entry.getValue().isDone()) {
                 try {
                     ChunkMeshGenerator.RawChunkMeshResult rawResult = entry.getValue().get();
                     ChunkMeshGenerator.ChunkMeshResult result = rawResult.upload();
                     Chunk chunk = entry.getKey();
-                    
+
                     // Cleanup old mesh in MAIN thread
                     ChunkMeshGenerator.ChunkMeshResult old = chunkMeshes.get(chunk);
                     if (old != null) {
                         if (old.opaqueMesh != null) old.opaqueMesh.cleanup();
                         if (old.translucentMesh != null) old.translucentMesh.cleanup();
                     }
-                    
+
                     chunkMeshes.put(chunk, result);
                     chunk.setMeshUpdated(result.version);
-                    return true;
+                    it.remove();
+                    uploadedThisFrame++;
                 } catch (Exception e) {
                     e.printStackTrace();
+                    it.remove();
                 }
             }
-            return false;
-        });
+        }
 
         // 2. Schedule new mesh updates (with budget)
         int scheduledThisFrame = 0;
         int maxScheduledPerFrame = (breakingPos != null) ? 4 : 2; // Allow faster updates when mining
-        
+
         List<Chunk> visibleChunks = new ArrayList<>();
         Vector3f camPos = camera.getPosition();
 
@@ -453,17 +457,15 @@ public class Renderer {
             if (!frustum.testAab(cx, 0, cz, cx + Chunk.CHUNK_SIZE, Chunk.CHUNK_HEIGHT, cz + Chunk.CHUNK_SIZE)) {
                 continue;
             }
-            
+
             visibleChunks.add(chunk);
 
             if (chunk.isReady() && chunk.needsMeshUpdate() && !pendingUpdates.containsKey(chunk)) {
-                if (scheduledThisFrame < maxScheduledPerFrame) { 
+                if (scheduledThisFrame < maxScheduledPerFrame) {
                     Chunk.DataSnapshot snapshot = chunk.getSnapshot();
                     long version = chunk.getDirtyCounter();
                     pendingUpdates.put(chunk, meshExecutor.submit(() -> {
-                        Chunk tempChunk = new Chunk(snapshot.position());
-                        System.arraycopy(snapshot.blockData(), 0, tempChunk.getBlockData(), 0, snapshot.blockData().length);
-                        System.arraycopy(snapshot.lightData(), 0, tempChunk.getLightData(), 0, snapshot.lightData().length);
+                        Chunk tempChunk = new Chunk(snapshot.position(), snapshot.blockData(), snapshot.lightData());
                         tempChunk.setDirtyCounter(version);
                         return ChunkMeshGenerator.generateRawMesh(tempChunk, world, atlas);
                     }));
@@ -471,7 +473,6 @@ public class Renderer {
                 }
             }
         }
-
         // Sort chunks by distance to camera
         visibleChunks.sort((c1, p2) -> {
             float d1 = camPos.distanceSquared(c1.getPosition().x() * Chunk.CHUNK_SIZE + 8, camPos.y, c1.getPosition().z() * Chunk.CHUNK_SIZE + 8);
