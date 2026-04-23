@@ -35,11 +35,11 @@ public class World {
     private float worldTime; // Stored as float for smooth interpolation
     
     private final ExecutorService chunkGenExecutor = Executors.newFixedThreadPool(
-        Math.max(1, Runtime.getRuntime().availableProcessors() - 2),
+        Math.min(4, Math.max(1, Runtime.getRuntime().availableProcessors() - 2)),
         r -> {
             Thread t = new Thread(r, "ChunkGenerator");
             t.setDaemon(true);
-            t.setPriority(Thread.NORM_PRIORITY - 1);
+            t.setPriority(Thread.MIN_PRIORITY);
             return t;
         }
     );
@@ -49,19 +49,28 @@ public class World {
 
     private static class WorldCache {
         Chunk lastChunk;
-        ChunkPos lastPos;
+        int lastChunkX = Integer.MAX_VALUE;
+        int lastChunkZ = Integer.MAX_VALUE;
     }
     private final ThreadLocal<WorldCache> threadCache = ThreadLocal.withInitial(WorldCache::new);
 
-    public Chunk getChunk(ChunkPos pos) {
+    public Chunk getChunk(int chunkX, int chunkZ) {
         WorldCache cache = threadCache.get();
-        if (pos != null && pos.equals(cache.lastPos)) return cache.lastChunk;
+        if (chunkX == cache.lastChunkX && chunkZ == cache.lastChunkZ) return cache.lastChunk;
+        ChunkPos pos = new ChunkPos(chunkX, chunkZ);
         cache.lastChunk = chunks.get(pos);
-        cache.lastPos = pos;
+        cache.lastChunkX = chunkX;
+        cache.lastChunkZ = chunkZ;
         return cache.lastChunk;
     }
 
-    public Chunk getChunkInternal(ChunkPos pos) {
+    public Chunk getChunk(ChunkPos pos) {
+        if (pos == null) return null;
+        return getChunk(pos.x(), pos.z());
+    }
+
+    public Chunk getChunkInternal(int chunkX, int chunkZ) {
+        ChunkPos pos = new ChunkPos(chunkX, chunkZ);
         Chunk c = chunks.get(pos);
         if (c == null) {
             c = stagingChunks.get(pos);
@@ -69,6 +78,18 @@ public class World {
             if (c == null) c = chunks.get(pos);
         }
         return c;
+    }
+
+    public Chunk getChunkInternal(ChunkPos pos) {
+        if (pos == null) return null;
+        return getChunkInternal(pos.x(), pos.z());
+    }
+
+    public int getRawBlockData(int x, int y, int z) {
+        if (y < 0 || y >= Chunk.CHUNK_HEIGHT) return 0;
+        Chunk chunk = getChunk(x >> 4, z >> 4);
+        if (chunk == null) return 0;
+        return chunk.getRawBlockData(x & 15, y, z & 15);
     }
 
     public static class BlockDamageInstance {
@@ -196,30 +217,30 @@ public class World {
         this.worldTime = WorldSettings.getInstance().initialTime;
     }
 
-    private final List<ChunkPos> pendingChunkQueue = new ArrayList<>();
+    private final java.util.LinkedHashSet<ChunkPos> pendingChunkQueue = new java.util.LinkedHashSet<>();
 
     private void updateChunks() {
         if (player == null) return;
-        
+
         int currentChunkX = (int) Math.floor(player.getPosition().x / Chunk.CHUNK_SIZE);
         int currentChunkZ = (int) Math.floor(player.getPosition().z / Chunk.CHUNK_SIZE);
-        
+
         int renderDistance = com.za.zenith.world.generation.GenerationSettings.getInstance().activeRenderDistance;
         int unloadDistance = com.za.zenith.world.generation.GenerationSettings.getInstance().unloadDistance;
-        
+
         if (currentChunkX != lastPlayerChunkX || currentChunkZ != lastPlayerChunkZ) {
             lastPlayerChunkX = currentChunkX;
             lastPlayerChunkZ = currentChunkZ;
-            
+
             for (int cx = currentChunkX - renderDistance; cx <= currentChunkX + renderDistance; cx++) {
                 for (int cz = currentChunkZ - renderDistance; cz <= currentChunkZ + renderDistance; cz++) {
                     ChunkPos pos = new ChunkPos(cx, cz);
-                    if (!chunks.containsKey(pos) && !generatingChunks.contains(pos) && !pendingChunkQueue.contains(pos)) {
-                        pendingChunkQueue.add(pos);
+                    if (!chunks.containsKey(pos) && !generatingChunks.contains(pos)) {
+                        pendingChunkQueue.add(pos); // O(1) in LinkedHashSet
                     }
                 }
             }
-            
+
             // Unload chunks outside unloadDistance
             List<ChunkPos> toRemove = new ArrayList<>();
             for (ChunkPos pos : chunks.keySet()) {
@@ -230,28 +251,28 @@ public class World {
             for (ChunkPos pos : toRemove) {
                 chunks.remove(pos);
             }
-            for (int posIdx = pendingChunkQueue.size() - 1; posIdx >= 0; posIdx--) {
-                ChunkPos p = pendingChunkQueue.get(posIdx);
-                if (Math.abs(p.x() - currentChunkX) > renderDistance || Math.abs(p.z() - currentChunkZ) > renderDistance) {
-                    pendingChunkQueue.remove(posIdx);
-                }
-            }
 
-            pendingChunkQueue.sort((p1, p2) -> {
+            pendingChunkQueue.removeIf(p -> Math.abs(p.x() - currentChunkX) > renderDistance || Math.abs(p.z() - currentChunkZ) > renderDistance);
+
+            List<ChunkPos> sortedPending = new ArrayList<>(pendingChunkQueue);
+            sortedPending.sort((p1, p2) -> {
                 int d1 = (p1.x() - currentChunkX) * (p1.x() - currentChunkX) + (p1.z() - currentChunkZ) * (p1.z() - currentChunkZ);
                 int d2 = (p2.x() - currentChunkX) * (p2.x() - currentChunkX) + (p2.z() - currentChunkZ) * (p2.z() - currentChunkZ);
                 return Integer.compare(d1, d2);
             });
+            pendingChunkQueue.clear();
+            pendingChunkQueue.addAll(sortedPending);
         }
-        
+
         if (!pendingChunkQueue.isEmpty()) {
             int submittedThisTick = 0;
-            while (!pendingChunkQueue.isEmpty() && submittedThisTick < 4) {
-                ChunkPos pos = pendingChunkQueue.remove(0);
+            java.util.Iterator<ChunkPos> it = pendingChunkQueue.iterator();
+            while (it.hasNext() && submittedThisTick < 4) {
+                ChunkPos pos = it.next();
+                it.remove();
                 if (!chunks.containsKey(pos) && !stagingChunks.containsKey(pos) && !generatingChunks.contains(pos)) {
                     generatingChunks.add(pos);
-                    chunkGenExecutor.submit(() -> {
-                        try {
+                    chunkGenExecutor.submit(() -> {                        try {
                             Chunk chunk = new Chunk(pos);
                             
                             terrainGenerator.generateTerrain(chunk);

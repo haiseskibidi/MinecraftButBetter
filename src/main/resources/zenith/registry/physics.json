@@ -6,7 +6,7 @@
   "sneakingEyeHeight": 1.25,
   "sprintMultiplier": 1.45,
   "sneakSpeedMultiplier": 0.3,
-  "flySprintMultiplier": 1.8,
+  "flySprintMultiplier": 10.0,
   "maxGrabHeight": 2.45,
   "minGrabHeight": 1.25,
   "grabDistance": 0.7,
@@ -20,5 +20,7 @@
   "itemPickupRadius": 0.4,
   "itemAttractionForce": 12.0,
   "itemMergeRadius": 1.2,
-  "itemMergeInterval": 0.5
+  "itemMergeInterval": 0.5,
+  "particleLimit": 1500,
+  "particleBudget": 300
 }

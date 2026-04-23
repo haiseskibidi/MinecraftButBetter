@@ -5,6 +5,7 @@ import com.za.zenith.world.blocks.Block;
 import com.za.zenith.world.blocks.Blocks;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Chunk {
     public static final int CHUNK_SIZE = 16;
@@ -14,7 +15,7 @@ public class Chunk {
     private final int[] blockData; // Packed data: (type << 8) | metadata
     private final byte[] lightData; // Packed light: (sunlight << 4) | blocklight
     private final short[] heightMap;
-    private long dirtyCounter = 0;
+    private final AtomicLong dirtyCounter = new AtomicLong(0);
     private long lastMeshCounter = -1;
     private volatile boolean isReady = false;
     
@@ -37,7 +38,7 @@ public class Chunk {
     public boolean isReady() { return isReady; }
     public void setReady(boolean ready) { this.isReady = ready; }
 
-    public synchronized int getHighestBlock(int x, int z) {
+    public int getHighestBlock(int x, int z) {
         if (x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) return 0;
         int idx = z * CHUNK_SIZE + x;
         int y = heightMap[idx];
@@ -60,32 +61,32 @@ public class Chunk {
         return y * (CHUNK_SIZE * CHUNK_SIZE) + z * CHUNK_SIZE + x;
     }
 
-    public synchronized int getSunlight(int x, int y, int z) {
+    public int getSunlight(int x, int y, int z) {
         if (y >= CHUNK_HEIGHT) return 15;
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || z < 0 || z >= CHUNK_SIZE) return 0;
         return (lightData[getIndex(x, y, z)] >> 4) & 0xF;
     }
 
-    public synchronized void setSunlight(int x, int y, int z, int level) {
+    public void setSunlight(int x, int y, int z, int level) {
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return;
         int idx = getIndex(x, y, z);
         lightData[idx] = (byte) ((lightData[idx] & 0x0F) | ((level & 0xF) << 4));
-        dirtyCounter++;
+        dirtyCounter.incrementAndGet();
     }
 
-    public synchronized int getBlockLight(int x, int y, int z) {
+    public int getBlockLight(int x, int y, int z) {
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 0;
         return lightData[getIndex(x, y, z)] & 0xF;
     }
 
-    public synchronized void setBlockLight(int x, int y, int z, int level) {
+    public void setBlockLight(int x, int y, int z, int level) {
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return;
         int idx = getIndex(x, y, z);
         lightData[idx] = (byte) ((lightData[idx] & 0xF0) | (level & 0xF));
-        dirtyCounter++;
+        dirtyCounter.incrementAndGet();
     }
     
-    public synchronized Block getBlock(int x, int y, int z) {
+    public Block getBlock(int x, int y, int z) {
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) {
             return new Block(com.za.zenith.world.blocks.Blocks.AIR.getId());
         }
@@ -95,17 +96,17 @@ public class Chunk {
         return new Block(type, metadata);
     }
     
-    public synchronized void setBlock(int x, int y, int z, Block block) {
+    public void setBlock(int x, int y, int z, Block block) {
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) {
             return;
         }
         int packed = (block.getType() << 8) | (block.getMetadata() & 0xFF);
         blockData[getIndex(x, y, z)] = packed;
         heightMap[z * CHUNK_SIZE + x] = -1;
-        dirtyCounter++;
+        dirtyCounter.incrementAndGet();
     }
     
-    public synchronized int getRawBlockData(int x, int y, int z) {
+    public int getRawBlockData(int x, int y, int z) {
         return blockData[getIndex(x, y, z)];
     }
     
@@ -114,11 +115,11 @@ public class Chunk {
     }
     
     public boolean needsMeshUpdate() {
-        return dirtyCounter != lastMeshCounter;
+        return dirtyCounter.get() != lastMeshCounter;
     }
     
     public void setNeedsMeshUpdate(boolean needsUpdate) {
-        if (needsUpdate) dirtyCounter++;
+        if (needsUpdate) dirtyCounter.incrementAndGet();
     }
     
     public void setMeshUpdated(long version) {
@@ -126,11 +127,11 @@ public class Chunk {
     }
 
     public long getDirtyCounter() {
-        return dirtyCounter;
+        return dirtyCounter.get();
     }
 
-    public void setDirtyCounter(long dirtyCounter) {
-        this.dirtyCounter = dirtyCounter;
+    public void setDirtyCounter(long dirtyCounterVal) {
+        this.dirtyCounter.set(dirtyCounterVal);
     }
 
     public BlockPos toWorldPos(int x, int y, int z) {        return new BlockPos(
@@ -160,7 +161,9 @@ public class Chunk {
     public int[] getBlockData() { return blockData; }
     public byte[] getLightData() { return lightData; }
 
-    public synchronized DataSnapshot getSnapshot() {
-        return new DataSnapshot(position, blockData.clone(), lightData.clone());
+    public synchronized DataSnapshot getSnapshot(int[] outBlockData, byte[] outLightData) {
+        System.arraycopy(blockData, 0, outBlockData, 0, blockData.length);
+        System.arraycopy(lightData, 0, outLightData, 0, lightData.length);
+        return new DataSnapshot(position, outBlockData, outLightData);
     }
 }

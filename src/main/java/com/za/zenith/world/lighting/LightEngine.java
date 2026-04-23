@@ -405,21 +405,19 @@ public class LightEngine {
     public void generateInitialSunlight(Chunk chunk) {
         LightContext ctx = threadContext.get();
         ctx.clear();
-        synchronized (chunk) {
-            for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
-                for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
-                    int light = 15;
-                    for (int y = Chunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
-                        Block b = chunk.getBlock(x, y, z);
-                        int opacity = getSunOpacity(b);
-                        if (light == 15 && opacity == 0) {}
-                        else light = Math.max(0, light - Math.max(1, opacity));
-                        chunk.setSunlight(x, y, z, light);
-                        if (light > 0) {
-                            int wx = chunk.getPosition().x() * Chunk.CHUNK_SIZE + x;
-                            int wz = chunk.getPosition().z() * Chunk.CHUNK_SIZE + z;
-                            ctx.enqueueFill(pack(wx, y, wz, light));
-                        }
+        for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
+            for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
+                int light = 15;
+                for (int y = Chunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
+                    Block b = chunk.getBlock(x, y, z);
+                    int opacity = getSunOpacity(b);
+                    if (light == 15 && opacity == 0) {}
+                    else light = Math.max(0, light - Math.max(1, opacity));
+                    chunk.setSunlight(x, y, z, light);
+                    if (light > 0) {
+                        int wx = chunk.getPosition().x() * Chunk.CHUNK_SIZE + x;
+                        int wz = chunk.getPosition().z() * Chunk.CHUNK_SIZE + z;
+                        ctx.enqueueFill(pack(wx, y, wz, light));
                     }
                 }
             }

@@ -50,15 +50,15 @@ public class ChunkMeshGenerator {
     }
 
     private static class MeshData {
-        List<Float> positions = new ArrayList<>();
-        List<Float> texCoords = new ArrayList<>();
-        List<Float> normals = new ArrayList<>();
-        List<Float> blockTypes = new ArrayList<>();
-        List<Float> neighborData = new ArrayList<>(); 
-        List<Float> weights = new ArrayList<>();
-        List<Float> lightData = new ArrayList<>();
-        List<Float> aoData = new ArrayList<>();
-        List<Integer> indices = new ArrayList<>();
+        com.za.zenith.utils.FloatArrayList positions = new com.za.zenith.utils.FloatArrayList(8192);
+        com.za.zenith.utils.FloatArrayList texCoords = new com.za.zenith.utils.FloatArrayList(8192);
+        com.za.zenith.utils.FloatArrayList normals = new com.za.zenith.utils.FloatArrayList(8192);
+        com.za.zenith.utils.FloatArrayList blockTypes = new com.za.zenith.utils.FloatArrayList(2048);
+        com.za.zenith.utils.FloatArrayList neighborData = new com.za.zenith.utils.FloatArrayList(2048); 
+        com.za.zenith.utils.FloatArrayList weights = new com.za.zenith.utils.FloatArrayList(2048);
+        com.za.zenith.utils.FloatArrayList lightData = new com.za.zenith.utils.FloatArrayList(4096);
+        com.za.zenith.utils.FloatArrayList aoData = new com.za.zenith.utils.FloatArrayList(2048);
+        com.za.zenith.utils.IntArrayList indices = new com.za.zenith.utils.IntArrayList(8192);
         int vertexIndex = 0;
 
         void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask, float overlayLayer, boolean canSway, World world, int wx, int wy, int wz) {
@@ -183,9 +183,10 @@ public class ChunkMeshGenerator {
 
         private boolean isSolid(World world, int x, int y, int z) {
             if (world == null) return false;
-            Block b = world.getBlock(x, y, z);
-            if (b.getType() == 0) return false;
-            com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(b.getType());
+            int rawData = world.getRawBlockData(x, y, z);
+            int type = rawData >> 8;
+            if (type == 0) return false;
+            com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(type);
             // Leaves are semi-transparent for AO to keep trees bright
             if (def != null && def.getIdentifier().toString().contains("leaves")) return false;
             return def != null && def.isSolid() && !def.isTransparent();
@@ -288,17 +289,15 @@ public class ChunkMeshGenerator {
 
         RawMeshData buildRaw() {
             if (positions.isEmpty()) return null;
-            float[] p = new float[positions.size()], t = new float[texCoords.size()], n = new float[normals.size()], b = new float[blockTypes.size()], nd = new float[neighborData.size()], w = new float[weights.size()], l = new float[lightData.size()], a = new float[aoData.size()];
-            int[] ind = new int[indices.size()];
-            for(int i=0; i<p.length; i++) p[i]=positions.get(i);
-            for(int i=0; i<t.length; i++) t[i]=texCoords.get(i);
-            for(int i=0; i<n.length; i++) n[i]=normals.get(i);
-            for(int i=0; i<b.length; i++) b[i]=blockTypes.get(i);
-            for(int i=0; i<nd.length; i++) nd[i]=neighborData.get(i);
-            for(int i=0; i<w.length; i++) w[i]=weights.get(i);
-            for(int i=0; i<l.length; i++) l[i]=lightData.get(i);
-            for(int i=0; i<a.length; i++) a[i]=aoData.get(i);
-            for(int i=0; i<ind.length; i++) ind[i]=indices.get(i);
+            float[] p = positions.toArray();
+            float[] t = texCoords.toArray();
+            float[] n = normals.toArray();
+            float[] b = blockTypes.toArray();
+            float[] nd = neighborData.toArray();
+            float[] w = weights.toArray();
+            float[] l = lightData.toArray();
+            float[] a = aoData.toArray();
+            int[] ind = indices.toArray();
             return new RawMeshData(p, t, n, b, nd, w, l, a, ind); 
         }
 
@@ -470,12 +469,15 @@ public class ChunkMeshGenerator {
         for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
             for (int y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
                 for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
-                    Block block = chunk.getBlock(x, y, z);
-                    if (block.isAir()) continue;
+                    int rawData = chunk.getRawBlockData(x, y, z);
+                    int blockType = rawData >> 8;
+                    if (blockType == 0) continue;
 
-                    com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
+                    Block block = chunk.getBlock(x, y, z);
+
+                    com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(blockType);
                     
-                    float finalBlockType = (float)block.getType();
+                    float finalBlockType = (float)blockType;
                     if (def != null && def.isTinted()) {
                         finalBlockType = -(finalBlockType + 1.0f);
                     }
@@ -512,11 +514,15 @@ public class ChunkMeshGenerator {
                         
                     for (int face = 0; face < 6; face++) {
                         Direction dir = Direction.values()[face];
-                        BlockPos nPos = new BlockPos(worldX + dir.getDx(), worldY + dir.getDy(), worldZ + dir.getDz());
-                        Block neighbor = world.getBlock(nPos);
+                        int nx = worldX + dir.getDx();
+                        int ny = worldY + dir.getDy();
+                        int nz = worldZ + dir.getDz();
+                        
+                        int nRaw = world.getRawBlockData(nx, ny, nz);
+                        int nType = nRaw >> 8;
                         
                         boolean drawFace = true;
-                        com.za.zenith.world.blocks.BlockDefinition neighborDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(neighbor.getType());
+                        com.za.zenith.world.blocks.BlockDefinition neighborDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(nType);
 
                         boolean onBoundary = false;
                         switch (face) {
@@ -530,10 +536,10 @@ public class ChunkMeshGenerator {
 
                         if (def.isAlwaysRender() || !onBoundary) {
                             drawFace = true;
-                        } else if (neighbor.isAir() || (neighborDef != null && neighborDef.hasTag("treecapitator"))) {
+                        } else if (nType == 0 || (neighborDef != null && neighborDef.hasTag("treecapitator"))) {
                             drawFace = true;
-                        } else if (neighbor.isFullCube() && !neighbor.isTransparent() && !neighborDef.isAlwaysRender()) {
-                            drawFace = false;
+                        } else if ((neighborDef == null || !neighborDef.isTransparent()) && !neighborDef.isAlwaysRender()) {
+                            drawFace = false; // neighbor is solid full block
                         } else if (isTranslucent && neighborDef != null && neighborDef.hasTag("zenith:glass")) {
                             drawFace = false;
                         } else {
@@ -544,8 +550,8 @@ public class ChunkMeshGenerator {
                             float neighborMask = 0;
                             if (isTranslucent) {
                                 for (int i = 0; i < 4; i++) {
-                                    Block n = world.getBlock(worldX + faceNeighbors[face][i][0], worldY + faceNeighbors[face][i][1], worldZ + faceNeighbors[face][i][2]);
-                                    com.za.zenith.world.blocks.BlockDefinition nDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(n.getType());
+                                    int rawN = world.getRawBlockData(worldX + faceNeighbors[face][i][0], worldY + faceNeighbors[face][i][1], worldZ + faceNeighbors[face][i][2]);
+                                    com.za.zenith.world.blocks.BlockDefinition nDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(rawN >> 8);
                                     if (nDef != null && nDef.hasTag("zenith:glass")) {
                                         neighborMask += (float)Math.pow(2, i);
                                     }
@@ -553,7 +559,7 @@ public class ChunkMeshGenerator {
                             }
                             
                             // APPLY TINT & GLASS FLAGS for shader
-                            float faceBlockType = (float)block.getType();
+                            float faceBlockType = (float)blockType;
                             float overlayLayer = -1.0f;
                             if (isTranslucent) {
                                 // Glass flag: offset by -2000

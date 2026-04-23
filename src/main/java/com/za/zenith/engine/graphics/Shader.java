@@ -162,8 +162,15 @@ public class Shader {
         glUseProgram(0);
     }
     
+    private final java.util.Map<String, Integer> uniformLocationCache = new java.util.HashMap<>();
+    
     private int getUniformLocation(String name) {
-        return glGetUniformLocation(programId, name);
+        Integer location = uniformLocationCache.get(name);
+        if (location == null) {
+            location = glGetUniformLocation(programId, name);
+            uniformLocationCache.put(name, location);
+        }
+        return location;
     }
     
     public void cleanup() {

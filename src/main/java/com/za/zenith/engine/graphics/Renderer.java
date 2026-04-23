@@ -94,7 +94,15 @@ public class Renderer {
     private com.za.zenith.world.chunks.ChunkPos lastEntityChunkPos;
 
     // Async Meshing
-    private final ExecutorService meshExecutor = Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
+    private final ExecutorService meshExecutor = Executors.newFixedThreadPool(
+        Math.min(2, Math.max(1, Runtime.getRuntime().availableProcessors() / 2)),
+        r -> {
+            Thread t = new Thread(r, "MeshGenerator");
+            t.setDaemon(true);
+            t.setPriority(Thread.MIN_PRIORITY);
+            return t;
+        }
+    );
     private final Map<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>> pendingUpdates = new ConcurrentHashMap<>();
 
     public Renderer() {
@@ -443,6 +451,22 @@ public class Renderer {
             }
         }
 
+        // 1.5 Garbage Collect meshes for unloaded chunks
+        java.util.Set<Chunk> activeChunks = new java.util.HashSet<>();
+        for (Chunk c : world.getLoadedChunks()) activeChunks.add(c);
+
+        chunkMeshes.keySet().removeIf(chunk -> {
+            if (!activeChunks.contains(chunk)) {
+                ChunkMeshGenerator.ChunkMeshResult old = chunkMeshes.get(chunk);
+                if (old != null) {
+                    if (old.opaqueMesh != null) old.opaqueMesh.cleanup();
+                    if (old.translucentMesh != null) old.translucentMesh.cleanup();
+                }
+                return true;
+            }
+            return false;
+        });
+
         // 2. Schedule new mesh updates (with budget)
         int scheduledThisFrame = 0;
         int maxScheduledPerFrame = (breakingPos != null) ? 4 : 2; // Allow faster updates when mining
@@ -462,12 +486,19 @@ public class Renderer {
 
             if (chunk.isReady() && chunk.needsMeshUpdate() && !pendingUpdates.containsKey(chunk)) {
                 if (scheduledThisFrame < maxScheduledPerFrame) {
-                    Chunk.DataSnapshot snapshot = chunk.getSnapshot();
+                    int[] blockDataArr = com.za.zenith.utils.ArrayPool.rentBlockDataArray();
+                    byte[] lightDataArr = com.za.zenith.utils.ArrayPool.rentLightDataArray();
+                    Chunk.DataSnapshot snapshot = chunk.getSnapshot(blockDataArr, lightDataArr);
                     long version = chunk.getDirtyCounter();
                     pendingUpdates.put(chunk, meshExecutor.submit(() -> {
-                        Chunk tempChunk = new Chunk(snapshot.position(), snapshot.blockData(), snapshot.lightData());
-                        tempChunk.setDirtyCounter(version);
-                        return ChunkMeshGenerator.generateRawMesh(tempChunk, world, atlas);
+                        try {
+                            Chunk tempChunk = new Chunk(snapshot.position(), snapshot.blockData(), snapshot.lightData());
+                            tempChunk.setDirtyCounter(version);
+                            return ChunkMeshGenerator.generateRawMesh(tempChunk, world, atlas);
+                        } finally {
+                            com.za.zenith.utils.ArrayPool.returnBlockDataArray(snapshot.blockData());
+                            com.za.zenith.utils.ArrayPool.returnLightDataArray(snapshot.lightData());
+                        }
                     }));
                     scheduledThisFrame++;
                 }
