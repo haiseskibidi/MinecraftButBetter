@@ -338,6 +338,7 @@ public class GameLoop {
         SettingsManager.getInstance().save();
         if (networkClient != null) networkClient.disconnect();
         if (localServer != null) localServer.stop();
+        if (world != null) world.cleanup();
         if (renderer != null) renderer.cleanup();
         if (window != null) window.cleanup();
     }

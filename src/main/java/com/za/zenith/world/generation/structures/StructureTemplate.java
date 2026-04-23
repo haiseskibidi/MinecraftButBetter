@@ -31,7 +31,7 @@ public class StructureTemplate {
                     int blockId = blocks[y][z][x];
                     // -1 означает "не заменять блок" (игнорировать)
                     if (blockId != -1) {
-                        world.setBlock(startX + x, startY + y, startZ + z, blockId);
+                        world.setBlockDuringGen(startX + x, startY + y, startZ + z, new com.za.zenith.world.blocks.Block(blockId));
                     }
                 }
             }

@@ -515,11 +515,15 @@ public class DevInspectorScreen implements Screen {
                 Class<?> type = editingField.getType();
                 Object oldVal = editingField.get(editingParent);
                 Object newVal = null;
-                if (type == int.class || type == Integer.class) newVal = Integer.parseInt(editingValue);
-                else if (type == float.class || type == Float.class) newVal = Float.parseFloat(editingValue);
+                
+                String cleanValue = editingValue.replace("\"", "").trim();
+
+                if (type == int.class || type == Integer.class) newVal = Integer.parseInt(cleanValue);
+                else if (type == float.class || type == Float.class) newVal = Float.parseFloat(cleanValue);
                 else if (type == String.class) newVal = editingValue;
-                else if (type == boolean.class || type == Boolean.class) newVal = Boolean.parseBoolean(editingValue);
-                else if (type == Identifier.class) newVal = Identifier.of(editingValue);
+                else if (type == boolean.class || type == Boolean.class) newVal = Boolean.parseBoolean(cleanValue);
+                else if (type == Identifier.class) newVal = Identifier.of(cleanValue);
+                
                 if (newVal != null) {
                     EditorHistoryManager.pushChange((LiveReloadable)rootObject, editingParent, editingField, oldVal, newVal);
                     editingField.set(editingParent, newVal);

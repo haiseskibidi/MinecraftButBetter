@@ -50,6 +50,12 @@ public class PhysicsSettings implements com.za.zenith.utils.LiveReloadable {
     public float itemAttractionRadius = 3.2f;
     public float itemPickupRadius = 0.4f;
     public float itemAttractionForce = 12.0f;
+    public float itemMergeRadius = 1.2f;
+    public float itemMergeInterval = 0.5f;
+
+    // Particles
+    public int particleLimit = 1500;
+    public int particleBudget = 300;
 
     public static PhysicsSettings getInstance() {
         return instance;

@@ -24,7 +24,6 @@ public class ParticleManager {
     private final List<Particle> particles = new ArrayList<>();
     private final List<Particle> pendingAdd = new ArrayList<>();
     private int spawnedThisTick = 0;
-    private static final int TICK_BUDGET = 400;
 
     public static ParticleManager getInstance() {
         if (instance == null) instance = new ParticleManager();
@@ -47,8 +46,10 @@ public class ParticleManager {
             }
         }
         
-        if (particles.size() > 3000) {
-            for (int i = 0; i < 500; i++) particles.remove(0);
+        int limit = com.za.zenith.world.physics.PhysicsSettings.getInstance().particleLimit;
+        if (particles.size() > limit) {
+            int toRemove = Math.min(particles.size(), particles.size() - limit + 100);
+            for (int i = 0; i < toRemove && !particles.isEmpty(); i++) particles.remove(0);
         }
     }
 
@@ -79,9 +80,10 @@ public class ParticleManager {
     public void spawnImpact(Vector3f pos, Vector3f normal, BlockDefinition def, int metadata, int baseCount, float damage) {
         if (baseCount <= 0) return;
 
+        int budget = com.za.zenith.world.physics.PhysicsSettings.getInstance().particleBudget;
         int count = Math.max(1, (int)(baseCount * (damage * 2.5f)));
-        if (spawnedThisTick + count > TICK_BUDGET) {
-            count = Math.max(0, TICK_BUDGET - spawnedThisTick);
+        if (spawnedThisTick + count > budget) {
+            count = Math.max(0, budget - spawnedThisTick);
         }
         if (count <= 0) return;
         spawnedThisTick += count;
@@ -163,7 +165,8 @@ public class ParticleManager {
         float sizeX = maxX - minX, sizeY = maxY - minY, sizeZ = maxZ - minZ;
         int grid = (sizeX * sizeY * sizeZ < 0.15f) ? 1 : 2; 
 
-        if (spawnedThisTick + grid * grid * grid > TICK_BUDGET) return;
+        int budget = com.za.zenith.world.physics.PhysicsSettings.getInstance().particleBudget;
+        if (spawnedThisTick + grid * grid * grid > budget) return;
         spawnedThisTick += grid * grid * grid;
 
         float stepX = sizeX / grid, stepY = sizeY / grid, stepZ = sizeZ / grid;

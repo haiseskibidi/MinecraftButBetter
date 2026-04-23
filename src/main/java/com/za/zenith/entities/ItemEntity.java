@@ -18,6 +18,7 @@ public class ItemEntity extends Entity {
     private boolean isLockedOnPlayer = false; // "Мертвая хватка"
     private boolean isSleeping = false;
     private float sleepTimer = 0;
+    private float mergeTimer = 0;
     
     public ItemEntity(Vector3f position, ItemStack stack) {
         super(position, 0.25f, 0.25f);
@@ -37,6 +38,13 @@ public class ItemEntity extends Entity {
         
         age += deltaTime;
         if (pickupDelay > 0) pickupDelay -= deltaTime;
+
+        // 0. ITEM MERGING
+        mergeTimer += deltaTime;
+        if (mergeTimer >= com.za.zenith.world.physics.PhysicsSettings.getInstance().itemMergeInterval) {
+            mergeTimer = 0;
+            tryMerge(world);
+        }
 
         Player player = world.getPlayer();
         
@@ -86,6 +94,7 @@ public class ItemEntity extends Entity {
 
         if (isSleeping) {
             velocity.set(0, 0, 0);
+            // Even if sleeping, we still check merging at intervals
             return;
         }
 
@@ -132,6 +141,42 @@ public class ItemEntity extends Entity {
 
     public boolean isBeingAttracted() {
         return isBeingAttracted;
+    }
+
+    private void tryMerge(World world) {
+        if (this.isRemoved() || stack.isFull()) return;
+
+        float radius = com.za.zenith.world.physics.PhysicsSettings.getInstance().itemMergeRadius;
+        float radiusSq = radius * radius;
+
+        for (Entity entity : world.getEntities()) {
+            if (entity instanceof ItemEntity other && other != this && !other.isRemoved()) {
+                // Только того же типа
+                if (other.stack.getItem().equals(this.stack.getItem())) {
+                    float distSq = position.distanceSquared(other.position);
+                    if (distSq < radiusSq) {
+                        // Мерджим всегда в более "старый" предмет, чтобы избежать мерцания и циклов
+                        if (this.age < other.age) continue;
+
+                        int canAccept = stack.getItem().getMaxStackSize() - stack.getCount();
+                        if (canAccept > 0) {
+                            int toTake = Math.min(canAccept, other.stack.getCount());
+                            this.stack.setCount(this.stack.getCount() + toTake);
+                            other.stack.setCount(other.stack.getCount() - toTake);
+
+                            if (other.stack.getCount() <= 0) {
+                                other.setRemoved();
+                            }
+                            
+                            // Пробуждаем предмет, если он спал, чтобы визуально объединился
+                            this.isSleeping = false; 
+                            
+                            if (stack.isFull()) break;
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -111,6 +111,7 @@ public class DataLoader {
         loadScavengeSettings();
         loadPhysicsSettings();
         loadWorldSettings();
+        loadGenerationSettings();
         loadSkySettings();
     }
 
@@ -123,6 +124,18 @@ public class DataLoader {
         } catch (Exception e) {
             Logger.error("Failed to read and snapshot " + path + ": " + e.getMessage());
             return null;
+        }
+    }
+
+    private static void loadGenerationSettings() {
+        String path = "zenith/registry/generation.json";
+        String raw = readAndSnapshot(path);
+        if (raw == null) return;
+        com.za.zenith.world.generation.GenerationSettings settings = GSON.fromJson(raw, com.za.zenith.world.generation.GenerationSettings.class);
+        if (settings != null) {
+            settings.setSourcePath(path);
+            com.za.zenith.world.generation.GenerationSettings.setInstance(settings);
+            Logger.info("Loaded generation settings");
         }
     }
 

@@ -14,6 +14,7 @@ import com.za.zenith.engine.graphics.model.ViewmodelRenderer;
 import com.za.zenith.engine.graphics.model.Viewmodel;
 import com.za.zenith.engine.graphics.model.ModelNode;
 import com.za.zenith.utils.Logger;
+import org.joml.FrustumIntersection;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.joml.Vector4f;
@@ -21,6 +22,8 @@ import org.joml.Vector4f;
 import com.za.zenith.engine.core.GameLoop;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL13.*;
@@ -36,6 +39,8 @@ public class Renderer {
     private DynamicTextureAtlas atlas;
     private final Map<Chunk, ChunkMeshGenerator.ChunkMeshResult> chunkMeshes;
     private final Matrix4f modelMatrix;
+    private final FrustumIntersection frustum = new FrustumIntersection();
+    private final Matrix4f frustumMatrix = new Matrix4f();
     private DebugRenderer debugRenderer;
     private Framebuffer msaaFramebuffer;
     private Framebuffer resolveFramebuffer;
@@ -355,6 +360,10 @@ public class Renderer {
     }
     
     private void renderScene(Camera camera, World world, com.za.zenith.network.GameClient networkClient, float alpha, Vector3f lightDir, Vector3f ambient) {
+        // Initialize frustum for culling
+        frustumMatrix.set(camera.getProjectionMatrix()).mul(camera.getViewMatrix(alpha));
+        frustum.set(frustumMatrix);
+
         blockShader.use();
         atlas.bind();
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
@@ -421,7 +430,7 @@ public class Renderer {
                     }
                     
                     chunkMeshes.put(chunk, result);
-                    chunk.setMeshUpdated();
+                    chunk.setMeshUpdated(result.version);
                     return true;
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -433,14 +442,29 @@ public class Renderer {
         // 2. Schedule new mesh updates (with budget)
         int scheduledThisFrame = 0;
         int maxScheduledPerFrame = (breakingPos != null) ? 4 : 2; // Allow faster updates when mining
+        
+        List<Chunk> visibleChunks = new ArrayList<>();
+        Vector3f camPos = camera.getPosition();
+
         for (Chunk chunk : world.getLoadedChunks()) {
-            if (chunk.needsMeshUpdate() && !pendingUpdates.containsKey(chunk)) {
+            // Frustum Culling
+            float cx = chunk.getPosition().x() * Chunk.CHUNK_SIZE;
+            float cz = chunk.getPosition().z() * Chunk.CHUNK_SIZE;
+            if (!frustum.testAab(cx, 0, cz, cx + Chunk.CHUNK_SIZE, Chunk.CHUNK_HEIGHT, cz + Chunk.CHUNK_SIZE)) {
+                continue;
+            }
+            
+            visibleChunks.add(chunk);
+
+            if (chunk.isReady() && chunk.needsMeshUpdate() && !pendingUpdates.containsKey(chunk)) {
                 if (scheduledThisFrame < maxScheduledPerFrame) { 
                     Chunk.DataSnapshot snapshot = chunk.getSnapshot();
+                    long version = chunk.getDirtyCounter();
                     pendingUpdates.put(chunk, meshExecutor.submit(() -> {
                         Chunk tempChunk = new Chunk(snapshot.position());
                         System.arraycopy(snapshot.blockData(), 0, tempChunk.getBlockData(), 0, snapshot.blockData().length);
                         System.arraycopy(snapshot.lightData(), 0, tempChunk.getLightData(), 0, snapshot.lightData().length);
+                        tempChunk.setDirtyCounter(version);
                         return ChunkMeshGenerator.generateRawMesh(tempChunk, world, atlas);
                     }));
                     scheduledThisFrame++;
@@ -448,8 +472,16 @@ public class Renderer {
             }
         }
 
+        // Sort chunks by distance to camera
+        visibleChunks.sort((c1, p2) -> {
+            float d1 = camPos.distanceSquared(c1.getPosition().x() * Chunk.CHUNK_SIZE + 8, camPos.y, c1.getPosition().z() * Chunk.CHUNK_SIZE + 8);
+            float d2 = camPos.distanceSquared(p2.getPosition().x() * Chunk.CHUNK_SIZE + 8, camPos.y, p2.getPosition().z() * Chunk.CHUNK_SIZE + 8);
+            return Float.compare(d1, d2);
+        });
+
         // 3. Render loaded meshes
-        for (Chunk chunk : world.getLoadedChunks()) {
+        // Opaque: Front-to-back (already sorted)
+        for (Chunk chunk : visibleChunks) {
             ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.get(chunk);
             if (result != null && result.opaqueMesh != null) {
                 modelMatrix.identity().translate(chunk.getPosition().x() * Chunk.CHUNK_SIZE, 0, chunk.getPosition().z() * Chunk.CHUNK_SIZE);
@@ -457,8 +489,11 @@ public class Renderer {
                 result.opaqueMesh.render();
             }
         }
+        
+        // Translucent: Back-to-front
         glDepthMask(false);
-        for (Chunk chunk : world.getLoadedChunks()) {
+        for (int i = visibleChunks.size() - 1; i >= 0; i--) {
+            Chunk chunk = visibleChunks.get(i);
             ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.get(chunk);
             if (result != null && result.translucentMesh != null) {
                 modelMatrix.identity().translate(chunk.getPosition().x() * Chunk.CHUNK_SIZE, 0, chunk.getPosition().z() * Chunk.CHUNK_SIZE);
@@ -669,6 +704,13 @@ public class Renderer {
         blockShader.use();
         for (com.za.zenith.entities.Entity entity : world.getEntities()) {
             Vector3f interpPos = entity.getInterpolatedPosition(alpha);
+            
+            // Optimization: Skip entities in non-loaded or non-ready chunks
+            int cx = (int) Math.floor(interpPos.x) >> 4;
+            int cz = (int) Math.floor(interpPos.z) >> 4;
+            Chunk chunk = world.getChunk(new com.za.zenith.world.chunks.ChunkPos(cx, cz));
+            if (chunk == null || !chunk.isReady()) continue;
+            
             setEntityLight(world, interpPos);
             
             if (entity instanceof com.za.zenith.entities.ScoutEntity scout) {
@@ -686,6 +728,10 @@ public class Renderer {
                 }
                 playerMesh.render();
             } else if (entity instanceof com.za.zenith.entities.ItemEntity itemEntity) {
+                // Optimization: Cull distant items from rendering
+                com.za.zenith.entities.Player player = world.getPlayer();
+                if (player != null && interpPos.distanceSquared(player.getPosition()) > 24 * 24) continue;
+                
                 com.za.zenith.world.items.Item item = itemEntity.getStack().getItem();
                 Mesh mesh = itemMeshCache.get(item);
 
@@ -882,8 +928,9 @@ public class Renderer {
     private void updateChunkMesh(Chunk chunk, World world) {
         ChunkMeshGenerator.ChunkMeshResult old = chunkMeshes.get(chunk);
         if (old != null) { if (old.opaqueMesh != null) old.opaqueMesh.cleanup(); if (old.translucentMesh != null) old.translucentMesh.cleanup(); }
-        chunkMeshes.put(chunk, ChunkMeshGenerator.generateMesh(chunk, world, atlas));
-        chunk.setMeshUpdated();
+        ChunkMeshGenerator.ChunkMeshResult res = ChunkMeshGenerator.generateMesh(chunk, world, atlas);
+        chunkMeshes.put(chunk, res);
+        chunk.setMeshUpdated(res.version);
     }
 
     public void rebuildAllChunks() {

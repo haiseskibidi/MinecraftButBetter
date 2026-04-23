@@ -38,9 +38,9 @@ public class ScavengeDecorationStep implements GenerationStep {
                 int worldX = chunkX * Chunk.CHUNK_SIZE + x;
                 int worldZ = chunkZ * Chunk.CHUNK_SIZE + z;
 
-                float surfaceY = findSurfaceY(world, worldX, worldZ);
+                float surfaceY = findSurfaceY(chunk, x, z);
                 if (surfaceY > 0) {
-                    Block ground = world.getBlock(worldX, (int)Math.floor(surfaceY - 0.01f), worldZ);
+                    Block ground = chunk.getBlock(x, (int)Math.floor(surfaceY - 0.01f), z);
                     BlockDefinition groundDef = BlockRegistry.getBlock(ground.getType());
                     
                     if (groundDef.canSupportScavenge()) {
@@ -65,9 +65,9 @@ public class ScavengeDecorationStep implements GenerationStep {
         }
     }
 
-    private float findSurfaceY(World world, int x, int z) {
+    private float findSurfaceY(Chunk chunk, int localX, int localZ) {
         for (int y = Chunk.CHUNK_HEIGHT - 1; y > 0; y--) {
-            Block b = world.getBlock(x, y, z);
+            Block b = chunk.getBlock(localX, y, localZ);
             if (!b.isAir()) {
                 BlockDefinition def = BlockRegistry.getBlock(b.getType());
                 if (def.isSolid()) {

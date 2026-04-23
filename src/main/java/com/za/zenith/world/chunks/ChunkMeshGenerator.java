@@ -28,9 +28,11 @@ public class ChunkMeshGenerator {
     public static class ChunkMeshResult {
         public final Mesh opaqueMesh;
         public final Mesh translucentMesh;
-        public ChunkMeshResult(Mesh opaqueMesh, Mesh translucentMesh) {
+        public final long version;
+        public ChunkMeshResult(Mesh opaqueMesh, Mesh translucentMesh, long version) {
             this.opaqueMesh = opaqueMesh;
             this.translucentMesh = translucentMesh;
+            this.version = version;
         }
     }
 
@@ -40,11 +42,11 @@ public class ChunkMeshGenerator {
         }
     }
 
-    public record RawChunkMeshResult(RawMeshData opaque, RawMeshData translucent) {
+    public record RawChunkMeshResult(RawMeshData opaque, RawMeshData translucent, long version) {
         public ChunkMeshResult upload() {
             Mesh opaqueMesh = opaque != null ? opaque.createMesh() : null;
             Mesh translucentMesh = translucent != null ? translucent.createMesh() : null;
-            return new ChunkMeshResult(opaqueMesh, translucentMesh);
+            return new ChunkMeshResult(opaqueMesh, translucentMesh, version);
         }
     }
 
@@ -583,7 +585,7 @@ public class ChunkMeshGenerator {
                 }
             }
         }
-        return new RawChunkMeshResult(opaque.buildRaw(), translucent.buildRaw());
+        return new RawChunkMeshResult(opaque.buildRaw(), translucent.buildRaw(), chunk.getDirtyCounter());
     }
 
     private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float z0, float x1, float z1, float[] uvs, float blockTypeId, float overlayLayer, float weightOffset) {

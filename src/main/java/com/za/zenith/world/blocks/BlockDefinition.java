@@ -518,6 +518,10 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
         return null;
     }
 
+    public boolean hasBlockEntity() {
+        return false;
+    }
+
     /**
      * Вызывается непосредственно перед тем, как блок будет заменен на воздух или другой блок игроком.
      */

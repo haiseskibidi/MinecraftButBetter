@@ -44,6 +44,44 @@ public class BiomeGenerator {
         
         return bestBiome;
     }
+
+    public BlendedBiome getBlendedBiome(int x, int z, int radius) {
+        BlendedBiome blended = new BlendedBiome();
+        int count = 0;
+        // Step of 4 to optimize sampling
+        for (int dx = -radius; dx <= radius; dx += 4) {
+            for (int dz = -radius; dz <= radius; dz += 4) {
+                BiomeDefinition b = getBiome(x + dx, z + dz);
+                if (b != null) {
+                    blended.baseHeight += b.getBaseHeight();
+                    blended.heightVariation += b.getHeightVariation();
+                    blended.erosionFactor += b.getErosionFactor();
+                    // Just take the center block for surface info
+                    if (dx == 0 && dz == 0) {
+                        blended.mainBiome = b;
+                    }
+                    count++;
+                }
+            }
+        }
+        if (count > 0) {
+            blended.baseHeight /= count;
+            blended.heightVariation /= count;
+            blended.erosionFactor /= count;
+        }
+        
+        if (blended.mainBiome == null) blended.mainBiome = getBiome(x, z);
+        
+        return blended;
+    }
+
+    public static class BlendedBiome {
+        public BiomeDefinition mainBiome;
+        public double baseHeight;
+        public double heightVariation;
+        public double erosionFactor;
+    }
 }
+
 
 

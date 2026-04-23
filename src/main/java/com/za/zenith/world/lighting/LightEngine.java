@@ -6,17 +6,54 @@ import com.za.zenith.world.blocks.Block;
 import com.za.zenith.world.blocks.BlockRegistry;
 import com.za.zenith.world.blocks.Blocks;
 import com.za.zenith.world.chunks.Chunk;
+import com.za.zenith.world.chunks.ChunkPos;
 
 public class LightEngine {
     private final World world;
     
-    // Circular queue for long-packed nodes: [x:25 | y:10 | z:25 | val:4]
-    private static final int QUEUE_SIZE = 1024 * 1024; // 1M nodes
+    private static final int QUEUE_SIZE = 1024 * 1024;
     private static final int QUEUE_MASK = QUEUE_SIZE - 1;
-    private final long[] fillQueue = new long[QUEUE_SIZE];
-    private final long[] removalQueue = new long[QUEUE_SIZE];
-    private int fillHead, fillTail;
-    private int removalHead, removalTail;
+
+    private static class LightContext {
+        final long[] fillQueue = new long[QUEUE_SIZE];
+        final long[] removalQueue = new long[QUEUE_SIZE];
+        int fillHead, fillTail;
+        int removalHead, removalTail;
+        
+        final java.util.Map<Long, Byte> sunChanges = new java.util.HashMap<>();
+        final java.util.Map<Long, Byte> blockChanges = new java.util.HashMap<>();
+
+        void clear() {
+            fillHead = fillTail = 0;
+            removalHead = removalTail = 0;
+            sunChanges.clear();
+            blockChanges.clear();
+        }
+
+        void enqueueFill(long p) {
+            fillQueue[fillTail] = p;
+            fillTail = (fillTail + 1) & QUEUE_MASK;
+        }
+
+        long dequeueFill() {
+            long p = fillQueue[fillHead];
+            fillHead = (fillHead + 1) & QUEUE_MASK;
+            return p;
+        }
+
+        void enqueueRemoval(long p) {
+            removalQueue[removalTail] = p;
+            removalTail = (removalTail + 1) & QUEUE_MASK;
+        }
+
+        long dequeueRemoval() {
+            long p = removalQueue[removalHead];
+            removalHead = (removalHead + 1) & QUEUE_MASK;
+            return p;
+        }
+    }
+
+    private final ThreadLocal<LightContext> threadContext = ThreadLocal.withInitial(LightContext::new);
 
     public LightEngine(World world) {
         this.world = world;
@@ -50,30 +87,37 @@ public class LightEngine {
     }
 
     public void onBlockChanged(BlockPos pos) {
-        updateBlockLight(pos);
-        updateSunlight(pos);
+        LightContext ctx = threadContext.get();
+        ctx.clear();
+        updateBlockLightInternal(pos, ctx);
+        updateSunlightInternal(pos, ctx);
+        commit(ctx);
     }
 
     public void updateBlockLight(BlockPos pos) {
-        fillHead = fillTail = 0;
-        removalHead = removalTail = 0;
-
-        int oldLevel = getBlockLight(pos.x(), pos.y(), pos.z());
-        int newLevel = calculateBlockLightSource(pos);
-
-        if (newLevel > oldLevel) {
-            setBlockLight(pos.x(), pos.y(), pos.z(), newLevel);
-            enqueueFill(pack(pos.x(), pos.y(), pos.z(), newLevel));
-        } else if (newLevel < oldLevel) {
-            setBlockLight(pos.x(), pos.y(), pos.z(), 0);
-            enqueueRemoval(pack(pos.x(), pos.y(), pos.z(), oldLevel));
-        }
-
-        processLightRemoval(false);
-        processLightFill(false);
+        LightContext ctx = threadContext.get();
+        ctx.clear();
+        updateBlockLightInternal(pos, ctx);
+        commit(ctx);
     }
 
-    private int calculateBlockLightSource(BlockPos pos) {
+    private void updateBlockLightInternal(BlockPos pos, LightContext ctx) {
+        int oldLevel = getBlockLight(pos.x(), pos.y(), pos.z(), ctx);
+        int newLevel = calculateBlockLightSource(pos, ctx);
+
+        if (newLevel > oldLevel) {
+            ctx.blockChanges.put(pack(pos.x(), pos.y(), pos.z(), 0), (byte)newLevel);
+            ctx.enqueueFill(pack(pos.x(), pos.y(), pos.z(), newLevel));
+        } else if (newLevel < oldLevel) {
+            ctx.blockChanges.put(pack(pos.x(), pos.y(), pos.z(), 0), (byte)0);
+            ctx.enqueueRemoval(pack(pos.x(), pos.y(), pos.z(), oldLevel));
+        }
+
+        processLightRemoval(false, ctx);
+        processLightFill(false, ctx);
+    }
+
+    private int calculateBlockLightSource(BlockPos pos, LightContext ctx) {
         Block block = world.getBlock(pos);
         com.za.zenith.world.blocks.BlockDefinition def = BlockRegistry.getBlock(block.getType());
         if (def == null) return 0;
@@ -90,58 +134,100 @@ public class LightEngine {
 
         int maxNeighbor = 0;
         for (com.za.zenith.utils.Direction dir : com.za.zenith.utils.Direction.values()) {
-            maxNeighbor = Math.max(maxNeighbor, getBlockLight(pos.x() + dir.getDx(), pos.y() + dir.getDy(), pos.z() + dir.getDz()) - 1);
+            maxNeighbor = Math.max(maxNeighbor, getBlockLight(pos.x() + dir.getDx(), pos.y() + dir.getDy(), pos.z() + dir.getDz(), ctx) - 1);
         }
         return Math.max(0, maxNeighbor);
     }
 
     public void updateSunlight(BlockPos pos) {
-        fillHead = fillTail = 0;
-        removalHead = removalTail = 0;
+        LightContext ctx = threadContext.get();
+        ctx.clear();
+        updateSunlightInternal(pos, ctx);
+        commit(ctx);
+    }
 
+    private void updateSunlightInternal(BlockPos pos, LightContext ctx) {
         int x = pos.x();
         int z = pos.z();
         
-        // Recalculate vertical column and enqueue changes
-        int light = 15;
+        // 1. Vertical Phase: Establish the "True Ray" from sky to bedrock
+        // This clears any phantom lights in the current column before considering neighbors.
+        int ray = 15;
+        byte[] newColumnLights = new byte[Chunk.CHUNK_HEIGHT];
+        
         for (int y = Chunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
             Block b = world.getBlock(x, y, z);
-            if (isOpaque(b)) {
-                light = 0;
+            int opacity = getSunOpacity(b);
+            
+            // The "Sky Ray" remains 15 if passing through pure AIR.
+            // Otherwise it starts fading or gets blocked.
+            if (ray == 15 && opacity == 0) {
+                // remains 15
+            } else {
+                ray = Math.max(0, ray - Math.max(1, opacity));
             }
             
-            int old = getSunlight(x, y, z);
-            if (old != light) {
-                if (light > old) {
-                    setSunlight(x, y, z, light);
-                    enqueueFill(pack(x, y, z, light));
+            newColumnLights[y] = (byte) ray;
+            int old = getSunlight(x, y, z, ctx);
+            
+            if (old != ray) {
+                ctx.sunChanges.put(pack(x, y, z, 0), (byte)ray);
+                if (ray > old) {
+                    ctx.enqueueFill(pack(x, y, z, ray));
                 } else {
-                    setSunlight(x, y, z, 0);
-                    enqueueRemoval(pack(x, y, z, old));
+                    ctx.enqueueRemoval(pack(x, y, z, old));
+                    // Re-fill with the new ray value if it's still > 0
+                    if (ray > 0) ctx.enqueueFill(pack(x, y, z, ray));
                 }
             }
+        }
 
-            // Fix: Check neighbors to pull light into newly created air blocks (under ceiling)
-            if (light < 15) {
+        // 2. Horizontal Sync: Check neighbors for horizontal light bleed
+        // into our potentially dark column.
+        for (int y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
+            int currentVal = newColumnLights[y];
+            if (currentVal < 15) {
                 for (com.za.zenith.utils.Direction dir : com.za.zenith.utils.Direction.values()) {
+                    if (dir == com.za.zenith.utils.Direction.UP || dir == com.za.zenith.utils.Direction.DOWN) continue;
+                    
                     int nx = x + dir.getDx();
-                    int ny = y + dir.getDy();
+                    int ny = y;
                     int nz = z + dir.getDz();
-                    int nl = getSunlight(nx, ny, nz);
-                    if (nl > light + 1) {
-                        enqueueFill(pack(nx, ny, nz, nl));
+                    
+                    int nl = getSunlight(nx, ny, nz, ctx);
+                    if (nl > currentVal + 1) {
+                        ctx.enqueueFill(pack(nx, ny, nz, nl));
                     }
                 }
             }
         }
 
-        processLightRemoval(true);
-        processLightFill(true);
+        processLightRemoval(true, ctx);
+        processLightFill(true, ctx);
     }
 
-    private void processLightFill(boolean sun) {
-        while (fillHead != fillTail) {
-            long p = dequeueFill();
+    public void onChunkReady(Chunk chunk) {
+        LightContext ctx = threadContext.get();
+        ctx.clear();
+        ChunkPos cp = chunk.getPosition();
+        int sx = cp.x() * Chunk.CHUNK_SIZE;
+        int sz = cp.z() * Chunk.CHUNK_SIZE;
+
+        for (int y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
+            for (int i = 0; i < Chunk.CHUNK_SIZE; i++) {
+                ctx.enqueueFill(pack(sx + i, y, sz, getSunlight(sx + i, y, sz, ctx)));
+                ctx.enqueueFill(pack(sx + i, y, sz + 15, getSunlight(sx + i, y, sz + 15, ctx)));
+                ctx.enqueueFill(pack(sx, y, sz + i, getSunlight(sx, y, sz + i, ctx)));
+                ctx.enqueueFill(pack(sx + 15, y, sz + i, getSunlight(sx + 15, y, sz + i, ctx)));
+            }
+        }
+        processLightFill(true, ctx);
+        commit(ctx);
+    }
+
+    private void processLightFill(boolean sun, LightContext ctx) {
+        while (ctx.fillHead != ctx.fillTail) {
+            long p = ctx.dequeueFill();
             int x = unpackX(p);
             int y = unpackY(p);
             int z = unpackZ(p);
@@ -154,40 +240,34 @@ public class LightEngine {
 
                 if (ny < 0 || ny >= Chunk.CHUNK_HEIGHT) continue;
                 
-                Chunk nChunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(nx, nz));
+                Chunk nChunk = world.getChunkInternal(ChunkPos.fromBlockPos(nx, nz));
                 if (nChunk == null) continue;
 
                 if (isOpaque(nChunk, nx & 15, ny, nz & 15)) continue;
 
-                int neighborLevel = sun ? nChunk.getSunlight(nx & 15, ny, nz & 15) : nChunk.getBlockLight(nx & 15, ny, nz & 15);
+                int neighborLevel = sun ? getSunlight(nx, ny, nz, ctx) : getBlockLight(nx, ny, nz, ctx);
                 
-                // Sunlight vertical propagation: 15 stays 15 when going down
                 int opacityLoss = 1;
                 if (sun) {
                     Block b = nChunk.getBlock(nx & 15, ny, nz & 15);
-                    if (b.getType() != 0) {
-                        com.za.zenith.world.blocks.BlockDefinition def = BlockRegistry.getBlock(b.getType());
-                        if (def != null && def.getIdentifier().toString().contains("leaves")) {
-                            opacityLoss = 3; // Leaves darken sunlight significantly
-                        }
-                    }
+                    opacityLoss = Math.max(1, getSunOpacity(b));
                 }
 
                 int nextLevel = (sun && dir == com.za.zenith.utils.Direction.DOWN && level == 15 && opacityLoss == 1) ? 15 : level - opacityLoss;
                 if (nextLevel < 0) nextLevel = 0;
 
                 if (neighborLevel < nextLevel) {
-                    if (sun) nChunk.setSunlight(nx & 15, ny, nz & 15, nextLevel);
-                    else nChunk.setBlockLight(nx & 15, ny, nz & 15, nextLevel);
-                    enqueueFill(pack(nx, ny, nz, nextLevel));
+                    if (sun) ctx.sunChanges.put(pack(nx, ny, nz, 0), (byte)nextLevel);
+                    else ctx.blockChanges.put(pack(nx, ny, nz, 0), (byte)nextLevel);
+                    ctx.enqueueFill(pack(nx, ny, nz, nextLevel));
                 }
             }
         }
     }
 
-    private void processLightRemoval(boolean sun) {
-        while (removalHead != removalTail) {
-            long p = dequeueRemoval();
+    private void processLightRemoval(boolean sun, LightContext ctx) {
+        while (ctx.removalHead != ctx.removalTail) {
+            long p = ctx.dequeueRemoval();
             int x = unpackX(p);
             int y = unpackY(p);
             int z = unpackZ(p);
@@ -200,120 +280,147 @@ public class LightEngine {
 
                 if (ny < 0 || ny >= Chunk.CHUNK_HEIGHT) continue;
                 
-                Chunk nChunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(nx, nz));
+                Chunk nChunk = world.getChunkInternal(ChunkPos.fromBlockPos(nx, nz));
                 if (nChunk == null) continue;
 
-                int neighborLevel = sun ? nChunk.getSunlight(nx & 15, ny, nz & 15) : nChunk.getBlockLight(nx & 15, ny, nz & 15);
-                
-                int expectedLevel = (sun && dir == com.za.zenith.utils.Direction.DOWN && level == 15) ? 15 : level - 1;
+                int neighborLevel = sun ? getSunlight(nx, ny, nz, ctx) : getBlockLight(nx, ny, nz, ctx);
+                if (neighborLevel == 0) continue;
+
+                int opacityLoss = 1;
+                if (sun) {
+                    Block b = nChunk.getBlock(nx & 15, ny, nz & 15);
+                    opacityLoss = Math.max(1, getSunOpacity(b));
+                }
+
+                int expectedLevel = (sun && dir == com.za.zenith.utils.Direction.DOWN && level == 15 && opacityLoss == 1) ? 15 : level - opacityLoss;
                 if (expectedLevel < 0) expectedLevel = 0;
 
-                if (neighborLevel != 0 && neighborLevel <= expectedLevel) {
-                    // Special case for sunlight: Level 15 should not be removed by horizontal neighbors
-                    // as it can only be 15 if it has a vertical source.
-                    if (sun && neighborLevel == 15 && dir != com.za.zenith.utils.Direction.DOWN) {
-                        enqueueFill(pack(nx, ny, nz, 15));
+                if (neighborLevel <= expectedLevel) {
+                    // Sunlight 15 is ONLY protected if it comes from ABOVE.
+                    if (sun && neighborLevel == 15 && dir == com.za.zenith.utils.Direction.UP) {
+                        ctx.enqueueFill(pack(nx, ny, nz, 15));
                         continue;
                     }
 
-                    if (sun) nChunk.setSunlight(nx & 15, ny, nz & 15, 0);
-                    else nChunk.setBlockLight(nx & 15, ny, nz & 15, 0);
-                    enqueueRemoval(pack(nx, ny, nz, neighborLevel));
-                } else if (neighborLevel > 0) {
-                    enqueueFill(pack(nx, ny, nz, neighborLevel));
+                    if (sun) ctx.sunChanges.put(pack(nx, ny, nz, 0), (byte)0);
+                    else ctx.blockChanges.put(pack(nx, ny, nz, 0), (byte)0);
+                    ctx.enqueueRemoval(pack(nx, ny, nz, neighborLevel));
+                } else {
+                    ctx.enqueueFill(pack(nx, ny, nz, neighborLevel));
                 }
             }
         }
     }
 
-    private boolean isOpaque(Chunk chunk, int lx, int ly, int lz) {
-        Block b = chunk.getBlock(lx, ly, lz);
-        if (b.getType() == 0) return false;
-        com.za.zenith.world.blocks.BlockDefinition def = BlockRegistry.getBlock(b.getType());
-        return def != null && def.isSolid() && !def.isTransparent();
-    }
+    private void commit(LightContext ctx) {
+        if (ctx.sunChanges.isEmpty() && ctx.blockChanges.isEmpty()) return;
 
-    private void enqueueFill(long p) {
-        fillQueue[fillTail] = p;
-        fillTail = (fillTail + 1) & QUEUE_MASK;
-    }
+        java.util.Map<Chunk, java.util.List<java.util.Map.Entry<Long, Byte>>> sunByChunk = new java.util.HashMap<>();
+        java.util.Map<Chunk, java.util.List<java.util.Map.Entry<Long, Byte>>> blockByChunk = new java.util.HashMap<>();
 
-    private long dequeueFill() {
-        long p = fillQueue[fillHead];
-        fillHead = (fillHead + 1) & QUEUE_MASK;
-        return p;
-    }
+        for (java.util.Map.Entry<Long, Byte> entry : ctx.sunChanges.entrySet()) {
+            Chunk c = world.getChunkInternal(ChunkPos.fromBlockPos(unpackX(entry.getKey()), unpackZ(entry.getKey())));
+            if (c != null) sunByChunk.computeIfAbsent(c, k -> new java.util.ArrayList<>()).add(entry);
+        }
+        for (java.util.Map.Entry<Long, Byte> entry : ctx.blockChanges.entrySet()) {
+            Chunk c = world.getChunkInternal(ChunkPos.fromBlockPos(unpackX(entry.getKey()), unpackZ(entry.getKey())));
+            if (c != null) blockByChunk.computeIfAbsent(c, k -> new java.util.ArrayList<>()).add(entry);
+        }
 
-    private void enqueueRemoval(long p) {
-        removalQueue[removalTail] = p;
-        removalTail = (removalTail + 1) & QUEUE_MASK;
-    }
+        java.util.Set<Chunk> affected = new java.util.HashSet<>(sunByChunk.keySet());
+        affected.addAll(blockByChunk.keySet());
 
-    private long dequeueRemoval() {
-        long p = removalQueue[removalHead];
-        removalHead = (removalHead + 1) & QUEUE_MASK;
-        return p;
-    }
-
-    private int getSunlight(int x, int y, int z) {
-        Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(x, z));
-        if (chunk == null) return 15; // Assume bright for unloaded
-        return chunk.getSunlight(x & 15, y, z & 15);
-    }
-
-    private void setSunlight(int x, int y, int z, int level) {
-        Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(x, z));
-        if (chunk != null) {
-            chunk.setSunlight(x & 15, y, z & 15, level);
+        for (Chunk chunk : affected) {
+            synchronized (chunk) {
+                java.util.List<java.util.Map.Entry<Long, Byte>> suns = sunByChunk.get(chunk);
+                if (suns != null) {
+                    for (java.util.Map.Entry<Long, Byte> e : suns) {
+                        long p = e.getKey();
+                        chunk.setSunlight(unpackX(p) & 15, unpackY(p), unpackZ(p) & 15, e.getValue());
+                    }
+                }
+                java.util.List<java.util.Map.Entry<Long, Byte>> blocks = blockByChunk.get(chunk);
+                if (blocks != null) {
+                    for (java.util.Map.Entry<Long, Byte> e : blocks) {
+                        long p = e.getKey();
+                        chunk.setBlockLight(unpackX(p) & 15, unpackY(p), unpackZ(p) & 15, e.getValue());
+                    }
+                }
+                chunk.setNeedsMeshUpdate(true);
+                ChunkPos cp = chunk.getPosition();
+                for (int nx = -1; nx <= 1; nx++) {
+                    for (int nz = -1; nx == 0 && nz == 0 ? false : nz <= 1; nz++) {
+                        Chunk neighbor = world.getChunkInternal(new ChunkPos(cp.x() + nx, cp.z() + nz));
+                        if (neighbor != null) neighbor.setNeedsMeshUpdate(true);
+                    }
+                }
+            }
         }
     }
 
-    private int getBlockLight(int x, int y, int z) {
-        Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(x, z));
+    private int getSunlight(int x, int y, int z, LightContext ctx) {
+        long p = pack(x, y, z, 0);
+        Byte cached = ctx.sunChanges.get(p);
+        if (cached != null) return cached & 0xF;
+        
+        Chunk chunk = world.getChunkInternal(ChunkPos.fromBlockPos(x, z));
+        if (chunk == null) {
+            return (y > 300) ? 15 : 0;
+        }
+        return chunk.getSunlight(x & 15, y, z & 15);
+    }
+
+    private int getBlockLight(int x, int y, int z, LightContext ctx) {
+        long p = pack(x, y, z, 0);
+        Byte cached = ctx.blockChanges.get(p);
+        if (cached != null) return cached & 0xF;
+
+        Chunk chunk = world.getChunkInternal(ChunkPos.fromBlockPos(x, z));
         if (chunk == null) return 0;
         return chunk.getBlockLight(x & 15, y, z & 15);
     }
 
-    private void setBlockLight(int x, int y, int z, int level) {
-        Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(x, z));
-        if (chunk != null) {
-            chunk.setBlockLight(x & 15, y, z & 15, level);
-        }
-    }
-
     public void generateInitialSunlight(Chunk chunk) {
-        fillHead = fillTail = 0;
-        
-        for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
-            for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
-                int light = 15;
-                for (int y = Chunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
-                    Block b = chunk.getBlock(x, y, z);
-                    if (isOpaque(b)) {
-                        light = 0;
-                    }
-                    chunk.setSunlight(x, y, z, light);
-                    
-                    // If we have sunlight 15, we are a potential source for horizontal propagation
-                    if (light == 15) {
-                        int wx = chunk.getPosition().x() * Chunk.CHUNK_SIZE + x;
-                        int wz = chunk.getPosition().z() * Chunk.CHUNK_SIZE + z;
-                        enqueueFill(pack(wx, y, wz, 15));
+        LightContext ctx = threadContext.get();
+        ctx.clear();
+        synchronized (chunk) {
+            for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
+                for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
+                    int light = 15;
+                    for (int y = Chunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
+                        Block b = chunk.getBlock(x, y, z);
+                        int opacity = getSunOpacity(b);
+                        if (light == 15 && opacity == 0) {}
+                        else light = Math.max(0, light - Math.max(1, opacity));
+                        chunk.setSunlight(x, y, z, light);
+                        if (light > 0) {
+                            int wx = chunk.getPosition().x() * Chunk.CHUNK_SIZE + x;
+                            int wz = chunk.getPosition().z() * Chunk.CHUNK_SIZE + z;
+                            ctx.enqueueFill(pack(wx, y, wz, light));
+                        }
                     }
                 }
             }
         }
-        
-        // After vertical scan, propagate horizontally to fill structures
-        processLightFill(true);
+        processLightFill(true, ctx);
+        commit(ctx);
     }
 
-    private boolean isOpaque(Block b) {
+    private boolean isOpaque(Chunk chunk, int lx, int ly, int lz) {
+        if (chunk == null) return true;
+        Block b = chunk.getBlock(lx, ly, lz);
         if (b.getType() == 0) return false;
         com.za.zenith.world.blocks.BlockDefinition def = BlockRegistry.getBlock(b.getType());
-        if (def == null) return false;
-        // Leaves are semi-transparent: they block vertical 15, but let light propagate with loss
-        if (def.getIdentifier().toString().contains("leaves")) return true; 
+        if (def == null) return true;
         return def.isSolid() && !def.isTransparent();
+    }
+
+    private int getSunOpacity(Block b) {
+        if (b.getType() == 0) return 0;
+        com.za.zenith.world.blocks.BlockDefinition def = BlockRegistry.getBlock(b.getType());
+        if (def == null) return 15;
+        if (def.getIdentifier().toString().contains("leaves")) return 3;
+        if (def.isSolid() && !def.isTransparent()) return 15;
+        return 0;
     }
 }
