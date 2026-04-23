@@ -31,7 +31,7 @@ public class World {
     private final List<Entity> entities;
     private final Map<BlockPos, BlockEntity> blockEntities;
     private final List<ITickable> tickableBlockEntities;
-    private final com.za.zenith.world.lighting.LightEngine lightEngine;
+    private final LightEngine lightEngine;
     private float worldTime; // Stored as float for smooth interpolation
     
     private final ExecutorService chunkGenExecutor = Executors.newFixedThreadPool(

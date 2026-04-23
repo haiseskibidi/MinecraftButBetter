@@ -4,7 +4,6 @@ import com.za.zenith.world.BlockPos;
 import com.za.zenith.world.World;
 import com.za.zenith.world.blocks.Block;
 import com.za.zenith.world.blocks.BlockRegistry;
-import com.za.zenith.world.blocks.Blocks;
 import com.za.zenith.world.chunks.Chunk;
 import com.za.zenith.world.chunks.ChunkPos;
 
@@ -365,7 +364,7 @@ public class LightEngine {
         
         Chunk chunk = world.getChunkInternal(ChunkPos.fromBlockPos(x, z));
         if (chunk == null) {
-            return (y > 300) ? 15 : 0;
+            return 0; // Fixed: Assume dark for unloaded to prevent inward leaks
         }
         return chunk.getSunlight(x & 15, y, z & 15);
     }

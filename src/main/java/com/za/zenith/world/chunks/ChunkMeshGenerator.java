@@ -4,7 +4,6 @@ import com.za.zenith.engine.graphics.Mesh;
 import com.za.zenith.world.World;
 import com.za.zenith.world.BlockPos;
 import com.za.zenith.world.blocks.Block;
-import com.za.zenith.world.blocks.Blocks;
 import com.za.zenith.world.physics.AABB;
 import com.za.zenith.world.physics.VoxelShape;
 import com.za.zenith.engine.graphics.DynamicTextureAtlas;
@@ -209,6 +208,10 @@ public class ChunkMeshGenerator {
             float totalBlock = 0;
             int count = 0;
 
+            // Cell-Biased Lighting: Get the light level of the block the face is pointing to
+            float centralSun = world.getSunlight(fx, fy, fz);
+            float centralBlock = world.getBlockLight(fx, fy, fz);
+
             // Sample 4 voxels around the vertex in the face plane
             int[][] samples;
             switch(face) {
@@ -227,28 +230,22 @@ public class ChunkMeshGenerator {
                 
                 Chunk chunk = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(sx, sz));
                 if (chunk != null && sy >= 0 && sy < Chunk.CHUNK_HEIGHT) {
-                    float sun = chunk.getSunlight(sx & 15, sy, sz & 15);
-                    
-                    // Safety: if it's 0 but we are high up and nothing is above, it's likely a data glitch/boundary issue
-                    if (sun == 0 && sy > 60) {
-                        boolean blocked = false;
-                        for (int ay = sy + 1; ay < sy + 5 && ay < Chunk.CHUNK_HEIGHT; ay++) {
-                            if (isSolid(world, sx, ay, sz)) { blocked = true; break; }
-                        }
-                        if (!blocked) sun = 15;
-                    }
-                    
-                    totalSun += sun;
+                    totalSun += chunk.getSunlight(sx & 15, sy, sz & 15);
                     totalBlock += chunk.getBlockLight(sx & 15, sy, sz & 15);
                 } else {
-                    totalSun += 15; 
+                    totalSun += (sy >= 128) ? 15 : 0; // Unloaded chunks are bright only at high altitudes
                     totalBlock += 0;
                 }
                 count++;
             }
 
-            if (count == 0) return new float[]{15f, 0f};
-            return new float[]{totalSun / count, totalBlock / count};
+            if (count == 0) return new float[]{centralSun, centralBlock};
+            
+            // Apply bias: Vertex can't be darker than the block it touches
+            return new float[]{
+                Math.max(centralSun, totalSun / count),
+                Math.max(centralBlock, totalBlock / count)
+            };
         }
 
         void addRawQuad(float[] fp, float[] uv, float[] fn, float blockTypeId, float overlayLayer, boolean canSway, float weightOffset) {
