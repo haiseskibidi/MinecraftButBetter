@@ -52,6 +52,7 @@ public class DataLoader {
         }
         loadWoodTypes();
         com.za.zenith.utils.events.RegistryEvents.fireBlockRegistration();
+        BlockRegistry.finalizeRegistration();
         
         // --- Essential Initialization Order ---
         com.za.zenith.world.items.stats.StatRegistry.getAll(); // Ensure class loaded

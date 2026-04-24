@@ -3,8 +3,11 @@ package com.za.zenith.world.blocks;
 import com.za.zenith.world.physics.VoxelShape;
 
 public class Block {
-    private final int type;
-    private final byte metadata;
+    private int type;
+    private byte metadata;
+    
+    public void setType(int type) { this.type = type; }
+    public void setMetadata(byte metadata) { this.metadata = metadata; }
     
     // Metadata constants for directions
     public static final byte DIR_UP = 0;

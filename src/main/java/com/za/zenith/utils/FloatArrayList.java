@@ -39,6 +39,16 @@ public class FloatArrayList {
         size = 0;
     }
 
+    public float[] getInternalArray() {
+        return data;
+    }
+
+    public void trimToSize() {
+        if (size < data.length) {
+            data = Arrays.copyOf(data, size);
+        }
+    }
+
     public float[] toArray() {
         return Arrays.copyOf(data, size);
     }

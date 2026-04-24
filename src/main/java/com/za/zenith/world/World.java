@@ -26,8 +26,8 @@ import java.util.Set;
 import java.util.Map;
 
 public class World {
-    private final Map<ChunkPos, Chunk> chunks;
-    private final Map<ChunkPos, Chunk> stagingChunks = new ConcurrentHashMap<>();
+    private final Map<Long, Chunk> chunks;
+    private final Map<Long, Chunk> stagingChunks = new ConcurrentHashMap<>();
     private final List<Entity> entities;
     private final Map<BlockPos, BlockEntity> blockEntities;
     private final List<ITickable> tickableBlockEntities;
@@ -43,24 +43,23 @@ public class World {
             return t;
         }
     );
-    private final Set<ChunkPos> generatingChunks = ConcurrentHashMap.newKeySet();
+    private final Set<Long> generatingChunks = ConcurrentHashMap.newKeySet();
     private int lastPlayerChunkX = Integer.MAX_VALUE;
     private int lastPlayerChunkZ = Integer.MAX_VALUE;
 
     private static class WorldCache {
         Chunk lastChunk;
-        int lastChunkX = Integer.MAX_VALUE;
-        int lastChunkZ = Integer.MAX_VALUE;
+        long lastPackedPos = Long.MIN_VALUE;
     }
     private final ThreadLocal<WorldCache> threadCache = ThreadLocal.withInitial(WorldCache::new);
 
     public Chunk getChunk(int chunkX, int chunkZ) {
         WorldCache cache = threadCache.get();
-        if (chunkX == cache.lastChunkX && chunkZ == cache.lastChunkZ) return cache.lastChunk;
-        ChunkPos pos = new ChunkPos(chunkX, chunkZ);
-        cache.lastChunk = chunks.get(pos);
-        cache.lastChunkX = chunkX;
-        cache.lastChunkZ = chunkZ;
+        long packed = ChunkPos.pack(chunkX, chunkZ);
+        if (packed == cache.lastPackedPos) return cache.lastChunk;
+        
+        cache.lastChunk = chunks.get(packed);
+        cache.lastPackedPos = packed;
         return cache.lastChunk;
     }
 
@@ -70,12 +69,12 @@ public class World {
     }
 
     public Chunk getChunkInternal(int chunkX, int chunkZ) {
-        ChunkPos pos = new ChunkPos(chunkX, chunkZ);
-        Chunk c = chunks.get(pos);
+        long packed = ChunkPos.pack(chunkX, chunkZ);
+        Chunk c = chunks.get(packed);
         if (c == null) {
-            c = stagingChunks.get(pos);
+            c = stagingChunks.get(packed);
             // Double-check chunks in case it was moved from staging to main map between the two calls
-            if (c == null) c = chunks.get(pos);
+            if (c == null) c = chunks.get(packed);
         }
         return c;
     }
@@ -166,7 +165,7 @@ public class World {
                 Chunk chunk = new Chunk(pos);
                 
                 terrainGenerator.generateTerrain(chunk);
-                chunks.put(pos, chunk);
+                chunks.put(pos.pack(), chunk);
             }
         }
         
@@ -175,7 +174,7 @@ public class World {
         for (int chunkX = -renderDistance; chunkX <= renderDistance; chunkX++) {
             for (int chunkZ = -renderDistance; chunkZ <= renderDistance; chunkZ++) {
                 ChunkPos pos = new ChunkPos(chunkX, chunkZ);
-                Chunk chunk = chunks.get(pos);
+                Chunk chunk = chunks.get(pos.pack());
                 if (chunk != null) {
                     terrainGenerator.generateStructures(this, chunk);
                     lightEngine.generateInitialSunlight(chunk);
@@ -217,7 +216,7 @@ public class World {
         this.worldTime = WorldSettings.getInstance().initialTime;
     }
 
-    private final java.util.LinkedHashSet<ChunkPos> pendingChunkQueue = new java.util.LinkedHashSet<>();
+    private final java.util.LinkedHashSet<Long> pendingChunkQueue = new java.util.LinkedHashSet<>();
 
     private void updateChunks() {
         if (player == null) return;
@@ -234,30 +233,32 @@ public class World {
 
             for (int cx = currentChunkX - renderDistance; cx <= currentChunkX + renderDistance; cx++) {
                 for (int cz = currentChunkZ - renderDistance; cz <= currentChunkZ + renderDistance; cz++) {
-                    ChunkPos pos = new ChunkPos(cx, cz);
-                    if (!chunks.containsKey(pos) && !generatingChunks.contains(pos)) {
-                        pendingChunkQueue.add(pos); // O(1) in LinkedHashSet
+                    long packed = ChunkPos.pack(cx, cz);
+                    if (!chunks.containsKey(packed) && !generatingChunks.contains(packed)) {
+                        pendingChunkQueue.add(packed); 
                     }
                 }
             }
 
             // Unload chunks outside unloadDistance
-            List<ChunkPos> toRemove = new ArrayList<>();
-            for (ChunkPos pos : chunks.keySet()) {
-                if (Math.abs(pos.x() - currentChunkX) > unloadDistance || Math.abs(pos.z() - currentChunkZ) > unloadDistance) {
-                    toRemove.add(pos);
-                }
-            }
-            for (ChunkPos pos : toRemove) {
-                chunks.remove(pos);
-            }
+            chunks.keySet().removeIf(packed -> {
+                int cx = ChunkPos.unpackX(packed);
+                int cz = ChunkPos.unpackZ(packed);
+                return Math.abs(cx - currentChunkX) > unloadDistance || Math.abs(cz - currentChunkZ) > unloadDistance;
+            });
 
-            pendingChunkQueue.removeIf(p -> Math.abs(p.x() - currentChunkX) > renderDistance || Math.abs(p.z() - currentChunkZ) > renderDistance);
+            pendingChunkQueue.removeIf(packed -> {
+                int cx = ChunkPos.unpackX(packed);
+                int cz = ChunkPos.unpackZ(packed);
+                return Math.abs(cx - currentChunkX) > renderDistance || Math.abs(cz - currentChunkZ) > renderDistance;
+            });
 
-            List<ChunkPos> sortedPending = new ArrayList<>(pendingChunkQueue);
+            List<Long> sortedPending = new ArrayList<>(pendingChunkQueue);
             sortedPending.sort((p1, p2) -> {
-                int d1 = (p1.x() - currentChunkX) * (p1.x() - currentChunkX) + (p1.z() - currentChunkZ) * (p1.z() - currentChunkZ);
-                int d2 = (p2.x() - currentChunkX) * (p2.x() - currentChunkX) + (p2.z() - currentChunkZ) * (p2.z() - currentChunkZ);
+                int x1 = ChunkPos.unpackX(p1), z1 = ChunkPos.unpackZ(p1);
+                int x2 = ChunkPos.unpackX(p2), z2 = ChunkPos.unpackZ(p2);
+                int d1 = (x1 - currentChunkX) * (x1 - currentChunkX) + (z1 - currentChunkZ) * (z1 - currentChunkZ);
+                int d2 = (x2 - currentChunkX) * (x2 - currentChunkX) + (z2 - currentChunkZ) * (z2 - currentChunkZ);
                 return Integer.compare(d1, d2);
             });
             pendingChunkQueue.clear();
@@ -266,18 +267,22 @@ public class World {
 
         if (!pendingChunkQueue.isEmpty()) {
             int submittedThisTick = 0;
-            java.util.Iterator<ChunkPos> it = pendingChunkQueue.iterator();
+            java.util.Iterator<Long> it = pendingChunkQueue.iterator();
             while (it.hasNext() && submittedThisTick < 4) {
-                ChunkPos pos = it.next();
+                long packedPos = it.next();
                 it.remove();
-                if (!chunks.containsKey(pos) && !stagingChunks.containsKey(pos) && !generatingChunks.contains(pos)) {
-                    generatingChunks.add(pos);
-                    chunkGenExecutor.submit(() -> {                        try {
+                if (!chunks.containsKey(packedPos) && !stagingChunks.containsKey(packedPos) && !generatingChunks.contains(packedPos)) {
+                    generatingChunks.add(packedPos);
+                    chunkGenExecutor.submit(() -> {
+                        try {
+                            int cx = ChunkPos.unpackX(packedPos);
+                            int cz = ChunkPos.unpackZ(packedPos);
+                            ChunkPos pos = new ChunkPos(cx, cz);
                             Chunk chunk = new Chunk(pos);
                             
                             terrainGenerator.generateTerrain(chunk);
                             
-                            stagingChunks.put(pos, chunk); // Put in staging ONLY after terrain is ready
+                            stagingChunks.put(packedPos, chunk); 
                             terrainGenerator.generateStructures(World.this, chunk);
                             lightEngine.generateInitialSunlight(chunk);
                             
@@ -286,14 +291,13 @@ public class World {
                             
                             lightEngine.onChunkReady(chunk);
                             
-                            // Atomic swap from staging to main world
-                            chunks.put(pos, chunk);
-                            stagingChunks.remove(pos);
+                            chunks.put(packedPos, chunk);
+                            stagingChunks.remove(packedPos);
                         } catch (Exception e) {
-                            com.za.zenith.utils.Logger.error("Error generating chunk %s: %s", pos, e.getMessage());
-                            stagingChunks.remove(pos);
+                            com.za.zenith.utils.Logger.error("Error generating chunk at %d, %d: %s", ChunkPos.unpackX(packedPos), ChunkPos.unpackZ(packedPos), e.getMessage());
+                            stagingChunks.remove(packedPos);
                         } finally {
-                            generatingChunks.remove(pos);
+                            generatingChunks.remove(packedPos);
                         }
                     });
                     submittedThisTick++;
@@ -303,9 +307,7 @@ public class World {
     }
 
     public int getFastSurfaceColor(int x, int z) {
-        int cx = x >> 4;
-        int cz = z >> 4;
-        Chunk chunk = getChunk(new ChunkPos(cx, cz));
+        Chunk chunk = getChunk(x >> 4, z >> 4);
         if (chunk == null || !chunk.isReady()) return 0xFF000000;
 
         int lx = x & 15;
@@ -555,18 +557,15 @@ public class World {
             return damageInstance.getBlock();
         }
 
-        ChunkPos chunkPos = ChunkPos.fromBlockPos(x, z);
-        Chunk chunk = chunks.get(chunkPos);
-        if (chunk == null) chunk = stagingChunks.get(chunkPos);
+        long packed = ChunkPos.pack(x >> 4, z >> 4);
+        Chunk chunk = chunks.get(packed);
+        if (chunk == null) chunk = stagingChunks.get(packed);
         
         if (chunk == null) {
             return new Block(com.za.zenith.world.blocks.Blocks.AIR.getId());
         }
         
-        int localX = x - chunkPos.x() * Chunk.CHUNK_SIZE;
-        int localZ = z - chunkPos.z() * Chunk.CHUNK_SIZE;
-        
-        return chunk.getBlock(localX, y, localZ);
+        return chunk.getBlock(x & 15, y, z & 15);
     }
     
     public void setBlock(BlockPos pos, Block block) {
@@ -582,15 +581,13 @@ public class World {
     }
 
     public void setBlockDuringGen(int x, int y, int z, Block block) {
-        ChunkPos chunkPos = ChunkPos.fromBlockPos(x, z);
-        Chunk chunk = chunks.get(chunkPos);
+        long packed = ChunkPos.pack(x >> 4, z >> 4);
+        Chunk chunk = chunks.get(packed);
         boolean inMainWorld = (chunk != null);
-        if (chunk == null) chunk = stagingChunks.get(chunkPos); // Check staging if not in main world yet
+        if (chunk == null) chunk = stagingChunks.get(packed); // Check staging if not in main world yet
         
         if (chunk != null) {
-            int localX = x - chunkPos.x() * Chunk.CHUNK_SIZE;
-            int localZ = z - chunkPos.z() * Chunk.CHUNK_SIZE;
-            chunk.setBlock(localX, y, localZ, block);
+            chunk.setBlock(x & 15, y, z & 15, block);
             
             // If we are modifying an ALREADY ready chunk (e.g. tree leaves growing into neighbors),
             // we MUST update lighting, otherwise it creates inconsistent light states.
@@ -630,13 +627,11 @@ public class World {
         // IMPORTANT: Clear any damage/proxy data at this position immediately
         blockDamageMap.remove(pos);
         
-        ChunkPos chunkPos = ChunkPos.fromBlockPos(x, z);
-        Chunk chunk = chunks.get(chunkPos);
+        long packed = ChunkPos.pack(x >> 4, z >> 4);
+        Chunk chunk = chunks.get(packed);
         
         if (chunk != null) {
-            int localX = x - chunkPos.x() * Chunk.CHUNK_SIZE;
-            int localZ = z - chunkPos.z() * Chunk.CHUNK_SIZE;
-            chunk.setBlock(localX, y, localZ, block);
+            chunk.setBlock(x & 15, y, z & 15, block);
             chunk.setNeedsMeshUpdate(true);
             
             // Update lighting (skip during world generation for performance)
@@ -654,10 +649,15 @@ public class World {
             }
 
             // Notify neighbors if block is on the edge
-            if (localX == 0) notifyChunkUpdate(chunkPos.x() - 1, chunkPos.z());
-            if (localX == Chunk.CHUNK_SIZE - 1) notifyChunkUpdate(chunkPos.x() + 1, chunkPos.z());
-            if (localZ == 0) notifyChunkUpdate(chunkPos.x(), chunkPos.z() - 1);
-            if (localZ == Chunk.CHUNK_SIZE - 1) notifyChunkUpdate(chunkPos.x(), chunkPos.z() + 1);
+            int lx = x & 15;
+            int lz = z & 15;
+            int cx = x >> 4;
+            int cz = z >> 4;
+
+            if (lx == 0) notifyChunkUpdate(cx - 1, cz);
+            if (lx == Chunk.CHUNK_SIZE - 1) notifyChunkUpdate(cx + 1, cz);
+            if (lz == 0) notifyChunkUpdate(cx, cz - 1);
+            if (lz == Chunk.CHUNK_SIZE - 1) notifyChunkUpdate(cx, cz + 1);
 
             // Notify all 6 neighbors about the block change for survival/logic updates
             if (notifyAndLight && !generating) {
@@ -748,7 +748,7 @@ public class World {
 
     
     private void notifyChunkUpdate(int cx, int cz) {
-        Chunk neighbor = chunks.get(new ChunkPos(cx, cz));
+        Chunk neighbor = chunks.get(ChunkPos.pack(cx, cz));
         if (neighbor != null) {
             neighbor.setNeedsMeshUpdate(true);
         }
@@ -767,7 +767,7 @@ public class World {
     }
 
     public int getSunlight(int x, int y, int z) {
-        Chunk chunk = getChunkInternal(ChunkPos.fromBlockPos(x, z));
+        Chunk chunk = getChunkInternal(x >> 4, z >> 4);
         if (chunk == null) return 0;
         return chunk.getSunlight(x & 15, y, z & 15);
     }
@@ -785,7 +785,7 @@ public class World {
     }
 
     public int getBlockLight(int x, int y, int z) {
-        Chunk chunk = getChunkInternal(ChunkPos.fromBlockPos(x, z));
+        Chunk chunk = getChunkInternal(x >> 4, z >> 4);
         if (chunk == null) return 0;
         return chunk.getBlockLight(x & 15, y, z & 15);
     }
@@ -795,7 +795,7 @@ public class World {
     }
 
     public void setBlockLight(int x, int y, int z, int level) {
-        Chunk chunk = getChunk(ChunkPos.fromBlockPos(x, z));
+        Chunk chunk = getChunk(x >> 4, z >> 4);
         if (chunk != null) {
             chunk.setBlockLight(x & 15, y, z & 15, level);
         }

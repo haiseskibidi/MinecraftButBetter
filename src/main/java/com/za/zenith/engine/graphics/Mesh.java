@@ -43,9 +43,9 @@ public class Mesh {
         this(positions, texCoords, normals, blockTypes, neighborData, weights, new float[positions.length / 3 * 2], new float[positions.length / 3], indices);
     }
 
-    public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, float[] weights, float[] lightData, float[] aoData, int[] indices) {
+    public Mesh(float[] positions, int posLen, float[] texCoords, int texLen, float[] normals, int normLen, float[] blockTypes, int btLen, float[] neighborData, int ndLen, float[] weights, int wLen, float[] lightData, int lLen, float[] aoData, int aoLen, int[] indices, int idxLen) {
         this.positions = positions;
-        if (indices.length == 0 || positions.length == 0) {
+        if (idxLen == 0 || posLen == 0) {
             this.vertexCount = 0;
             this.vaoId = -1;
             this.posVboId = -1;
@@ -59,14 +59,14 @@ public class Mesh {
             this.eboId = -1;
             return;
         }
-        this.vertexCount = indices.length;
+        this.vertexCount = idxLen;
         
         vaoId = glGenVertexArrays();
         glBindVertexArray(vaoId);
         
         posVboId = glGenBuffers();
-        FloatBuffer posBuffer = memAllocFloat(positions.length);
-        posBuffer.put(positions).flip();
+        FloatBuffer posBuffer = memAllocFloat(posLen);
+        posBuffer.put(positions, 0, posLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, posVboId);
         glBufferData(GL_ARRAY_BUFFER, posBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
@@ -74,18 +74,18 @@ public class Mesh {
         memFree(posBuffer);
         
         texVboId = glGenBuffers();
-        FloatBuffer texBuffer = memAllocFloat(texCoords.length);
-        texBuffer.put(texCoords).flip();
+        FloatBuffer texBuffer = memAllocFloat(texLen);
+        texBuffer.put(texCoords, 0, texLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, texVboId);
         glBufferData(GL_ARRAY_BUFFER, texBuffer, GL_STATIC_DRAW);
-        int texComponents = (texCoords.length * 3) / positions.length;
+        int texComponents = (texLen * 3) / posLen;
         glVertexAttribPointer(1, texComponents, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(1);
         memFree(texBuffer);
         
         normalVboId = glGenBuffers();
-        FloatBuffer normalBuffer = memAllocFloat(normals.length);
-        normalBuffer.put(normals).flip();
+        FloatBuffer normalBuffer = memAllocFloat(normLen);
+        normalBuffer.put(normals, 0, normLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, normalVboId);
         glBufferData(GL_ARRAY_BUFFER, normalBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
@@ -93,8 +93,8 @@ public class Mesh {
         memFree(normalBuffer);
         
         blockTypeVboId = glGenBuffers();
-        FloatBuffer blockTypeBuffer = memAllocFloat(blockTypes.length);
-        blockTypeBuffer.put(blockTypes).flip();
+        FloatBuffer blockTypeBuffer = memAllocFloat(btLen);
+        blockTypeBuffer.put(blockTypes, 0, btLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, blockTypeVboId);
         glBufferData(GL_ARRAY_BUFFER, blockTypeBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(3, 1, GL_FLOAT, false, 0, 0);
@@ -102,8 +102,8 @@ public class Mesh {
         memFree(blockTypeBuffer);
 
         neighborDataVboId = glGenBuffers();
-        FloatBuffer neighborDataBuffer = memAllocFloat(neighborData.length);
-        neighborDataBuffer.put(neighborData).flip();
+        FloatBuffer neighborDataBuffer = memAllocFloat(ndLen);
+        neighborDataBuffer.put(neighborData, 0, ndLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, neighborDataVboId);
         glBufferData(GL_ARRAY_BUFFER, neighborDataBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(4, 1, GL_FLOAT, false, 0, 0);
@@ -111,8 +111,8 @@ public class Mesh {
         memFree(neighborDataBuffer);
 
         weightVboId = glGenBuffers();
-        FloatBuffer weightBuffer = memAllocFloat(weights.length);
-        weightBuffer.put(weights).flip();
+        FloatBuffer weightBuffer = memAllocFloat(wLen);
+        weightBuffer.put(weights, 0, wLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, weightVboId);
         glBufferData(GL_ARRAY_BUFFER, weightBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(5, 1, GL_FLOAT, false, 0, 0);
@@ -120,8 +120,8 @@ public class Mesh {
         memFree(weightBuffer);
 
         lightVboId = glGenBuffers();
-        FloatBuffer lightBuffer = memAllocFloat(lightData.length);
-        lightBuffer.put(lightData).flip();
+        FloatBuffer lightBuffer = memAllocFloat(lLen);
+        lightBuffer.put(lightData, 0, lLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, lightVboId);
         glBufferData(GL_ARRAY_BUFFER, lightBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(6, 2, GL_FLOAT, false, 0, 0);
@@ -129,8 +129,8 @@ public class Mesh {
         memFree(lightBuffer);
 
         aoVboId = glGenBuffers();
-        FloatBuffer aoBuffer = memAllocFloat(aoData.length);
-        aoBuffer.put(aoData).flip();
+        FloatBuffer aoBuffer = memAllocFloat(aoLen);
+        aoBuffer.put(aoData, 0, aoLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, aoVboId);
         glBufferData(GL_ARRAY_BUFFER, aoBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(7, 1, GL_FLOAT, false, 0, 0);
@@ -138,13 +138,17 @@ public class Mesh {
         memFree(aoBuffer);
         
         eboId = glGenBuffers();
-        IntBuffer indicesBuffer = memAllocInt(indices.length);
-        indicesBuffer.put(indices).flip();
+        IntBuffer indicesBuffer = memAllocInt(idxLen);
+        indicesBuffer.put(indices, 0, idxLen).flip();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboId);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
         memFree(indicesBuffer);
         
         glBindVertexArray(0);
+    }
+
+    public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, float[] weights, float[] lightData, float[] aoData, int[] indices) {
+        this(positions, positions.length, texCoords, texCoords.length, normals, normals.length, blockTypes, blockTypes.length, neighborData, neighborData.length, weights, weights.length, lightData, lightData.length, aoData, aoData.length, indices, indices.length);
     }
     
     public void render() {

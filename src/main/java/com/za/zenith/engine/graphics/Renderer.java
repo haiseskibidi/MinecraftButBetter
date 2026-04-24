@@ -105,6 +105,10 @@ public class Renderer {
     );
     private final Map<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>> pendingUpdates = new ConcurrentHashMap<>();
 
+    private final List<Chunk> visibleChunks = new java.util.ArrayList<>();
+    private final Vector3f lastSortPos = new Vector3f(Float.MAX_VALUE);
+    private float lastSortYaw = -1000f;
+
     public Renderer() {
         this.chunkMeshes = new ConcurrentHashMap<>();
         this.modelMatrix = new Matrix4f();
@@ -423,9 +427,10 @@ public class Renderer {
         }
 
         // 1. Process pending mesh updates (Check for finished tasks)
+        long uploadStart = System.nanoTime();
         int uploadedThisFrame = 0;
         java.util.Iterator<Map.Entry<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>>> it = pendingUpdates.entrySet().iterator();
-        while (it.hasNext() && uploadedThisFrame < 2) {
+        while (it.hasNext()) {
             Map.Entry<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>> entry = it.next();
             if (entry.getValue().isDone()) {
                 try {
@@ -444,6 +449,9 @@ public class Renderer {
                     chunk.setMeshUpdated(result.version);
                     it.remove();
                     uploadedThisFrame++;
+                    
+                    // Limit time spent uploading to ~2ms to keep frame rate stable
+                    if (System.nanoTime() - uploadStart > 2_000_000) break;
                 } catch (Exception e) {
                     e.printStackTrace();
                     it.remove();
@@ -470,8 +478,8 @@ public class Renderer {
         // 2. Schedule new mesh updates (with budget)
         int scheduledThisFrame = 0;
         int maxScheduledPerFrame = (breakingPos != null) ? 4 : 2; // Allow faster updates when mining
-
-        List<Chunk> visibleChunks = new ArrayList<>();
+        
+        visibleChunks.clear();
         Vector3f camPos = camera.getPosition();
 
         for (Chunk chunk : world.getLoadedChunks()) {
@@ -504,12 +512,18 @@ public class Renderer {
                 }
             }
         }
-        // Sort chunks by distance to camera
-        visibleChunks.sort((c1, p2) -> {
-            float d1 = camPos.distanceSquared(c1.getPosition().x() * Chunk.CHUNK_SIZE + 8, camPos.y, c1.getPosition().z() * Chunk.CHUNK_SIZE + 8);
-            float d2 = camPos.distanceSquared(p2.getPosition().x() * Chunk.CHUNK_SIZE + 8, camPos.y, p2.getPosition().z() * Chunk.CHUNK_SIZE + 8);
-            return Float.compare(d1, d2);
-        });
+        
+        // Smart re-sort
+        float yaw = camera.getRotation().y;
+        if (camPos.distanceSquared(lastSortPos) > 1.0f || Math.abs(yaw - lastSortYaw) > 10.0f) {
+            visibleChunks.sort((c1, p2) -> {
+                float d1 = camPos.distanceSquared(c1.getPosition().x() * Chunk.CHUNK_SIZE + 8, camPos.y, c1.getPosition().z() * Chunk.CHUNK_SIZE + 8);
+                float d2 = camPos.distanceSquared(p2.getPosition().x() * Chunk.CHUNK_SIZE + 8, camPos.y, p2.getPosition().z() * Chunk.CHUNK_SIZE + 8);
+                return Float.compare(d1, d2);
+            });
+            lastSortPos.set(camPos);
+            lastSortYaw = yaw;
+        }
 
         // 3. Render loaded meshes
         // Opaque: Front-to-back (already sorted)
@@ -1014,5 +1028,3 @@ public class Renderer {
         if (blockShader != null) blockShader.cleanup();
     }
 }
-
-

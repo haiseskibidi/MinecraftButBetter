@@ -39,6 +39,16 @@ public class IntArrayList {
         size = 0;
     }
 
+    public int[] getInternalArray() {
+        return data;
+    }
+
+    public void trimToSize() {
+        if (size < data.length) {
+            data = Arrays.copyOf(data, size);
+        }
+    }
+
     public int[] toArray() {
         return Arrays.copyOf(data, size);
     }

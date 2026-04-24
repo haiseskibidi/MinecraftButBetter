@@ -86,14 +86,30 @@ public class Chunk {
         dirtyCounter.incrementAndGet();
     }
     
+    private static final ThreadLocal<Block> FLYWEIGHT_BLOCK = ThreadLocal.withInitial(() -> new Block(0));
+
     public Block getBlock(int x, int y, int z) {
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) {
-            return new Block(com.za.zenith.world.blocks.Blocks.AIR.getId());
+            Block b = FLYWEIGHT_BLOCK.get();
+            b.setType(com.za.zenith.world.blocks.Blocks.AIR.getId());
+            b.setMetadata((byte)0);
+            return b;
         }
         int data = blockData[getIndex(x, y, z)];
-        int type = data >> 8;
-        byte metadata = (byte) (data & 0xFF);
-        return new Block(type, metadata);
+        Block b = FLYWEIGHT_BLOCK.get();
+        b.setType(data >> 8);
+        b.setMetadata((byte)(data & 0xFF));
+        return b;
+    }
+
+    public int getBlockType(int x, int y, int z) {
+        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 0;
+        return blockData[getIndex(x, y, z)] >> 8;
+    }
+
+    public byte getBlockMetadata(int x, int y, int z) {
+        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 0;
+        return (byte)(blockData[getIndex(x, y, z)] & 0xFF);
     }
     
     public void setBlock(int x, int y, int z, Block block) {

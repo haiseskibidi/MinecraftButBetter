@@ -23,8 +23,29 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
     @Override
     public void setSourcePath(String path) { this.sourcePath = path; }
 
+    private transient int flags = 0;
+    public static final int FLAG_SOLID = 1;
+    public static final int FLAG_TRANSPARENT = 2;
+    public static final int FLAG_LEAVES = 4;
+    public static final int FLAG_TINTED = 8;
+    public static final int FLAG_FULL_CUBE = 16;
+
+    public void computeFlags() {
+        flags = 0;
+        if (solid) flags |= FLAG_SOLID;
+        if (transparent) flags |= FLAG_TRANSPARENT;
+        if (identifier != null && identifier.toString().contains("leaves")) flags |= FLAG_LEAVES;
+        if (tinted) flags |= FLAG_TINTED;
+        if (fullCube) flags |= FLAG_FULL_CUBE;
+    }
+
+    public boolean is(int flag) {
+        return (flags & flag) != 0;
+    }
+
     @Override
     public void onLiveReload() {
+        computeFlags();
         // Мгновенное обновление мира при изменении свойств блока
         com.za.zenith.engine.graphics.Renderer r = com.za.zenith.engine.core.GameLoop.getInstance().getRenderer();
         if (r != null) r.rebuildAllChunks();

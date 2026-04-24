@@ -17,6 +17,9 @@ public class LightManager {
     private static final List<LightSource> directionalLights = new ArrayList<>();
     private static final List<LightSource> activeDynamicLights = new ArrayList<>();
 
+    private static int updateCounter = 0;
+    private static final List<LightSource> cachedWorldLights = new ArrayList<>();
+
     public static void update(World world, Player player) {
         activeDynamicLights.clear();
         if (world == null || player == null) return;
@@ -31,26 +34,31 @@ public class LightManager {
             }
         }
 
-        // 2. Scan World (Reliable scan around player)
-        int px = (int)player.getPosition().x;
-        int py = (int)player.getPosition().y;
-        int pz = (int)player.getPosition().z;
-        int range = 12; 
-        
-        for (int x = px - range; x <= px + range; x++) {
-            for (int y = py - range; y <= py + range; y++) {
-                for (int z = pz - range; z <= pz + range; z++) {
-                    // World.getBlock is now robust and sees healing/breaking blocks
-                    Block block = world.getBlock(x, y, z);
-                    if (block != null && !block.isAir()) {
-                        BlockDefinition def = BlockRegistry.getBlock(block.getType());
-                        if (def != null && def.getLightData() != null) {
-                            activeDynamicLights.add(createSource(def.getLightData(), new Vector3f(x + 0.5f, y + 0.5f, z + 0.5f), new Vector3f(0, -1, 0), time));
+        // 2. Scan World (Reliable scan around player) - THROTTLED to once per 20 frames
+        if (updateCounter++ % 20 == 0) {
+            cachedWorldLights.clear();
+            int px = (int)player.getPosition().x;
+            int py = (int)player.getPosition().y;
+            int pz = (int)player.getPosition().z;
+            int range = 12; 
+            
+            for (int x = px - range; x <= px + range; x++) {
+                for (int y = py - range; y <= py + range; y++) {
+                    for (int z = pz - range; z <= pz + range; z++) {
+                        int raw = world.getRawBlockData(x, y, z);
+                        int type = raw >> 8;
+                        if (type != 0) {
+                            BlockDefinition def = BlockRegistry.getBlock(type);
+                            if (def != null && def.getEmission() > 0) {
+                                cachedWorldLights.add(createSource(def.getLightData(), new Vector3f(x + 0.5f, y + 0.5f, z + 0.5f), new Vector3f(0, -1, 0), time));
+                            }
                         }
                     }
                 }
             }
         }
+        
+        activeDynamicLights.addAll(cachedWorldLights);
 
         // 3. Sorting by distance to player
         activeDynamicLights.sort(Comparator.comparingDouble(l -> l.position.distanceSquared(player.getPosition())));

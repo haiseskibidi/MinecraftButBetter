@@ -10,6 +10,12 @@ import java.util.Set;
 public class BlockRegistry {
     private static final NumericalRegistry<BlockDefinition> REGISTRY = new NumericalRegistry<>();
 
+    public static void finalizeRegistration() {
+        for (BlockDefinition def : REGISTRY.values()) {
+            def.computeFlags();
+        }
+    }
+
     public static void registerBlock(BlockDefinition def) {
         REGISTRY.register(def.getIdentifier(), def.getId(), def);
     }

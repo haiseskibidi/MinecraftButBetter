@@ -13,14 +13,94 @@ public class LightEngine {
     private static final int QUEUE_SIZE = 1024 * 1024;
     private static final int QUEUE_MASK = QUEUE_SIZE - 1;
 
+    private static class PrimitiveLongByteMap {
+        private static final int INITIAL_CAPACITY = 2048;
+        private long[] keys = new long[INITIAL_CAPACITY];
+        private byte[] values = new byte[INITIAL_CAPACITY];
+        private boolean[] occupied = new boolean[INITIAL_CAPACITY];
+        private int size = 0;
+        private int mask = INITIAL_CAPACITY - 1;
+
+        public void clear() {
+            java.util.Arrays.fill(occupied, false);
+            size = 0;
+        }
+
+        public void put(long key, byte value) {
+            if (size >= keys.length * 0.7f) rehash();
+            int h = hash(key) & mask;
+            while (occupied[h] && keys[h] != key) {
+                h = (h + 1) & mask;
+            }
+            if (!occupied[h]) {
+                occupied[h] = true;
+                keys[h] = key;
+                size++;
+            }
+            values[h] = value;
+        }
+
+        public byte get(long key) {
+            int h = hash(key) & mask;
+            while (occupied[h]) {
+                if (keys[h] == key) return values[h];
+                h = (h + 1) & mask;
+            }
+            return -1;
+        }
+
+        public boolean isEmpty() { return size == 0; }
+        public int size() { return size; }
+
+        private int hash(long x) {
+            x = (x ^ (x >>> 33)) * 0xff51afd7ed558ccdL;
+            x = (x ^ (x >>> 33)) * 0xc4ceb9fe1a85ec53L;
+            x = x ^ (x >>> 33);
+            return (int) x;
+        }
+
+        private void rehash() {
+            long[] oldKeys = keys;
+            byte[] oldValues = values;
+            boolean[] oldOccupied = occupied;
+            
+            int newCap = oldKeys.length * 2;
+            keys = new long[newCap];
+            values = new byte[newCap];
+            occupied = new boolean[newCap];
+            mask = newCap - 1;
+            size = 0;
+            
+            for (int i = 0; i < oldKeys.length; i++) {
+                if (oldOccupied[i]) put(oldKeys[i], oldValues[i]);
+            }
+        }
+        
+        public void forEach(java.util.function.BiConsumer<Long, Byte> action) {
+            for (int i = 0; i < keys.length; i++) {
+                if (occupied[i]) action.accept(keys[i], values[i]);
+            }
+        }
+
+        public void forEachPrimitive(PrimitiveBiConsumer action) {
+            for (int i = 0; i < keys.length; i++) {
+                if (occupied[i]) action.accept(keys[i], values[i]);
+            }
+        }
+    }
+
+    private interface PrimitiveBiConsumer {
+        void accept(long key, byte value);
+    }
+
     private static class LightContext {
         final long[] fillQueue = new long[QUEUE_SIZE];
         final long[] removalQueue = new long[QUEUE_SIZE];
         int fillHead, fillTail;
         int removalHead, removalTail;
         
-        final java.util.Map<Long, Byte> sunChanges = new java.util.HashMap<>();
-        final java.util.Map<Long, Byte> blockChanges = new java.util.HashMap<>();
+        final PrimitiveLongByteMap sunChanges = new PrimitiveLongByteMap();
+        final PrimitiveLongByteMap blockChanges = new PrimitiveLongByteMap();
 
         void clear() {
             fillHead = fillTail = 0;
@@ -314,90 +394,84 @@ public class LightEngine {
     private void commit(LightContext ctx) {
         if (ctx.sunChanges.isEmpty() && ctx.blockChanges.isEmpty()) return;
 
-        java.util.Map<Chunk, java.util.List<java.util.Map.Entry<Long, Byte>>> sunByChunk = new java.util.HashMap<>();
-        java.util.Map<Chunk, java.util.List<java.util.Map.Entry<Long, Byte>>> blockByChunk = new java.util.HashMap<>();
+        java.util.Map<Chunk, java.util.List<LightEntry>> sunByChunk = new java.util.HashMap<>();
+        java.util.Map<Chunk, java.util.List<LightEntry>> blockByChunk = new java.util.HashMap<>();
 
-        for (java.util.Map.Entry<Long, Byte> entry : ctx.sunChanges.entrySet()) {
-            Chunk c = world.getChunkInternal(ChunkPos.fromBlockPos(unpackX(entry.getKey()), unpackZ(entry.getKey())));
-            if (c != null) sunByChunk.computeIfAbsent(c, k -> new java.util.ArrayList<>()).add(entry);
-        }
-        for (java.util.Map.Entry<Long, Byte> entry : ctx.blockChanges.entrySet()) {
-            Chunk c = world.getChunkInternal(ChunkPos.fromBlockPos(unpackX(entry.getKey()), unpackZ(entry.getKey())));
-            if (c != null) blockByChunk.computeIfAbsent(c, k -> new java.util.ArrayList<>()).add(entry);
-        }
+        ctx.sunChanges.forEachPrimitive((key, value) -> {
+            Chunk c = world.getChunkInternal(unpackX(key) >> 4, unpackZ(key) >> 4);
+            if (c != null) sunByChunk.computeIfAbsent(c, k -> new java.util.ArrayList<>()).add(new LightEntry(key, value));
+        });
+        
+        ctx.blockChanges.forEachPrimitive((key, value) -> {
+            Chunk c = world.getChunkInternal(unpackX(key) >> 4, unpackZ(key) >> 4);
+            if (c != null) blockByChunk.computeIfAbsent(c, k -> new java.util.ArrayList<>()).add(new LightEntry(key, value));
+        });
 
         java.util.Set<Chunk> affected = new java.util.HashSet<>(sunByChunk.keySet());
         affected.addAll(blockByChunk.keySet());
-
         java.util.Set<Chunk> chunksToUpdate = new java.util.HashSet<>(affected);
 
         for (Chunk chunk : affected) {
             synchronized (chunk) {
-                java.util.List<java.util.Map.Entry<Long, Byte>> suns = sunByChunk.get(chunk);
+                java.util.List<LightEntry> suns = sunByChunk.get(chunk);
                 if (suns != null) {
-                    for (java.util.Map.Entry<Long, Byte> e : suns) {
-                        long p = e.getKey();
+                    for (LightEntry e : suns) {
+                        long p = e.key;
                         int lx = unpackX(p) & 15;
                         int lz = unpackZ(p) & 15;
-                        chunk.setSunlight(lx, unpackY(p), lz, e.getValue());
+                        chunk.setSunlight(lx, unpackY(p), lz, e.value);
                         
-                        if (lx == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() - 1, chunk.getPosition().z())));
-                        if (lx == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() + 1, chunk.getPosition().z())));
-                        if (lz == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x(), chunk.getPosition().z() - 1)));
-                        if (lz == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x(), chunk.getPosition().z() + 1)));
-                        
-                        if (lx == 0 && lz == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() - 1, chunk.getPosition().z() - 1)));
-                        if (lx == 15 && lz == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() + 1, chunk.getPosition().z() - 1)));
-                        if (lx == 0 && lz == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() - 1, chunk.getPosition().z() + 1)));
-                        if (lx == 15 && lz == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() + 1, chunk.getPosition().z() + 1)));
+                        if (lx == 0) addChunkToUpdate(chunksToUpdate, chunk.getPosition().x() - 1, chunk.getPosition().z());
+                        if (lx == 15) addChunkToUpdate(chunksToUpdate, chunk.getPosition().x() + 1, chunk.getPosition().z());
+                        if (lz == 0) addChunkToUpdate(chunksToUpdate, chunk.getPosition().x(), chunk.getPosition().z() - 1);
+                        if (lz == 15) addChunkToUpdate(chunksToUpdate, chunk.getPosition().x(), chunk.getPosition().z() + 1);
                     }
                 }
-                java.util.List<java.util.Map.Entry<Long, Byte>> blocks = blockByChunk.get(chunk);
+                java.util.List<LightEntry> blocks = blockByChunk.get(chunk);
                 if (blocks != null) {
-                    for (java.util.Map.Entry<Long, Byte> e : blocks) {
-                        long p = e.getKey();
+                    for (LightEntry e : blocks) {
+                        long p = e.key;
                         int lx = unpackX(p) & 15;
                         int lz = unpackZ(p) & 15;
-                        chunk.setBlockLight(lx, unpackY(p), lz, e.getValue());
+                        chunk.setBlockLight(lx, unpackY(p), lz, e.value);
 
-                        if (lx == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() - 1, chunk.getPosition().z())));
-                        if (lx == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() + 1, chunk.getPosition().z())));
-                        if (lz == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x(), chunk.getPosition().z() - 1)));
-                        if (lz == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x(), chunk.getPosition().z() + 1)));
-                        
-                        if (lx == 0 && lz == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() - 1, chunk.getPosition().z() - 1)));
-                        if (lx == 15 && lz == 0) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() + 1, chunk.getPosition().z() - 1)));
-                        if (lx == 0 && lz == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() - 1, chunk.getPosition().z() + 1)));
-                        if (lx == 15 && lz == 15) chunksToUpdate.add(world.getChunkInternal(new ChunkPos(chunk.getPosition().x() + 1, chunk.getPosition().z() + 1)));
+                        if (lx == 0) addChunkToUpdate(chunksToUpdate, chunk.getPosition().x() - 1, chunk.getPosition().z());
+                        if (lx == 15) addChunkToUpdate(chunksToUpdate, chunk.getPosition().x() + 1, chunk.getPosition().z());
+                        if (lz == 0) addChunkToUpdate(chunksToUpdate, chunk.getPosition().x(), chunk.getPosition().z() - 1);
+                        if (lz == 15) addChunkToUpdate(chunksToUpdate, chunk.getPosition().x(), chunk.getPosition().z() + 1);
                     }
                 }
             }
         }
         
-        chunksToUpdate.remove(null);
         for (Chunk c : chunksToUpdate) {
-            c.setNeedsMeshUpdate(true);
+            if (c != null) c.setNeedsMeshUpdate(true);
         }
     }
 
+    private void addChunkToUpdate(java.util.Set<Chunk> set, int cx, int cz) {
+        Chunk c = world.getChunkInternal(cx, cz);
+        if (c != null) set.add(c);
+    }
+
+    private record LightEntry(long key, byte value) {}
+
     private int getSunlight(int x, int y, int z, LightContext ctx) {
         long p = pack(x, y, z, 0);
-        Byte cached = ctx.sunChanges.get(p);
-        if (cached != null) return cached & 0xF;
+        byte cached = ctx.sunChanges.get(p);
+        if (cached != -1) return cached & 0xF;
         
-        Chunk chunk = world.getChunkInternal(ChunkPos.fromBlockPos(x, z));
-        if (chunk == null) {
-            return 0; // Fixed: Assume dark for unloaded to prevent inward leaks
-        }
+        Chunk chunk = world.getChunkInternal(x >> 4, z >> 4);
+        if (chunk == null) return 0;
         return chunk.getSunlight(x & 15, y, z & 15);
     }
 
     private int getBlockLight(int x, int y, int z, LightContext ctx) {
         long p = pack(x, y, z, 0);
-        Byte cached = ctx.blockChanges.get(p);
-        if (cached != null) return cached & 0xF;
+        byte cached = ctx.blockChanges.get(p);
+        if (cached != -1) return cached & 0xF;
 
-        Chunk chunk = world.getChunkInternal(ChunkPos.fromBlockPos(x, z));
+        Chunk chunk = world.getChunkInternal(x >> 4, z >> 4);
         if (chunk == null) return 0;
         return chunk.getBlockLight(x & 15, y, z & 15);
     }
@@ -439,8 +513,8 @@ public class LightEngine {
         if (b.getType() == 0) return 0;
         com.za.zenith.world.blocks.BlockDefinition def = BlockRegistry.getBlock(b.getType());
         if (def == null) return 15;
-        if (def.getIdentifier().toString().contains("leaves")) return 3;
-        if (def.isSolid() && !def.isTransparent()) return 15;
+        if (def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_LEAVES)) return 3;
+        if (def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_SOLID) && !def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_TRANSPARENT)) return 15;
         return 0;
     }
 }
