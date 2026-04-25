@@ -9,6 +9,7 @@ in vec3 vLocalPos;
 in float vBreakingIntensity;
 in vec2 vLight;
 in float vAO;
+in float vChunkAge;
 flat in ivec3 vBlockPos;
 
 out vec4 fragColor;
@@ -30,6 +31,7 @@ uniform vec3 uHiddenPositions[16];
 uniform int uHiddenCount;
 uniform bool uIsProxy;
 uniform vec3 uGrassColor = vec3(0.486, 0.784, 0.314);
+uniform float uTime;
 
 uniform vec3 uCondition; // x=dirt, y=blood, z=wetness
 uniform bool isHand = false;

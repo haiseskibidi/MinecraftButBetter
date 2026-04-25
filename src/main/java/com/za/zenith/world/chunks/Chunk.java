@@ -12,27 +12,54 @@ public class Chunk {
     public static final int CHUNK_HEIGHT = 384;
     
     private final ChunkPos position;
-    private final int[] blockData; // Packed data: (type << 8) | metadata
+    private final short[] blockIndices; 
+    private final java.util.List<Integer> palette = new java.util.ArrayList<>();
     private final byte[] lightData; // Packed light: (sunlight << 4) | blocklight
     private final short[] heightMap;
     private final AtomicLong dirtyCounter = new AtomicLong(0);
     private long lastMeshCounter = -1;
     private volatile boolean isReady = false;
     
+    private final float firstSpawnTime;
+    private long lastSeenFrame = 0;
+
+    public long getLastSeenFrame() { return lastSeenFrame; }
+    public void setLastSeenFrame(long frame) { this.lastSeenFrame = frame; }
+    public float getFirstSpawnTime() { return firstSpawnTime; }
+
     public Chunk(ChunkPos position) {
         this.position = position;
-        this.blockData = new int[CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE];
+        this.blockIndices = new short[CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE];
         this.lightData = new byte[CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE];
         this.heightMap = new short[CHUNK_SIZE * CHUNK_SIZE];
         java.util.Arrays.fill(this.heightMap, (short)-1);
+        
+        // Initial palette: Air at index 0
+        palette.add(0);
+        this.firstSpawnTime = (float)(org.lwjgl.glfw.GLFW.glfwGetTime() % 3600.0);
     }
 
-    public Chunk(ChunkPos position, int[] blockData, byte[] lightData) {
-        this.position = position;
-        this.blockData = blockData;
-        this.lightData = lightData;
-        this.heightMap = new short[CHUNK_SIZE * CHUNK_SIZE];
-        java.util.Arrays.fill(this.heightMap, (short)-1);
+    public Chunk(ChunkPos position, int[] rawBlockData, byte[] lightData) {
+        this(position);
+        System.arraycopy(lightData, 0, this.lightData, 0, lightData.length);
+        for (int i = 0; i < rawBlockData.length; i++) {
+            setBlockByIndex(i, rawBlockData[i]);
+        }
+    }
+
+    private void setBlockByIndex(int index, int packedData) {
+        short paletteIndex = -1;
+        for (int i = 0; i < palette.size(); i++) {
+            if (palette.get(i) == packedData) {
+                paletteIndex = (short) i;
+                break;
+            }
+        }
+        if (paletteIndex == -1) {
+            paletteIndex = (short) palette.size();
+            palette.add(packedData);
+        }
+        blockIndices[index] = paletteIndex;
     }
 
     public boolean isReady() { return isReady; }
@@ -44,8 +71,7 @@ public class Chunk {
         int y = heightMap[idx];
         if (y == -1) {
             for (y = CHUNK_HEIGHT - 1; y > 0; y--) {
-                int data = blockData[getIndex(x, y, z)];
-                int type = data >> 8;
+                int type = getBlockType(x, y, z);
                 if (type != 0 && !com.za.zenith.world.blocks.BlockRegistry.getBlock(type).isTransparent()) {
                     heightMap[idx] = (short)y;
                     return y;
@@ -89,14 +115,13 @@ public class Chunk {
     private static final ThreadLocal<Block> FLYWEIGHT_BLOCK = ThreadLocal.withInitial(() -> new Block(0));
 
     public Block getBlock(int x, int y, int z) {
+        Block b = FLYWEIGHT_BLOCK.get();
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) {
-            Block b = FLYWEIGHT_BLOCK.get();
             b.setType(com.za.zenith.world.blocks.Blocks.AIR.getId());
             b.setMetadata((byte)0);
             return b;
         }
-        int data = blockData[getIndex(x, y, z)];
-        Block b = FLYWEIGHT_BLOCK.get();
+        int data = getRawBlockData(x, y, z);
         b.setType(data >> 8);
         b.setMetadata((byte)(data & 0xFF));
         return b;
@@ -104,12 +129,20 @@ public class Chunk {
 
     public int getBlockType(int x, int y, int z) {
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 0;
-        return blockData[getIndex(x, y, z)] >> 8;
+        return getRawBlockData(x, y, z) >> 8;
+    }
+
+    public com.za.zenith.world.BlockPos toWorldPos(int localX, int localY, int localZ) {
+        return new com.za.zenith.world.BlockPos(
+            position.x() * CHUNK_SIZE + localX,
+            localY,
+            position.z() * CHUNK_SIZE + localZ
+        );
     }
 
     public byte getBlockMetadata(int x, int y, int z) {
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 0;
-        return (byte)(blockData[getIndex(x, y, z)] & 0xFF);
+        return (byte)(getRawBlockData(x, y, z) & 0xFF);
     }
     
     public void setBlock(int x, int y, int z, Block block) {
@@ -117,13 +150,14 @@ public class Chunk {
             return;
         }
         int packed = (block.getType() << 8) | (block.getMetadata() & 0xFF);
-        blockData[getIndex(x, y, z)] = packed;
+        setBlockByIndex(getIndex(x, y, z), packed);
         heightMap[z * CHUNK_SIZE + x] = -1;
         dirtyCounter.incrementAndGet();
     }
     
     public int getRawBlockData(int x, int y, int z) {
-        return blockData[getIndex(x, y, z)];
+        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 0;
+        return palette.get(blockIndices[getIndex(x, y, z)]);
     }
     
     public ChunkPos getPosition() {
@@ -150,13 +184,6 @@ public class Chunk {
         this.dirtyCounter.set(dirtyCounterVal);
     }
 
-    public BlockPos toWorldPos(int x, int y, int z) {        return new BlockPos(
-            position.x() * CHUNK_SIZE + x,
-            y,
-            position.z() * CHUNK_SIZE + z
-        );
-    }
-
     public record DataSnapshot(ChunkPos position, int[] blockData, byte[] lightData) {
         public int getRawBlockData(int x, int y, int z) {
             if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 0;
@@ -174,11 +201,20 @@ public class Chunk {
         }
     }
 
-    public int[] getBlockData() { return blockData; }
+    public int[] getBlockData() { 
+        int[] data = new int[blockIndices.length];
+        for (int i = 0; i < blockIndices.length; i++) {
+            data[i] = palette.get(blockIndices[i]);
+        }
+        return data; 
+    }
+    
     public byte[] getLightData() { return lightData; }
 
     public synchronized DataSnapshot getSnapshot(int[] outBlockData, byte[] outLightData) {
-        System.arraycopy(blockData, 0, outBlockData, 0, blockData.length);
+        for (int i = 0; i < blockIndices.length; i++) {
+            outBlockData[i] = palette.get(blockIndices[i]);
+        }
         System.arraycopy(lightData, 0, outLightData, 0, lightData.length);
         return new DataSnapshot(position, outBlockData, outLightData);
     }

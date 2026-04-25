@@ -65,84 +65,84 @@ public class Mesh {
         glBindVertexArray(vaoId);
         
         posVboId = glGenBuffers();
-        FloatBuffer posBuffer = memAllocFloat(posLen);
+        FloatBuffer posBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(posLen);
         posBuffer.put(positions, 0, posLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, posVboId);
         glBufferData(GL_ARRAY_BUFFER, posBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(0);
-        memFree(posBuffer);
+        com.za.zenith.utils.NioBufferPool.returnFloat(posBuffer);
         
         texVboId = glGenBuffers();
-        FloatBuffer texBuffer = memAllocFloat(texLen);
+        FloatBuffer texBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(texLen);
         texBuffer.put(texCoords, 0, texLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, texVboId);
         glBufferData(GL_ARRAY_BUFFER, texBuffer, GL_STATIC_DRAW);
         int texComponents = (texLen * 3) / posLen;
         glVertexAttribPointer(1, texComponents, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(1);
-        memFree(texBuffer);
+        com.za.zenith.utils.NioBufferPool.returnFloat(texBuffer);
         
         normalVboId = glGenBuffers();
-        FloatBuffer normalBuffer = memAllocFloat(normLen);
+        FloatBuffer normalBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(normLen);
         normalBuffer.put(normals, 0, normLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, normalVboId);
         glBufferData(GL_ARRAY_BUFFER, normalBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(2);
-        memFree(normalBuffer);
+        com.za.zenith.utils.NioBufferPool.returnFloat(normalBuffer);
         
         blockTypeVboId = glGenBuffers();
-        FloatBuffer blockTypeBuffer = memAllocFloat(btLen);
+        FloatBuffer blockTypeBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(btLen);
         blockTypeBuffer.put(blockTypes, 0, btLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, blockTypeVboId);
         glBufferData(GL_ARRAY_BUFFER, blockTypeBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(3, 1, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(3);
-        memFree(blockTypeBuffer);
+        com.za.zenith.utils.NioBufferPool.returnFloat(blockTypeBuffer);
 
         neighborDataVboId = glGenBuffers();
-        FloatBuffer neighborDataBuffer = memAllocFloat(ndLen);
+        FloatBuffer neighborDataBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(ndLen);
         neighborDataBuffer.put(neighborData, 0, ndLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, neighborDataVboId);
         glBufferData(GL_ARRAY_BUFFER, neighborDataBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(4, 1, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(4);
-        memFree(neighborDataBuffer);
+        com.za.zenith.utils.NioBufferPool.returnFloat(neighborDataBuffer);
 
         weightVboId = glGenBuffers();
-        FloatBuffer weightBuffer = memAllocFloat(wLen);
+        FloatBuffer weightBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(wLen);
         weightBuffer.put(weights, 0, wLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, weightVboId);
         glBufferData(GL_ARRAY_BUFFER, weightBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(5, 1, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(5);
-        memFree(weightBuffer);
+        com.za.zenith.utils.NioBufferPool.returnFloat(weightBuffer);
 
         lightVboId = glGenBuffers();
-        FloatBuffer lightBuffer = memAllocFloat(lLen);
+        FloatBuffer lightBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(lLen);
         lightBuffer.put(lightData, 0, lLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, lightVboId);
         glBufferData(GL_ARRAY_BUFFER, lightBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(6, 2, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(6);
-        memFree(lightBuffer);
+        com.za.zenith.utils.NioBufferPool.returnFloat(lightBuffer);
 
         aoVboId = glGenBuffers();
-        FloatBuffer aoBuffer = memAllocFloat(aoLen);
+        FloatBuffer aoBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(aoLen);
         aoBuffer.put(aoData, 0, aoLen).flip();
         glBindBuffer(GL_ARRAY_BUFFER, aoVboId);
         glBufferData(GL_ARRAY_BUFFER, aoBuffer, GL_STATIC_DRAW);
         glVertexAttribPointer(7, 1, GL_FLOAT, false, 0, 0);
         glEnableVertexAttribArray(7);
-        memFree(aoBuffer);
+        com.za.zenith.utils.NioBufferPool.returnFloat(aoBuffer);
         
         eboId = glGenBuffers();
-        IntBuffer indicesBuffer = memAllocInt(idxLen);
+        IntBuffer indicesBuffer = com.za.zenith.utils.NioBufferPool.rentInt(idxLen);
         indicesBuffer.put(indices, 0, idxLen).flip();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboId);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
-        memFree(indicesBuffer);
+        com.za.zenith.utils.NioBufferPool.returnInt(indicesBuffer);
         
         glBindVertexArray(0);
     }

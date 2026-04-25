@@ -142,19 +142,39 @@ public class Shader {
         setMatrix4f(name, matrix);
     }
     
+    private final java.util.Map<String, int[]> lightUniformCache = new java.util.HashMap<>();
+    private static final int LIGHT_STRUCT_SIZE = 7; // type, pos, dir, color, intensity, radius, spot
+
     public void setLights(String arrayName, java.util.List<com.za.zenith.world.lighting.LightSource> lights) {
         int count = Math.min(lights.size(), com.za.zenith.world.lighting.LightManager.MAX_DYNAMIC_LIGHTS);
         setInt("uLightCount", count);
+        
+        int[] locations = lightUniformCache.get(arrayName);
+        if (locations == null) {
+            locations = new int[com.za.zenith.world.lighting.LightManager.MAX_DYNAMIC_LIGHTS * LIGHT_STRUCT_SIZE];
+            for (int i = 0; i < com.za.zenith.world.lighting.LightManager.MAX_DYNAMIC_LIGHTS; i++) {
+                String prefix = arrayName + "[" + i + "].";
+                locations[i * LIGHT_STRUCT_SIZE + 0] = glGetUniformLocation(programId, prefix + "type");
+                locations[i * LIGHT_STRUCT_SIZE + 1] = glGetUniformLocation(programId, prefix + "position");
+                locations[i * LIGHT_STRUCT_SIZE + 2] = glGetUniformLocation(programId, prefix + "direction");
+                locations[i * LIGHT_STRUCT_SIZE + 3] = glGetUniformLocation(programId, prefix + "color");
+                locations[i * LIGHT_STRUCT_SIZE + 4] = glGetUniformLocation(programId, prefix + "intensity");
+                locations[i * LIGHT_STRUCT_SIZE + 5] = glGetUniformLocation(programId, prefix + "radius");
+                locations[i * LIGHT_STRUCT_SIZE + 6] = glGetUniformLocation(programId, prefix + "spotAngle");
+            }
+            lightUniformCache.put(arrayName, locations);
+        }
+
         for (int i = 0; i < count; i++) {
             com.za.zenith.world.lighting.LightSource light = lights.get(i);
-            String prefix = arrayName + "[" + i + "].";
-            setInt(prefix + "type", light.data.type.ordinal());
-            setVector3f(prefix + "position", light.position);
-            setVector3f(prefix + "direction", light.direction);
-            setVector3f(prefix + "color", light.data.color);
-            setFloat(prefix + "intensity", light.data.intensity);
-            setFloat(prefix + "radius", light.data.radius);
-            setFloat(prefix + "spotAngle", (float)Math.cos(Math.toRadians(light.data.spotAngle)));
+            int base = i * LIGHT_STRUCT_SIZE;
+            glUniform1i(locations[base + 0], light.data.type.ordinal());
+            glUniform3f(locations[base + 1], light.position.x, light.position.y, light.position.z);
+            glUniform3f(locations[base + 2], light.direction.x, light.direction.y, light.direction.z);
+            glUniform3f(locations[base + 3], light.data.color.x, light.data.color.y, light.data.color.z);
+            glUniform1f(locations[base + 4], light.data.intensity);
+            glUniform1f(locations[base + 5], light.data.radius);
+            glUniform1f(locations[base + 6], (float)Math.cos(Math.toRadians(light.data.spotAngle)));
         }
     }
 

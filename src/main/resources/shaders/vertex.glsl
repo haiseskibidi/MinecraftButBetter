@@ -22,6 +22,8 @@ uniform float uTime;
 uniform float uSwayOverride; // -1.0 = use attribute, 0.0 = force static, 1.0 = force sway
 uniform vec3 uOverrideLight; // x=sun, y=block, z=ao. If x >= 0.0, use this instead of attributes.
 
+uniform float uChunkSpawnTime;
+
 // Include external modules
 #include "include/foliage_animation.glsl"
 
@@ -34,9 +36,13 @@ out vec3 vLocalPos;
 out float vBreakingIntensity;
 out vec2 vLight;
 out float vAO;
+out float vChunkAge;
 flat out ivec3 vBlockPos;
 
 void main() {
+    vChunkAge = uTime - uChunkSpawnTime;
+    if (vChunkAge < 0.0) vChunkAge += 3600.0;
+    
     fragTexCoord = texCoord;
 
     if (uOverrideLight.x >= 0.0) {
@@ -67,6 +73,14 @@ void main() {
     
     vec3 worldPos = vec3(model * vec4(position, 1.0));
     vBreakingIntensity = 0.0;
+
+    // AAA Smooth Rising Reveal effect
+    if (vChunkAge < 1.0 && !uIsProxy) {
+        float revealProgress = clamp(vChunkAge, 0.0, 1.0);
+        // Exponential smoothing for the rise
+        float offset = -4.0 * (1.0 - pow(revealProgress, 3.0));
+        worldPos.y += offset;
+    }
 
     vLocalPos = position;
     if (uIsProxy) {

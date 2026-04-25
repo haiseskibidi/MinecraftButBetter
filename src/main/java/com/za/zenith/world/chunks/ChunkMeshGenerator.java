@@ -28,10 +28,12 @@ public class ChunkMeshGenerator {
         public final Mesh opaqueMesh;
         public final Mesh translucentMesh;
         public final long version;
+        public final float spawnTime;
         public ChunkMeshResult(Mesh opaqueMesh, Mesh translucentMesh, long version) {
             this.opaqueMesh = opaqueMesh;
             this.translucentMesh = translucentMesh;
             this.version = version;
+            this.spawnTime = (float)(org.lwjgl.glfw.GLFW.glfwGetTime() % 3600.0);
         }
     }
 
@@ -82,14 +84,14 @@ public class ChunkMeshGenerator {
             if (y >= Chunk.CHUNK_HEIGHT) return 15;
             if (y < 0) return 0;
             Chunk c = getChunk(x, z);
-            if (c == null) return (y >= 128) ? 15 : 0;
+            if (c == null || !c.isReady()) return (y >= 128) ? 15 : 0;
             return c.getSunlight(x & 15, y, z & 15);
         }
 
         public int getBlockLight(int x, int y, int z) {
             if (y < 0 || y >= Chunk.CHUNK_HEIGHT) return 0;
             Chunk c = getChunk(x, z);
-            if (c == null) return 0;
+            if (c == null || !c.isReady()) return 0;
             return c.getBlockLight(x & 15, y, z & 15);
         }
     }
@@ -105,6 +107,7 @@ public class ChunkMeshGenerator {
         com.za.zenith.utils.FloatArrayList aoData = new com.za.zenith.utils.FloatArrayList(2048);
         com.za.zenith.utils.IntArrayList indices = new com.za.zenith.utils.IntArrayList(8192);
         int vertexIndex = 0;
+        private final float[] tempLightBuf = new float[2];
 
         void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask, float overlayLayer, boolean canSway, ChunkNeighborhood neighborhood, int wx, int wy, int wz) {
             float minY = fp[1], maxY = fp[1];
@@ -156,9 +159,9 @@ public class ChunkMeshGenerator {
                 aoData.add(ao + packedPos * 10.0f);
 
                 // Smooth Lighting
-                float[] light = calculateSmoothLight(neighborhood, wx, wy, wz, face, vx, vy, vz);
-                lightData.add(light[0]); // Sun
-                lightData.add(light[1]); // Block
+                calculateSmoothLight(neighborhood, wx, wy, wz, face, vx, vy, vz, tempLightBuf);
+                lightData.add(tempLightBuf[0]); // Sun
+                lightData.add(tempLightBuf[1]); // Block
             }
             for (int v = 0; v < 4; v++) {
                 float vx = fp[v*3];
@@ -245,12 +248,10 @@ public class ChunkMeshGenerator {
         private static final int[][] SAMPLES_Y = {{0,0,0}, {1,0,0}, {0,0,1}, {1,0,1}};
         private static final int[][] SAMPLES_Y_NEG = {{0,0,0}, {-1,0,0}, {0,0,-1}, {-1,0,-1}};
 
-        private static float[] lightBuffer = new float[2];
-
-        private float[] calculateSmoothLight(ChunkNeighborhood neighborhood, int x, int y, int z, int face, float vx, float vy, float vz) {
+        private void calculateSmoothLight(ChunkNeighborhood neighborhood, int x, int y, int z, int face, float vx, float vy, float vz, float[] out) {
             if (neighborhood == null) {
-                lightBuffer[0] = 15f; lightBuffer[1] = 0f;
-                return lightBuffer;
+                out[0] = 15f; out[1] = 0f;
+                return;
             }
             
             Direction dir = Direction.values()[face];
@@ -267,17 +268,6 @@ public class ChunkMeshGenerator {
 
             float centralSun = neighborhood.getSunlight(fx, fy, fz);
             float centralBlock = neighborhood.getBlockLight(fx, fy, fz);
-
-            int[][] samples;
-            if (face == 0) samples = nx > 0 ? SAMPLES_Z : SAMPLES_Z_NEG;
-            else if (face == 1) samples = nx > 0 ? SAMPLES_Z : SAMPLES_Z_NEG; // Simplified, sign handled by Dir
-            else if (face == 2) samples = nz > 0 ? SAMPLES_X : SAMPLES_X_NEG;
-            else if (face == 3) samples = nz > 0 ? SAMPLES_X : SAMPLES_X_NEG;
-            else samples = nx > 0 ? SAMPLES_Y : SAMPLES_Y_NEG;
-            
-            // Re-evaluating: face direction already offsets fx,fy,fz.
-            // We need 4 voxels touching the vertex in the plane of the face.
-            // Let's use a more robust way without allocations.
             
             for (int i = 0; i < 4; i++) {
                 int sx = fx, sy = fy, sz = fz;
@@ -296,9 +286,8 @@ public class ChunkMeshGenerator {
                 totalBlock += neighborhood.getBlockLight(sx, sy, sz);
             }
 
-            lightBuffer[0] = Math.max(centralSun, totalSun * 0.25f);
-            lightBuffer[1] = Math.max(centralBlock, totalBlock * 0.25f);
-            return lightBuffer;
+            out[0] = Math.max(centralSun, totalSun * 0.25f);
+            out[1] = Math.max(centralBlock, totalBlock * 0.25f);
         }
 
         void addRawQuad(float[] fp, float[] uv, float[] fn, float blockTypeId, float overlayLayer, boolean canSway, float weightOffset) {

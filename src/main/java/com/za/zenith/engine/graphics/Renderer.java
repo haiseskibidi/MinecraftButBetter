@@ -94,7 +94,7 @@ public class Renderer {
     private com.za.zenith.world.chunks.ChunkPos lastEntityChunkPos;
 
     // Async Meshing
-    private final ExecutorService meshExecutor = Executors.newFixedThreadPool(
+    private final com.za.zenith.utils.PriorityExecutorService meshExecutor = new com.za.zenith.utils.PriorityExecutorService(
         Math.min(2, Math.max(1, Runtime.getRuntime().availableProcessors() / 2)),
         r -> {
             Thread t = new Thread(r, "MeshGenerator");
@@ -108,11 +108,32 @@ public class Renderer {
     private final List<Chunk> visibleChunks = new java.util.ArrayList<>();
     private final Vector3f lastSortPos = new Vector3f(Float.MAX_VALUE);
     private float lastSortYaw = -1000f;
+    private long frameCounter = 0;
+    
+    // Vector Pools to avoid "new Vector3f" in hot loops
+    private final Vector3f vPool1 = new Vector3f();
+    private final Vector3f vPool2 = new Vector3f();
+    private final Vector3f vPool3 = new Vector3f();
 
     public Renderer() {
         this.chunkMeshes = new ConcurrentHashMap<>();
         this.modelMatrix = new Matrix4f();
         this.lightDirection = new Vector3f(0.2f, -1.0f, 0.2f).normalize();
+    }
+
+    public void onChunkUnload(Chunk chunk) {
+        if (chunk == null) return;
+        
+        // 1. Cancel pending update
+        Future<?> future = pendingUpdates.remove(chunk);
+        if (future != null) future.cancel(true);
+        
+        // 2. Cleanup GPU resources
+        ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.remove(chunk);
+        if (result != null) {
+            if (result.opaqueMesh != null) result.opaqueMesh.cleanup();
+            if (result.translucentMesh != null) result.translucentMesh.cleanup();
+        }
     }
 
     public void setBreakingBlock(com.za.zenith.world.BlockPos pos, Block block, float progress, float timer, Vector3f localHitPoint, Vector3f localWeakSpot, Vector3f color, java.util.List<Vector4f> history, World world) {
@@ -264,8 +285,6 @@ public class Renderer {
         Vector3f moonCol = new Vector3f(worldSettings.moonLightColor[0], worldSettings.moonLightColor[1], worldSettings.moonLightColor[2]);
         Vector3f ambCol = new Vector3f(worldSettings.ambientColor[0], worldSettings.ambientColor[1], worldSettings.ambientColor[2]);
 
-        Vector3f playerLightPos = world.getPlayer() != null ? new Vector3f(world.getPlayer().getPosition()).add(0, 1.5f, 0) : new Vector3f();
-        
         // Update LightManager
         com.za.zenith.world.lighting.LightManager.update(world, world.getPlayer());
         
@@ -336,7 +355,10 @@ public class Renderer {
         viewmodelShader.setLights("uLights", viewLights);
         viewmodelShader.setVector3f("ambientLight", currentAmbient);
         viewmodelShader.setVector3f("uGrassColor", ColorProvider.getGrassColor());
-        viewmodelShader.setFloat("uTime", (float)org.lwjgl.glfw.GLFW.glfwGetTime());
+        
+        // Normalize time
+        float normalizedTime = (float)(org.lwjgl.glfw.GLFW.glfwGetTime() % 3600.0);
+        viewmodelShader.setFloat("uTime", normalizedTime);
         
         // Состояние рук
         viewmodelShader.setVector3f("uCondition", new Vector3f(player.getDirt(), player.getBlood(), player.getWetness()));
@@ -372,6 +394,8 @@ public class Renderer {
     }
     
     private void renderScene(Camera camera, World world, com.za.zenith.network.GameClient networkClient, float alpha, Vector3f lightDir, Vector3f ambient) {
+        frameCounter++;
+        
         // Initialize frustum for culling
         frustumMatrix.set(camera.getProjectionMatrix()).mul(camera.getViewMatrix(alpha));
         frustum.set(frustumMatrix);
@@ -380,7 +404,10 @@ public class Renderer {
         atlas.bind();
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
         blockShader.setMatrix4f("view", camera.getViewMatrix(alpha));
-        blockShader.setFloat("uTime", (float)org.lwjgl.glfw.GLFW.glfwGetTime());
+        
+        // Normalize time to maintain float precision for sine/cosine animation
+        float normalizedTime = (float)(org.lwjgl.glfw.GLFW.glfwGetTime() % 3600.0);
+        blockShader.setFloat("uTime", normalizedTime);
         blockShader.setFloat("uSwayOverride", -1.0f);
         blockShader.setVector3f("uGrassColor", ColorProvider.getGrassColor());
         
@@ -394,7 +421,8 @@ public class Renderer {
         int idx = 0;
         for (com.za.zenith.world.BlockPos dpos : damagedPositions) {
             if (idx >= 16) break;
-            blockShader.setVector3f("uHiddenPositions[" + idx + "]", new Vector3f(dpos.x(), dpos.y(), dpos.z()));
+            vPool1.set(dpos.x(), dpos.y(), dpos.z());
+            blockShader.setVector3f("uHiddenPositions[" + idx + "]", vPool1);
             idx++;
         }
 
@@ -407,10 +435,13 @@ public class Renderer {
         blockShader.setInt("uHitCount", 0);
         blockShader.setFloat("uBreakingProgress", 0.0f);
         blockShader.setInt("uBreakingPattern", 0);
-        blockShader.setVector3f("uBreakingHitPoint", new Vector3f(0.5f));
-        blockShader.setVector3f("uWeakSpotPos", new Vector3f(0.5f));
-        blockShader.setVector3f("uWeakSpotColor", new Vector3f(1.0f, 1.0f, 1.0f));
-        blockShader.setVector3f("uOverrideLight", new Vector3f(-1.0f, -1.0f, -1.0f));
+        vPool1.set(0.5f);
+        blockShader.setVector3f("uBreakingHitPoint", vPool1);
+        blockShader.setVector3f("uWeakSpotPos", vPool1);
+        vPool2.set(1.0f, 1.0f, 1.0f);
+        blockShader.setVector3f("uWeakSpotColor", vPool2);
+        vPool3.set(-1.0f, -1.0f, -1.0f);
+        blockShader.setVector3f("uOverrideLight", vPool3);
         
         if (breakingPos != null && breakingProgress < 1.0f) { // Skip hole ONLY for instant breaks (1.0)
             if (holeMesh == null || !breakingPos.equals(holePos)) {
@@ -428,7 +459,6 @@ public class Renderer {
 
         // 1. Process pending mesh updates (Check for finished tasks)
         long uploadStart = System.nanoTime();
-        int uploadedThisFrame = 0;
         java.util.Iterator<Map.Entry<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>>> it = pendingUpdates.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>> entry = it.next();
@@ -448,32 +478,38 @@ public class Renderer {
                     chunkMeshes.put(chunk, result);
                     chunk.setMeshUpdated(result.version);
                     it.remove();
-                    uploadedThisFrame++;
                     
                     // Limit time spent uploading to ~2ms to keep frame rate stable
                     if (System.nanoTime() - uploadStart > 2_000_000) break;
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    if (!(e instanceof java.util.concurrent.CancellationException)) {
+                        e.printStackTrace();
+                    }
                     it.remove();
                 }
             }
         }
 
-        // 1.5 Garbage Collect meshes for unloaded chunks
-        java.util.Set<Chunk> activeChunks = new java.util.HashSet<>();
-        for (Chunk c : world.getLoadedChunks()) activeChunks.add(c);
-
-        chunkMeshes.keySet().removeIf(chunk -> {
-            if (!activeChunks.contains(chunk)) {
-                ChunkMeshGenerator.ChunkMeshResult old = chunkMeshes.get(chunk);
-                if (old != null) {
-                    if (old.opaqueMesh != null) old.opaqueMesh.cleanup();
-                    if (old.translucentMesh != null) old.translucentMesh.cleanup();
+        // 1.5 TASK CANCELLATION
+        // Every 60 frames, clean up tasks for chunks that are too far away
+        if (frameCounter % 60 == 0) {
+            float dist = (world.getRenderDistance() + 4) * Chunk.CHUNK_SIZE;
+            final float cancelRangeSq = dist * dist;
+            Vector3f camPos = camera.getPosition();
+            
+            pendingUpdates.entrySet().removeIf(entry -> {
+                Chunk c = entry.getKey();
+                float cx = c.getPosition().x() * Chunk.CHUNK_SIZE + 8;
+                float cz = c.getPosition().z() * Chunk.CHUNK_SIZE + 8;
+                float distSq = camPos.distanceSquared(cx, camPos.y, cz);
+                
+                if (distSq > cancelRangeSq) {
+                    entry.getValue().cancel(true);
+                    return true;
                 }
-                return true;
-            }
-            return false;
-        });
+                return false;
+            });
+        }
 
         // 2. Schedule new mesh updates (with budget)
         int scheduledThisFrame = 0;
@@ -486,26 +522,42 @@ public class Renderer {
             // Frustum Culling
             float cx = chunk.getPosition().x() * Chunk.CHUNK_SIZE;
             float cz = chunk.getPosition().z() * Chunk.CHUNK_SIZE;
-            if (!frustum.testAab(cx, 0, cz, cx + Chunk.CHUNK_SIZE, Chunk.CHUNK_HEIGHT, cz + Chunk.CHUNK_SIZE)) {
+            
+            boolean inFrustum = frustum.testAab(cx, 0, cz, cx + Chunk.CHUNK_SIZE, Chunk.CHUNK_HEIGHT, cz + Chunk.CHUNK_SIZE);
+            if (!inFrustum) {
                 continue;
             }
 
             visibleChunks.add(chunk);
+            chunk.setLastSeenFrame(frameCounter);
 
-            if (chunk.isReady() && chunk.needsMeshUpdate() && !pendingUpdates.containsKey(chunk)) {
+            boolean needsMesh = chunk.needsMeshUpdate() || !chunkMeshes.containsKey(chunk);
+
+            if (chunk.isReady() && needsMesh && !pendingUpdates.containsKey(chunk)) {
                 if (scheduledThisFrame < maxScheduledPerFrame) {
                     int[] blockDataArr = com.za.zenith.utils.ArrayPool.rentBlockDataArray();
                     byte[] lightDataArr = com.za.zenith.utils.ArrayPool.rentLightDataArray();
                     Chunk.DataSnapshot snapshot = chunk.getSnapshot(blockDataArr, lightDataArr);
                     long version = chunk.getDirtyCounter();
-                    pendingUpdates.put(chunk, meshExecutor.submit(() -> {
-                        try {
-                            Chunk tempChunk = new Chunk(snapshot.position(), snapshot.blockData(), snapshot.lightData());
-                            tempChunk.setDirtyCounter(version);
-                            return ChunkMeshGenerator.generateRawMesh(tempChunk, world, atlas);
-                        } finally {
-                            com.za.zenith.utils.ArrayPool.returnBlockDataArray(snapshot.blockData());
-                            com.za.zenith.utils.ArrayPool.returnLightDataArray(snapshot.lightData());
+                    
+                    // AAA Priority: closer chunks + chunks in view get much higher priority
+                    float distSq = camPos.distanceSquared(cx + 8, camPos.y, cz + 8);
+                    int priority = (int)distSq;
+                    
+                    pendingUpdates.put(chunk, meshExecutor.submit(new com.za.zenith.utils.PriorityExecutorService.PrioritizedCallable<ChunkMeshGenerator.RawChunkMeshResult>() {
+                        @Override
+                        public int getPriority() { return priority; }
+                        
+                        @Override
+                        public ChunkMeshGenerator.RawChunkMeshResult call() throws Exception {
+                            try {
+                                Chunk tempChunk = new Chunk(snapshot.position(), snapshot.blockData(), snapshot.lightData());
+                                tempChunk.setDirtyCounter(version);
+                                return ChunkMeshGenerator.generateRawMesh(tempChunk, world, atlas);
+                            } finally {
+                                com.za.zenith.utils.ArrayPool.returnBlockDataArray(snapshot.blockData());
+                                com.za.zenith.utils.ArrayPool.returnLightDataArray(snapshot.lightData());
+                            }
                         }
                     }));
                     scheduledThisFrame++;
@@ -532,6 +584,7 @@ public class Renderer {
             if (result != null && result.opaqueMesh != null) {
                 modelMatrix.identity().translate(chunk.getPosition().x() * Chunk.CHUNK_SIZE, 0, chunk.getPosition().z() * Chunk.CHUNK_SIZE);
                 blockShader.setMatrix4f("model", modelMatrix);
+                blockShader.setFloat("uChunkSpawnTime", chunk.getFirstSpawnTime());
                 result.opaqueMesh.render();
             }
         }
@@ -544,6 +597,7 @@ public class Renderer {
             if (result != null && result.translucentMesh != null) {
                 modelMatrix.identity().translate(chunk.getPosition().x() * Chunk.CHUNK_SIZE, 0, chunk.getPosition().z() * Chunk.CHUNK_SIZE);
                 blockShader.setMatrix4f("model", modelMatrix);
+                blockShader.setFloat("uChunkSpawnTime", chunk.getFirstSpawnTime());
                 result.translucentMesh.render();
             }
         }
@@ -693,8 +747,10 @@ public class Renderer {
             shake = profile.evaluate("shake", normTimer, 0.0f);
         }
         
-        blockShader.setVector3f("uWobbleScale", new Vector3f(scaleX, scaleY, scaleZ));
-        blockShader.setVector3f("uWobbleOffset", new Vector3f(offsetX, offsetY, offsetZ));
+        vPool1.set(scaleX, scaleY, scaleZ);
+        blockShader.setVector3f("uWobbleScale", vPool1);
+        vPool2.set(offsetX, offsetY, offsetZ);
+        blockShader.setVector3f("uWobbleOffset", vPool2);
         blockShader.setFloat("uWobbleShake", shake);
         blockShader.setFloat("uWobbleTime", wobbleTimer);
         blockShader.setFloat("uBreakingProgress", breakingProgress);
@@ -738,9 +794,11 @@ public class Renderer {
         if (lastEntityChunk != null) {
             float sun = lastEntityChunk.getSunlight(x & 15, y, z & 15);
             float block = lastEntityChunk.getBlockLight(x & 15, y, z & 15);
-            blockShader.setVector3f("uOverrideLight", new Vector3f(sun, block, 1.0f));
+            vPool1.set(sun, block, 1.0f);
+            blockShader.setVector3f("uOverrideLight", vPool1);
         } else {
-            blockShader.setVector3f("uOverrideLight", new Vector3f(15.0f, 0.0f, 1.0f));
+            vPool1.set(15.0f, 0.0f, 1.0f);
+            blockShader.setVector3f("uOverrideLight", vPool1);
         }
     }
 
@@ -768,10 +826,11 @@ public class Renderer {
                 blockShader.setMatrix4f("model", modelMatrix);
                 blockShader.setInt("highlightPass", 1);
                 switch (scout.getCurrentState()) {
-                    case CHASE: blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 0.0f, 0.0f)); break;
-                    case SEARCH: blockShader.setVector3f("highlightColor", new Vector3f(1.0f, 0.5f, 0.0f)); break;
-                    default: blockShader.setVector3f("highlightColor", new Vector3f(0.5f, 0.5f, 0.5f)); break;
+                    case CHASE: vPool1.set(1.0f, 0.0f, 0.0f); break;
+                    case SEARCH: vPool1.set(1.0f, 0.5f, 0.0f); break;
+                    default: vPool1.set(0.5f, 0.5f, 0.5f); break;
                 }
+                blockShader.setVector3f("highlightColor", vPool1);
                 playerMesh.render();
             } else if (entity instanceof com.za.zenith.entities.ItemEntity itemEntity) {
                 // Optimization: Cull distant items from rendering
@@ -909,7 +968,7 @@ public class Renderer {
                 if (totalItems == 0) continue;
 
                 BlockPos pos = be.getPos();
-                setEntityLight(world, new Vector3f(pos.x(), pos.y() + 1, pos.z()));
+                setEntityLight(world, vPool1.set(pos.x(), pos.y() + 1, pos.z()));
 
                 for (int i = 0; i < 9; i++) {
                     com.za.zenith.world.items.ItemStack stack = stump.getStackInSlot(i);
@@ -954,11 +1013,12 @@ public class Renderer {
         if (networkClient == null || !networkClient.isConnected()) return;
         if (playerMesh == null) createPlayerMesh();
         for (var p : networkClient.getRemotePlayers().values()) {
-            setEntityLight(world, new Vector3f(p.getX(), p.getY(), p.getZ()));
+            setEntityLight(world, vPool1.set(p.getX(), p.getY(), p.getZ()));
             modelMatrix.identity().translate(p.getX(), p.getY(), p.getZ()).scale(0.6f, 1.8f, 0.6f);
             blockShader.setMatrix4f("model", modelMatrix);
             blockShader.setInt("highlightPass", 1);
-            blockShader.setVector3f("highlightColor", new Vector3f(0.3f, 0.6f, 1.0f));
+            vPool1.set(0.3f, 0.6f, 1.0f);
+            blockShader.setVector3f("highlightColor", vPool1);
             playerMesh.render();
         }
         blockShader.setInt("highlightPass", 0);
