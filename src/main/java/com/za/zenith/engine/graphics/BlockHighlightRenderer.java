@@ -46,6 +46,9 @@ public class BlockHighlightRenderer {
         blockShader.setInt("highlightPass", 1);
         blockShader.setVector3f("highlightColor", new Vector3f(0.2f, 0.2f, 0.2f));
         
+        // Smart light for highlight: sample neighbor in hit direction
+        setNeighborLight(world, pos, highlightedBlock.getSide(), blockShader);
+        
         com.za.zenith.world.blocks.BlockDefinition blockDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
         blockShader.setFloat("uSwayOverride", (blockDef != null && blockDef.isSway()) ? 1.0f : 0.0f);
         
@@ -86,11 +89,29 @@ public class BlockHighlightRenderer {
         blockShader.setMatrix4f("model", modelMatrix);
         mesh.render(GL_LINES);
         
+        blockShader.setVector3f("uOverrideLight", new Vector3f(-1.0f, -1.0f, -1.0f));
         blockShader.setBoolean("uIsProxy", false);
         blockShader.setInt("highlightPass", 0);
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
         glEnable(GL_CULL_FACE);
         glDepthMask(true);
+    }
+
+    private void setNeighborLight(World world, BlockPos pos, com.za.zenith.utils.Direction face, Shader blockShader) {
+        int nx = pos.x() + face.getDx();
+        int ny = pos.y() + face.getDy();
+        int nz = pos.z() + face.getDz();
+        
+        com.za.zenith.world.chunks.ChunkPos cp = com.za.zenith.world.chunks.ChunkPos.fromBlockPos(nx, nz);
+        com.za.zenith.world.chunks.Chunk chunk = world.getChunk(cp);
+        
+        if (chunk != null && ny >= 0 && ny < com.za.zenith.world.chunks.Chunk.CHUNK_HEIGHT) {
+            float sun = chunk.getSunlight(nx & 15, ny, nz & 15);
+            float block = chunk.getBlockLight(nx & 15, ny, nz & 15);
+            blockShader.setVector3f("uOverrideLight", new Vector3f(sun, block, 1.0f));
+        } else {
+            blockShader.setVector3f("uOverrideLight", new Vector3f(15.0f, 0.0f, 1.0f));
+        }
     }
 
     private Mesh createMeshForShape(VoxelShape shape) {

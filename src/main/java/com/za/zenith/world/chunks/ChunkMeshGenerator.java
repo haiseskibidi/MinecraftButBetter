@@ -290,7 +290,7 @@ public class ChunkMeshGenerator {
             out[1] = Math.max(centralBlock, totalBlock * 0.25f);
         }
 
-        void addRawQuad(float[] fp, float[] uv, float[] fn, float blockTypeId, float overlayLayer, boolean canSway, float weightOffset) {
+        void addRawQuad(float[] fp, float[] uv, float[] fn, float blockTypeId, float overlayLayer, boolean canSway, float weightOffset, float[] light, float ao) {
             float minY = fp[1], maxY = fp[1];
             for (int v = 1; v < 4; v++) {
                 minY = Math.min(minY, fp[v*3+1]);
@@ -319,13 +319,17 @@ public class ChunkMeshGenerator {
                 }
                 weights.add(weight);
 
-                // For raw quads (cross planes), use full light
-                lightData.add(15f);
-                lightData.add(0f);
-                aoData.add(1.0f);
+                // Use provided light/ao
+                lightData.add(light[0]);
+                lightData.add(light[1]);
+                aoData.add(ao);
             }
             for (int idx : FACE_INDICES) indices.add(vertexIndex + idx);
             vertexIndex += 4;
+        }
+
+        void addRawQuad(float[] fp, float[] uv, float[] fn, float blockTypeId, float overlayLayer, boolean canSway, float weightOffset) {
+            addRawQuad(fp, uv, fn, blockTypeId, overlayLayer, canSway, weightOffset, new float[]{15f, 0f}, 1.0f);
         }
 
         RawMeshData buildRaw() {
@@ -365,12 +369,17 @@ public class ChunkMeshGenerator {
         int wy = (pos != null) ? pos.y() : 0;
         int wz = (pos != null) ? pos.z() : 0;
 
+        ChunkNeighborhood neighborhood = null;
+        if (world != null && pos != null) {
+            neighborhood = new ChunkNeighborhood(world, pos.x() >> 4, pos.z() >> 4);
+        }
+
         if (def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DOUBLE_PLANT) {
             float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
             float overlayLayer = uvs[2];
             float weightOffset = (def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DOUBLE_PLANT && block.getMetadata() == 1) ? 1.0f : 0.0f;
-            addCrossPlane(data, -0.5f, 0, -0.5f, 0, 0, 1, 1, uvs, finalBlockType, overlayLayer, weightOffset);
-            addCrossPlane(data, -0.5f, 0, -0.5f, 0, 1, 1, 0, uvs, finalBlockType, overlayLayer, weightOffset);
+            addCrossPlane(data, -0.5f, 0, -0.5f, 0, 0, 1, 1, uvs, finalBlockType, overlayLayer, weightOffset, neighborhood, wx, wy, wz);
+            addCrossPlane(data, -0.5f, 0, -0.5f, 0, 1, 1, 0, uvs, finalBlockType, overlayLayer, weightOffset, neighborhood, wx, wy, wz);
             return data.build();
         }
 
@@ -406,7 +415,7 @@ public class ChunkMeshGenerator {
                         }
                     }
                 }
-                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0, overlayLayer, def.isSway(), null, wx, wy, wz);
+                data.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, -0.5f, 0, -0.5f, 0, overlayLayer, def.isSway(), neighborhood, wx, wy, wz);
             }
         }
         return data.build();
@@ -633,8 +642,17 @@ public class ChunkMeshGenerator {
         return new RawChunkMeshResult(opaque.buildRaw(), translucent.buildRaw(), chunk.getDirtyCounter());
     }
 
-    private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float z0, float x1, float z1, float[] uvs, float blockTypeId, float overlayLayer, float weightOffset) {
+    private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float z0, float x1, float z1, float[] uvs, float blockTypeId, float overlayLayer, float weightOffset, ChunkNeighborhood neighborhood, int wx, int wy, int wz) {
         float l = uvs[2];
+        float[] light = {15f, 0f};
+        float ao = 1.0f;
+        
+        if (neighborhood != null) {
+            // Для плоскостей берем средний свет в центре блока
+            light[0] = neighborhood.getSunlight(wx, wy, wz);
+            light[1] = neighborhood.getBlockLight(wx, wy, wz);
+        }
+
         data.addRawQuad(
             new float[]{ox+x0, oy, oz+z0,  ox+x1, oy, oz+z1,  ox+x1, oy+1.0f, oz+z1,  ox+x0, oy+1.0f, oz+z0},
             new float[]{
@@ -647,7 +665,9 @@ public class ChunkMeshGenerator {
             blockTypeId,
             overlayLayer,
             true,
-            weightOffset
+            weightOffset,
+            light,
+            ao
         );
         data.addRawQuad(
             new float[]{ox+x0, oy+1.0f, oz+z0,  ox+x1, oy+1.0f, oz+z1,  ox+x1, oy, oz+z1,  ox+x0, oy, oz+z0},
@@ -661,8 +681,14 @@ public class ChunkMeshGenerator {
             blockTypeId,
             overlayLayer,
             true,
-            weightOffset
+            weightOffset,
+            light,
+            ao
         );
+    }
+
+    private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float z0, float x1, float z1, float[] uvs, float blockTypeId, float overlayLayer, float weightOffset) {
+        addCrossPlane(data, ox, oy, oz, x0, z0, x1, z1, uvs, blockTypeId, overlayLayer, weightOffset, null, 0, 0, 0);
     }
 }
 

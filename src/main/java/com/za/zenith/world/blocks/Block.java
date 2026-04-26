@@ -51,6 +51,10 @@ public class Block {
         return (byte)(metadata & 0x0F);
     }
     
+    public Block copy() {
+        return new Block(this.type, this.metadata);
+    }
+    
     public boolean isSolid() {
         return BlockRegistry.getBlock(type).isSolid();
     }

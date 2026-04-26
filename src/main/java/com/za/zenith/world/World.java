@@ -564,7 +564,7 @@ public class World {
                     targetHistory.remove(0);
                 }
             } else {
-                blockDamageMap.put(pos, new BlockDamageInstance(damage, getBlock(pos), new ArrayList<>(history)));
+                blockDamageMap.put(pos, new BlockDamageInstance(damage, getBlock(pos).copy(), new ArrayList<>(history)));
             }
         }
     }

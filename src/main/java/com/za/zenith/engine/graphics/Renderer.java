@@ -612,7 +612,7 @@ public class Renderer {
         
         if (breakingPos != null && breakingMesh != null && currentBreakingBlock != null) {
             blockShader.setInt("uHiddenCount", 0); // Disable discard for proxy
-            renderBreakingProxyBlock(camera, alpha);
+            renderBreakingProxyBlock(camera, world, alpha);
         }
 
         // Restore hidden count for persistent scars rendering
@@ -723,7 +723,7 @@ public class Renderer {
         blockShader.setBoolean("uIsProxy", false);
     }
 
-    private void renderBreakingProxyBlock(Camera camera, float alpha) {
+    private void renderBreakingProxyBlock(Camera camera, World world, float alpha) {
         blockShader.use();
         
         // Evaluate Animation Profile
@@ -758,6 +758,7 @@ public class Renderer {
         blockShader.setVector3f("uBreakingHitPoint", breakingHitPoint);
         blockShader.setVector3f("uWeakSpotPos", weakSpotPos);
         blockShader.setVector3f("uWeakSpotColor", weakSpotColor);
+        
         blockShader.setInt("uHitCount", hitCount);
         for (int i = 0; i < hitCount; i++) {
             blockShader.setVector4f("uHitHistory[" + i + "]", hitHistory[i]);
