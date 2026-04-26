@@ -21,7 +21,6 @@ public class ItemEntity extends Entity {
     private float sleepTimer = 0;
     private float mergeTimer = 0;
     
-    private static final float MAX_AGE = 300.0f; // 5 minutes
     private com.za.zenith.world.chunks.ChunkPos lastChunkPos;
     private final Vector3f vPool1 = new Vector3f();
 
@@ -39,7 +38,7 @@ public class ItemEntity extends Entity {
     @Override
     public void update(float deltaTime, World world) {
         age += deltaTime;
-        if (age > MAX_AGE) {
+        if (age > com.za.zenith.world.physics.PhysicsSettings.getInstance().itemDespawnTime) {
             setRemoved();
             return;
         }

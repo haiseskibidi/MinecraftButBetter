@@ -21,6 +21,7 @@
   "itemAttractionForce": 12.0,
   "itemMergeRadius": 1.2,
   "itemMergeInterval": 0.5,
+  "itemDespawnTime": 300.0,
   "particleLimit": 1500,
   "particleBudget": 300
 }

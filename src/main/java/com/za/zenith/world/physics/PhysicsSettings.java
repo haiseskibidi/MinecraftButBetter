@@ -52,6 +52,7 @@ public class PhysicsSettings implements com.za.zenith.utils.LiveReloadable {
     public float itemAttractionForce = 12.0f;
     public float itemMergeRadius = 1.2f;
     public float itemMergeInterval = 0.5f;
+    public float itemDespawnTime = 300.0f;
 
     // Particles
     public int particleLimit = 1500;
