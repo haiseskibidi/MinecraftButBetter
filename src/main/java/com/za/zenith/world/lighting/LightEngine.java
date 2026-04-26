@@ -7,11 +7,142 @@ import com.za.zenith.world.blocks.BlockRegistry;
 import com.za.zenith.world.chunks.Chunk;
 import com.za.zenith.world.chunks.ChunkPos;
 
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.List;
+import java.util.ArrayList;
+
 public class LightEngine {
     private final World world;
     
     private static final int QUEUE_SIZE = 1024 * 1024;
     private static final int QUEUE_MASK = QUEUE_SIZE - 1;
+    
+    private final ConcurrentLinkedQueue<BlockPos> updateQueue = new ConcurrentLinkedQueue<>();
+    private final AtomicBoolean isProcessing = new AtomicBoolean(false);
+
+    public void enqueueLightUpdate(BlockPos pos) {
+        updateQueue.offer(pos);
+        if (isProcessing.compareAndSet(false, true)) {
+            submitProcessTask();
+        }
+    }
+
+    private void submitProcessTask() {
+        world.getLightExecutor().submit(new com.za.zenith.utils.PriorityExecutorService.PrioritizedRunnable() {
+            @Override
+            public int getPriority() { return 0; }
+
+            @Override
+            public void run() {
+                processQueue();
+            }
+        });
+    }
+
+    private void processQueue() {
+        try {
+            List<BlockPos> batch = new ArrayList<>();
+            BlockPos p;
+            int count = 0;
+            while ((p = updateQueue.poll()) != null && count < 256) {
+                batch.add(p);
+                count++;
+            }
+            
+            if (!batch.isEmpty()) {
+                onBlocksChanged(batch);
+            }
+        } finally {
+            isProcessing.set(false);
+            if (!updateQueue.isEmpty()) {
+                if (isProcessing.compareAndSet(false, true)) {
+                    submitProcessTask();
+                }
+            }
+        }
+    }
+
+    public void onBlocksChanged(List<BlockPos> positions) {
+        LightContext ctx = threadContext.get();
+        ctx.clear();
+        
+        // 1. Prepare Block Light
+        for (BlockPos pos : positions) {
+            prepareBlockLightUpdate(pos, ctx);
+        }
+        processLightRemoval(false, ctx);
+        processLightFill(false, ctx);
+        
+        // 2. Prepare Sunlight
+        for (BlockPos pos : positions) {
+            prepareSunlightUpdate(pos, ctx);
+        }
+        processLightRemoval(true, ctx);
+        processLightFill(true, ctx);
+        
+        commit(ctx);
+    }
+
+    private void prepareBlockLightUpdate(BlockPos pos, LightContext ctx) {
+        int oldLevel = getBlockLight(pos.x(), pos.y(), pos.z(), ctx);
+        int newLevel = calculateBlockLightSource(pos, ctx);
+
+        if (newLevel > oldLevel) {
+            ctx.blockChanges.put(pack(pos.x(), pos.y(), pos.z(), 0), (byte)newLevel);
+            ctx.enqueueFill(pack(pos.x(), pos.y(), pos.z(), newLevel));
+        } else if (newLevel < oldLevel) {
+            ctx.blockChanges.put(pack(pos.x(), pos.y(), pos.z(), 0), (byte)0);
+            ctx.enqueueRemoval(pack(pos.x(), pos.y(), pos.z(), oldLevel));
+        }
+    }
+
+    private void prepareSunlightUpdate(BlockPos pos, LightContext ctx) {
+        int x = pos.x();
+        int z = pos.z();
+        
+        int ray = 15;
+        byte[] newColumnLights = new byte[Chunk.CHUNK_HEIGHT];
+        
+        for (int y = Chunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
+            Block b = world.getBlock(x, y, z);
+            int opacity = getSunOpacity(b);
+            
+            if (ray == 15 && opacity == 0) {}
+            else ray = Math.max(0, ray - Math.max(1, opacity));
+            
+            newColumnLights[y] = (byte) ray;
+            int old = getSunlight(x, y, z, ctx);
+            
+            if (old != ray) {
+                ctx.sunChanges.put(pack(x, y, z, 0), (byte)ray);
+                if (ray > old) {
+                    ctx.enqueueFill(pack(x, y, z, ray));
+                } else {
+                    ctx.enqueueRemoval(pack(x, y, z, old));
+                    if (ray > 0) ctx.enqueueFill(pack(x, y, z, ray));
+                }
+            }
+        }
+
+        for (int y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
+            int currentVal = newColumnLights[y];
+            if (currentVal < 15) {
+                for (com.za.zenith.utils.Direction dir : com.za.zenith.utils.Direction.values()) {
+                    if (dir == com.za.zenith.utils.Direction.UP || dir == com.za.zenith.utils.Direction.DOWN) continue;
+                    
+                    int nx = x + dir.getDx();
+                    int ny = y;
+                    int nz = z + dir.getDz();
+                    
+                    int nl = getSunlight(nx, ny, nz, ctx);
+                    if (nl > currentVal + 1) {
+                        ctx.enqueueFill(pack(nx, ny, nz, nl));
+                    }
+                }
+            }
+        }
+    }
 
     private static class PrimitiveLongByteMap {
         private static final int INITIAL_CAPACITY = 2048;

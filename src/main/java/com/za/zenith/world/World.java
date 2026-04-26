@@ -708,6 +708,10 @@ public class World {
         setBlock(x, y, z, block, true);
     }
 
+    public com.za.zenith.utils.PriorityExecutorService getLightExecutor() {
+        return lightExecutor;
+    }
+
     public void setBlock(int x, int y, int z, Block block, boolean notifyAndLight) {
         BlockPos pos = new BlockPos(x, y, z);
 
@@ -727,10 +731,9 @@ public class World {
             // Event-driven lighting registration
             com.za.zenith.world.lighting.LightManager.onBlockChange(this, pos, block.getType());
 
-            // Update lighting (skip during world generation for performance)
+            // Update lighting asynchronously (skip during world generation for performance)
             if (notifyAndLight && !generating) {
-                lightEngine.updateBlockLight(pos);
-                lightEngine.updateSunlight(pos);
+                lightEngine.enqueueLightUpdate(pos);
             }
 
             // Handle block entities
