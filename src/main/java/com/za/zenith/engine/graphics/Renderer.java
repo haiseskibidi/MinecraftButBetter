@@ -701,8 +701,6 @@ public class Renderer {
                 if (c != null) blockShader.setFloat("uChunkSpawnTime", c.getFirstSpawnTime());
 
                 hole.render();
-                // Restore hidden count for next operations
-                blockShader.setInt("uHiddenCount", hiddenCount);
             }
 
             // 2b. Render Proxy Mesh (The block itself with cracks)
@@ -813,7 +811,7 @@ public class Renderer {
         
         com.za.zenith.world.chunks.ChunkPos cp = com.za.zenith.world.chunks.ChunkPos.fromBlockPos(x, z);
         if (lastEntityChunk == null || !cp.equals(lastEntityChunkPos)) {
-            lastEntityChunk = world.getChunk(cp);
+            lastEntityChunk = world.getChunkInternal(cp.x(), cp.z());
             lastEntityChunkPos = cp;
         }
 
@@ -832,19 +830,17 @@ public class Renderer {
         if (world.getEntities().isEmpty()) return;
 
         blockShader.use();
+        // CRITICAL: Ensure hidden block masks (from digging) are NOT applied to entities
+        blockShader.setInt("uHiddenCount", 0);
+        blockShader.setBoolean("uIsProxy", false);
+
         for (com.za.zenith.entities.Entity entity : world.getEntities()) {
             Vector3f interpPos = entity.getInterpolatedPosition(alpha);
 
             // 1. Frustum Culling
             if (!frustum.testAab(entity.getBoundingBox().getMin(), entity.getBoundingBox().getMax())) continue;
 
-            // 2. Optimization: Skip entities in non-loaded or non-ready chunks
-
-            int cx = (int) Math.floor(interpPos.x) >> 4;
-            int cz = (int) Math.floor(interpPos.z) >> 4;
-            Chunk chunk = world.getChunkInternal(cx, cz);
-            if (chunk == null) continue;
-            
+            // 2. Optimization: Use raw chunk access for light to avoid one-frame disappearance
             setEntityLight(world, interpPos);
             
             if (entity instanceof com.za.zenith.entities.ScoutEntity scout) {

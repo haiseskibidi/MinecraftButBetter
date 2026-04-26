@@ -629,9 +629,9 @@ public class ChunkMeshGenerator {
                                     if (isTranslucent) {
                                         faceBlockType = -(faceBlockType + 2000.0f);
                                     } else if (def != null && def.is(BlockDefinition.FLAG_TINTED)) {
-                                        // TINT ONLY TOP FACE FOR GRASS BLOCKS
+                                        // TINT TOP AND SIDES FOR GRASS BLOCKS (to support overlays)
                                         boolean isGrassBlock = def.getIdentifier().getPath().contains("grass_block");
-                                        if (!isGrassBlock || face == 4) {
+                                        if (!isGrassBlock || face <= 4) { // 4 is Top, 0-3 are Sides
                                             faceBlockType = -(faceBlockType + 1.0f);
                                         }
 
