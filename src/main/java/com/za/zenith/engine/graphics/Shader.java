@@ -106,6 +106,10 @@ public class Shader {
         glUniform3f(getUniformLocation(name), vector.x, vector.y, vector.z);
     }
     
+    public void setVector3f(String name, float x, float y, float z) {
+        glUniform3f(getUniformLocation(name), x, y, z);
+    }
+    
     public void setVector4f(String name, Vector4f vector) {
         glUniform4f(getUniformLocation(name), vector.x, vector.y, vector.z, vector.w);
     }

@@ -590,8 +590,11 @@ public class ChunkMeshGenerator {
 
                             if (def.isAlwaysRender() || !onBoundary) {
                                 drawFace = true;
-                            } else if (nType == 0 || (neighborDef != null && neighborDef.hasTag("treecapitator"))) {
+                            } else if (nType == 0) {
                                 drawFace = true;
+                            } else if (neighborDef != null && neighborDef.hasTag("treecapitator")) {
+                                // AAA Optimization: Do not render internal faces between leaf blocks of same type to avoid Z-fighting/flicker
+                                drawFace = (nType != blockType);
                             } else if ((neighborDef == null || !neighborDef.isTransparent()) && !neighborDef.isAlwaysRender()) {
                                 drawFace = false; // neighbor is solid full block
                             } else if (isTranslucent && neighborDef != null && neighborDef.hasTag("zenith:glass")) {

@@ -66,7 +66,8 @@ void main() {
     int localY = packedPos / 256;
     
     vec3 chunkWorldPos = vec3(model * vec4(0.0, 0.0, 0.0, 1.0));
-    vBlockPos = ivec3(round(chunkWorldPos)) + ivec3(localX, localY, localZ);
+    // Use floor(x + 0.5) as it is often more stable than round() across different drivers
+    vBlockPos = ivec3(floor(chunkWorldPos + vec3(float(localX), float(localY), float(localZ)) + 0.5));
     
     // Normal Lockdown: Always use original un-animated model matrix for normals to keep lighting stable
     fragNormal = normalize(mat3(model) * normal);

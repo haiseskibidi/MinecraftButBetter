@@ -418,12 +418,25 @@ public class Renderer {
         java.util.Set<com.za.zenith.world.BlockPos> damagedPositions = world.getBlockDamageMap().keySet();
         int hiddenCount = Math.min(damagedPositions.size(), 16);
         blockShader.setInt("uHiddenCount", hiddenCount);
+        
         int idx = 0;
+        // PRIORITY: Always hide active breaking block first to ensure it's NEVER skipped due to 16-limit
+        if (breakingPos != null) {
+            blockShader.setVector3f("uHiddenPositions[0]", (float)breakingPos.x(), (float)breakingPos.y(), (float)breakingPos.z());
+            idx = 1;
+        }
+
         for (com.za.zenith.world.BlockPos dpos : damagedPositions) {
             if (idx >= 16) break;
-            vPool1.set(dpos.x(), dpos.y(), dpos.z());
-            blockShader.setVector3f("uHiddenPositions[" + idx + "]", vPool1);
+            if (dpos.equals(breakingPos)) continue; // Already added at 0
+            blockShader.setVector3f("uHiddenPositions[" + idx + "]", (float)dpos.x(), (float)dpos.y(), (float)dpos.z());
             idx++;
+        }
+        
+        // Update actual count if it's less than expected
+        if (idx < hiddenCount) {
+            hiddenCount = idx;
+            blockShader.setInt("uHiddenCount", hiddenCount);
         }
 
         blockShader.setBoolean("useMask", false);
@@ -603,31 +616,32 @@ public class Renderer {
         }
         glDepthMask(true);
         
+        // DISABLE DISCARD for all overlay/proxy rendering
+        blockShader.setInt("uHiddenCount", 0);
+
         if (holeMesh != null) {
-            blockShader.setInt("uHiddenCount", 0); // Disable discard for hole mesh
             modelMatrix.identity().translate(breakingPos.x(), breakingPos.y(), breakingPos.z());
             blockShader.setMatrix4f("model", modelMatrix);
+            
+            // Sync rising animation for hole mesh
+            Chunk c = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(breakingPos.x(), breakingPos.z()));
+            if (c != null) blockShader.setFloat("uChunkSpawnTime", c.getFirstSpawnTime());
+            
             holeMesh.render();
         }
         
         if (breakingPos != null && breakingMesh != null && currentBreakingBlock != null) {
-            blockShader.setInt("uHiddenCount", 0); // Disable discard for proxy
             renderBreakingProxyBlock(camera, world, alpha);
         }
 
-        // Restore hidden count for persistent scars rendering
-        blockShader.setInt("uHiddenCount", hiddenCount);
-        renderPersistentScars(camera, world, alpha);
-        
-        // Reset count before rendering entities to avoid accidental discards
-        blockShader.setInt("uHiddenCount", 0);
+        renderPersistentScars(camera, world, alpha, hiddenCount);
         
         renderEntities(camera, world, alpha);
         renderBlockEntities(camera, world, alpha);
         renderPlayers(camera, world, networkClient, alpha);
     }
 
-    private void renderPersistentScars(Camera camera, World world, float alpha) {
+    private void renderPersistentScars(Camera camera, World world, float alpha, int hiddenCount) {
         if (world.getBlockDamageMap().isEmpty()) {
             if (!persistentHoleCache.isEmpty()) {
                 persistentHoleCache.values().forEach(Mesh::cleanup);
@@ -683,10 +697,14 @@ public class Renderer {
                 blockShader.setInt("uHiddenCount", 0); // Temporary disable discard to show hole
                 modelMatrix.identity().translate(pos.x(), pos.y(), pos.z());
                 blockShader.setMatrix4f("model", modelMatrix);
+                
+                // Sync rising animation for persistent holes
+                Chunk c = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(pos.x(), pos.z()));
+                if (c != null) blockShader.setFloat("uChunkSpawnTime", c.getFirstSpawnTime());
+
                 hole.render();
                 // Restore hidden count for next operations
-                java.util.Set<com.za.zenith.world.BlockPos> damagedPositions = world.getBlockDamageMap().keySet();
-                blockShader.setInt("uHiddenCount", Math.min(damagedPositions.size(), 16));
+                blockShader.setInt("uHiddenCount", hiddenCount);
             }
 
             // 2b. Render Proxy Mesh (The block itself with cracks)
@@ -699,14 +717,22 @@ public class Renderer {
             if (mesh != null) {
                 com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
                 blockShader.setBoolean("uIsProxy", true);
-                blockShader.setVector3f("uWobbleScale", new Vector3f(1.0f));
-                blockShader.setVector3f("uWobbleOffset", new Vector3f(0.0f));
+                
+                // Sync rising animation for persistent proxies
+                Chunk c = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(pos.x(), pos.z()));
+                if (c != null) blockShader.setFloat("uChunkSpawnTime", c.getFirstSpawnTime());
+
+                vPool1.set(1.0f);
+                blockShader.setVector3f("uWobbleScale", vPool1);
+                vPool1.set(0.0f);
+                blockShader.setVector3f("uWobbleOffset", vPool1);
                 blockShader.setFloat("uWobbleShake", 0.0f);
                 
                 float maxHealth = def.getHardness() * 10.0f;
                 blockShader.setFloat("uBreakingProgress", info.getDamage() / maxHealth);
                 blockShader.setInt("uBreakingPattern", def.getBreakingPattern());
-                blockShader.setVector3f("uWeakSpotPos", new Vector3f(0, -100, 0)); 
+                vPool1.set(0, -100, 0);
+                blockShader.setVector3f("uWeakSpotPos", vPool1); 
                 
                 int hitCount = Math.min(16, info.getHitHistory().size());
                 blockShader.setInt("uHitCount", hitCount);
@@ -718,6 +744,7 @@ public class Renderer {
                 blockShader.setMatrix4f("model", modelMatrix);
                 
                 mesh.render();
+                blockShader.setBoolean("uIsProxy", false); // Ensure proxy mode is disabled for next hole
             }
         }
         blockShader.setBoolean("uIsProxy", false);
