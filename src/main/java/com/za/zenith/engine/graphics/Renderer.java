@@ -1114,5 +1114,6 @@ public class Renderer {
         skyRenderer.cleanup();
         if (atlas != null) atlas.cleanup();
         if (blockShader != null) blockShader.cleanup();
+        com.za.zenith.utils.NioBufferPool.clearPools();
     }
 }

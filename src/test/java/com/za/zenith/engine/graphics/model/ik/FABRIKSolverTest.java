@@ -17,13 +17,13 @@ public class FABRIKSolverTest {
     public void testBasicIK() {
         // 1. Setup a simple 3-node chain (Length 1.0 each)
         BoneDefinition def1 = new BoneDefinition();
-        def1.name = "root"; def1.pivot = new float[]{0, 0, 0};
+        def1.name = "root"; def1.x = 0; def1.y = 0; def1.z = 0;
         
         BoneDefinition def2 = new BoneDefinition();
-        def2.name = "mid"; def2.pivot = new float[]{0, 16, 0}; // 1.0 unit up
+        def2.name = "mid"; def2.x = 0; def2.y = 16; def2.z = 0; // 1.0 unit up
         
         BoneDefinition def3 = new BoneDefinition();
-        def3.name = "end"; def3.pivot = new float[]{0, 16, 0}; // 1.0 unit up from mid
+        def3.name = "end"; def3.x = 0; def3.y = 16; def3.z = 0; // 1.0 unit up from mid
         
         ModelNode n1 = new ModelNode("root", def1);
         ModelNode n2 = new ModelNode("mid", def2);
@@ -60,13 +60,13 @@ public class FABRIKSolverTest {
     public void testHingeConstraint() {
         // 1. Setup a simple 3-node chain (Length 1.0 each)
         BoneDefinition def1 = new BoneDefinition();
-        def1.name = "root"; def1.pivot = new float[]{0, 0, 0};
+        def1.name = "root"; def1.x = 0; def1.y = 0; def1.z = 0;
         
         BoneDefinition def2 = new BoneDefinition();
-        def2.name = "mid"; def2.pivot = new float[]{0, 16, 0}; // points +Y
+        def2.name = "mid"; def2.x = 0; def2.y = 16; def2.z = 0; // points +Y
         
         BoneDefinition def3 = new BoneDefinition();
-        def3.name = "end"; def3.pivot = new float[]{0, 16, 0}; // points +Y from mid
+        def3.name = "end"; def3.x = 0; def3.y = 16; def3.z = 0; // points +Y from mid
         
         ModelNode n1 = new ModelNode("root", def1);
         ModelNode n2 = new ModelNode("mid", def2);

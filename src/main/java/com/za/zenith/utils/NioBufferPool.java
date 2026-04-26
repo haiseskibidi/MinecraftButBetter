@@ -15,7 +15,11 @@ public class NioBufferPool {
 
     public static FloatBuffer rentFloat(int capacity) {
         FloatBuffer buffer = floatBuffers.poll();
-        if (buffer == null || buffer.capacity() < capacity) {
+        if (buffer == null) {
+            return MemoryUtil.memAllocFloat(capacity);
+        }
+        if (buffer.capacity() < capacity) {
+            MemoryUtil.memFree(buffer);
             return MemoryUtil.memAllocFloat(capacity);
         }
         buffer.clear();
@@ -30,7 +34,11 @@ public class NioBufferPool {
 
     public static IntBuffer rentInt(int capacity) {
         IntBuffer buffer = intBuffers.poll();
-        if (buffer == null || buffer.capacity() < capacity) {
+        if (buffer == null) {
+            return MemoryUtil.memAllocInt(capacity);
+        }
+        if (buffer.capacity() < capacity) {
+            MemoryUtil.memFree(buffer);
             return MemoryUtil.memAllocInt(capacity);
         }
         buffer.clear();
@@ -40,6 +48,17 @@ public class NioBufferPool {
     public static void returnInt(IntBuffer buffer) {
         if (buffer != null) {
             intBuffers.offer(buffer);
+        }
+    }
+    
+    public static void clearPools() {
+        FloatBuffer fb;
+        while ((fb = floatBuffers.poll()) != null) {
+            MemoryUtil.memFree(fb);
+        }
+        IntBuffer ib;
+        while ((ib = intBuffers.poll()) != null) {
+            MemoryUtil.memFree(ib);
         }
     }
 }
