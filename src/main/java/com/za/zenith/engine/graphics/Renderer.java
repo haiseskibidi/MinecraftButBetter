@@ -842,8 +842,8 @@ public class Renderer {
 
             int cx = (int) Math.floor(interpPos.x) >> 4;
             int cz = (int) Math.floor(interpPos.z) >> 4;
-            Chunk chunk = world.getChunk(new com.za.zenith.world.chunks.ChunkPos(cx, cz));
-            if (chunk == null || !chunk.isReady()) continue;
+            Chunk chunk = world.getChunkInternal(cx, cz);
+            if (chunk == null) continue;
             
             setEntityLight(world, interpPos);
             

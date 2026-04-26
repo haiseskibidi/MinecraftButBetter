@@ -598,6 +598,10 @@ public class ChunkMeshGenerator {
                                     drawFace = true;
                                 } else if (nType == 0) {
                                     drawFace = true;
+                                } else if (neighborDef != null && neighborDef.is(BlockDefinition.FLAG_LEAVES)) {
+                                    // SPECIAL CASE: Leaves should NOT cull each other
+                                    drawFace = !def.is(BlockDefinition.FLAG_LEAVES) || (nType != blockType);
+                                    if (def.is(BlockDefinition.FLAG_LEAVES) && neighborDef.is(BlockDefinition.FLAG_LEAVES)) drawFace = true;
                                 } else if (neighborDef != null && neighborDef.hasTag("treecapitator")) {
                                     drawFace = (nType != blockType);
                                 } else if ((neighborDef == null || !neighborDef.is(BlockDefinition.FLAG_TRANSPARENT)) && !neighborDef.isAlwaysRender()) {
@@ -625,7 +629,12 @@ public class ChunkMeshGenerator {
                                     if (isTranslucent) {
                                         faceBlockType = -(faceBlockType + 2000.0f);
                                     } else if (def != null && def.is(BlockDefinition.FLAG_TINTED)) {
-                                        faceBlockType = -(faceBlockType + 1.0f);
+                                        // TINT ONLY TOP FACE FOR GRASS BLOCKS
+                                        boolean isGrassBlock = def.getIdentifier().getPath().contains("grass_block");
+                                        if (!isGrassBlock || face == 4) {
+                                            faceBlockType = -(faceBlockType + 1.0f);
+                                        }
+
                                         if (def.getTextures() != null) {
                                             String innerKey = def.getTextures().getInner();
                                             String sideKey = def.getTextures().getTextureForFace(face);

@@ -79,8 +79,10 @@ void main() {
             textureColor = applyGlassConnections(textureColor, fragTexCoord.xy, neighborData, fragTexCoord.z, textureSampler);
         }
 
-        // With MSAA + Alpha-to-Coverage, we want a lower threshold to let hardware smooth the edges.
-        if (textureColor.a < 0.1) discard;
+        // With MSAA + Alpha-to-Coverage, we use a higher threshold (0.5) for foliage-like textures
+        // to ensure sharp cutouts and lower threshold (0.1) for general transparency.
+        float discardThreshold = (info.isTinted && !info.isGlass) ? 0.45 : 0.1;
+        if (textureColor.a < discardThreshold) discard;
 
         baseColor = textureColor.rgb;
         alpha = textureColor.a;
@@ -100,7 +102,7 @@ void main() {
                 if (overlayTex.a > 0.1) {
                     baseColor = mix(baseColor, overlayTex.rgb * uGrassColor, overlayTex.a);
                 }
-            } else {
+            } else if (blockType < 0.0) {
                 baseColor *= uGrassColor;
             }
         }
