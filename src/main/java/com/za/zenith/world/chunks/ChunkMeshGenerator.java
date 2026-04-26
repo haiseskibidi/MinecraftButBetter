@@ -33,9 +33,9 @@ public class ChunkMeshGenerator {
         }
     }
 
-    public record RawMeshData(java.nio.FloatBuffer dataBuffer, int dataLen, java.nio.IntBuffer indicesBuffer, int idxLen) {
+    public record RawMeshData(java.nio.FloatBuffer dataBuffer, int dataLen, java.nio.IntBuffer indicesBuffer, int idxLen, org.joml.Vector3f min, org.joml.Vector3f max) {
         public Mesh createMesh() {
-            return new Mesh(dataBuffer, dataLen, indicesBuffer, idxLen);
+            return new Mesh(dataBuffer, dataLen, indicesBuffer, idxLen, min, max);
         }
     }
 
@@ -324,13 +324,25 @@ public class ChunkMeshGenerator {
             
             int dLen = interleavedData.size();
             java.nio.FloatBuffer fb = com.za.zenith.utils.NioBufferPool.rentFloat(dLen);
-            fb.put(interleavedData.getInternalArray(), 0, dLen).flip();
+            float[] internal = interleavedData.getInternalArray();
+            fb.put(internal, 0, dLen).flip();
             
+            // Calculate AABB in background thread
+            org.joml.Vector3f min = new org.joml.Vector3f(Float.MAX_VALUE);
+            org.joml.Vector3f max = new org.joml.Vector3f(-Float.MAX_VALUE);
+            for (int i = 0; i < dLen; i += 16) {
+                float px = internal[i];
+                float py = internal[i+1];
+                float pz = internal[i+2];
+                min.x = Math.min(min.x, px); min.y = Math.min(min.y, py); min.z = Math.min(min.z, pz);
+                max.x = Math.max(max.x, px); max.y = Math.max(max.y, py); max.z = Math.max(max.z, pz);
+            }
+
             int iLen = indices.size();
             java.nio.IntBuffer ib = com.za.zenith.utils.NioBufferPool.rentInt(iLen);
             ib.put(indices.getInternalArray(), 0, iLen).flip();
             
-            return new RawMeshData(fb, dLen, ib, iLen); 
+            return new RawMeshData(fb, dLen, ib, iLen, min, max); 
         }
 
         public Mesh build() {

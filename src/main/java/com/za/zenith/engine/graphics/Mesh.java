@@ -21,6 +21,55 @@ public class Mesh {
     public void setGraspOffset(org.joml.Vector3f offset) { this.graspOffset = offset; }
     public org.joml.Vector3f getGraspOffset() { return graspOffset; }
     
+    public Mesh(FloatBuffer dataBuffer, int dataLen, IntBuffer indicesBuffer, int idxLen, org.joml.Vector3f min, org.joml.Vector3f max) {
+        if (idxLen == 0 || dataLen == 0) {
+            this.vertexCount = 0;
+            this.vaoId = -1;
+            this.vboId = -1;
+            this.eboId = -1;
+            if (dataBuffer != null) com.za.zenith.utils.NioBufferPool.returnFloat(dataBuffer);
+            if (indicesBuffer != null) com.za.zenith.utils.NioBufferPool.returnInt(indicesBuffer);
+            return;
+        }
+        this.vertexCount = idxLen;
+        this.minX = min.x; this.minY = min.y; this.minZ = min.z;
+        this.maxX = max.x; this.maxY = max.y; this.maxZ = max.z;
+
+        vaoId = glGenVertexArrays();
+        glBindVertexArray(vaoId);
+        
+        vboId = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+        glBufferData(GL_ARRAY_BUFFER, dataBuffer, GL_STATIC_DRAW);
+        
+        int stride = 16 * Float.BYTES;
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1, 4, GL_FLOAT, false, stride, 3 * Float.BYTES);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(2, 3, GL_FLOAT, false, stride, 7 * Float.BYTES);
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(3, 1, GL_FLOAT, false, stride, 10 * Float.BYTES);
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(4, 1, GL_FLOAT, false, stride, 11 * Float.BYTES);
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(5, 1, GL_FLOAT, false, stride, 12 * Float.BYTES);
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(6, 2, GL_FLOAT, false, stride, 13 * Float.BYTES);
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(7, 1, GL_FLOAT, false, stride, 15 * Float.BYTES);
+        glEnableVertexAttribArray(7);
+        
+        com.za.zenith.utils.NioBufferPool.returnFloat(dataBuffer);
+        
+        eboId = glGenBuffers();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboId);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
+        com.za.zenith.utils.NioBufferPool.returnInt(indicesBuffer);
+        
+        glBindVertexArray(0);
+    }
+
     public Mesh(FloatBuffer dataBuffer, int dataLen, IntBuffer indicesBuffer, int idxLen) {
         if (idxLen == 0 || dataLen == 0) {
             this.vertexCount = 0;

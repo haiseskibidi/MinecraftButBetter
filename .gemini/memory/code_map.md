@@ -63,13 +63,22 @@
 - **WorldSettings.java**: Контейнер настроек освещения и времени.
 
 ### com.za.zenith.world
-- **World.java (Zenith v4.0)**: Управление миром. Содержит асинхронный конвейер (`chunkGenExecutor`, `lightExecutor`). Реализует **Spiral Loading** и систему Backpressure.
+### com.za.zenith.world.World (UPDATED Zenith v4.0)
 Назначение: Управление состоянием мира и сущностями.
-Функции: Внедрена система L1 Chunk Cache для ускорения доступа. Оптимизирован цикл обновления сущностей и подбора предметов (кэширование состояния инвентаря).
+Функции: 
+- **Async Pipeline**: Управление асинхронным конвейером (`chunkGenExecutor`, `lightExecutor`). 
+- **Spatial Tracking**: Внедрена `itemSpatialMap` для $O(1)$ поиска предметов в чанках. 
+- **Zero-Allocation**: Оптимизирован цикл обновления (`update`) — устранены все аллокации векторов и объектов. 
+- **L1 Chunk Cache**: Ускоренный доступ к данным чанков.
 
-### com.za.zenith.entities.ItemEntity (UPDATED)
+### com.za.zenith.entities.ItemEntity (UPDATED Zenith v4.0)
 Назначение: Выпавшие игровые предметы.
-Функции: Реализует логику `Physics Sleeping` для оптимизации CPU. Поддерживает динамическое пробуждение при разрушении опоры. Оптимизированы проверки магнитного притяжения.
+Функции: 
+- **Spatial Merging**: Слияние предметов через `world.getItemsInChunk()` ($O(1)$).
+- **Physics Sleeping**: Оптимизация CPU для неподвижных предметов.
+- **Despawn Timer**: Автоматическое удаление через 5 минут.
+- **Zero-Allocation**: Использование пулов векторов для расчетов физики и магнита.
+- **Chunk Tracking**: Автоматическое обновление позиции в пространственной карте мира при пересечении границ чанков.
 
 ### com.za.zenith.world.lighting.LightEngine (UPDATED v2.0)
 Назначение: Высокопроизводительный движок 3D-освещения.

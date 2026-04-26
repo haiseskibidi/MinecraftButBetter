@@ -5,6 +5,7 @@ import com.za.zenith.world.items.ItemStack;
 import com.za.zenith.entities.inventory.Slot;
 import com.za.zenith.entities.inventory.SlotGroup;
 import org.joml.Vector3f;
+import java.util.List;
 
 /**
  * Entity representing an item dropped in the world.
@@ -20,10 +21,15 @@ public class ItemEntity extends Entity {
     private float sleepTimer = 0;
     private float mergeTimer = 0;
     
+    private static final float MAX_AGE = 300.0f; // 5 minutes
+    private com.za.zenith.world.chunks.ChunkPos lastChunkPos;
+    private final Vector3f vPool1 = new Vector3f();
+
     public ItemEntity(Vector3f position, ItemStack stack) {
         super(position, 0.25f, 0.25f);
         this.stack = stack;
         this.age = 0;
+        this.lastChunkPos = com.za.zenith.world.chunks.ChunkPos.fromBlockPos((int)position.x, (int)position.z);
     }
     
     public void setAngularVelocity(Vector3f angVel) {
@@ -32,14 +38,32 @@ public class ItemEntity extends Entity {
     
     @Override
     public void update(float deltaTime, World world) {
-        // Сохраняем состояние начала тика
+        age += deltaTime;
+        if (age > MAX_AGE) {
+            setRemoved();
+            return;
+        }
+
+        if (isSleeping) {
+            processSleeping(deltaTime, world);
+            return;
+        }
+
+        // --- CHUNK BOUNDARY CHECK ---
+        int cx = (int) Math.floor(position.x / 16.0);
+        int cz = (int) Math.floor(position.z / 16.0);
+        if (cx != lastChunkPos.x() || cz != lastChunkPos.z()) {
+            com.za.zenith.world.chunks.ChunkPos newPos = new com.za.zenith.world.chunks.ChunkPos(cx, cz);
+            world.updateItemSpatial(this, lastChunkPos, newPos);
+            lastChunkPos = newPos;
+        }
+
         prevPosition.set(position);
         prevRotation.set(rotation);
         
-        age += deltaTime;
         if (pickupDelay > 0) pickupDelay -= deltaTime;
 
-        // 0. ITEM MERGING
+        // 0. ITEM MERGING (Every frame while moving, less when sleeping)
         mergeTimer += deltaTime;
         if (mergeTimer >= com.za.zenith.world.physics.PhysicsSettings.getInstance().itemMergeInterval) {
             mergeTimer = 0;
@@ -48,13 +72,18 @@ public class ItemEntity extends Entity {
 
         Player player = world.getPlayer();
         
-        // 1. MAGNETIC OPTIMIZATION
+        // 1. MAGNETIC OPTIMIZATION (Zero allocations)
         if (canBePickedUp() && player != null && !player.getInventory().isFull()) {
-            Vector3f playerCenter = new Vector3f(player.getPosition());
-            playerCenter.y += player.getHeight() * 0.5f;
-            float distSq = position.distanceSquared(playerCenter);
+            float px = player.getPosition().x;
+            float py = player.getPosition().y + player.getHeight() * 0.5f;
+            float pz = player.getPosition().z;
+            
+            float dx = px - position.x;
+            float dy = py - position.y;
+            float dz = pz - position.z;
+            float distSq = dx*dx + dy*dy + dz*dz;
 
-            if (isLockedOnPlayer || distSq < 100.0f) { // Check only within 10 blocks
+            if (isLockedOnPlayer || distSq < 100.0f) { 
                 com.za.zenith.world.items.component.MagneticComponent magnet = player.getInventory().getActiveComponent(com.za.zenith.world.items.component.MagneticComponent.class);
                 
                 if (magnet != null && (distSq < magnet.attractionRadius * magnet.attractionRadius || isLockedOnPlayer)) {
@@ -63,11 +92,11 @@ public class ItemEntity extends Entity {
                     isSleeping = false; 
                     
                     float distance = (float)Math.sqrt(distSq);
-                    Vector3f direction = new Vector3f(playerCenter).sub(position).normalize();
+                    vPool1.set(dx, dy, dz).normalize();
                     float approachSpeed = 12.0f + (1.0f - Math.min(1.0f, distance / 4.0f)) * (magnet.attractionForce * 0.2f);
                     
                     velocity.set(player.getVelocity());
-                    velocity.add(direction.mul(approachSpeed));
+                    velocity.add(vPool1.mul(approachSpeed));
                     onGround = false; 
                 } else {
                     isBeingAttracted = false;
@@ -76,26 +105,16 @@ public class ItemEntity extends Entity {
             }
         }
 
-        // 2. PHYSICS SLEEPING
-        if (onGround && velocity.lengthSquared() < 0.01f && !isBeingAttracted) {
-            // Fast support check: if block below is air, wake up immediately
-            if (world.getBlock((int)Math.floor(position.x), (int)Math.floor(position.y - 0.01f), (int)Math.floor(position.z)).isAir()) {
-                isSleeping = false;
-                onGround = false;
-                sleepTimer = 0;
-            } else {
-                sleepTimer += deltaTime;
-                if (sleepTimer > 1.0f) isSleeping = true;
+        // 2. PHYSICS SLEEPING LOGIC
+        if (onGround && velocity.lengthSquared() < 0.001f && !isBeingAttracted) {
+            sleepTimer += deltaTime;
+            if (sleepTimer > 2.0f) {
+                isSleeping = true;
+                velocity.set(0, 0, 0);
+                return;
             }
         } else {
-            isSleeping = false;
             sleepTimer = 0;
-        }
-
-        if (isSleeping) {
-            velocity.set(0, 0, 0);
-            // Even if sleeping, we still check merging at intervals
-            return;
         }
 
         float gravityMultiplier = stack.getItem().getWeight();
@@ -105,19 +124,39 @@ public class ItemEntity extends Entity {
         
         move(world, velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
 
-        float friction = isBeingAttracted ? 1.0f : (onGround ? 0.85f : 0.98f);
+        float friction = isBeingAttracted ? 1.0f : (onGround ? 0.8f : 0.98f);
         velocity.mul(friction);
         
         if (onGround && !isBeingAttracted) {
             rotation.x = lerpAngle(rotation.x, 0, deltaTime * 5.0f);
             rotation.z = lerpAngle(rotation.z, 0, deltaTime * 5.0f);
-            angularVelocity.mul(0.85f);
+            angularVelocity.mul(0.8f);
         } else if (isBeingAttracted) {
             angularVelocity.y += deltaTime * 20.0f;
             angularVelocity.x += deltaTime * 5.0f;
         }
         
         rotation.add(angularVelocity.x * deltaTime, angularVelocity.y * deltaTime, angularVelocity.z * deltaTime);
+    }
+
+    private void processSleeping(float deltaTime, World world) {
+        mergeTimer += deltaTime;
+        if (mergeTimer >= 1.0f) { 
+            mergeTimer = 0;
+            tryMerge(world);
+        }
+        if (world.getWorldTime() % 1.5f < deltaTime) {
+             if (world.getBlock((int)Math.floor(position.x), (int)Math.floor(position.y - 0.05f), (int)Math.floor(position.z)).isAir()) {
+                isSleeping = false;
+                onGround = false;
+                sleepTimer = 0;
+             }
+        }
+    }
+
+    public void wakeUp() {
+        this.isSleeping = false;
+        this.sleepTimer = 0;
     }
 
     private float lerpAngle(float start, float end, float t) {
@@ -127,6 +166,10 @@ public class ItemEntity extends Entity {
         return start + diff * t;
     }
     
+    public com.za.zenith.world.chunks.ChunkPos getLastChunkPos() {
+        return lastChunkPos;
+    }
+
     public ItemStack getStack() {
         return stack;
     }
@@ -149,13 +192,13 @@ public class ItemEntity extends Entity {
         float radius = com.za.zenith.world.physics.PhysicsSettings.getInstance().itemMergeRadius;
         float radiusSq = radius * radius;
 
-        for (Entity entity : world.getEntities()) {
-            if (entity instanceof ItemEntity other && other != this && !other.isRemoved()) {
-                // Только того же типа
+        // SPATIAL MERGING: Only check items in the same chunk
+        List<ItemEntity> items = world.getItemsInChunk(lastChunkPos);
+        for (ItemEntity other : items) {
+            if (other != this && !other.isRemoved()) {
                 if (other.stack.getItem().equals(this.stack.getItem())) {
                     float distSq = position.distanceSquared(other.position);
                     if (distSq < radiusSq) {
-                        // Мерджим всегда в более "старый" предмет, чтобы избежать мерцания и циклов
                         if (this.age < other.age) continue;
 
                         int canAccept = stack.getItem().getMaxStackSize() - stack.getCount();
@@ -167,10 +210,7 @@ public class ItemEntity extends Entity {
                             if (other.stack.getCount() <= 0) {
                                 other.setRemoved();
                             }
-                            
-                            // Пробуждаем предмет, если он спал, чтобы визуально объединился
                             this.isSleeping = false; 
-                            
                             if (stack.isFull()) break;
                         }
                     }

@@ -834,8 +834,12 @@ public class Renderer {
         blockShader.use();
         for (com.za.zenith.entities.Entity entity : world.getEntities()) {
             Vector3f interpPos = entity.getInterpolatedPosition(alpha);
-            
-            // Optimization: Skip entities in non-loaded or non-ready chunks
+
+            // 1. Frustum Culling
+            if (!frustum.testAab(entity.getBoundingBox().getMin(), entity.getBoundingBox().getMax())) continue;
+
+            // 2. Optimization: Skip entities in non-loaded or non-ready chunks
+
             int cx = (int) Math.floor(interpPos.x) >> 4;
             int cz = (int) Math.floor(interpPos.z) >> 4;
             Chunk chunk = world.getChunk(new com.za.zenith.world.chunks.ChunkPos(cx, cz));

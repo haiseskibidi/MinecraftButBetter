@@ -30,6 +30,9 @@ public class World {
     private final Map<Long, Chunk> chunks;
     private final Map<Long, Chunk> stagingChunks = new ConcurrentHashMap<>();
     private final List<Entity> entities;
+    private final Map<com.za.zenith.world.chunks.ChunkPos, List<com.za.zenith.entities.ItemEntity>> itemSpatialMap = new ConcurrentHashMap<>();
+    private final Vector3f vPool1 = new Vector3f();
+    private final Vector3f vPool2 = new Vector3f();
     private final Map<BlockPos, BlockEntity> blockEntities;
     private final List<ITickable> tickableBlockEntities;
     private final LightEngine lightEngine;
@@ -246,6 +249,8 @@ public class World {
         return com.za.zenith.world.generation.GenerationSettings.getInstance().activeRenderDistance;
     }
 
+    private final org.joml.Vector3f lastSortPos = new org.joml.Vector3f(Float.MAX_VALUE);
+
     private void updateChunks() {
         if (player == null) return;
 
@@ -262,10 +267,11 @@ public class World {
             // SPIRAL LOADING: Build a list of chunks in a radial spiral from player
             int x = 0, z = 0, dx = 0, dz = -1;
             int maxChunks = (renderDistance * 2 + 1) * (renderDistance * 2 + 1);
+            int addedThisTick = 0;
             for (int i = 0; i < maxChunks; i++) {
                 if (-renderDistance <= x && x <= renderDistance && -renderDistance <= z && z <= renderDistance) {
                     long packed = ChunkPos.pack(currentChunkX + x, currentChunkZ + z);
-                    if (!chunks.containsKey(packed) && !generatingChunks.containsKey(packed)) {
+                    if (!chunks.containsKey(packed) && !generatingChunks.containsKey(packed) && !lightingChunks.containsKey(packed)) {
                         pendingChunkQueue.add(packed);
                     }
                 }
@@ -313,22 +319,24 @@ public class World {
         }
 
         if (!pendingChunkQueue.isEmpty()) {
-            // Sort queue by current distance every tick
-            List<Long> sortedPending = new ArrayList<>(pendingChunkQueue);
-            sortedPending.sort((p1, p2) -> {
-                int x1 = ChunkPos.unpackX(p1), z1 = ChunkPos.unpackZ(p1);
-                int x2 = ChunkPos.unpackX(p2), z2 = ChunkPos.unpackZ(p2);
-                int d1 = (x1 - currentChunkX) * (x1 - currentChunkX) + (z1 - currentChunkZ) * (z1 - currentChunkZ);
-                int d2 = (x2 - currentChunkX) * (x2 - currentChunkX) + (z2 - currentChunkZ) * (z2 - currentChunkZ);
-                return Integer.compare(d1, d2);
-            });
-            pendingChunkQueue.clear();
-            pendingChunkQueue.addAll(sortedPending);
+            // Lazy sorting: only if player moved > 2.0 units
+            if (player.getPosition().distanceSquared(lastSortPos) > 4.0f) {
+                List<Long> sortedPending = new ArrayList<>(pendingChunkQueue);
+                sortedPending.sort((p1, p2) -> {
+                    int x1 = ChunkPos.unpackX(p1), z1 = ChunkPos.unpackZ(p1);
+                    int x2 = ChunkPos.unpackX(p2), z2 = ChunkPos.unpackZ(p2);
+                    int d1 = (x1 - currentChunkX) * (x1 - currentChunkX) + (z1 - currentChunkZ) * (z1 - currentChunkZ);
+                    int d2 = (x2 - currentChunkX) * (x2 - currentChunkX) + (z2 - currentChunkZ) * (z2 - currentChunkZ);
+                    return Integer.compare(d1, d2);
+                });
+                pendingChunkQueue.clear();
+                pendingChunkQueue.addAll(sortedPending);
+                lastSortPos.set(player.getPosition());
+            }
 
             int submittedThisTick = 0;
-            // Backpressure for generation
-            int maxConcurrentGen = chunkGenExecutor.getCorePoolSize() * 2;
-            int canSubmitGen = Math.max(0, maxConcurrentGen - generatingChunks.size());
+            // Backpressure for generation (limit discovery to 4 per tick to avoid boundary spikes)
+            int canSubmitGen = Math.min(4, Math.max(0, (chunkGenExecutor.getCorePoolSize() * 2) - generatingChunks.size()));
             
             java.util.Iterator<Long> it = pendingChunkQueue.iterator();
             while (it.hasNext() && submittedThisTick < canSubmitGen) {
@@ -443,39 +451,51 @@ public class World {
         updateChunks();
 
         // Advance time
-        worldTime += deltaTime * WorldSettings.getInstance().dayCycleSpeed * 20.0f; // 20 units per real second at 1.0 speed
+        worldTime += deltaTime * WorldSettings.getInstance().dayCycleSpeed * 20.0f; 
         if (worldTime >= WorldSettings.getInstance().dayLength) {
             worldTime -= WorldSettings.getInstance().dayLength;
         }
 
+        // Cache player values for zero-allocation access
+        float px = 0, py = 0, pz = 0;
+        boolean inventoryFull = false;
+        if (player != null) {
+            px = player.getPosition().x;
+            py = player.getPosition().y + player.getHeight() * 0.5f;
+            pz = player.getPosition().z;
+            inventoryFull = player.getInventory().isFull();
+        }
+
         // Update all entities
-        boolean inventoryFull = (player != null && player.getInventory().isFull());
         for (int i = entities.size() - 1; i >= 0; i--) {
             Entity entity = entities.get(i);
 
             if (entity.isRemoved()) {
+                if (entity instanceof com.za.zenith.entities.ItemEntity item) {
+                    List<com.za.zenith.entities.ItemEntity> list = itemSpatialMap.get(item.getLastChunkPos());
+                    if (list != null) list.remove(item);
+                }
                 entities.remove(i);
                 continue;
             }
 
             entity.update(deltaTime, this);
 
-            // Item Pickup logic
-            if (entity instanceof com.za.zenith.entities.ItemEntity itemEntity) {
-                if (player != null && itemEntity.canBePickedUp()) {
-                    float pickupRadius = com.za.zenith.world.physics.PhysicsSettings.getInstance().itemPickupRadius;
-
-                    Vector3f playerCenter = new Vector3f(player.getPosition());
-                    playerCenter.y += player.getHeight() * 0.5f;
-
+            // Item Pickup logic - Optimized zero-allocation
+            if (player != null && entity instanceof com.za.zenith.entities.ItemEntity itemEntity) {
+                if (itemEntity.canBePickedUp()) {
                     Vector3f itemPos = itemEntity.getPosition();
-                    float distSq = playerCenter.distanceSquared(itemPos);
+                    float dx = px - itemPos.x;
+                    float dy = py - itemPos.y;
+                    float dz = pz - itemPos.z;
+                    float distSq = dx*dx + dy*dy + dz*dz;
 
+                    float pickupRadius = com.za.zenith.world.physics.PhysicsSettings.getInstance().itemPickupRadius;
                     boolean isMagnetic = itemEntity.isBeingAttracted();
                     float effectiveRadius = isMagnetic ? pickupRadius * 1.5f : pickupRadius;
 
                     if (distSq < effectiveRadius * effectiveRadius || player.getBoundingBox().intersects(itemEntity.getBoundingBox())) {
-                        if (itemEntity.isRemoved()) continue; // Skip if already handled this frame
+                        if (itemEntity.isRemoved()) continue; 
 
                         if (inventoryFull) {
                              com.za.zenith.engine.graphics.ui.NotificationTriggers.getInstance().onInventoryFull();
@@ -483,6 +503,11 @@ public class World {
                             itemEntity.setRemoved();
                             com.za.zenith.utils.Logger.info("Picked up item: %s", itemEntity.getStack().getItem().getName());
                             inventoryFull = player.getInventory().isFull();
+                            
+                            // Remove from spatial map
+                            List<com.za.zenith.entities.ItemEntity> list = itemSpatialMap.get(itemEntity.getLastChunkPos());
+                            if (list != null) list.remove(itemEntity);
+                            
                             continue;
                         } else {
                             inventoryFull = true;
@@ -623,6 +648,24 @@ public class World {
 
     public void spawnEntity(Entity entity) {
         entities.add(entity);
+        if (entity instanceof com.za.zenith.entities.ItemEntity item) {
+            com.za.zenith.world.chunks.ChunkPos cp = com.za.zenith.world.chunks.ChunkPos.fromBlockPos((int)item.getPosition().x, (int)item.getPosition().z);
+            itemSpatialMap.computeIfAbsent(cp, k -> new ArrayList<>()).add(item);
+        }
+    }
+
+    public void updateItemSpatial(com.za.zenith.entities.ItemEntity item, com.za.zenith.world.chunks.ChunkPos oldPos, com.za.zenith.world.chunks.ChunkPos newPos) {
+        if (oldPos != null) {
+            List<com.za.zenith.entities.ItemEntity> list = itemSpatialMap.get(oldPos);
+            if (list != null) list.remove(item);
+        }
+        if (newPos != null) {
+            itemSpatialMap.computeIfAbsent(newPos, k -> new ArrayList<>()).add(item);
+        }
+    }
+
+    public List<com.za.zenith.entities.ItemEntity> getItemsInChunk(com.za.zenith.world.chunks.ChunkPos pos) {
+        return itemSpatialMap.getOrDefault(pos, java.util.Collections.emptyList());
     }
 
     public List<Entity> getEntities() {
