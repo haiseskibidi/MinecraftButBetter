@@ -634,8 +634,13 @@ public class Renderer {
 
         renderPersistentScars(camera, world, alpha, hiddenCount);
         
+        resetShaderState();
         renderEntities(camera, world, alpha);
+        
+        resetShaderState();
         renderBlockEntities(camera, world, alpha);
+        
+        resetShaderState();
         renderPlayers(camera, world, networkClient, alpha);
     }
 
@@ -824,6 +829,21 @@ public class Renderer {
             vPool1.set(15.0f, 0.0f, 1.0f);
             blockShader.setVector3f("uOverrideLight", vPool1);
         }
+    }
+
+    private void resetShaderState() {
+        blockShader.use();
+        blockShader.setInt("uHiddenCount", 0);
+        blockShader.setBoolean("uIsProxy", false);
+        blockShader.setFloat("uBreakingProgress", 0.0f);
+        blockShader.setInt("uHitCount", 0);
+        vPool3.set(-1.0f, -1.0f, -1.0f);
+        blockShader.setVector3f("uOverrideLight", vPool3);
+        vPool1.set(1.0f);
+        blockShader.setVector3f("uWobbleScale", vPool1);
+        vPool1.set(0.0f);
+        blockShader.setVector3f("uWobbleOffset", vPool1);
+        blockShader.setFloat("uWobbleShake", 0.0f);
     }
 
     private void renderEntities(Camera camera, World world, float alpha) {
