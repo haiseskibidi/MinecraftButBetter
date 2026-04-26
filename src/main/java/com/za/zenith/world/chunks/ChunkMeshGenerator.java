@@ -4,6 +4,8 @@ import com.za.zenith.engine.graphics.Mesh;
 import com.za.zenith.world.World;
 import com.za.zenith.world.BlockPos;
 import com.za.zenith.world.blocks.Block;
+import com.za.zenith.world.blocks.BlockDefinition;
+import com.za.zenith.world.blocks.BlockRegistry;
 import com.za.zenith.world.physics.AABB;
 import com.za.zenith.world.physics.VoxelShape;
 import com.za.zenith.engine.graphics.DynamicTextureAtlas;
@@ -24,34 +26,29 @@ public class ChunkMeshGenerator {
     };
     private static final int[] FACE_INDICES = {0,1,2, 2,3,0};
     
-    public static class ChunkMeshResult {
-        public final Mesh opaqueMesh;
-        public final Mesh translucentMesh;
-        public final long version;
-        public final float spawnTime;
-        public ChunkMeshResult(Mesh opaqueMesh, Mesh translucentMesh, long version) {
-            this.opaqueMesh = opaqueMesh;
-            this.translucentMesh = translucentMesh;
-            this.version = version;
-            this.spawnTime = (float)(org.lwjgl.glfw.GLFW.glfwGetTime() % 3600.0);
+    public record ChunkMeshResult(long version, Mesh opaqueMesh, Mesh translucentMesh, float spawnTime) {
+        public void cleanup() {
+            if (opaqueMesh != null) opaqueMesh.cleanup();
+            if (translucentMesh != null) translucentMesh.cleanup();
         }
     }
 
-    public record RawMeshData(float[] positions, int posLen, float[] texCoords, int texLen, float[] normals, int normLen, float[] blockTypes, int btLen, float[] neighborData, int ndLen, float[] weights, int wLen, float[] lightData, int lLen, float[] aoData, int aoLen, int[] indices, int idxLen) {
+    public record RawMeshData(java.nio.FloatBuffer dataBuffer, int dataLen, java.nio.IntBuffer indicesBuffer, int idxLen) {
         public Mesh createMesh() {
-            return new Mesh(positions, posLen, texCoords, texLen, normals, normLen, blockTypes, btLen, neighborData, ndLen, weights, wLen, lightData, lLen, aoData, aoLen, indices, idxLen);
+            return new Mesh(dataBuffer, dataLen, indicesBuffer, idxLen);
         }
     }
 
     public record RawChunkMeshResult(RawMeshData opaque, RawMeshData translucent, long version) {
         public ChunkMeshResult upload() {
-            Mesh opaqueMesh = opaque != null ? opaque.createMesh() : null;
-            Mesh translucentMesh = translucent != null ? translucent.createMesh() : null;
-            return new ChunkMeshResult(opaqueMesh, translucentMesh, version);
+            Mesh opaqueMesh = (opaque != null) ? opaque.createMesh() : null;
+            Mesh translucentMesh = (translucent != null) ? translucent.createMesh() : null;
+            float st = (float)(org.lwjgl.glfw.GLFW.glfwGetTime() % 3600.0);
+            return new ChunkMeshResult(version, opaqueMesh, translucentMesh, st);
         }
     }
 
-    private static class ChunkNeighborhood {
+    public static class ChunkNeighborhood {
         private final Chunk[][] neighborhood = new Chunk[3][3];
         private final int centerChunkX;
         private final int centerChunkZ;
@@ -96,20 +93,24 @@ public class ChunkMeshGenerator {
         }
     }
 
-    private static class MeshData {
-        com.za.zenith.utils.FloatArrayList positions = new com.za.zenith.utils.FloatArrayList(8192);
-        com.za.zenith.utils.FloatArrayList texCoords = new com.za.zenith.utils.FloatArrayList(8192);
-        com.za.zenith.utils.FloatArrayList normals = new com.za.zenith.utils.FloatArrayList(8192);
-        com.za.zenith.utils.FloatArrayList blockTypes = new com.za.zenith.utils.FloatArrayList(2048);
-        com.za.zenith.utils.FloatArrayList neighborData = new com.za.zenith.utils.FloatArrayList(2048); 
-        com.za.zenith.utils.FloatArrayList weights = new com.za.zenith.utils.FloatArrayList(2048);
-        com.za.zenith.utils.FloatArrayList lightData = new com.za.zenith.utils.FloatArrayList(4096);
-        com.za.zenith.utils.FloatArrayList aoData = new com.za.zenith.utils.FloatArrayList(2048);
-        com.za.zenith.utils.IntArrayList indices = new com.za.zenith.utils.IntArrayList(8192);
+    public static class MeshData {
+        com.za.zenith.utils.FloatArrayList interleavedData;
+        com.za.zenith.utils.IntArrayList indices;
         int vertexIndex = 0;
         private final float[] tempLightBuf = new float[2];
 
-        void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask, float overlayLayer, boolean canSway, ChunkNeighborhood neighborhood, int wx, int wy, int wz) {
+        MeshData(int initialCapacity) {
+            interleavedData = new com.za.zenith.utils.FloatArrayList(initialCapacity);
+            indices = new com.za.zenith.utils.IntArrayList(initialCapacity / 2);
+        }
+
+        void clear() {
+            interleavedData.clear();
+            indices.clear();
+            vertexIndex = 0;
+        }
+
+        public void addFace(float[] fp, float[] fn, float blockTypeId, float[] fullUv, int face, float ox, float oy, float oz, float neighborMask, float overlayLayer, boolean canSway, ChunkNeighborhood neighborhood, int wx, int wy, int wz) {
             float minY = fp[1], maxY = fp[1];
             for (int v = 1; v < 4; v++) {
                 minY = Math.min(minY, fp[v*3+1]);
@@ -125,48 +126,11 @@ public class ChunkMeshGenerator {
                 float px = fp[v*3] + ox;
                 float py = fp[v*3+1] + oy;
                 float pz = fp[v*3+2] + oz;
-                positions.add(px);
-                positions.add(py);
-                positions.add(pz);
-                normals.add(fn[v*3]);
-                normals.add(fn[v*3+1]);
-                normals.add(fn[v*3+2]);
-                blockTypes.add(blockTypeId);
-                neighborData.add(neighborMask);
                 
-                float weight = 0.0f;
-                if (canSway) {
-                    if (maxY > minY) {
-                        weight = (fp[v*3+1] > minY + 0.001f) ? 1.0f : 0.0f;
-                    } else {
-                        weight = (face == 4) ? 1.0f : 0.0f;
-                    }
-                }
-                weights.add(weight);
-
-                // LIGHT & AO Calculation
                 float vx = fp[v*3];
                 float vy = fp[v*3+1];
                 float vz = fp[v*3+2];
-                
-                // Determine vertex position relative to block center to find neighbors
-                int dx = vx > 0.5f ? 1 : -1;
-                int dy = vy > 0.5f ? 1 : -1;
-                int dz = vz > 0.5f ? 1 : -1;
 
-                // Simple AO based on neighbors
-                float ao = calculateAO(neighborhood, wx, wy, wz, face, vx, vy, vz);
-                aoData.add(ao + packedPos * 10.0f);
-
-                // Smooth Lighting
-                calculateSmoothLight(neighborhood, wx, wy, wz, face, vx, vy, vz, tempLightBuf);
-                lightData.add(tempLightBuf[0]); // Sun
-                lightData.add(tempLightBuf[1]); // Block
-            }
-            for (int v = 0; v < 4; v++) {
-                float vx = fp[v*3];
-                float vy = fp[v*3+1];
-                float vz = fp[v*3+2];
                 float lu = 0, lv = 0;
                 switch (face) {
                     case 0: lu = vx; lv = vy; break;
@@ -180,14 +144,43 @@ public class ChunkMeshGenerator {
                 float topV = fullUv[1] * (1 - lu) + fullUv[4] * lu;
                 float botU = fullUv[9] * (1 - lu) + fullUv[6] * lu;
                 float botV = fullUv[10] * (1 - lu) + fullUv[7] * lu;
-                
-                float layer = fullUv[2]; 
+                float finalU = topU * (1 - lv) + botU * lv;
+                float finalV = topV * (1 - lv) + botV * lv;
 
-                texCoords.add(topU * (1 - lv) + botU * lv);
-                texCoords.add(topV * (1 - lv) + botV * lv);
-                texCoords.add(layer);
-                texCoords.add(overlayLayer);
+                float weight = 0.0f;
+                if (canSway) {
+                    if (maxY > minY) {
+                        weight = (vy > minY + 0.001f) ? 1.0f : 0.0f;
+                    } else {
+                        weight = (face == 4) ? 1.0f : 0.0f;
+                    }
+                }
+
+                float ao = calculateAO(neighborhood, wx, wy, wz, face, vx, vy, vz);
+                calculateSmoothLight(neighborhood, wx, wy, wz, face, vx, vy, vz, tempLightBuf);
+
+                interleavedData.add(px);
+                interleavedData.add(py);
+                interleavedData.add(pz);
+                
+                interleavedData.add(finalU);
+                interleavedData.add(finalV);
+                interleavedData.add(fullUv[2]);
+                interleavedData.add(overlayLayer);
+                
+                interleavedData.add(fn[v*3]);
+                interleavedData.add(fn[v*3+1]);
+                interleavedData.add(fn[v*3+2]);
+                
+                interleavedData.add(blockTypeId);
+                interleavedData.add(neighborMask);
+                interleavedData.add(weight);
+                
+                interleavedData.add(tempLightBuf[0]);
+                interleavedData.add(tempLightBuf[1]);
+                interleavedData.add(ao + packedPos * 10.0f);
             }
+            
             for (int idx : FACE_INDICES) indices.add(vertexIndex + idx);
             vertexIndex += 4;
         }
@@ -235,18 +228,11 @@ public class ChunkMeshGenerator {
             int rawData = neighborhood.getRawBlockData(x, y, z);
             int type = rawData >> 8;
             if (type == 0) return false;
-            com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(type);
+            BlockDefinition def = BlockRegistry.getBlock(type);
             if (def == null) return false;
-            if (def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_LEAVES)) return false;
-            return def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_SOLID) && !def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_TRANSPARENT);
+            if (def.is(BlockDefinition.FLAG_LEAVES)) return false;
+            return def.is(BlockDefinition.FLAG_SOLID) && !def.is(BlockDefinition.FLAG_TRANSPARENT);
         }
-
-        private static final int[][] SAMPLES_Z = {{0,0,0}, {1,0,0}, {0,1,0}, {1,1,0}};
-        private static final int[][] SAMPLES_Z_NEG = {{0,0,0}, {-1,0,0}, {0,1,0}, {-1,1,0}};
-        private static final int[][] SAMPLES_X = {{0,0,0}, {0,1,0}, {0,0,1}, {0,1,1}};
-        private static final int[][] SAMPLES_X_NEG = {{0,0,0}, {0,1,0}, {0,0,-1}, {0,1,-1}};
-        private static final int[][] SAMPLES_Y = {{0,0,0}, {1,0,0}, {0,0,1}, {1,0,1}};
-        private static final int[][] SAMPLES_Y_NEG = {{0,0,0}, {-1,0,0}, {0,0,-1}, {-1,0,-1}};
 
         private void calculateSmoothLight(ChunkNeighborhood neighborhood, int x, int y, int z, int face, float vx, float vy, float vz, float[] out) {
             if (neighborhood == null) {
@@ -290,7 +276,7 @@ public class ChunkMeshGenerator {
             out[1] = Math.max(centralBlock, totalBlock * 0.25f);
         }
 
-        void addRawQuad(float[] fp, float[] uv, float[] fn, float blockTypeId, float overlayLayer, boolean canSway, float weightOffset, float[] light, float ao) {
+        public void addRawQuad(float[] fp, float[] uv, float[] fn, float blockTypeId, float overlayLayer, boolean canSway, float weightOffset, float[] light, float ao) {
             float minY = fp[1], maxY = fp[1];
             for (int v = 1; v < 4; v++) {
                 minY = Math.min(minY, fp[v*3+1]);
@@ -298,64 +284,67 @@ public class ChunkMeshGenerator {
             }
 
             for (int v = 0; v < 4; v++) {
-                positions.add(fp[v*3]);
-                positions.add(fp[v*3+1]);
-                positions.add(fp[v*3+2]);
-                normals.add(fn[v*3]);
-                normals.add(fn[v*3+1]);
-                normals.add(fn[v*3+2]);
-                
-                texCoords.add(uv[v*3]);
-                texCoords.add(uv[v*3+1]);
-                texCoords.add(uv[v*3+2]);
-                texCoords.add(overlayLayer); 
-                
-                blockTypes.add(blockTypeId);
-                neighborData.add(0.0f);
-                
+                float py = fp[v*3+1];
                 float weight = 0.0f;
                 if (canSway) {
-                    weight = weightOffset + ((fp[v*3+1] > minY + 0.001f) ? 1.0f : 0.0f);
+                    weight = weightOffset + ((py > minY + 0.001f) ? 1.0f : 0.0f);
                 }
-                weights.add(weight);
 
-                // Use provided light/ao
-                lightData.add(light[0]);
-                lightData.add(light[1]);
-                aoData.add(ao);
+                interleavedData.add(fp[v*3]);
+                interleavedData.add(py);
+                interleavedData.add(fp[v*3+2]);
+                
+                interleavedData.add(uv[v*3]);
+                interleavedData.add(uv[v*3+1]);
+                interleavedData.add(uv[v*3+2]);
+                interleavedData.add(overlayLayer);
+                
+                interleavedData.add(fn[v*3]);
+                interleavedData.add(fn[v*3+1]);
+                interleavedData.add(fn[v*3+2]);
+                
+                interleavedData.add(blockTypeId);
+                interleavedData.add(0.0f); // neighborMask
+                interleavedData.add(weight);
+                
+                interleavedData.add(light[0]);
+                interleavedData.add(light[1]);
+                interleavedData.add(ao);
             }
             for (int idx : FACE_INDICES) indices.add(vertexIndex + idx);
             vertexIndex += 4;
         }
 
-        void addRawQuad(float[] fp, float[] uv, float[] fn, float blockTypeId, float overlayLayer, boolean canSway, float weightOffset) {
+        public void addRawQuad(float[] fp, float[] uv, float[] fn, float blockTypeId, float overlayLayer, boolean canSway, float weightOffset) {
             addRawQuad(fp, uv, fn, blockTypeId, overlayLayer, canSway, weightOffset, new float[]{15f, 0f}, 1.0f);
         }
 
-        RawMeshData buildRaw() {
-            if (positions.isEmpty()) return null;
-            return new RawMeshData(
-                positions.getInternalArray(), positions.size(),
-                texCoords.getInternalArray(), texCoords.size(),
-                normals.getInternalArray(), normals.size(),
-                blockTypes.getInternalArray(), blockTypes.size(),
-                neighborData.getInternalArray(), neighborData.size(),
-                weights.getInternalArray(), weights.size(),
-                lightData.getInternalArray(), lightData.size(),
-                aoData.getInternalArray(), aoData.size(),
-                indices.getInternalArray(), indices.size()
-            ); 
+        public RawMeshData buildRaw() {
+            if (interleavedData.isEmpty()) return null;
+            
+            int dLen = interleavedData.size();
+            java.nio.FloatBuffer fb = com.za.zenith.utils.NioBufferPool.rentFloat(dLen);
+            fb.put(interleavedData.getInternalArray(), 0, dLen).flip();
+            
+            int iLen = indices.size();
+            java.nio.IntBuffer ib = com.za.zenith.utils.NioBufferPool.rentInt(iLen);
+            ib.put(indices.getInternalArray(), 0, iLen).flip();
+            
+            return new RawMeshData(fb, dLen, ib, iLen); 
         }
 
-        Mesh build() {
+        public Mesh build() {
             RawMeshData raw = buildRaw();
             return raw != null ? raw.createMesh() : null;
         }
     }
 
+    private static final ThreadLocal<MeshData> threadOpaque = ThreadLocal.withInitial(() -> new MeshData(131072));
+    private static final ThreadLocal<MeshData> threadTranslucent = ThreadLocal.withInitial(() -> new MeshData(32768));
+
     public static Mesh generateSingleBlockMesh(Block block, DynamicTextureAtlas atlas, World world, BlockPos pos) {
-        MeshData data = new MeshData();
-        com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
+        MeshData data = new MeshData(512);
+        BlockDefinition def = BlockRegistry.getBlock(block.getType());
         if (def == null) return null;
         
         boolean isTranslucent = def.hasTag("zenith:glass");
@@ -422,8 +411,8 @@ public class ChunkMeshGenerator {
     }
 
     public static Mesh generateCustomAABBMesh(Block block, AABB box, DynamicTextureAtlas atlas) {
-        MeshData data = new MeshData();
-        com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
+        MeshData data = new MeshData(512);
+        BlockDefinition def = BlockRegistry.getBlock(block.getType());
         boolean canSway = def != null && def.isSway();
         Vector3f min = box.getMin(), max = box.getMax();
         float[][] facePositions = new float[][]{
@@ -441,15 +430,15 @@ public class ChunkMeshGenerator {
     }
 
     public static Mesh generateHoleMesh(BlockPos pos, World world, DynamicTextureAtlas atlas) {
-        MeshData data = new MeshData();
-        int[] oppositeFaces = {1, 0, 3, 2, 5, 4}; // N(0)->S(1), S(1)->N(0), E(2)->W(3), W(3)->E(2), U(4)->D(5), D(5)->U(4)
+        MeshData data = new MeshData(512);
+        int[] oppositeFaces = {1, 0, 3, 2, 5, 4}; 
         ChunkNeighborhood neighborhood = new ChunkNeighborhood(world, pos.x() >> 4, pos.z() >> 4);
 
         for (int face = 0; face < 6; face++) {
             Direction dir = Direction.values()[face];
             BlockPos nPos = new BlockPos(pos.x() + dir.getDx(), pos.y() + dir.getDy(), pos.z() + dir.getDz());
             Block nBlock = world.getBlock(nPos);
-            com.za.zenith.world.blocks.BlockDefinition nDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(nBlock.getType());
+            BlockDefinition nDef = BlockRegistry.getBlock(nBlock.getType());
 
             if (nBlock.getType() != 0 && nDef != null && nDef.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DEFAULT) {
                 int oppFace = oppositeFaces[face];
@@ -483,7 +472,6 @@ public class ChunkMeshGenerator {
                         }
                     }
 
-                    // We render the neighbor's opposite face, shifted by the direction offset
                     float ox = dir.getDx();
                     float oy = dir.getDy();
                     float oz = dir.getDz();
@@ -493,7 +481,7 @@ public class ChunkMeshGenerator {
             }
         }
 
-        if (data.positions.isEmpty()) return null;
+        if (data.interleavedData.isEmpty()) return null;
         return data.build();
     }
 
@@ -502,147 +490,153 @@ public class ChunkMeshGenerator {
     }
 
     public static RawChunkMeshResult generateRawMesh(Chunk chunk, World world, DynamicTextureAtlas atlas) {
-        MeshData opaque = new MeshData();
-        MeshData translucent = new MeshData();
-        
+        MeshData chunkOpaque = threadOpaque.get();
+        MeshData chunkTranslucent = threadTranslucent.get();
+        chunkOpaque.clear();
+        chunkTranslucent.clear();
+
+        ChunkNeighborhood neighborhood = new ChunkNeighborhood(world, chunk.getPosition().x(), chunk.getPosition().z());
+        long version = chunk.getDirtyCounter();
+
         int cx = chunk.getPosition().x();
         int cz = chunk.getPosition().z();
-        ChunkNeighborhood neighborhood = new ChunkNeighborhood(world, cx, cz);
 
-        // Neighbor directions for each face (relative coordinates)
-        // Correctly mapped to local UVs: [Negative_H, Positive_H, Negative_V, Positive_V]
-        // Mask bits: bit0: -H, bit1: +H, bit2: -V, bit3: +V
         int[][][] faceNeighbors = new int[][][]{
-            {{-1,0,0}, {1,0,0}, {0,-1,0}, {0,1,0}}, // Face 0: NORTH (+Z) -> lu=vx, lv=vy. -H is -X, +H is +X, -V is -Y, +V is +Y
-            {{1,0,0}, {-1,0,0}, {0,-1,0}, {0,1,0}}, // Face 1: SOUTH (-Z) -> lu=1-vx, lv=vy. -H is +X, +H is -X, -V is -Y, +V is +Y
-            {{0,0,1}, {0,0,-1}, {0,-1,0}, {0,1,0}}, // Face 2: EAST (+X)  -> lu=1-vz, lv=vy. -H is +Z, +H is -Z, -V is -Y, +V is +Y
-            {{0,0,-1}, {0,0,1}, {0,-1,0}, {0,1,0}}, // Face 3: WEST (-X)  -> lu=vz, lv=vy. -H is -Z, +H is +Z, -V is -Y, +V is +Y
-            {{-1,0,0}, {1,0,0}, {0,0,1}, {0,0,-1}}, // Face 4: UP (+Y)    -> lu=vx, lv=1-vz. -H is -X, +H is +X, -V is +Z, +V is -Z
-            {{-1,0,0}, {1,0,0}, {0,0,-1}, {0,0,1}}  // Face 5: DOWN (-Y)  -> lu=vx, lv=vz. -H is -X, +H is +X, -V is -Z, +V is +Z
+            {{-1,0,0}, {1,0,0}, {0,-1,0}, {0,1,0}}, // Face 0
+            {{1,0,0}, {-1,0,0}, {0,-1,0}, {0,1,0}}, // Face 1
+            {{0,0,1}, {0,0,-1}, {0,-1,0}, {0,1,0}}, // Face 2
+            {{0,0,-1}, {0,0,1}, {0,-1,0}, {0,1,0}}, // Face 3
+            {{-1,0,0}, {1,0,0}, {0,0,1}, {0,0,-1}}, // Face 4
+            {{-1,0,0}, {1,0,0}, {0,0,-1}, {0,0,1}}  // Face 5
         };
 
-        for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
-            for (int y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
-                for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
-                    int rawData = chunk.getRawBlockData(x, y, z);
-                    int blockType = rawData >> 8;
-                    if (blockType == 0) continue;
+        for (int secIdx = 0; secIdx < Chunk.NUM_SECTIONS; secIdx++) {
+            ChunkSection section = chunk.getSections()[secIdx];
+            if (section == null || section.isEmpty()) continue;
 
-                    Block block = chunk.getBlock(x, y, z);
-                    com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(blockType);
-                    
-                    float finalBlockType = (float)blockType;
-                    if (def != null && def.isTinted()) {
-                        finalBlockType = -(finalBlockType + 1.0f);
-                    }
+            int startY = secIdx * ChunkSection.SECTION_SIZE;
+            for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
+                for (int ly = 0; ly < ChunkSection.SECTION_SIZE; ly++) {
+                    int y = startY + ly;
+                    for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
+                        int rawData = chunk.getRawBlockData(x, y, z);
+                        int blockType = rawData >> 8;
+                        if (blockType == 0) continue;
 
-                    if (def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DOUBLE_PLANT) {
-                        float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
-                        float overlayLayer = uvs[2]; 
-                        float weightOffset = (def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DOUBLE_PLANT && block.getMetadata() == 1) ? 1.0f : 0.0f;
-                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 0, 1, 1, uvs, finalBlockType, overlayLayer, weightOffset);
-                        addCrossPlane(opaque, (float)x, (float)y, (float)z, 0, 1, 1, 0, uvs, finalBlockType, overlayLayer, weightOffset);
-                        continue;
-                    }
+                        Block block = chunk.getBlock(x, y, z);
+                        BlockDefinition def = BlockRegistry.getBlock(blockType);
+                        if (def == null) continue;
 
-                    VoxelShape shape = block.getShape();
-                    if (shape == null) continue;
+                        float finalBlockType = (float)blockType;
+                        if (def.is(BlockDefinition.FLAG_TINTED)) finalBlockType = -(finalBlockType + 1.0f);
 
-                    boolean isTranslucent = def != null && def.hasTag("zenith:glass");
-                    MeshData current = isTranslucent ? translucent : opaque;
+                        if (def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.CROSS_PLANE || def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DOUBLE_PLANT) {
+                            float[] uvs = BlockTextureMapper.uvFor(block, 0, atlas);
+                            float overlayLayer = uvs[2]; 
+                            float weightOffset = (def.getPlacementType() == com.za.zenith.world.blocks.PlacementType.DOUBLE_PLANT && block.getMetadata() == 1) ? 1.0f : 0.0f;
+                            addCrossPlane(chunkOpaque, (float)x, (float)y, (float)z, 0, 0, 1, 1, uvs, finalBlockType, overlayLayer, weightOffset, neighborhood, cx * Chunk.CHUNK_SIZE + x, y, cz * Chunk.CHUNK_SIZE + z);
+                            addCrossPlane(chunkOpaque, (float)x, (float)y, (float)z, 0, 1, 1, 0, uvs, finalBlockType, overlayLayer, weightOffset, neighborhood, cx * Chunk.CHUNK_SIZE + x, y, cz * Chunk.CHUNK_SIZE + z);
+                            continue;
+                        }
 
-                    int worldX = cx * Chunk.CHUNK_SIZE + x;
-                    int worldY = y;
-                    int worldZ = cz * Chunk.CHUNK_SIZE + z;
+                        VoxelShape shape = block.getShape();
+                        if (shape == null) continue;
 
-                    for (AABB box : shape.getBoxes()) {
-                        Vector3f min = box.getMin(), max = box.getMax();
-                        float[][] facePositions = new float[][]{
-                            {min.x, min.y, max.z,  max.x, min.y, max.z,  max.x, max.y, max.z,  min.x, max.y, max.z},
-                            {max.x, min.y, min.z,  min.x, min.y, min.z,  min.x, max.y, min.z,  max.x, max.y, min.z},
-                            {max.x, min.y, max.z,  max.x, min.y, min.z,  max.x, max.y, min.z,  max.x, max.y, max.z},
-                            {min.x, min.y, min.z,  min.x, min.y, max.z,  min.x, max.y, max.z,  min.x, max.y, min.z},
-                            {min.x, max.y, max.z,  max.x, max.y, max.z,  max.x, max.y, min.z,  min.x, max.y, min.z},
-                            {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
-                        };
-                        
-                        for (int face = 0; face < 6; face++) {
-                            Direction dir = Direction.values()[face];
-                            int nx = worldX + dir.getDx();
-                            int ny = worldY + dir.getDy();
-                            int nz = worldZ + dir.getDz();
+                        boolean isTranslucent = def.hasTag("zenith:glass");
+                        MeshData currentTarget = isTranslucent ? chunkTranslucent : chunkOpaque;
+
+                        int worldX = cx * Chunk.CHUNK_SIZE + x;
+                        int worldY = y;
+                        int worldZ = cz * Chunk.CHUNK_SIZE + z;
+
+                        for (AABB box : shape.getBoxes()) {
+                            Vector3f min = box.getMin(), max = box.getMax();
+                            float[][] facePositions = new float[][]{
+                                {min.x, min.y, max.z,  max.x, min.y, max.z,  max.x, max.y, max.z,  min.x, max.y, max.z},
+                                {max.x, min.y, min.z,  min.x, min.y, min.z,  min.x, max.y, min.z,  max.x, max.y, min.z},
+                                {max.x, min.y, max.z,  max.x, min.y, min.z,  max.x, max.y, min.z,  max.x, max.y, max.z},
+                                {min.x, min.y, min.z,  min.x, min.y, max.z,  min.x, max.y, max.z,  min.x, max.y, min.z},
+                                {min.x, max.y, max.z,  max.x, max.y, max.z,  max.x, max.y, min.z,  min.x, max.y, min.z},
+                                {min.x, min.y, min.z,  max.x, min.y, min.z,  max.x, min.y, max.z,  min.x, min.y, max.z}
+                            };
                             
-                            int nRaw = neighborhood.getRawBlockData(nx, ny, nz);
-                            int nType = nRaw >> 8;
-                            
-                            boolean drawFace = true;
-                            com.za.zenith.world.blocks.BlockDefinition neighborDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(nType);
-
-                            boolean onBoundary = false;
-                            switch (face) {
-                                case 0: onBoundary = (box.getMax().z == 1.0f); break; 
-                                case 1: onBoundary = (box.getMin().z == 0.0f); break; 
-                                case 2: onBoundary = (box.getMax().x == 1.0f); break; 
-                                case 3: onBoundary = (box.getMin().x == 0.0f); break; 
-                                case 4: onBoundary = (box.getMax().y == 1.0f); break; 
-                                case 5: onBoundary = (box.getMin().y == 0.0f); break; 
-                            }
-
-                            if (def.isAlwaysRender() || !onBoundary) {
-                                drawFace = true;
-                            } else if (nType == 0) {
-                                drawFace = true;
-                            } else if (neighborDef != null && neighborDef.hasTag("treecapitator")) {
-                                // AAA Optimization: Do not render internal faces between leaf blocks of same type to avoid Z-fighting/flicker
-                                drawFace = (nType != blockType);
-                            } else if ((neighborDef == null || !neighborDef.isTransparent()) && !neighborDef.isAlwaysRender()) {
-                                drawFace = false; // neighbor is solid full block
-                            } else if (isTranslucent && neighborDef != null && neighborDef.hasTag("zenith:glass")) {
-                                drawFace = false;
-                            } else {
-                                drawFace = true;
-                            }
-
-                            if (drawFace) {
-                                float neighborMask = 0;
-                                if (isTranslucent) {
-                                    for (int i = 0; i < 4; i++) {
-                                        int rawN = neighborhood.getRawBlockData(worldX + faceNeighbors[face][i][0], worldY + faceNeighbors[face][i][1], worldZ + faceNeighbors[face][i][2]);
-                                        com.za.zenith.world.blocks.BlockDefinition nDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(rawN >> 8);
-                                        if (nDef != null && nDef.hasTag("zenith:glass")) {
-                                            neighborMask += (float)Math.pow(2, i);
-                                        }
-                                    }
-                                }
+                            for (int face = 0; face < 6; face++) {
+                                Direction dir = Direction.values()[face];
+                                int nx = worldX + dir.getDx();
+                                int ny = worldY + dir.getDy();
+                                int nz = worldZ + dir.getDz();
                                 
-                                float faceBlockType = (float)blockType;
-                                float overlayLayer = -1.0f;
-                                if (isTranslucent) {
-                                    faceBlockType = -(faceBlockType + 2000.0f);
-                                } else if (def != null && def.isTinted()) {
-                                    faceBlockType = -(faceBlockType + 1.0f);
-                                    if (def.getTextures() != null) {
-                                        String innerKey = def.getTextures().getInner();
-                                        String sideKey = def.getTextures().getTextureForFace(face);
-                                        if (face == 4) {
-                                            overlayLayer = BlockTextureMapper.uvFor(block, face, atlas)[2];
-                                        } else if (face < 4 && innerKey != null && !innerKey.equals(sideKey)) {
-                                            float[] innerUv = atlas.uvFor(innerKey);
-                                            if (innerUv != null) {
-                                                overlayLayer = innerUv[2];
+                                int nRaw = neighborhood.getRawBlockData(nx, ny, nz);
+                                int nType = nRaw >> 8;
+                                
+                                boolean drawFace = true;
+                                BlockDefinition neighborDef = BlockRegistry.getBlock(nType);
+
+                                boolean onBoundary = false;
+                                switch (face) {
+                                    case 0: onBoundary = (box.getMax().z == 1.0f); break; 
+                                    case 1: onBoundary = (box.getMin().z == 0.0f); break; 
+                                    case 2: onBoundary = (box.getMax().x == 1.0f); break; 
+                                    case 3: onBoundary = (box.getMin().x == 0.0f); break; 
+                                    case 4: onBoundary = (box.getMax().y == 1.0f); break; 
+                                    case 5: onBoundary = (box.getMin().y == 0.0f); break; 
+                                }
+
+                                if (def.isAlwaysRender() || !onBoundary) {
+                                    drawFace = true;
+                                } else if (nType == 0) {
+                                    drawFace = true;
+                                } else if (neighborDef != null && neighborDef.hasTag("treecapitator")) {
+                                    drawFace = (nType != blockType);
+                                } else if ((neighborDef == null || !neighborDef.is(BlockDefinition.FLAG_TRANSPARENT)) && !neighborDef.isAlwaysRender()) {
+                                    drawFace = false;
+                                } else if (isTranslucent && neighborDef != null && neighborDef.hasTag("zenith:glass")) {
+                                    drawFace = false;
+                                } else {
+                                    drawFace = true;
+                                }
+
+                                if (drawFace) {
+                                    float neighborMask = 0;
+                                    if (isTranslucent) {
+                                        for (int i = 0; i < 4; i++) {
+                                            int rawN = neighborhood.getRawBlockData(worldX + faceNeighbors[face][i][0], worldY + faceNeighbors[face][i][1], worldZ + faceNeighbors[face][i][2]);
+                                            BlockDefinition nDef = BlockRegistry.getBlock(rawN >> 8);
+                                            if (nDef != null && nDef.hasTag("zenith:glass")) {
+                                                neighborMask += (float)Math.pow(2, i);
                                             }
                                         }
                                     }
+                                    
+                                    float faceBlockType = (float)blockType;
+                                    float overlayLayer = -1.0f;
+                                    if (isTranslucent) {
+                                        faceBlockType = -(faceBlockType + 2000.0f);
+                                    } else if (def != null && def.is(BlockDefinition.FLAG_TINTED)) {
+                                        faceBlockType = -(faceBlockType + 1.0f);
+                                        if (def.getTextures() != null) {
+                                            String innerKey = def.getTextures().getInner();
+                                            String sideKey = def.getTextures().getTextureForFace(face);
+                                            if (face == 4) {
+                                                overlayLayer = BlockTextureMapper.uvFor(block, face, atlas)[2];
+                                            } else if (face < 4 && innerKey != null && !innerKey.equals(sideKey)) {
+                                                float[] innerUv = atlas.uvFor(innerKey);
+                                                if (innerUv != null) {
+                                                    overlayLayer = innerUv[2];
+                                                }
+                                            }
+                                        }
+                                    }
+                                    currentTarget.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask, overlayLayer, def.isSway(), neighborhood, worldX, worldY, worldZ);
                                 }
-                                
-                                current.addFace(facePositions[face], FACE_NORMALS[face], faceBlockType, BlockTextureMapper.uvFor(block, face, atlas), face, (float)x, (float)y, (float)z, neighborMask, overlayLayer, def.isSway(), neighborhood, worldX, worldY, worldZ);
                             }
                         }
                     }
                 }
             }
         }
-        return new RawChunkMeshResult(opaque.buildRaw(), translucent.buildRaw(), chunk.getDirtyCounter());
+
+        return new RawChunkMeshResult(chunkOpaque.buildRaw(), chunkTranslucent.buildRaw(), version);
     }
 
     private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float z0, float x1, float z1, float[] uvs, float blockTypeId, float overlayLayer, float weightOffset, ChunkNeighborhood neighborhood, int wx, int wy, int wz) {
@@ -651,7 +645,6 @@ public class ChunkMeshGenerator {
         float ao = 1.0f;
         
         if (neighborhood != null) {
-            // Для плоскостей берем средний свет в центре блока
             light[0] = neighborhood.getSunlight(wx, wy, wz);
             light[1] = neighborhood.getBlockLight(wx, wy, wz);
         }
@@ -694,5 +687,3 @@ public class ChunkMeshGenerator {
         addCrossPlane(data, ox, oy, oz, x0, z0, x1, z1, uvs, blockTypeId, overlayLayer, weightOffset, null, 0, 0, 0);
     }
 }
-
-

@@ -63,17 +63,24 @@ public class LightManager {
     }
 
     public static void onChunkLoad(Chunk chunk) {
-        // Scan chunk for emitters once upon load
-        for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
-            for (int y = 0; y < Chunk.CHUNK_HEIGHT; y++) {
-                for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
-                    int type = chunk.getBlockType(x, y, z);
-                    if (type != 0) {
-                        BlockDefinition def = BlockRegistry.getBlock(type);
-                        if (def != null && def.getEmission() > 0) {
-                            com.za.zenith.world.BlockPos pos = chunk.toWorldPos(x, y, z);
-                            LightSource source = createSource(def.getLightData(), new Vector3f(pos.x() + 0.5f, pos.y() + 0.5f, pos.z() + 0.5f), new Vector3f(0, -1, 0), (float)org.lwjgl.glfw.GLFW.glfwGetTime());
-                            activeEmitters.put(pos, source);
+        // Scan chunk for emitters using sections to skip empty air
+        for (int sec = 0; sec < Chunk.NUM_SECTIONS; sec++) {
+            com.za.zenith.world.chunks.ChunkSection section = chunk.getSection(sec);
+            if (section == null || section.isEmpty()) continue;
+
+            int startY = sec * com.za.zenith.world.chunks.ChunkSection.SECTION_SIZE;
+            for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
+                for (int ly = 0; ly < com.za.zenith.world.chunks.ChunkSection.SECTION_SIZE; ly++) {
+                    int y = startY + ly;
+                    for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
+                        int type = section.getBlockIndex(x, ly, z);
+                        if (type != 0) {
+                            BlockDefinition def = BlockRegistry.getBlock(type);
+                            if (def != null && def.getEmission() > 0) {
+                                com.za.zenith.world.BlockPos pos = chunk.toWorldPos(x, y, z);
+                                LightSource source = createSource(def.getLightData(), new Vector3f(pos.x() + 0.5f, pos.y() + 0.5f, pos.z() + 0.5f), new Vector3f(0, -1, 0), (float)org.lwjgl.glfw.GLFW.glfwGetTime());
+                                activeEmitters.put(pos, source);
+                            }
                         }
                     }
                 }

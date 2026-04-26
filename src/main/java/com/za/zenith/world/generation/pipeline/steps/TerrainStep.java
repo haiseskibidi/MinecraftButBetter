@@ -103,6 +103,8 @@ public class TerrainStep implements GenerationStep {
                 if (undergroundBlockId == -1) undergroundBlockId = Blocks.DIRT.getId();
 
                 for (int y = 0; y <= surfaceY; y++) {
+                    if (chunk.getBlockType(x, y, z) != 0) continue; // Skip if already has a block (e.g. from neighbor structure)
+
                     if (y == 0) {
                         chunk.setBlock(x, y, z, new Block(Blocks.BEDROCK.getId()));
                     } else if (y < surfaceY - 4) {

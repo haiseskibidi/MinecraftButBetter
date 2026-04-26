@@ -6,23 +6,19 @@
     - **Smart Overlays**: Вместо проверки пикселей шейдер использует 4-ю текстурную координату (`OverlayLayer`) для наложения окрашиваемых масок поверх базовых текстур.
     - **Cross-System Consistency**: Единые шейдеры для мира, viewmodel, инвентаря и частиц гарантируют идентичное отображение цветов.
 
-2.  **Advanced Rendering Architecture**:
-    - **Extended Vertex Format**: Вершины поддерживают `vec4 texCoord` (U, V, BaseLayer, OverlayLayer) и `float verticalWeight` (локация 5).
-    - **Double-Texturing Shader**: Шейдеры автоматически смешивают базовый слой с оверлеем, если `OverlayLayer >= 0`.
+2.  **Advanced Rendering Architecture (Zenith v4.0)**:
+    - **Consolidated Chunk Meshes (Draw Call Batching)**: Вместо раздельных VBO на каждую секцию, весь чанк (24 секции) объединяется в **два меша** (Opaque и Translucent). Это сокращает количество вызовов отрисовки в 24 раза, радикально снижая нагрузку на драйвер GPU.
+    - **Packed Interleaved Vertex Format**: Вершины используют упакованный формат (16 float / 64 байта), включающий `Pos, UV, Norm, BlockInfo, NeighborMask, Weight, Light, AO`. Это обеспечивает идеальную локальность кэша (AoS).
+    - **Asynchronous Lighting Pipeline (Stage 4)**: Расчеты освещения (BFS) полностью отделены от генерации ландшафта. Используется выделенный `lightExecutor`. Чанки проходят строгую цепочку готовности: `Terrain -> Staging -> Async Light -> Ready`.
+    - **Radial Spiral Priority**: Алгоритм спирали обеспечивает приоритетную загрузку и мешинг чанков от центра (игрока) к краям, исключая визуальные дыры.
+    - **Threaded Mesh Generation (v1.1 UPDATED)**: Процесс построения геометрии полностью асинхронен. Внедрены жесткие лимиты потоков и динамическая пересортировка задач по дистанции до игрока.
+    - **Lock-Free Chunk Integrity**: Синхронизированная запись в палитру чанка и lock-free чтение данных обеспечивают целостность мира без блокировок главного потока.
     - **Procedural Wind System**: Модульная система анимации (`foliage_animation.glsl`), использующая веса вершин для создания эффекта качания на ветру без деформации основания блоков.
     - **Additive Weighting**: Поддержка многоблочных растений через смещение весов (`weightOffset`), обеспечивающая бесшовную анимацию высоких объектов (0.0 -> 1.0 -> 2.0).
-    - **Modular Separation**: Система разделена на 4 автономных модуля: `AnimationEditorState` (данные), `AnimationEditorRenderer` (3D/Gizmos), `EditorInputHandler` (трансформации/picking) и `EditorUI` (интерфейс).
-    - **Pure FK Core**: Манипуляция костями осуществляется через прямую кинематику (Forward Kinematics). Математика IK вынесена в отдельный план для реализации универсального солвера FABRIK.
-    - **Synchronous Transform Core**: Манипуляция костями через Гизмо использует handle-offset и обратную трансформацию из мировых координат в локальное пространство родительской кости.
-    - **Auto-Keying System**: Любое подтвержденное изменение (отпускание Гизмо или ЛКМ после G/R) мгновенно записывается в `EditorTrack`, предотвращая перезапись изменений при воспроизведении анимации.
-    - **Visual Hierarchy & Timeline**: Использование рекурсивного списка частей с отступами и визуализацией ключевых кадров ромбами на таймлайне.
-    - **Threaded Mesh Generation (v1.1 UPDATED)**: Процесс построения геометрии полностью асинхронен. Внедрены жесткие лимиты потоков (Чанки: 4, Меши: 2) с приоритетом `MIN_PRIORITY` для предотвращения CPU Starvation.
     - **Zero-Allocation Block Access (NEW)**: Прямое чтение данных блоков через `int getRawBlockData()` исключает выделение миллионов объектов `Block` и `BlockPos` в горячих циклах генерации мешей.
     - **Shader Uniform Caching (NEW)**: Кэширование локаций переменных в `Shader.java` устраняет избыточные JNI-вызовы к драйверу OpenGL, стабилизируя FPS при большом количестве чанков.
-    - **Array Pooling (NEW)**: Переиспользование массивов (`ArrayPool`) для снимков данных чанка убирает нагрузку на Garbage Collector при клонировании данных.
     - **VRAM Garbage Collection (NEW)**: Автоматическая очистка мешей выгруженных чанков в `Renderer` предотвращает утечки видеопамяти.
     - **L1 Cache Layer (v1.1 UPDATED)**: `Renderer` и `World` хранят ссылку на последний чанк, используя примитивные координаты X/Z для поиска без аллокаций `ChunkPos`.
-    - **Lock-Free Access**: Переход на `AtomicLong` и удаление `synchronized` из горячих методов `Chunk.java`.
 2.  **Input & Frame Synchronization (NEW)**:
     - **Event Consumption**: Для предотвращения рассинхронизации GLFW-коллбэков и опроса (polling) в игровом цикле, `InputManager` отслеживает `lastHandledFrame` через `Timer.frames`.
     - **Handled-State Logic**: Если клавиша помечена как "обработанная" в коллбэке, `InputManager.isKeyHandled` блокирует повторную реакцию в основном цикле в течение 1 кадра. Это решает проблему двойных срабатываний (например, при выходе из редактора).

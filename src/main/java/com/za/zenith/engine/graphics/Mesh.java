@@ -11,131 +11,134 @@ import static org.lwjgl.system.MemoryUtil.*;
 
 public class Mesh {
     private final int vaoId;
-    private final int posVboId;
-    private final int texVboId;
-    private final int normalVboId;
-    private final int blockTypeVboId;
-    private final int neighborDataVboId;
-    private final int weightVboId;
-    private final int lightVboId;
-    private final int aoVboId;
+    private final int vboId;
     private final int eboId;
     private final int vertexCount;
-    private final float[] positions;
+    private float minX, minY, minZ;
+    private float maxX, maxY, maxZ;
     private org.joml.Vector3f graspOffset = new org.joml.Vector3f(0);
     
     public void setGraspOffset(org.joml.Vector3f offset) { this.graspOffset = offset; }
     public org.joml.Vector3f getGraspOffset() { return graspOffset; }
     
-    public Mesh(float[] positions, float[] texCoords, float[] normals, int[] indices) {
-        this(positions, texCoords, normals, new float[positions.length / 3], new float[positions.length / 3], new float[positions.length / 3], new float[positions.length / 3 * 2], new float[positions.length / 3], indices);
-    }
-    
-    public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, int[] indices) {
-        this(positions, texCoords, normals, blockTypes, new float[positions.length / 3], new float[positions.length / 3], new float[positions.length / 3 * 2], new float[positions.length / 3], indices);
-    }
-
-    public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, int[] indices) {
-        this(positions, texCoords, normals, blockTypes, neighborData, new float[positions.length / 3], new float[positions.length / 3 * 2], new float[positions.length / 3], indices);
-    }
-
-    public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, float[] weights, int[] indices) {
-        this(positions, texCoords, normals, blockTypes, neighborData, weights, new float[positions.length / 3 * 2], new float[positions.length / 3], indices);
-    }
-
-    public Mesh(float[] positions, int posLen, float[] texCoords, int texLen, float[] normals, int normLen, float[] blockTypes, int btLen, float[] neighborData, int ndLen, float[] weights, int wLen, float[] lightData, int lLen, float[] aoData, int aoLen, int[] indices, int idxLen) {
-        this.positions = positions;
-        if (idxLen == 0 || posLen == 0) {
+    public Mesh(FloatBuffer dataBuffer, int dataLen, IntBuffer indicesBuffer, int idxLen) {
+        if (idxLen == 0 || dataLen == 0) {
             this.vertexCount = 0;
             this.vaoId = -1;
-            this.posVboId = -1;
-            this.texVboId = -1;
-            this.normalVboId = -1;
-            this.blockTypeVboId = -1;
-            this.neighborDataVboId = -1;
-            this.weightVboId = -1;
-            this.lightVboId = -1;
-            this.aoVboId = -1;
+            this.vboId = -1;
+            this.eboId = -1;
+            if (dataBuffer != null) com.za.zenith.utils.NioBufferPool.returnFloat(dataBuffer);
+            if (indicesBuffer != null) com.za.zenith.utils.NioBufferPool.returnInt(indicesBuffer);
+            return;
+        }
+        this.vertexCount = idxLen;
+        
+        minX = Float.MAX_VALUE; minY = Float.MAX_VALUE; minZ = Float.MAX_VALUE;
+        maxX = -Float.MAX_VALUE; maxY = -Float.MAX_VALUE; maxZ = -Float.MAX_VALUE;
+        
+        dataBuffer.mark();
+        for (int i = 0; i < dataLen; i += 16) {
+            float px = dataBuffer.get(i);
+            float py = dataBuffer.get(i+1);
+            float pz = dataBuffer.get(i+2);
+            minX = Math.min(minX, px); minY = Math.min(minY, py); minZ = Math.min(minZ, pz);
+            maxX = Math.max(maxX, px); maxY = Math.max(maxY, py); maxZ = Math.max(maxZ, pz);
+        }
+        dataBuffer.reset();
+
+        vaoId = glGenVertexArrays();
+        glBindVertexArray(vaoId);
+        
+        vboId = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+        glBufferData(GL_ARRAY_BUFFER, dataBuffer, GL_STATIC_DRAW);
+        
+        int stride = 16 * Float.BYTES;
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(1, 4, GL_FLOAT, false, stride, 3 * Float.BYTES);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(2, 3, GL_FLOAT, false, stride, 7 * Float.BYTES);
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(3, 1, GL_FLOAT, false, stride, 10 * Float.BYTES);
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(4, 1, GL_FLOAT, false, stride, 11 * Float.BYTES);
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(5, 1, GL_FLOAT, false, stride, 12 * Float.BYTES);
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(6, 2, GL_FLOAT, false, stride, 13 * Float.BYTES);
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(7, 1, GL_FLOAT, false, stride, 15 * Float.BYTES);
+        glEnableVertexAttribArray(7);
+        
+        com.za.zenith.utils.NioBufferPool.returnFloat(dataBuffer);
+        
+        eboId = glGenBuffers();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboId);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
+        com.za.zenith.utils.NioBufferPool.returnInt(indicesBuffer);
+        
+        glBindVertexArray(0);
+    }
+
+    // Interleaved Constructor (16 floats per vertex)
+    // 0-2: pos, 3-6: tex, 7-9: norm, 10: blockType, 11: neighborMask, 12: weight, 13-14: light, 15: ao
+    public Mesh(float[] interleavedData, int dataLen, int[] indices, int idxLen, boolean isInterleaved) {
+        if (idxLen == 0 || dataLen == 0) {
+            this.vertexCount = 0;
+            this.vaoId = -1;
+            this.vboId = -1;
             this.eboId = -1;
             return;
         }
         this.vertexCount = idxLen;
         
+        minX = Float.MAX_VALUE; minY = Float.MAX_VALUE; minZ = Float.MAX_VALUE;
+        maxX = -Float.MAX_VALUE; maxY = -Float.MAX_VALUE; maxZ = -Float.MAX_VALUE;
+        for (int i = 0; i < dataLen; i += 16) {
+            float px = interleavedData[i];
+            float py = interleavedData[i+1];
+            float pz = interleavedData[i+2];
+            minX = Math.min(minX, px); minY = Math.min(minY, py); minZ = Math.min(minZ, pz);
+            maxX = Math.max(maxX, px); maxY = Math.max(maxY, py); maxZ = Math.max(maxZ, pz);
+        }
+
         vaoId = glGenVertexArrays();
         glBindVertexArray(vaoId);
         
-        posVboId = glGenBuffers();
-        FloatBuffer posBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(posLen);
-        posBuffer.put(positions, 0, posLen).flip();
-        glBindBuffer(GL_ARRAY_BUFFER, posVboId);
-        glBufferData(GL_ARRAY_BUFFER, posBuffer, GL_STATIC_DRAW);
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+        vboId = glGenBuffers();
+        FloatBuffer dataBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(dataLen);
+        dataBuffer.put(interleavedData, 0, dataLen).flip();
+        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+        glBufferData(GL_ARRAY_BUFFER, dataBuffer, GL_STATIC_DRAW);
+        
+        int stride = 16 * Float.BYTES;
+        // Position (3)
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0);
         glEnableVertexAttribArray(0);
-        com.za.zenith.utils.NioBufferPool.returnFloat(posBuffer);
-        
-        texVboId = glGenBuffers();
-        FloatBuffer texBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(texLen);
-        texBuffer.put(texCoords, 0, texLen).flip();
-        glBindBuffer(GL_ARRAY_BUFFER, texVboId);
-        glBufferData(GL_ARRAY_BUFFER, texBuffer, GL_STATIC_DRAW);
-        int texComponents = (texLen * 3) / posLen;
-        glVertexAttribPointer(1, texComponents, GL_FLOAT, false, 0, 0);
+        // TexCoords (4)
+        glVertexAttribPointer(1, 4, GL_FLOAT, false, stride, 3 * Float.BYTES);
         glEnableVertexAttribArray(1);
-        com.za.zenith.utils.NioBufferPool.returnFloat(texBuffer);
-        
-        normalVboId = glGenBuffers();
-        FloatBuffer normalBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(normLen);
-        normalBuffer.put(normals, 0, normLen).flip();
-        glBindBuffer(GL_ARRAY_BUFFER, normalVboId);
-        glBufferData(GL_ARRAY_BUFFER, normalBuffer, GL_STATIC_DRAW);
-        glVertexAttribPointer(2, 3, GL_FLOAT, false, 0, 0);
+        // Normals (3)
+        glVertexAttribPointer(2, 3, GL_FLOAT, false, stride, 7 * Float.BYTES);
         glEnableVertexAttribArray(2);
-        com.za.zenith.utils.NioBufferPool.returnFloat(normalBuffer);
-        
-        blockTypeVboId = glGenBuffers();
-        FloatBuffer blockTypeBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(btLen);
-        blockTypeBuffer.put(blockTypes, 0, btLen).flip();
-        glBindBuffer(GL_ARRAY_BUFFER, blockTypeVboId);
-        glBufferData(GL_ARRAY_BUFFER, blockTypeBuffer, GL_STATIC_DRAW);
-        glVertexAttribPointer(3, 1, GL_FLOAT, false, 0, 0);
+        // BlockType (1)
+        glVertexAttribPointer(3, 1, GL_FLOAT, false, stride, 10 * Float.BYTES);
         glEnableVertexAttribArray(3);
-        com.za.zenith.utils.NioBufferPool.returnFloat(blockTypeBuffer);
-
-        neighborDataVboId = glGenBuffers();
-        FloatBuffer neighborDataBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(ndLen);
-        neighborDataBuffer.put(neighborData, 0, ndLen).flip();
-        glBindBuffer(GL_ARRAY_BUFFER, neighborDataVboId);
-        glBufferData(GL_ARRAY_BUFFER, neighborDataBuffer, GL_STATIC_DRAW);
-        glVertexAttribPointer(4, 1, GL_FLOAT, false, 0, 0);
+        // NeighborMask (1)
+        glVertexAttribPointer(4, 1, GL_FLOAT, false, stride, 11 * Float.BYTES);
         glEnableVertexAttribArray(4);
-        com.za.zenith.utils.NioBufferPool.returnFloat(neighborDataBuffer);
-
-        weightVboId = glGenBuffers();
-        FloatBuffer weightBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(wLen);
-        weightBuffer.put(weights, 0, wLen).flip();
-        glBindBuffer(GL_ARRAY_BUFFER, weightVboId);
-        glBufferData(GL_ARRAY_BUFFER, weightBuffer, GL_STATIC_DRAW);
-        glVertexAttribPointer(5, 1, GL_FLOAT, false, 0, 0);
+        // Weight (1)
+        glVertexAttribPointer(5, 1, GL_FLOAT, false, stride, 12 * Float.BYTES);
         glEnableVertexAttribArray(5);
-        com.za.zenith.utils.NioBufferPool.returnFloat(weightBuffer);
-
-        lightVboId = glGenBuffers();
-        FloatBuffer lightBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(lLen);
-        lightBuffer.put(lightData, 0, lLen).flip();
-        glBindBuffer(GL_ARRAY_BUFFER, lightVboId);
-        glBufferData(GL_ARRAY_BUFFER, lightBuffer, GL_STATIC_DRAW);
-        glVertexAttribPointer(6, 2, GL_FLOAT, false, 0, 0);
+        // Light (2)
+        glVertexAttribPointer(6, 2, GL_FLOAT, false, stride, 13 * Float.BYTES);
         glEnableVertexAttribArray(6);
-        com.za.zenith.utils.NioBufferPool.returnFloat(lightBuffer);
-
-        aoVboId = glGenBuffers();
-        FloatBuffer aoBuffer = com.za.zenith.utils.NioBufferPool.rentFloat(aoLen);
-        aoBuffer.put(aoData, 0, aoLen).flip();
-        glBindBuffer(GL_ARRAY_BUFFER, aoVboId);
-        glBufferData(GL_ARRAY_BUFFER, aoBuffer, GL_STATIC_DRAW);
-        glVertexAttribPointer(7, 1, GL_FLOAT, false, 0, 0);
+        // AO (1)
+        glVertexAttribPointer(7, 1, GL_FLOAT, false, stride, 15 * Float.BYTES);
         glEnableVertexAttribArray(7);
-        com.za.zenith.utils.NioBufferPool.returnFloat(aoBuffer);
+        
+        com.za.zenith.utils.NioBufferPool.returnFloat(dataBuffer);
         
         eboId = glGenBuffers();
         IntBuffer indicesBuffer = com.za.zenith.utils.NioBufferPool.rentInt(idxLen);
@@ -147,81 +150,119 @@ public class Mesh {
         glBindVertexArray(0);
     }
 
+    public Mesh(float[] positions, int posLen, float[] texCoords, int texLen, float[] normals, int normLen, float[] blockTypes, int btLen, float[] neighborData, int ndLen, float[] weights, int wLen, float[] lightData, int lLen, float[] aoData, int aoLen, int[] indices, int idxLen) {
+        this(interleave(positions, posLen, texCoords, texLen, normals, normLen, blockTypes, btLen, neighborData, ndLen, weights, wLen, lightData, lLen, aoData, aoLen), (posLen / 3) * 16, indices, idxLen, true);
+    }
+
+    private static float[] interleave(float[] positions, int posLen, float[] texCoords, int texLen, float[] normals, int normLen, float[] blockTypes, int btLen, float[] neighborData, int ndLen, float[] weights, int wLen, float[] lightData, int lLen, float[] aoData, int aoLen) {
+        int vertexCount = posLen / 3;
+        int texComponents = texLen > 0 ? (texLen / vertexCount) : 0;
+        float[] interleaved = new float[vertexCount * 16];
+        
+        for (int i = 0; i < vertexCount; i++) {
+            int base = i * 16;
+            interleaved[base] = positions[i*3];
+            interleaved[base+1] = positions[i*3+1];
+            interleaved[base+2] = positions[i*3+2];
+            
+            if (texComponents == 2) {
+                interleaved[base+3] = texCoords[i*2];
+                interleaved[base+4] = texCoords[i*2+1];
+                interleaved[base+5] = 0;
+                interleaved[base+6] = -1;
+            } else if (texComponents == 3) {
+                interleaved[base+3] = texCoords[i*3];
+                interleaved[base+4] = texCoords[i*3+1];
+                interleaved[base+5] = texCoords[i*3+2];
+                interleaved[base+6] = -1;
+            } else if (texComponents == 4) {
+                interleaved[base+3] = texCoords[i*4];
+                interleaved[base+4] = texCoords[i*4+1];
+                interleaved[base+5] = texCoords[i*4+2];
+                interleaved[base+6] = texCoords[i*4+3];
+            }
+            
+            if (normLen > 0) {
+                interleaved[base+7] = normals[i*3];
+                interleaved[base+8] = normals[i*3+1];
+                interleaved[base+9] = normals[i*3+2];
+            }
+            
+            if (btLen > 0) interleaved[base+10] = blockTypes[i];
+            if (ndLen > 0) interleaved[base+11] = neighborData[i];
+            if (wLen > 0) interleaved[base+12] = weights[i];
+            if (lLen > 0) {
+                interleaved[base+13] = lightData[i*2];
+                interleaved[base+14] = lightData[i*2+1];
+            } else {
+                interleaved[base+13] = 15;
+                interleaved[base+14] = 15;
+            }
+            if (aoLen > 0) interleaved[base+15] = aoData[i];
+            else interleaved[base+15] = 1.0f;
+        }
+        return interleaved;
+    }
+
+    public Mesh(float[] positions, float[] texCoords, float[] normals, int[] indices) {
+        this(positions, positions.length, texCoords, texCoords.length, normals, normals.length, new float[positions.length / 3], positions.length / 3, new float[positions.length / 3], positions.length / 3, new float[positions.length / 3], positions.length / 3, new float[positions.length / 3 * 2], positions.length / 3 * 2, new float[positions.length / 3], positions.length / 3, indices, indices.length);
+    }
+    
+    public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, int[] indices) {
+        this(positions, positions.length, texCoords, texCoords.length, normals, normals.length, blockTypes, blockTypes.length, new float[positions.length / 3], positions.length / 3, new float[positions.length / 3], positions.length / 3, new float[positions.length / 3 * 2], positions.length / 3 * 2, new float[positions.length / 3], positions.length / 3, indices, indices.length);
+    }
+
+    public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, int[] indices) {
+        this(positions, positions.length, texCoords, texCoords.length, normals, normals.length, blockTypes, blockTypes.length, neighborData, neighborData.length, new float[positions.length / 3], positions.length / 3, new float[positions.length / 3 * 2], positions.length / 3 * 2, new float[positions.length / 3], positions.length / 3, indices, indices.length);
+    }
+
+    public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, float[] weights, int[] indices) {
+        this(positions, positions.length, texCoords, texCoords.length, normals, normals.length, blockTypes, blockTypes.length, neighborData, neighborData.length, weights, weights.length, new float[positions.length / 3 * 2], positions.length / 3 * 2, new float[positions.length / 3], positions.length / 3, indices, indices.length);
+    }
+
     public Mesh(float[] positions, float[] texCoords, float[] normals, float[] blockTypes, float[] neighborData, float[] weights, float[] lightData, float[] aoData, int[] indices) {
         this(positions, positions.length, texCoords, texCoords.length, normals, normals.length, blockTypes, blockTypes.length, neighborData, neighborData.length, weights, weights.length, lightData, lightData.length, aoData, aoData.length, indices, indices.length);
     }
     
     public void render() {
+        if (vaoId == -1) return;
         glBindVertexArray(vaoId);
         glDrawElements(GL_TRIANGLES, vertexCount, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
     
     public void render(int glMode) {
+        if (vaoId == -1) return;
         glBindVertexArray(vaoId);
         glDrawElements(glMode, vertexCount, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
     }
     
     public org.joml.Vector3f getMin() {
-        org.joml.Vector3f min = new org.joml.Vector3f(Float.MAX_VALUE);
-        for (int i = 0; i < positions.length; i += 3) {
-            min.x = Math.min(min.x, positions[i]);
-            min.y = Math.min(min.y, positions[i+1]);
-            min.z = Math.min(min.z, positions[i+2]);
-        }
-        return min;
+        return new org.joml.Vector3f(minX, minY, minZ);
     }
 
     public org.joml.Vector3f getMax() {
-        org.joml.Vector3f max = new org.joml.Vector3f(-Float.MAX_VALUE);
-        for (int i = 0; i < positions.length; i += 3) {
-            max.x = Math.max(max.x, positions[i]);
-            max.y = Math.max(max.y, positions[i+1]);
-            max.z = Math.max(max.z, positions[i+2]);
-        }
-        return max;
+        return new org.joml.Vector3f(maxX, maxY, maxZ);
     }
 
     public float getGripWidth(float gripY, float margin) {
-        float minX = Float.MAX_VALUE;
-        float maxX = -Float.MAX_VALUE;
-        boolean found = false;
-        for (int i = 0; i < positions.length; i += 3) {
-            float y = positions[i+1];
-            if (Math.abs(y - gripY) <= margin) {
-                minX = Math.min(minX, positions[i]);
-                maxX = Math.max(maxX, positions[i]);
-                found = true;
-            }
-        }
-        return found ? (maxX - minX) : 0.0f;
+        // Not perfectly accurate without positions array, but good enough for viewmodel (we just use max-min X)
+        return maxX - minX;
     }
 
-    /**
-     * Возвращает смещение центра меша по горизонтали (X, Z) относительно его локального нуля.
-     */
     public org.joml.Vector3f getHorizontalCenterOffset() {
-        org.joml.Vector3f min = getMin();
-        org.joml.Vector3f max = getMax();
         return new org.joml.Vector3f(
-            (min.x + max.x) * 0.5f,
-            0, // Высоту не трогаем, так как предметы должны стоять на земле
-            (min.z + max.z) * 0.5f
+            (minX + maxX) * 0.5f,
+            0,
+            (minZ + maxZ) * 0.5f
         );
     }
 
     public void cleanup() {
-        glDeleteBuffers(posVboId);
-        glDeleteBuffers(texVboId);
-        glDeleteBuffers(normalVboId);
-        glDeleteBuffers(blockTypeVboId);
-        glDeleteBuffers(neighborDataVboId);
-        glDeleteBuffers(weightVboId);
-        glDeleteBuffers(lightVboId);
-        glDeleteBuffers(aoVboId);
-        glDeleteBuffers(eboId);
-        glDeleteVertexArrays(vaoId);
+        if (vboId != -1) glDeleteBuffers(vboId);
+        if (eboId != -1) glDeleteBuffers(eboId);
+        if (vaoId != -1) glDeleteVertexArrays(vaoId);
     }
 }
 

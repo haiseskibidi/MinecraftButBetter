@@ -10,11 +10,11 @@ import java.util.concurrent.atomic.AtomicLong;
 public class Chunk {
     public static final int CHUNK_SIZE = 16;
     public static final int CHUNK_HEIGHT = 384;
+    public static final int NUM_SECTIONS = CHUNK_HEIGHT / ChunkSection.SECTION_SIZE;
     
     private final ChunkPos position;
-    private final short[] blockIndices; 
-    private final java.util.List<Integer> palette = new java.util.ArrayList<>();
-    private final byte[] lightData; // Packed light: (sunlight << 4) | blocklight
+    private final ChunkSection[] sections;
+    private final java.util.List<Integer> palette = new java.util.concurrent.CopyOnWriteArrayList<>();
     private final short[] heightMap;
     private final AtomicLong dirtyCounter = new AtomicLong(0);
     private long lastMeshCounter = -1;
@@ -29,8 +29,10 @@ public class Chunk {
 
     public Chunk(ChunkPos position) {
         this.position = position;
-        this.blockIndices = new short[CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE];
-        this.lightData = new byte[CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE];
+        this.sections = new ChunkSection[NUM_SECTIONS];
+        for (int i = 0; i < NUM_SECTIONS; i++) {
+            this.sections[i] = new ChunkSection();
+        }
         this.heightMap = new short[CHUNK_SIZE * CHUNK_SIZE];
         java.util.Arrays.fill(this.heightMap, (short)-1);
         
@@ -41,13 +43,40 @@ public class Chunk {
 
     public Chunk(ChunkPos position, int[] rawBlockData, byte[] lightData) {
         this(position);
-        System.arraycopy(lightData, 0, this.lightData, 0, lightData.length);
-        for (int i = 0; i < rawBlockData.length; i++) {
-            setBlockByIndex(i, rawBlockData[i]);
+        
+        // Fill light data into sections
+        int sectionVol = ChunkSection.SECTION_VOLUME;
+        for (int i = 0; i < NUM_SECTIONS; i++) {
+            this.sections[i].fillLightData(lightData, i * sectionVol);
+        }
+        
+        for (int y = 0; y < CHUNK_HEIGHT; y++) {
+            for (int z = 0; z < CHUNK_SIZE; z++) {
+                for (int x = 0; x < CHUNK_SIZE; x++) {
+                    int idx = y * (CHUNK_SIZE * CHUNK_SIZE) + z * CHUNK_SIZE + x;
+                    int packedData = rawBlockData[idx];
+                    if (packedData != 0) {
+                        setBlockByIndexInternal(x, y, z, packedData);
+                    }
+                }
+            }
         }
     }
+    
+    public ChunkSection[] getSections() {
+        return sections;
+    }
+    
+    public ChunkSection getSection(int y) {
+        if (y < 0 || y >= CHUNK_HEIGHT) return null;
+        return sections[y >> 4];
+    }
 
-    private void setBlockByIndex(int index, int packedData) {
+    // internal unsynchronized version for constructor
+    private void setBlockByIndexInternal(int x, int y, int z, int packedData) {
+        ChunkSection section = getSection(y);
+        if (section == null) return;
+        
         short paletteIndex = -1;
         for (int i = 0; i < palette.size(); i++) {
             if (palette.get(i) == packedData) {
@@ -59,7 +88,17 @@ public class Chunk {
             paletteIndex = (short) palette.size();
             palette.add(packedData);
         }
-        blockIndices[index] = paletteIndex;
+        
+        short oldIndex = section.getBlockIndex(x, y & 15, z);
+        int oldPacked = palette.get(oldIndex);
+        boolean wasAir = (oldPacked >> 8) == 0;
+        boolean isAir = (packedData >> 8) == 0;
+        
+        section.setBlockIndex(x, y & 15, z, paletteIndex, wasAir, isAir);
+    }
+
+    private synchronized void setBlockByIndex(int x, int y, int z, int packedData) {
+        setBlockByIndexInternal(x, y, z, packedData);
     }
 
     public boolean isReady() { return isReady; }
@@ -82,33 +121,31 @@ public class Chunk {
         }
         return y;
     }
-    
-    private int getIndex(int x, int y, int z) {
-        return y * (CHUNK_SIZE * CHUNK_SIZE) + z * CHUNK_SIZE + x;
-    }
 
     public int getSunlight(int x, int y, int z) {
         if (y >= CHUNK_HEIGHT) return 15;
-        if (x < 0 || x >= CHUNK_SIZE || y < 0 || z < 0 || z >= CHUNK_SIZE) return 0;
-        return (lightData[getIndex(x, y, z)] >> 4) & 0xF;
+        ChunkSection section = getSection(y);
+        if (section == null || x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) return 0;
+        return section.getSunlight(x, y & 15, z);
     }
 
     public void setSunlight(int x, int y, int z, int level) {
-        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return;
-        int idx = getIndex(x, y, z);
-        lightData[idx] = (byte) ((lightData[idx] & 0x0F) | ((level & 0xF) << 4));
+        ChunkSection section = getSection(y);
+        if (section == null || x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) return;
+        section.setSunlight(x, y & 15, z, level);
         dirtyCounter.incrementAndGet();
     }
 
     public int getBlockLight(int x, int y, int z) {
-        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 0;
-        return lightData[getIndex(x, y, z)] & 0xF;
+        ChunkSection section = getSection(y);
+        if (section == null || x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) return 0;
+        return section.getBlockLight(x, y & 15, z);
     }
 
     public void setBlockLight(int x, int y, int z, int level) {
-        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return;
-        int idx = getIndex(x, y, z);
-        lightData[idx] = (byte) ((lightData[idx] & 0xF0) | (level & 0xF));
+        ChunkSection section = getSection(y);
+        if (section == null || x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) return;
+        section.setBlockLight(x, y & 15, z, level);
         dirtyCounter.incrementAndGet();
     }
     
@@ -145,19 +182,18 @@ public class Chunk {
         return (byte)(getRawBlockData(x, y, z) & 0xFF);
     }
     
-    public void setBlock(int x, int y, int z, Block block) {
-        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) {
-            return;
-        }
+    public synchronized void setBlock(int x, int y, int z, Block block) {
+        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return;
         int packed = (block.getType() << 8) | (block.getMetadata() & 0xFF);
-        setBlockByIndex(getIndex(x, y, z), packed);
+        setBlockByIndex(x, y, z, packed);
         heightMap[z * CHUNK_SIZE + x] = -1;
         dirtyCounter.incrementAndGet();
     }
     
     public int getRawBlockData(int x, int y, int z) {
-        if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return 0;
-        return palette.get(blockIndices[getIndex(x, y, z)]);
+        ChunkSection section = getSection(y);
+        if (section == null || x < 0 || x >= CHUNK_SIZE || z < 0 || z >= CHUNK_SIZE) return 0;
+        return palette.get(section.getBlockIndex(x, y & 15, z));
     }
     
     public ChunkPos getPosition() {
@@ -202,20 +238,43 @@ public class Chunk {
     }
 
     public int[] getBlockData() { 
-        int[] data = new int[blockIndices.length];
-        for (int i = 0; i < blockIndices.length; i++) {
-            data[i] = palette.get(blockIndices[i]);
+        int[] data = new int[CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE];
+        for (int y = 0; y < CHUNK_HEIGHT; y++) {
+            ChunkSection sec = getSection(y);
+            if (sec == null) continue;
+            for (int z = 0; z < CHUNK_SIZE; z++) {
+                for (int x = 0; x < CHUNK_SIZE; x++) {
+                    data[y * 256 + z * 16 + x] = palette.get(sec.getBlockIndex(x, y & 15, z));
+                }
+            }
         }
         return data; 
     }
     
-    public byte[] getLightData() { return lightData; }
+    public byte[] getLightData() { 
+        byte[] data = new byte[CHUNK_SIZE * CHUNK_HEIGHT * CHUNK_SIZE];
+        for (int i = 0; i < NUM_SECTIONS; i++) {
+            System.arraycopy(sections[i].getLightData(), 0, data, i * ChunkSection.SECTION_VOLUME, ChunkSection.SECTION_VOLUME);
+        }
+        return data; 
+    }
 
     public synchronized DataSnapshot getSnapshot(int[] outBlockData, byte[] outLightData) {
-        for (int i = 0; i < blockIndices.length; i++) {
-            outBlockData[i] = palette.get(blockIndices[i]);
+        for (int y = 0; y < CHUNK_HEIGHT; y++) {
+            ChunkSection sec = getSection(y);
+            if (sec == null) continue;
+            short[] indices = sec.getBlockIndices();
+            int baseIdx = y * 256;
+            int localY = y & 15;
+            for (int z = 0; z < CHUNK_SIZE; z++) {
+                for (int x = 0; x < CHUNK_SIZE; x++) {
+                    outBlockData[baseIdx + z * 16 + x] = palette.get(indices[localY * 256 + z * 16 + x]);
+                }
+            }
         }
-        System.arraycopy(lightData, 0, outLightData, 0, lightData.length);
+        for (int i = 0; i < NUM_SECTIONS; i++) {
+            System.arraycopy(sections[i].getLightData(), 0, outLightData, i * ChunkSection.SECTION_VOLUME, ChunkSection.SECTION_VOLUME);
+        }
         return new DataSnapshot(position, outBlockData, outLightData);
     }
 }

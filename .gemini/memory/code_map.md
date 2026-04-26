@@ -48,77 +48,22 @@
 - **WorldSettings.java**: Data-Driven контейнер для настроек времени и цветов освещения (загружается из `world.json`).
 
 ### com.za.zenith.engine.graphics
-- **SkyRenderer.java**: Специализированный рендерер небесных тел. Отрисовывает Солнце и Луну как билборды в пространстве вида (View Space) с поддержкой процедурных кругов и пиксельных сеток.
-- **SkySettings.java**: Конфигурация параметров неба (загружается из `celestial.json`).
-- **Renderer.java (UPDATED)**: Управляет динамической сменой освещения. Смешивает цвета `sunLightColor` и `moonLightColor` на основе `worldTime`, инвертирует направление теней ночью.
+- **Mesh.java**: Обертка над GPU-ресурсами. Поддерживает **Packed Interleaved VBO** (16 float на вершину) для максимальной кэш-эффективности.
+- **Renderer.java (Zenith v4.0)**: Главный контроллер отрисовки. Реализует **Draw Call Batching** (~400 вызовов на кадр), радиальную спиральную прогрузку и бюджетное управление передачей мешей.
+- **SkyRenderer.java**: Рендерер небесных тел. Отрисовывает Солнце и Луну как билборды.
+- **SkySettings.java**: Конфигурация параметров неба.
 
 ### com.za.zenith.world.chunks
-- **Chunk.java (UPDATED)**: Добавлен массив `byte[] lightData` для компактного хранения Sunlight и Blocklight (по 4 бита).
-- **ChunkMeshGenerator.java (UPDATED)**: 
-    - **Smooth Lighting**: Расчет среднего освещения 4-х вокселей для каждой вершины. Внедрена защита от ошибок данных: принудительное восстановление 15 уровня солнца для блоков под открытым небом.
-    - **Ambient Occlusion**: Затенение углов на основе анализа соседних блоков.
+- **Chunk.java (Zenith v4.0)**: Контейнер данных. Поддерживает **консолидированные меши** (один на чанк), синхронизированную палитру и Lock-free чтение.
+- **ChunkSection.java**: Подраздел чанка (16x16x16) для пространственной фильтрации.
+- **ChunkMeshGenerator.java (Zenith v4.0)**: Реализует **Greedy Mesh Merging** (объединение всех секций в один VBO).
 
-### src/main/resources/shaders (UPDATED)
-- **sky_vertex/fragment.glsl**: Шейдеры для отрисовки неба. Поддерживают процедурный "Glow" эффект и переключение между текстурой и пиксельной сеткой.
-- **minimap_vertex/fragment.glsl**: (NEW) Шейдеры миникарты с круговой маской, эффектом сканирования и поддержкой динамического вращения.
-- **vertex/fragment.glsl**: Обновлены для приема атрибутов `vLight` и `vAO` и финального расчета освещенности.
+### com.za.zenith.world.lighting
+- **LightEngine.java (v3.0)**: Движок освещения. Реализует **Async Stage 4** (асинхронный расчет света в отдельном потоке). 
+- **WorldSettings.java**: Контейнер настроек освещения и времени.
 
-## UI & Animation Editor (v1.1 MODULAR)
-### com.za.zenith.engine.graphics.ui.editor.animation
-- **AnimationEditorScreen.java**: Главный оркестратор. Делегирует задачи специализированным модулям.
-- **AnimationEditorState.java**: Модель данных. Хранит ключи, треки, текущее время и выбранные объекты.
-- **AnimationEditorRenderer.java**: Рендеринг 3D сцены студии, отрисовка Гизмо и "призраков" кадров. Очищен от логики IK.
-- **EditorInputHandler.java**: Логика взаимодействия: Ray-OBB Picking, Grab/Rotate манипуляции через чистый FK, горячие клавиши.
-- **EditorUI.java**: Отрисовка всех панелей интерфейса (Parts, Properties, Timeline). Удален статус IK и управление таргетами.
-- **AnimationExporter.java**: Конвертация состояния в JSON формат движка.
-- **TransformController.java**: Низкоуровневая логика трансформаций. Реализует перемещение и вращение костей в 3D пространстве с учетом иерархии.
-
-### com.za.zenith.engine.graphics.ui.InventoryScreen (UPDATED)
-Назначение: Базовый класс для всех экранов с инвентарями.
-Функции: Реализует метод `handleQuickMove` — универсальную Data-Driven логику для Shift+Click, использующую правила из JSON. Содержит абстрактный метод `getScreenIdentifier()`.
-
-### com.za.zenith.engine.graphics.ui.ChestScreen (UPDATED)
-Назначение: Универсальный экран для любых контейнеров.
-Функции: Принимает динамический `Identifier guiId` в конструкторе. Загружает разметку из соответствующего JSON файла через `InventoryLayout`. Поддерживает отображение нескольких инвентарей (контейнер + игрок).
-
-### com.za.zenith.engine.graphics.ui.InventoryLayout (UPDATED)
-Назначение: Движок динамической разметки интерфейсов.
-Функции: Генерирует позиции слотов и групп на основе JSON. Поддерживает `Map<String, IInventory>` для работы с несколькими источниками данных одновременно. Реализует логику `relativeTo` (относительное позиционирование групп).
-
-### com.za.zenith.engine.graphics.ui.SlotUI (UPDATED)
-Назначение: Визуальное представление слота.
-Функции: Содержит `groupId` для связи слота с правилами быстрого перемещения в JSON конфигурации.
-
-### com.za.zenith.engine.graphics.ui.GUIConfig (UPDATED)
-Назначение: Модель данных для JSON-конфигураций интерфейса.
-Функции: Расширена полями `inventorySource`, `startIndex`, `slotsCount` и `quickMoveTo` для каждой группы.
-
-### com.za.zenith.engine.graphics.ui.UIRenderer (UPDATED)
-Назначение: Модульный рендерер интерфейса (Facade).
-Функции: Является точкой входа для рендеринга всего UI, но делегирует работу специализированным суб-рендерерам: `UIPrimitives` (базовые формы), `SlotRenderer` (предметы/слоты), `HUDRenderer` (игровой оверлей, стамина, голод), `MinimapRenderer` (NEW: сэмплирование мира и радар), `InventoryScreenRenderer` (инвентарь и dev-панель).
-- **PauseScreen.java**: (NEW) Реализация меню паузы в стиле Zenith. Работает как оверлей поверх мира, использует `GUIConfig` для конфигурации кнопок.
-- **Screen.java**: (UPDATED) Базовый интерфейс окон. Добавлен метод `handleMouseRelease(float mx, float my, int button)` для безопасной обработки кликов на отпускание.
-- **UIPrimitives.java**: (UPDATED) Добавлен метод `renderDarkenedBackground()` для унифицированного затемнения мира.
-- **MinimapRegistry.java**: (NEW) Реестр соответствия блоков и цветов для миникарты.
-
-## World & Items (UPDATED)
-### com.za.zenith.engine.graphics.Renderer (UPDATED)
-Назначение: Главный контроллер рендеринга и управления GPU-ресурсами.
-Функции: 
-- **MSAA Pipeline**: Реализует проход рендеринга в 4x MSAA буфер с последующей операцией `Resolve` в обычный буфер для аппаратного сглаживания.
-- **Async Meshing**: Управляет асинхронной генерацией мешей через `ExecutorService`.
-- **Alpha-to-Coverage**: Управляет режимом `GL_SAMPLE_ALPHA_TO_COVERAGE` для сглаживания прозрачных объектов.
-- **Cache**: Хранит `proxyMeshCache` для поврежденных блоков. Реализует L1 Cache для освещения сущностей.
-
-### com.za.zenith.engine.graphics.Framebuffer (UPDATED)
-Назначение: Объект закадрового рендеринга.
-Функции: Поддерживает создание как обычных, так и мультисэмплированных (`GL_TEXTURE_2D_MULTISAMPLE`) буферов цвета и глубины. Реализует метод `resolveTo()` для аппаратного объединения сэмплов через `glBlitFramebuffer`.
-
-### com.za.zenith.world.chunks.Chunk (UPDATED)
-Назначение: Контейнер данных воксельного региона (16x384x16).
-Функции: Реализует `getSnapshot()` для потокобезопасного копирования данных. Предоставляет прямой доступ к `blockData` и `lightData`.
-
-### com.za.zenith.world.World (UPDATED)
+### com.za.zenith.world
+- **World.java (Zenith v4.0)**: Управление миром. Содержит асинхронный конвейер (`chunkGenExecutor`, `lightExecutor`). Реализует **Spiral Loading** и систему Backpressure.
 Назначение: Управление состоянием мира и сущностями.
 Функции: Внедрена система L1 Chunk Cache для ускорения доступа. Оптимизирован цикл обновления сущностей и подбора предметов (кэширование состояния инвентаря).
 

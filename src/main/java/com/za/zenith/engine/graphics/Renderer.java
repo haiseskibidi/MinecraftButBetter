@@ -131,8 +131,7 @@ public class Renderer {
         // 2. Cleanup GPU resources
         ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.remove(chunk);
         if (result != null) {
-            if (result.opaqueMesh != null) result.opaqueMesh.cleanup();
-            if (result.translucentMesh != null) result.translucentMesh.cleanup();
+            result.cleanup();
         }
     }
 
@@ -470,135 +469,134 @@ public class Renderer {
             }
         }
 
-        // 1. Process pending mesh updates (Check for finished tasks)
-        long uploadStart = System.nanoTime();
-        java.util.Iterator<Map.Entry<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>>> it = pendingUpdates.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>> entry = it.next();
-            if (entry.getValue().isDone()) {
-                try {
-                    ChunkMeshGenerator.RawChunkMeshResult rawResult = entry.getValue().get();
-                    ChunkMeshGenerator.ChunkMeshResult result = rawResult.upload();
-                    Chunk chunk = entry.getKey();
-
-                    // Cleanup old mesh in MAIN thread
-                    ChunkMeshGenerator.ChunkMeshResult old = chunkMeshes.get(chunk);
-                    if (old != null) {
-                        if (old.opaqueMesh != null) old.opaqueMesh.cleanup();
-                        if (old.translucentMesh != null) old.translucentMesh.cleanup();
-                    }
-
-                    chunkMeshes.put(chunk, result);
-                    chunk.setMeshUpdated(result.version);
-                    it.remove();
-                    
-                    // Limit time spent uploading to ~2ms to keep frame rate stable
-                    if (System.nanoTime() - uploadStart > 2_000_000) break;
-                } catch (Exception e) {
-                    if (!(e instanceof java.util.concurrent.CancellationException)) {
-                        e.printStackTrace();
-                    }
-                    it.remove();
-                }
-            }
-        }
-
-        // 1.5 TASK CANCELLATION
-        // Every 60 frames, clean up tasks for chunks that are too far away
-        if (frameCounter % 60 == 0) {
-            float dist = (world.getRenderDistance() + 4) * Chunk.CHUNK_SIZE;
-            final float cancelRangeSq = dist * dist;
-            Vector3f camPos = camera.getPosition();
-            
-            pendingUpdates.entrySet().removeIf(entry -> {
-                Chunk c = entry.getKey();
-                float cx = c.getPosition().x() * Chunk.CHUNK_SIZE + 8;
-                float cz = c.getPosition().z() * Chunk.CHUNK_SIZE + 8;
-                float distSq = camPos.distanceSquared(cx, camPos.y, cz);
-                
-                if (distSq > cancelRangeSq) {
-                    entry.getValue().cancel(true);
-                    return true;
-                }
-                return false;
-            });
-        }
-
-        // 2. Schedule new mesh updates (with budget)
-        int scheduledThisFrame = 0;
-        int maxScheduledPerFrame = (breakingPos != null) ? 4 : 2; // Allow faster updates when mining
-        
-        visibleChunks.clear();
         Vector3f camPos = camera.getPosition();
+        int camChunkX = (int) Math.floor(camPos.x / Chunk.CHUNK_SIZE);
+        int camChunkZ = (int) Math.floor(camPos.z / Chunk.CHUNK_SIZE);
+        int renderDist = world.getRenderDistance();
+        float yaw = camera.getRotation().y;
 
-        for (Chunk chunk : world.getLoadedChunks()) {
-            // Frustum Culling
-            float cx = chunk.getPosition().x() * Chunk.CHUNK_SIZE;
-            float cz = chunk.getPosition().z() * Chunk.CHUNK_SIZE;
+        // 0. UPDATE VISIBILITY & SORTING (only if moved/rotated)
+        boolean movedSignificantly = camPos.distanceSquared(lastSortPos) > 1.0f || Math.abs(yaw - lastSortYaw) > 5.0f;
+        
+        if (movedSignificantly || visibleChunks.isEmpty() || frameCounter % 20 == 0) {
+            visibleChunks.clear();
             
-            boolean inFrustum = frustum.testAab(cx, 0, cz, cx + Chunk.CHUNK_SIZE, Chunk.CHUNK_HEIGHT, cz + Chunk.CHUNK_SIZE);
-            if (!inFrustum) {
-                continue;
-            }
-
-            visibleChunks.add(chunk);
-            chunk.setLastSeenFrame(frameCounter);
-
-            boolean needsMesh = chunk.needsMeshUpdate() || !chunkMeshes.containsKey(chunk);
-
-            if (chunk.isReady() && needsMesh && !pendingUpdates.containsKey(chunk)) {
-                if (scheduledThisFrame < maxScheduledPerFrame) {
-                    int[] blockDataArr = com.za.zenith.utils.ArrayPool.rentBlockDataArray();
-                    byte[] lightDataArr = com.za.zenith.utils.ArrayPool.rentLightDataArray();
-                    Chunk.DataSnapshot snapshot = chunk.getSnapshot(blockDataArr, lightDataArr);
-                    long version = chunk.getDirtyCounter();
-                    
-                    // AAA Priority: closer chunks + chunks in view get much higher priority
-                    float distSq = camPos.distanceSquared(cx + 8, camPos.y, cz + 8);
-                    int priority = (int)distSq;
-                    
-                    pendingUpdates.put(chunk, meshExecutor.submit(new com.za.zenith.utils.PriorityExecutorService.PrioritizedCallable<ChunkMeshGenerator.RawChunkMeshResult>() {
-                        @Override
-                        public int getPriority() { return priority; }
+            for (int x = -renderDist; x <= renderDist; x++) {
+                for (int z = -renderDist; z <= renderDist; z++) {
+                    Chunk chunk = world.getChunk(camChunkX + x, camChunkZ + z);
+                    if (chunk != null) {
+                        float cx = chunk.getPosition().x() * Chunk.CHUNK_SIZE;
+                        float cz = chunk.getPosition().z() * Chunk.CHUNK_SIZE;
                         
-                        @Override
-                        public ChunkMeshGenerator.RawChunkMeshResult call() throws Exception {
-                            try {
-                                Chunk tempChunk = new Chunk(snapshot.position(), snapshot.blockData(), snapshot.lightData());
-                                tempChunk.setDirtyCounter(version);
-                                return ChunkMeshGenerator.generateRawMesh(tempChunk, world, atlas);
-                            } finally {
-                                com.za.zenith.utils.ArrayPool.returnBlockDataArray(snapshot.blockData());
-                                com.za.zenith.utils.ArrayPool.returnLightDataArray(snapshot.lightData());
-                            }
+                        if (frustum.testAab(cx, 0, cz, cx + Chunk.CHUNK_SIZE, Chunk.CHUNK_HEIGHT, cz + Chunk.CHUNK_SIZE)) {
+                            visibleChunks.add(chunk);
+                            chunk.setLastSeenFrame(frameCounter);
                         }
-                    }));
-                    scheduledThisFrame++;
+                    }
                 }
             }
-        }
-        
-        // Smart re-sort
-        float yaw = camera.getRotation().y;
-        if (camPos.distanceSquared(lastSortPos) > 1.0f || Math.abs(yaw - lastSortYaw) > 10.0f) {
+            
             visibleChunks.sort((c1, p2) -> {
                 float d1 = camPos.distanceSquared(c1.getPosition().x() * Chunk.CHUNK_SIZE + 8, camPos.y, c1.getPosition().z() * Chunk.CHUNK_SIZE + 8);
                 float d2 = camPos.distanceSquared(p2.getPosition().x() * Chunk.CHUNK_SIZE + 8, camPos.y, p2.getPosition().z() * Chunk.CHUNK_SIZE + 8);
                 return Float.compare(d1, d2);
             });
+            
             lastSortPos.set(camPos);
             lastSortYaw = yaw;
+        }
+
+        // 1. Process pending mesh updates
+        long uploadStart = System.nanoTime();
+        java.util.List<Map.Entry<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>>> finishedTasks = new java.util.ArrayList<>();
+        for (Map.Entry<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>> entry : pendingUpdates.entrySet()) {
+            if (entry.getValue().isDone()) finishedTasks.add(entry);
+        }
+        
+        finishedTasks.sort((e1, e2) -> {
+            float d1 = camPos.distanceSquared(e1.getKey().getPosition().x() * Chunk.CHUNK_SIZE + 8, camPos.y, e1.getKey().getPosition().z() * Chunk.CHUNK_SIZE + 8);
+            float d2 = camPos.distanceSquared(e2.getKey().getPosition().x() * Chunk.CHUNK_SIZE + 8, camPos.y, e2.getKey().getPosition().z() * Chunk.CHUNK_SIZE + 8);
+            return Float.compare(d1, d2);
+        });
+
+        for (Map.Entry<Chunk, Future<ChunkMeshGenerator.RawChunkMeshResult>> entry : finishedTasks) {
+            try {
+                ChunkMeshGenerator.RawChunkMeshResult rawResult = entry.getValue().get();
+                Chunk chunk = entry.getKey();
+                if (world.getChunk(chunk.getPosition()) != chunk) {
+                    pendingUpdates.remove(chunk);
+                    continue;
+                }
+                ChunkMeshGenerator.ChunkMeshResult result = rawResult.upload();
+                ChunkMeshGenerator.ChunkMeshResult old = chunkMeshes.get(chunk);
+                if (old != null) old.cleanup();
+                chunkMeshes.put(chunk, result);
+                chunk.setMeshUpdated(result.version());
+                pendingUpdates.remove(chunk);
+                if (System.nanoTime() - uploadStart > 2_000_000) break; 
+            } catch (Exception e) {
+                pendingUpdates.remove(entry.getKey());
+            }
+        }
+
+        // 2. Schedule new mesh updates (SPIRAL ORDER)
+        int scheduledThisFrame = 0;
+        int maxSchedule = (breakingPos != null) ? 4 : 2;
+        
+        int x = 0, z = 0, dx = 0, dz = -1;
+        int checkRadius = renderDist + 1;
+        int maxChecks = (checkRadius * 2 + 1) * (checkRadius * 2 + 1);
+
+        for (int i = 0; i < maxChecks; i++) {
+            if (scheduledThisFrame >= maxSchedule) break;
+
+            if (-checkRadius <= x && x <= checkRadius && -checkRadius <= z && z <= checkRadius) {
+                Chunk chunk = world.getChunk(camChunkX + x, camChunkZ + z);
+                if (chunk != null && chunk.isReady() && !pendingUpdates.containsKey(chunk)) {
+                    if (chunk.needsMeshUpdate() || !chunkMeshes.containsKey(chunk)) {
+                        int[] blockDataArr = com.za.zenith.utils.ArrayPool.rentBlockDataArray();
+                        byte[] lightDataArr = com.za.zenith.utils.ArrayPool.rentLightDataArray();
+                        Chunk.DataSnapshot snapshot = chunk.getSnapshot(blockDataArr, lightDataArr);
+                        long version = chunk.getDirtyCounter();
+                        
+                        float distSq = camPos.distanceSquared((camChunkX + x) * Chunk.CHUNK_SIZE + 8, camPos.y, (camChunkZ + z) * Chunk.CHUNK_SIZE + 8);
+                        
+                        pendingUpdates.put(chunk, meshExecutor.submit(new com.za.zenith.utils.PriorityExecutorService.PrioritizedCallable<ChunkMeshGenerator.RawChunkMeshResult>() {
+                            @Override public int getPriority() { return (int)distSq; }
+                            @Override public ChunkMeshGenerator.RawChunkMeshResult call() throws Exception {
+                                try {
+                                    Chunk tempChunk = new Chunk(snapshot.position(), snapshot.blockData(), snapshot.lightData());
+                                    tempChunk.setDirtyCounter(version);
+                                    return ChunkMeshGenerator.generateRawMesh(tempChunk, world, atlas);
+                                } finally {
+                                    com.za.zenith.utils.ArrayPool.returnBlockDataArray(snapshot.blockData());
+                                    com.za.zenith.utils.ArrayPool.returnLightDataArray(snapshot.lightData());
+                                }
+                            }
+                        }));
+                        scheduledThisFrame++;
+                    }
+                }
+            }
+
+            if (x == z || (x < 0 && x == -z) || (x > 0 && x == 1 - z)) {
+                int temp = dx;
+                dx = -dz;
+                dz = temp;
+            }
+            x += dx;
+            z += dz;
         }
 
         // 3. Render loaded meshes
         // Opaque: Front-to-back (already sorted)
         for (Chunk chunk : visibleChunks) {
             ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.get(chunk);
-            if (result != null && result.opaqueMesh != null) {
+            if (result != null && result.opaqueMesh() != null) {
                 modelMatrix.identity().translate(chunk.getPosition().x() * Chunk.CHUNK_SIZE, 0, chunk.getPosition().z() * Chunk.CHUNK_SIZE);
                 blockShader.setMatrix4f("model", modelMatrix);
                 blockShader.setFloat("uChunkSpawnTime", chunk.getFirstSpawnTime());
-                result.opaqueMesh.render();
+                result.opaqueMesh().render();
             }
         }
         
@@ -607,11 +605,11 @@ public class Renderer {
         for (int i = visibleChunks.size() - 1; i >= 0; i--) {
             Chunk chunk = visibleChunks.get(i);
             ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.get(chunk);
-            if (result != null && result.translucentMesh != null) {
+            if (result != null && result.translucentMesh() != null) {
                 modelMatrix.identity().translate(chunk.getPosition().x() * Chunk.CHUNK_SIZE, 0, chunk.getPosition().z() * Chunk.CHUNK_SIZE);
                 blockShader.setMatrix4f("model", modelMatrix);
                 blockShader.setFloat("uChunkSpawnTime", chunk.getFirstSpawnTime());
-                result.translucentMesh.render();
+                result.translucentMesh().render();
             }
         }
         glDepthMask(true);
@@ -1061,16 +1059,15 @@ public class Renderer {
 
     private void updateChunkMesh(Chunk chunk, World world) {
         ChunkMeshGenerator.ChunkMeshResult old = chunkMeshes.get(chunk);
-        if (old != null) { if (old.opaqueMesh != null) old.opaqueMesh.cleanup(); if (old.translucentMesh != null) old.translucentMesh.cleanup(); }
+        if (old != null) { old.cleanup(); }
         ChunkMeshGenerator.ChunkMeshResult res = ChunkMeshGenerator.generateMesh(chunk, world, atlas);
         chunkMeshes.put(chunk, res);
-        chunk.setMeshUpdated(res.version);
+        chunk.setMeshUpdated(res.version());
     }
 
     public void rebuildAllChunks() {
         for (var r : chunkMeshes.values()) {
-            if (r.opaqueMesh != null) r.opaqueMesh.cleanup();
-            if (r.translucentMesh != null) r.translucentMesh.cleanup();
+            r.cleanup();
         }
         chunkMeshes.clear();
         blockMeshCache.values().forEach(Mesh::cleanup);
@@ -1098,7 +1095,7 @@ public class Renderer {
 
         persistentHoleCache.values().forEach(Mesh::cleanup);
         persistentHoleCache.clear();
-        for (var r : chunkMeshes.values()) { if (r.opaqueMesh != null) r.opaqueMesh.cleanup(); if (r.translucentMesh != null) r.translucentMesh.cleanup(); }
+        for (var r : chunkMeshes.values()) { r.cleanup(); }
         if (msaaFramebuffer != null) msaaFramebuffer.cleanup();
         if (resolveFramebuffer != null) resolveFramebuffer.cleanup();
         if (postProcessor != null) postProcessor.cleanup();

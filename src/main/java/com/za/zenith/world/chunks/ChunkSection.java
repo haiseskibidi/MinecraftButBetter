@@ -1,35 +1,42 @@
 package com.za.zenith.world.chunks;
 
-import com.za.zenith.world.blocks.Block;
 import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class ChunkSection {
-    public static final int SIZE = 16;
-    private final int[] blockData; // (type << 8) | metadata
-    private final byte[] lightData; // (sunlight << 4) | blocklight
-    private long dirtyCounter = 0;
+    public static final int SECTION_SIZE = 16;
+    public static final int SECTION_VOLUME = SECTION_SIZE * SECTION_SIZE * SECTION_SIZE;
+    
+    private final short[] blockIndices;
+    private final byte[] lightData;
+    private int nonEmptyBlockCount;
+    private final AtomicLong dirtyCounter = new AtomicLong(0);
     private long lastMeshCounter = -1;
-    private final int yOffset;
-
-    public ChunkSection(int yOffset) {
-        this.yOffset = yOffset;
-        this.blockData = new int[SIZE * SIZE * SIZE];
-        this.lightData = new byte[SIZE * SIZE * SIZE];
+    
+    public ChunkSection() {
+        this.blockIndices = new short[SECTION_VOLUME];
+        this.lightData = new byte[SECTION_VOLUME];
+        this.nonEmptyBlockCount = 0;
     }
-
+    
     private int getIndex(int x, int y, int z) {
-        return (y & 15) * (SIZE * SIZE) + z * SIZE + x;
+        return y * (SECTION_SIZE * SECTION_SIZE) + z * SECTION_SIZE + x;
     }
-
-    public int getBlockData(int x, int y, int z) {
-        return blockData[getIndex(x, y, z)];
+    
+    public short getBlockIndex(int x, int y, int z) {
+        return blockIndices[getIndex(x, y, z)];
     }
-
-    public void setBlockData(int x, int y, int z, int data) {
-        blockData[getIndex(x, y, z)] = data;
-        dirtyCounter++;
+    
+    public void setBlockIndex(int x, int y, int z, short index, boolean wasAir, boolean isAir) {
+        blockIndices[getIndex(x, y, z)] = index;
+        if (wasAir && !isAir) {
+            nonEmptyBlockCount++;
+        } else if (!wasAir && isAir) {
+            nonEmptyBlockCount--;
+        }
+        markDirty();
     }
-
+    
     public int getSunlight(int x, int y, int z) {
         return (lightData[getIndex(x, y, z)] >> 4) & 0xF;
     }
@@ -37,7 +44,7 @@ public class ChunkSection {
     public void setSunlight(int x, int y, int z, int level) {
         int idx = getIndex(x, y, z);
         lightData[idx] = (byte) ((lightData[idx] & 0x0F) | ((level & 0xF) << 4));
-        dirtyCounter++;
+        markDirty();
     }
 
     public int getBlockLight(int x, int y, int z) {
@@ -47,24 +54,42 @@ public class ChunkSection {
     public void setBlockLight(int x, int y, int z, int level) {
         int idx = getIndex(x, y, z);
         lightData[idx] = (byte) ((lightData[idx] & 0xF0) | (level & 0xF));
-        dirtyCounter++;
+        markDirty();
+    }
+    
+    public boolean isEmpty() {
+        return nonEmptyBlockCount == 0;
+    }
+    
+    public long getDirtyCounter() {
+        return dirtyCounter.get();
+    }
+    
+    public void markDirty() {
+        dirtyCounter.incrementAndGet();
+    }
+    
+    public boolean needsMeshUpdate() {
+        return dirtyCounter.get() != lastMeshCounter;
+    }
+    
+    public void setMeshUpdated(long version) {
+        this.lastMeshCounter = version;
+    }
+    
+    public void setNeedsMeshUpdate(boolean needsUpdate) {
+        if (needsUpdate) markDirty();
     }
 
-    public long getDirtyCounter() { return dirtyCounter; }
-    public long getLastMeshCounter() { return lastMeshCounter; }
-    public void setMeshUpdated(long version) { this.lastMeshCounter = version; }
-    public boolean needsMeshUpdate() { return dirtyCounter != lastMeshCounter; }
+    public short[] getBlockIndices() {
+        return blockIndices;
+    }
+
+    public byte[] getLightData() {
+        return lightData;
+    }
     
-    public int getYOffset() { return yOffset; }
-
-    public int[] getRawBlockData() { return blockData; }
-    public byte[] getRawLightData() { return lightData; }
-
-    public void markDirty() { dirtyCounter++; }
-
-    // Optimization: check if section is completely air to skip meshing
-    public boolean isEmpty() {
-        for (int b : blockData) if (b != 0) return false;
-        return true;
+    public void fillLightData(byte[] data, int sourceOffset) {
+        System.arraycopy(data, sourceOffset, this.lightData, 0, SECTION_VOLUME);
     }
 }

@@ -44,7 +44,17 @@ public class World {
             return t;
         }
     );
+    private final com.za.zenith.utils.PriorityExecutorService lightExecutor = new com.za.zenith.utils.PriorityExecutorService(
+        Math.min(2, Math.max(1, Runtime.getRuntime().availableProcessors() / 4)),
+        r -> {
+            Thread t = new Thread(r, "LightGenerator");
+            t.setDaemon(true);
+            t.setPriority(Thread.MIN_PRIORITY);
+            return t;
+        }
+    );
     private final Map<Long, Future<?>> generatingChunks = new ConcurrentHashMap<>();
+    private final Map<Long, Future<?>> lightingChunks = new ConcurrentHashMap<>();
     private final List<java.util.function.Consumer<Chunk>> unloadListeners = new CopyOnWriteArrayList<>();
 
     public void addUnloadListener(java.util.function.Consumer<Chunk> listener) {
@@ -91,9 +101,15 @@ public class World {
         return getChunkInternal(pos.x(), pos.z());
     }
 
+    public int getHighestBlock(int x, int z) {
+        Chunk chunk = getChunkInternal(x >> 4, z >> 4);
+        if (chunk == null) return 0;
+        return chunk.getHighestBlock(x & 15, z & 15);
+    }
+
     public int getRawBlockData(int x, int y, int z) {
         if (y < 0 || y >= Chunk.CHUNK_HEIGHT) return 0;
-        Chunk chunk = getChunk(x >> 4, z >> 4);
+        Chunk chunk = getChunkInternal(x >> 4, z >> 4);
         if (chunk == null) return 0;
         return chunk.getRawBlockData(x & 15, y, z & 15);
     }
@@ -243,13 +259,23 @@ public class World {
             lastPlayerChunkX = currentChunkX;
             lastPlayerChunkZ = currentChunkZ;
 
-            for (int cx = currentChunkX - renderDistance; cx <= currentChunkX + renderDistance; cx++) {
-                for (int cz = currentChunkZ - renderDistance; cz <= currentChunkZ + renderDistance; cz++) {
-                    long packed = ChunkPos.pack(cx, cz);
+            // SPIRAL LOADING: Build a list of chunks in a radial spiral from player
+            int x = 0, z = 0, dx = 0, dz = -1;
+            int maxChunks = (renderDistance * 2 + 1) * (renderDistance * 2 + 1);
+            for (int i = 0; i < maxChunks; i++) {
+                if (-renderDistance <= x && x <= renderDistance && -renderDistance <= z && z <= renderDistance) {
+                    long packed = ChunkPos.pack(currentChunkX + x, currentChunkZ + z);
                     if (!chunks.containsKey(packed) && !generatingChunks.containsKey(packed)) {
                         pendingChunkQueue.add(packed);
                     }
                 }
+                if (x == z || (x < 0 && x == -z) || (x > 0 && x == 1 - z)) {
+                    int temp = dx;
+                    dx = -dz;
+                    dz = temp;
+                }
+                x += dx;
+                z += dz;
             }
 
             // Unload chunks outside unloadDistance and cancel their generation tasks
@@ -284,7 +310,10 @@ public class World {
                 int cz = ChunkPos.unpackZ(packed);
                 return Math.abs(cx - currentChunkX) > renderDistance || Math.abs(cz - currentChunkZ) > renderDistance;
             });
+        }
 
+        if (!pendingChunkQueue.isEmpty()) {
+            // Sort queue by current distance every tick
             List<Long> sortedPending = new ArrayList<>(pendingChunkQueue);
             sortedPending.sort((p1, p2) -> {
                 int x1 = ChunkPos.unpackX(p1), z1 = ChunkPos.unpackZ(p1);
@@ -295,49 +324,39 @@ public class World {
             });
             pendingChunkQueue.clear();
             pendingChunkQueue.addAll(sortedPending);
-        }
 
-        if (!pendingChunkQueue.isEmpty()) {
             int submittedThisTick = 0;
+            // Backpressure for generation
+            int maxConcurrentGen = chunkGenExecutor.getCorePoolSize() * 2;
+            int canSubmitGen = Math.max(0, maxConcurrentGen - generatingChunks.size());
+            
             java.util.Iterator<Long> it = pendingChunkQueue.iterator();
-            while (it.hasNext() && submittedThisTick < 4) {
+            while (it.hasNext() && submittedThisTick < canSubmitGen) {
                 long packedPos = it.next();
                 it.remove();
-                if (!chunks.containsKey(packedPos) && !stagingChunks.containsKey(packedPos) && !generatingChunks.containsKey(packedPos)) {
+                
+                if (!chunks.containsKey(packedPos) && !generatingChunks.containsKey(packedPos) && !lightingChunks.containsKey(packedPos)) {
                     int cx = ChunkPos.unpackX(packedPos);
                     int cz = ChunkPos.unpackZ(packedPos);
-                    int priority = (int)(Math.sqrt((cx - currentChunkX)*(cx - currentChunkX) + (cz - currentChunkZ)*(cz - currentChunkZ)) * 10);
-
+                    
                     Future<?> future = chunkGenExecutor.submit(new com.za.zenith.utils.PriorityExecutorService.PrioritizedRunnable() {
-                        @Override
-                        public int getPriority() { return priority; }
+                        @Override public int getPriority() { 
+                            if (player == null) return 0;
+                            int px = (int) Math.floor(player.getPosition().x / Chunk.CHUNK_SIZE);
+                            int pz = (int) Math.floor(player.getPosition().z / Chunk.CHUNK_SIZE);
+                            return (cx - px)*(cx - px) + (cz - pz)*(cz - pz);
+                        }
 
-                        @Override
-                        public void run() {
+                        @Override public void run() {
                             try {
-                                ChunkPos pos = new ChunkPos(cx, cz);
-                                Chunk chunk = new Chunk(pos);
-
+                                Chunk chunk = stagingChunks.get(packedPos);
+                                if (chunk == null) chunk = new Chunk(new ChunkPos(cx, cz));
                                 terrainGenerator.generateTerrain(chunk);
-
                                 stagingChunks.put(packedPos, chunk);
-                                terrainGenerator.generateStructures(World.this, chunk);
-                                lightEngine.generateInitialSunlight(chunk);
-
-                                chunk.setReady(true);
-                                chunk.setNeedsMeshUpdate(true);
-
-                                lightEngine.onChunkReady(chunk);
-                                com.za.zenith.world.lighting.LightManager.onChunkLoad(chunk);
-
-                                chunks.put(packedPos, chunk);
-                                stagingChunks.remove(packedPos);
+                                
+                                // Chain to lighting
+                                submitLightingTask(packedPos, chunk);
                             } catch (Exception e) {
-                                if (!(e instanceof java.util.concurrent.CancellationException)) {
-                                    com.za.zenith.utils.Logger.error("Error generating chunk at %d, %d: %s", cx, cz, e.getMessage());
-                                }
-                                stagingChunks.remove(packedPos);
-                            } finally {
                                 generatingChunks.remove(packedPos);
                             }
                         }
@@ -347,6 +366,39 @@ public class World {
                 }
             }
         }
+    }
+
+    private void submitLightingTask(long packedPos, Chunk chunk) {
+        int cx = chunk.getPosition().x();
+        int cz = chunk.getPosition().z();
+        
+        Future<?> future = lightExecutor.submit(new com.za.zenith.utils.PriorityExecutorService.PrioritizedRunnable() {
+            @Override public int getPriority() {
+                if (player == null) return 0;
+                int px = (int) Math.floor(player.getPosition().x / Chunk.CHUNK_SIZE);
+                int pz = (int) Math.floor(player.getPosition().z / Chunk.CHUNK_SIZE);
+                return (cx - px)*(cx - px) + (cz - pz)*(cz - pz);
+            }
+
+            @Override public void run() {
+                try {
+                    terrainGenerator.generateStructures(World.this, chunk);
+                    lightEngine.generateInitialSunlight(chunk);
+                    chunk.setReady(true);
+                    chunk.setNeedsMeshUpdate(true);
+                    lightEngine.onChunkReady(chunk);
+                    com.za.zenith.world.lighting.LightManager.onChunkLoad(chunk);
+                    chunks.put(packedPos, chunk);
+                } catch (Exception e) {
+                    com.za.zenith.utils.Logger.error("Lighting error: " + e.getMessage());
+                } finally {
+                    stagingChunks.remove(packedPos);
+                    generatingChunks.remove(packedPos);
+                    lightingChunks.remove(packedPos);
+                }
+            }
+        });
+        lightingChunks.put(packedPos, future);
     }
 
     public int getFastSurfaceColor(int x, int z) {
@@ -626,29 +678,24 @@ public class World {
     public void setBlockDuringGen(int x, int y, int z, Block block) {
         long packed = ChunkPos.pack(x >> 4, z >> 4);
         Chunk chunk = chunks.get(packed);
-        boolean inMainWorld = (chunk != null);
-        if (chunk == null) chunk = stagingChunks.get(packed); // Check staging if not in main world yet
+        if (chunk == null) chunk = stagingChunks.get(packed);
+        
+        // Neighbor creation: ensure neighbor chunk exists to receive blocks from current generation
+        if (chunk == null) {
+            chunk = new Chunk(new ChunkPos(x >> 4, z >> 4));
+            stagingChunks.put(packed, chunk);
+        }
 
-        if (chunk != null) {
-            chunk.setBlock(x & 15, y, z & 15, block);
+        chunk.setBlock(x & 15, y, z & 15, block);
 
-            // If we are modifying an ALREADY ready chunk (e.g. tree leaves growing into neighbors),
-            // we MUST update lighting, otherwise it creates inconsistent light states.
-            if (inMainWorld || chunk.isReady()) {
-                lightEngine.onBlockChanged(new BlockPos(x, y, z));
-            }
-
-            com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
-            if (def.hasBlockEntity()) {
-                BlockPos pos = new BlockPos(x, y, z);
-                com.za.zenith.world.blocks.entity.BlockEntity be = def.createBlockEntity(pos);
-                if (be != null) {
-                    be.setWorld(this);
-                    blockEntities.put(pos, be);
-                    if (be instanceof ITickable) {
-                        tickableBlockEntities.add((ITickable) be);
-                    }
-                }
+        com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
+        if (def != null && def.hasBlockEntity()) {
+            BlockPos pos = new BlockPos(x, y, z);
+            com.za.zenith.world.blocks.entity.BlockEntity be = def.createBlockEntity(pos);
+            if (be != null) {
+                be.setWorld(this);
+                blockEntities.put(pos, be);
+                if (be instanceof ITickable) tickableBlockEntities.add((ITickable) be);
             }
         }
     }
