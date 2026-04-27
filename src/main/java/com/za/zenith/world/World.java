@@ -144,14 +144,26 @@ public class World {
         return blockDamageMap;
     }
 
-    private long packBlockPos(int x, int y, int z) {
+    public static long packBlockPos(int x, int y, int z) {
         return ((long) x & 0x3FFFFFFL) << 38 | ((long) y & 0x3FFL) << 28 | ((long) z & 0x3FFFFFFL);
     }
-    
-    private int unpackBlockX(long packed) { return (int) (packed >> 38); }
-    private int unpackBlockY(long packed) { return (int) ((packed >> 28) & 0x3FF); }
-    private int unpackBlockZ(long packed) { return (int) (packed & 0x3FFFFFFL); }
 
+    public static int unpackBlockX(long packed) {
+        long x = (packed >> 38) & 0x3FFFFFFL;
+        if ((x & 0x2000000L) != 0) x |= 0xFFFFFFFFFF000000L;
+        return (int) x;
+    }
+
+    public static int unpackBlockY(long packed) {
+        return (int) ((packed >> 28) & 0x3FFL);
+    }
+
+    public static int unpackBlockZ(long packed) {
+        long z = packed & 0x3FFFFFFL;
+        if ((z & 0x2000000L) != 0) z |= 0xFFFFFFFFFF000000L;
+        return (int) z;
+    }
+    
     private Player player;
     private final TerrainGenerator terrainGenerator;
     private final com.za.zenith.world.generation.BiomeGenerator biomeGenerator;

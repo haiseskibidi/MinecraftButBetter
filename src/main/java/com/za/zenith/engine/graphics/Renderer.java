@@ -418,11 +418,9 @@ public class Renderer {
 
         // Collect all positions from damage map to hide them in chunk mesh
         java.util.Set<Long> damagedPositions = world.getBlockDamageMap().keySet();
-        int hiddenCount = Math.min(damagedPositions.size(), 16);
-        blockShader.setInt("uHiddenCount", hiddenCount);
         
         int idx = 0;
-        // PRIORITY: Always hide active breaking block first to ensure it's NEVER skipped due to 16-limit
+        // PRIORITY: Always hide active breaking block first
         if (breakingPos != null) {
             blockShader.setVector3f("uHiddenPositions[0]", (float)breakingPos.x(), (float)breakingPos.y(), (float)breakingPos.z());
             idx = 1;
@@ -430,9 +428,9 @@ public class Renderer {
 
         for (long packedPos : damagedPositions) {
             if (idx >= 16) break;
-            int bx = (int) (packedPos >> 38);
-            int by = (int) ((packedPos >> 28) & 0x3FF);
-            int bz = (int) (packedPos & 0x3FFFFFFL);
+            int bx = com.za.zenith.world.World.unpackBlockX(packedPos);
+            int by = com.za.zenith.world.World.unpackBlockY(packedPos);
+            int bz = com.za.zenith.world.World.unpackBlockZ(packedPos);
             
             if (breakingPos != null && bx == breakingPos.x() && by == breakingPos.y() && bz == breakingPos.z()) continue; 
             
@@ -440,11 +438,8 @@ public class Renderer {
             idx++;
         }
         
-        // Update actual count if it's less than expected
-        if (idx < hiddenCount) {
-            hiddenCount = idx;
-            blockShader.setInt("uHiddenCount", hiddenCount);
-        }
+        int hiddenCount = idx;
+        blockShader.setInt("uHiddenCount", hiddenCount);
 
         blockShader.setBoolean("useMask", false);
         blockShader.setBoolean("previewPass", false);
@@ -676,7 +671,8 @@ public class Renderer {
         
         // 1. Cleanup stale meshes
         persistentHoleCache.keySet().removeIf(pos -> {
-            if (!world.getBlockDamageMap().containsKey(pos)) {
+            long packed = com.za.zenith.world.World.packBlockPos(pos.x(), pos.y(), pos.z());
+            if (!world.getBlockDamageMap().containsKey(packed)) {
                 Mesh m = persistentHoleCache.get(pos);
                 if (m != null) m.cleanup();
                 return true;
@@ -685,7 +681,8 @@ public class Renderer {
         });
 
         proxyMeshCache.keySet().removeIf(pos -> {
-            if (!world.getBlockDamageMap().containsKey(pos)) {
+            long packed = com.za.zenith.world.World.packBlockPos(pos.x(), pos.y(), pos.z());
+            if (!world.getBlockDamageMap().containsKey(packed)) {
                 Mesh m = proxyMeshCache.get(pos);
                 if (m != null) m.cleanup();
                 return true;
@@ -696,9 +693,9 @@ public class Renderer {
         // 2. Render all damaged blocks and their holes
         for (Map.Entry<Long, World.BlockDamageInstance> entry : world.getBlockDamageMap().entrySet()) {
             long packed = entry.getKey();
-            int bx = (int) (packed >> 38);
-            int by = (int) ((packed >> 28) & 0x3FF);
-            int bz = (int) (packed & 0x3FFFFFFL);
+            int bx = com.za.zenith.world.World.unpackBlockX(packed);
+            int by = com.za.zenith.world.World.unpackBlockY(packed);
+            int bz = com.za.zenith.world.World.unpackBlockZ(packed);
             com.za.zenith.world.BlockPos pos = new com.za.zenith.world.BlockPos(bx, by, bz);
 
             // Skip current breaking block as it has its own special rendering
@@ -718,7 +715,7 @@ public class Renderer {
             if (hole != null) {
                 blockShader.setBoolean("uIsProxy", false);
                 blockShader.setInt("uHiddenCount", 0); // Temporary disable discard to show hole
-                modelMatrix.identity().translate(pos.x(), pos.y(), pos.z());
+                modelMatrix.identity().translate(pos.x() + 0.5f, pos.y(), pos.z() + 0.5f);
                 blockShader.setMatrix4f("model", modelMatrix);
                 
                 // Sync rising animation for persistent holes
@@ -726,6 +723,7 @@ public class Renderer {
                 if (c != null) blockShader.setFloat("uChunkSpawnTime", c.getFirstSpawnTime());
 
                 hole.render();
+                blockShader.setInt("uHiddenCount", hiddenCount); // RESTORE hidden count
             }
 
             // 2b. Render Proxy Mesh (The block itself with cracks)
