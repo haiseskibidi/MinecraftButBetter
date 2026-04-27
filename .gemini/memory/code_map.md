@@ -49,21 +49,21 @@
 
 ### com.za.zenith.engine.graphics
 - **Mesh.java**: Обертка над GPU-ресурсами. Поддерживает **Packed Interleaved VBO** (16 float на вершину) для максимальной кэш-эффективности.
-- **Renderer.java (Zenith v4.0)**: Главный контроллер отрисовки. Реализует **Draw Call Batching** (~400 вызовов на кадр), радиальную спиральную прогрузку и бюджетное управление передачей мешей.
+- **Renderer.java (Zenith v1.0)**: Главный контроллер отрисовки. Реализует **Draw Call Batching** (~400 вызовов на кадр), радиальную спиральную прогрузку и бюджетное управление передачей мешей.
 - **SkyRenderer.java**: Рендерер небесных тел. Отрисовывает Солнце и Луну как билборды.
 - **SkySettings.java**: Конфигурация параметров неба.
 
 ### com.za.zenith.world.chunks
-- **Chunk.java (Zenith v4.0)**: Контейнер данных. Поддерживает **консолидированные меши** (один на чанк), синхронизированную палитру и Lock-free чтение.
+- **Chunk.java (Zenith v1.0)**: Контейнер данных. Поддерживает **консолидированные меши** (один на чанк), синхронизированную палитру и Lock-free чтение.
 - **ChunkSection.java**: Подраздел чанка (16x16x16) для пространственной фильтрации.
-- **ChunkMeshGenerator.java (Zenith v4.0)**: Реализует **Greedy Mesh Merging** (объединение всех секций в один VBO).
+- **ChunkMeshGenerator.java (Zenith v1.0)**: Реализует **Greedy Mesh Merging** (объединение всех секций в один VBO).
 
 ### com.za.zenith.world.lighting
-- **LightEngine.java (v3.0)**: Движок освещения. Реализует **Async Stage 4** (асинхронный расчет света в отдельном потоке). 
+- **LightEngine.java (v1.0)**: Движок освещения. Реализует **Async Stage 4** (асинхронный расчет света в отдельном потоке). 
 - **WorldSettings.java**: Контейнер настроек освещения и времени.
 
 ### com.za.zenith.world
-### com.za.zenith.world.World (UPDATED Zenith v4.0)
+### com.za.zenith.world.World (UPDATED Zenith v1.0)
 Назначение: Управление состоянием мира и сущностями.
 Функции: 
 - **Async Pipeline**: Управление асинхронным конвейером (`chunkGenExecutor`, `lightExecutor`). 
@@ -71,7 +71,7 @@
 - **Zero-Allocation**: Оптимизирован цикл обновления (`update`) — устранены все аллокации векторов и объектов. 
 - **L1 Chunk Cache**: Ускоренный доступ к данным чанков.
 
-### com.za.zenith.entities.ItemEntity (UPDATED Zenith v4.0)
+### com.za.zenith.entities.ItemEntity (UPDATED Zenith v1.0)
 Назначение: Выпавшие игровые предметы.
 Функции: 
 - **Spatial Merging**: Слияние предметов через `world.getItemsInChunk()` ($O(1)$).
@@ -126,14 +126,28 @@
     - `HUDRenderer.java`: Отрисовка HUD. Реализована полная поддержка `hud.json` и динамическое масштабирование имен предметов.
     - `InventoryScreenRenderer.java`: Отрисовка инвентарей. Исправлено цветовое кодирование отрицательных статов в тултипах.
 
-## World Generation (v2.0 UPDATED)
+## World Generation (v4.0 UPDATED)
+### com.za.zenith.world.generation.density
+- **DensityFunction.java**: (NEW) Базовый интерфейс узла графа плотности.
+- **DensityFunctionParser.java**: (NEW) Парсер JSON-конфигов в дерево объектов AST.
+- **DensityFunctionRegistry.java**: (NEW) Хранилище загруженных JSON-элементов функций.
+- **NoiseRouter.java**: (NEW) Оркестратор. Владеет корнем дерева `final_density` и предоставляет метод `getDensity(ctx)`.
+- **functions/**: (NEW) Набор математических узлов (`Add`, `Mul`, `Spline`, `Terrace`, `Noise`, `Abs`, `Square` и т.д.).
+
 ### com.za.zenith.world.generation
-- **BiomeDefinition.java**: (UPDATED) Модель данных биома. Поддерживает список `ClimatePoint` для 5D маппинга и легаси-поля для обратной совместимости.
-- **BiomeGenerator.java**: (UPDATED) Ядро климатической системы. Использует 5 слоев шума (Temp, Hum, Cont, Eros, Weir). Внедрен метод `getClimateParams` для оптимизированного сэмплирования углов чанка и `getBiomeFromParams` для выбора биома по интерполированным значениям.
-- **SimplexNoise.java**: Генератор шума Перлина/Симплекс.
+- **BiomeDefinition.java**: (UPDATED) Модель данных биома. Уточнены веса параметров климата.
+- **BiomeGenerator.java**: (UPDATED) Ядро климата. Переведено на 5-октавный фрактальный шум. Реализует честный 5D-поиск биома.
+- **SimplexNoise.java**: (UPDATED) Добавлена поддержка лакунарности в `octaveNoise`.
 
 ### com.za.zenith.world.generation.pipeline.steps
-- **TerrainStep.java**: (UPDATED) Генератор рельефа. Реализует **Interpolated Parameter Sampling**: вычисляет 5 параметров климата только по углам чанка (16x16) и интерполирует их для каждой колонки. Это гарантирует плавность переходов и снижает нагрузку на CPU. Рельеф напрямую зависит от `continentalness` и `erosion`.
+- **TerrainStep.java**: (UPDATED) Генератор рельефа. Полностью переведен на использование `NoiseRouter` и Density Functions. Реализует 3D-интерполяцию плотности по сетке 4x4x4.
+
+### com.za.zenith.world.generation.zones
+- **ZoneManager.java**: (UPDATED) Управление макро-зонами. Частота смены увеличена в 10 раз, добавлен детерминизм через сортировку.
+- **ZoneRegistry.java**: Реестр температурных зон.
+
+### com.za.zenith.utils
+- **SplineInterpolator.java**: Утилита для линейной интерполяции по набору произвольных точек. Используется в `SplineFunction`.
 
 ## Entity System (v5.6 NEW)
 ### com.za.zenith.entities.Entity (UPDATED)
