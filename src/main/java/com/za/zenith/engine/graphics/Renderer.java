@@ -479,7 +479,7 @@ public class Renderer {
         float yaw = camera.getRotation().y;
 
         // 0. UPDATE VISIBILITY & SORTING (only if moved/rotated)
-        boolean movedSignificantly = camPos.distanceSquared(lastSortPos) > 1.0f || Math.abs(yaw - lastSortYaw) > 5.0f;
+        boolean movedSignificantly = camPos.distanceSquared(lastSortPos) > 4.0f || Math.abs(yaw - lastSortYaw) > 10.0f;
         
         if (movedSignificantly || visibleChunks.isEmpty() || frameCounter % 20 == 0) {
             visibleChunks.clear();

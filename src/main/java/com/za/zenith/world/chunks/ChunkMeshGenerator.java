@@ -115,8 +115,11 @@ public class ChunkMeshGenerator {
         }
 
         void clear() {
-            interleavedData.clear();
-            indices.clear();
+            // Memory Guard: Shrink buffers if they grew too large (e.g. after a very complex chunk)
+            // 128k elements * 4 bytes = 512KB per buffer. 
+            // Total ~1MB per thread, which is fine.
+            interleavedData.clear(128 * 1024);
+            indices.clear(128 * 1024);
             vertexIndex = 0;
         }
 

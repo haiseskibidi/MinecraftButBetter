@@ -22,6 +22,10 @@ public class LightEngine {
     private final AtomicBoolean isProcessing = new AtomicBoolean(false);
 
     public void enqueueLightUpdate(BlockPos pos) {
+        // Queue Guard: prevent RAM explosion during ultra-fast terrain generation
+        if (updateQueue.size() > 16384) {
+            updateQueue.clear();
+        }
         updateQueue.offer(pos);
         if (isProcessing.compareAndSet(false, true)) {
             submitProcessTask();

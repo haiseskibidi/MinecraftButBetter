@@ -296,6 +296,14 @@ public class World {
                 if (remove) {
                     Chunk chunk = entry.getValue();
                     com.za.zenith.world.lighting.LightManager.onChunkUnload(chunk);
+                    
+                    // Clear damage info for this chunk
+                    int minX = cx * Chunk.CHUNK_SIZE;
+                    int minZ = cz * Chunk.CHUNK_SIZE;
+                    int maxX = minX + Chunk.CHUNK_SIZE;
+                    int maxZ = minZ + Chunk.CHUNK_SIZE;
+                    blockDamageMap.keySet().removeIf(pos -> pos.x() >= minX && pos.x() < maxX && pos.z() >= minZ && pos.z() < maxZ);
+
                     for (java.util.function.Consumer<Chunk> listener : unloadListeners) {
                         listener.accept(chunk);
                     }
@@ -312,6 +320,27 @@ public class World {
                     return true;
                 }
                 return false;
+            });
+
+            lightingChunks.entrySet().removeIf(entry -> {
+                long packed = entry.getKey();
+                int cx = ChunkPos.unpackX(packed);
+                int cz = ChunkPos.unpackZ(packed);
+                if (Math.abs(cx - currentChunkX) > unloadDistance || Math.abs(cz - currentChunkZ) > unloadDistance) {
+                    entry.getValue().cancel(true);
+                    return true;
+                }
+                return false;
+            });
+
+            stagingChunks.keySet().removeIf(packed -> {
+                int cx = ChunkPos.unpackX(packed);
+                int cz = ChunkPos.unpackZ(packed);
+                return Math.abs(cx - currentChunkX) > unloadDistance || Math.abs(cz - currentChunkZ) > unloadDistance;
+            });
+
+            itemSpatialMap.keySet().removeIf(pos -> {
+                return Math.abs(pos.x() - currentChunkX) > unloadDistance || Math.abs(pos.z() - currentChunkZ) > unloadDistance;
             });
 
             pendingChunkQueue.removeIf(packed -> {
@@ -333,7 +362,10 @@ public class World {
                     return Integer.compare(d1, d2);
                 });
                 pendingChunkQueue.clear();
-                pendingChunkQueue.addAll(sortedPending);
+                // Limit queue size to prevent RAM explosion during ultra-fast flight
+                for (int i = 0; i < Math.min(sortedPending.size(), 512); i++) {
+                    pendingChunkQueue.add(sortedPending.get(i));
+                }
                 lastSortPos.set(player.getPosition());
             }
 
@@ -480,6 +512,16 @@ public class World {
                 }
                 entities.remove(i);
                 continue;
+            }
+
+            // SIMULATION DISTANCE GUARD: Remove distant entities (except player)
+            if (player != null && entity != player) {
+                float edx = px - entity.getPosition().x;
+                float edz = pz - entity.getPosition().z;
+                if (edx * edx + edz * edz > 320 * 320) { // 20 chunks radius
+                    entity.setRemoved();
+                    continue;
+                }
             }
 
             entity.update(deltaTime, this);
