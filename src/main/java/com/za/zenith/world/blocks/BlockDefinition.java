@@ -74,7 +74,7 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
     private boolean canSupportScavenge = false;
     @SerializedName("fellingStages")
     private int fellingStages = 0;
-    @SerializedName("nextStage")
+    @SerializedName("next_stage")
     private Identifier nextStage = null;
     @SerializedName("alwaysRender")
     private boolean alwaysRender = false;

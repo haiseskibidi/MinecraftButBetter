@@ -31,7 +31,11 @@ public class StructureTemplate {
                     int blockId = blocks[y][z][x];
                     // -1 означает "не заменять блок" (игнорировать)
                     if (blockId != -1) {
-                        world.setBlockDuringGen(startX + x, startY + y, startZ + z, new com.za.zenith.world.blocks.Block(blockId));
+                        // КРИТИЧЕСКИ ВАЖНО: Добавляем флаг BIT_NATURAL для всех блоков, генерируемых миром.
+                        // Это необходимо для работы Treecapitator и других механик, зависящих от "природности" блока.
+                        com.za.zenith.world.blocks.Block block = new com.za.zenith.world.blocks.Block(blockId);
+                        block.setMetadata(com.za.zenith.world.blocks.Block.BIT_NATURAL);
+                        world.setBlockDuringGen(startX + x, startY + y, startZ + z, block);
                     }
                 }
             }

@@ -62,24 +62,27 @@ public class BlockTextureMapper {
         
         // --- Логика универсальных стадий срубания ---
         if (def instanceof FellingLogBlockDefinition) {
-            int woodIndex = block.getMetadata() & 0x7F; // Игнорируем функциональные флаги (BIT_NATURAL)
+            int metadata = block.getMetadata();
+            int woodIndex = metadata & 0x7F; // Игнорируем функциональные флаги (BIT_NATURAL)
             Identifier logId = WoodTypeRegistry.getLogId(woodIndex);
             
             // Ищем stripped версию блока в реестре
             Identifier strippedId = Identifier.of(logId.getNamespace(), "stripped_" + logId.getPath());
             BlockDefinition strippedDef = BlockRegistry.getBlock(strippedId);
+            BlockDefinition targetDef = (strippedDef != null) ? strippedDef : BlockRegistry.getBlock(logId);
             
-            if (strippedDef != null) {
-                BlockTextures strippedTextures = BlockRegistry.getTextures(strippedDef.getId());
-                if (strippedTextures != null) {
-                    return (face == 4 || face == 5) ? strippedTextures.getTop() : strippedTextures.getNorth();
+            if (targetDef != null) {
+                BlockTextures targetTextures = BlockRegistry.getTextures(targetDef.getId());
+                if (targetTextures != null) {
+                    byte meta = (byte)(metadata & 0x07);
+                    String cap = targetTextures.getTop();
+                    String side = targetTextures.getNorth();
+                    
+                    if (meta == Block.DIR_UP || meta == Block.DIR_DOWN) return (face == 4 || face == 5) ? cap : side;
+                    if (meta == Block.DIR_EAST || meta == Block.DIR_WEST) return (face == 2 || face == 3) ? cap : side;
+                    if (meta == Block.DIR_NORTH || meta == Block.DIR_SOUTH) return (face == 0 || face == 1) ? cap : side;
+                    return side;
                 }
-            }
-            
-            // Если не нашли stripped, используем оригинальное бревно (лучше чем земля или весь атлас)
-            BlockTextures originalTextures = BlockRegistry.getTextures(BlockRegistry.getBlock(logId).getId());
-            if (originalTextures != null) {
-                return (face == 4 || face == 5) ? originalTextures.getTop() : originalTextures.getNorth();
             }
         }
 
