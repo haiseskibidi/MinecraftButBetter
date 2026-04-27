@@ -183,8 +183,12 @@ public class Chunk {
     }
     
     public synchronized void setBlock(int x, int y, int z, Block block) {
+        setBlock(x, y, z, block.getType(), block.getMetadata());
+    }
+
+    public synchronized void setBlock(int x, int y, int z, int type, int metadata) {
         if (x < 0 || x >= CHUNK_SIZE || y < 0 || y >= CHUNK_HEIGHT || z < 0 || z >= CHUNK_SIZE) return;
-        int packed = (block.getType() << 8) | (block.getMetadata() & 0xFF);
+        int packed = (type << 8) | (metadata & 0xFF);
         setBlockByIndex(x, y, z, packed);
         heightMap[z * CHUNK_SIZE + x] = -1;
         dirtyCounter.incrementAndGet();

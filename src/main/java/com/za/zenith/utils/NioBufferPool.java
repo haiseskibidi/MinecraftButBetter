@@ -6,12 +6,9 @@ import java.nio.IntBuffer;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class NioBufferPool {
-    private static final int FLOAT_SIZE = 4;
-    private static final int INT_SIZE = 4;
-    
-    // Simple pool for small/medium buffers frequently used in main thread
     private static final ConcurrentLinkedQueue<FloatBuffer> floatBuffers = new ConcurrentLinkedQueue<>();
     private static final ConcurrentLinkedQueue<IntBuffer> intBuffers = new ConcurrentLinkedQueue<>();
+    private static final int MAX_POOL_SIZE = 32;
 
     public static FloatBuffer rentFloat(int capacity) {
         FloatBuffer buffer = floatBuffers.poll();
@@ -28,7 +25,11 @@ public class NioBufferPool {
 
     public static void returnFloat(FloatBuffer buffer) {
         if (buffer != null) {
-            floatBuffers.offer(buffer);
+            if (floatBuffers.size() < MAX_POOL_SIZE) {
+                floatBuffers.offer(buffer);
+            } else {
+                MemoryUtil.memFree(buffer);
+            }
         }
     }
 
@@ -47,10 +48,14 @@ public class NioBufferPool {
 
     public static void returnInt(IntBuffer buffer) {
         if (buffer != null) {
-            intBuffers.offer(buffer);
+            if (intBuffers.size() < MAX_POOL_SIZE) {
+                intBuffers.offer(buffer);
+            } else {
+                MemoryUtil.memFree(buffer);
+            }
         }
     }
-    
+
     public static void clearPools() {
         FloatBuffer fb;
         while ((fb = floatBuffers.poll()) != null) {

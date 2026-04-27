@@ -38,6 +38,7 @@ public class DensityFunctionParser {
             case "zenith:square" -> new SquareFunction(parse(obj.get("argument")));
             case "zenith:clamp" -> new ClampFunction(parse(obj.get("argument")), obj.get("min").getAsDouble(), obj.get("max").getAsDouble());
             case "zenith:terrace" -> new TerraceFunction(parse(obj.get("argument")), obj.get("step_size").getAsDouble(), obj.has("smooth_scale") ? obj.get("smooth_scale").getAsDouble() : 1.0);
+            case "zenith:cache2d" -> new Cache2DFunction(parse(obj.get("argument")));
             case "zenith:y_clamped_gradient" -> new YGradientFunction(obj.get("bottom_y").getAsDouble(), obj.get("top_y").getAsDouble(), obj.get("bottom_value").getAsDouble(), obj.get("top_value").getAsDouble());
             case "zenith:spline" -> {
                 SplineFunction.Coordinate coord = SplineFunction.Coordinate.valueOf(obj.get("coordinate").getAsString().replace("zenith:", "").toUpperCase());

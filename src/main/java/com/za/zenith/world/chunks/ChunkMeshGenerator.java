@@ -37,6 +37,11 @@ public class ChunkMeshGenerator {
         public Mesh createMesh() {
             return new Mesh(dataBuffer, dataLen, indicesBuffer, idxLen, min, max);
         }
+
+        public void cleanup() {
+            com.za.zenith.utils.NioBufferPool.returnFloat(dataBuffer);
+            com.za.zenith.utils.NioBufferPool.returnInt(indicesBuffer);
+        }
     }
 
     public record RawChunkMeshResult(RawMeshData opaque, RawMeshData translucent, long version) {
@@ -45,6 +50,11 @@ public class ChunkMeshGenerator {
             Mesh translucentMesh = (translucent != null) ? translucent.createMesh() : null;
             float st = (float)(org.lwjgl.glfw.GLFW.glfwGetTime() % 3600.0);
             return new ChunkMeshResult(version, opaqueMesh, translucentMesh, st);
+        }
+
+        public void cleanup() {
+            if (opaque != null) opaque.cleanup();
+            if (translucent != null) translucent.cleanup();
         }
     }
 

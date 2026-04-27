@@ -526,16 +526,25 @@ public class Renderer {
             try {
                 ChunkMeshGenerator.RawChunkMeshResult rawResult = entry.getValue().get();
                 Chunk chunk = entry.getKey();
+                
+                // Проверяем, актуален ли еще этот чанк
                 if (world.getChunk(chunk.getPosition()) != chunk) {
+                    if (rawResult != null) rawResult.cleanup();
                     pendingUpdates.remove(chunk);
                     continue;
                 }
+
                 ChunkMeshGenerator.ChunkMeshResult result = rawResult.upload();
+                // После аплоада на GPU нативные буферы в RawChunkMeshResult больше не нужны
+                rawResult.cleanup();
+
                 ChunkMeshGenerator.ChunkMeshResult old = chunkMeshes.get(chunk);
                 if (old != null) old.cleanup();
+                
                 chunkMeshes.put(chunk, result);
                 chunk.setMeshUpdated(result.version());
                 pendingUpdates.remove(chunk);
+                
                 if (System.nanoTime() - uploadStart > 2_000_000) break; 
             } catch (Exception e) {
                 pendingUpdates.remove(entry.getKey());

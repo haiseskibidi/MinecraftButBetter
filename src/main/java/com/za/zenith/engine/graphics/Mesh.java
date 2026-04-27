@@ -7,7 +7,6 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
-import static org.lwjgl.system.MemoryUtil.*;
 
 public class Mesh {
     private final int vaoId;
@@ -27,8 +26,6 @@ public class Mesh {
             this.vaoId = -1;
             this.vboId = -1;
             this.eboId = -1;
-            if (dataBuffer != null) com.za.zenith.utils.NioBufferPool.returnFloat(dataBuffer);
-            if (indicesBuffer != null) com.za.zenith.utils.NioBufferPool.returnInt(indicesBuffer);
             return;
         }
         this.vertexCount = idxLen;
@@ -42,6 +39,44 @@ public class Mesh {
         glBindBuffer(GL_ARRAY_BUFFER, vboId);
         glBufferData(GL_ARRAY_BUFFER, dataBuffer, GL_STATIC_DRAW);
         
+        setupAttributes();
+        
+        eboId = glGenBuffers();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboId);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
+        
+        glBindVertexArray(0);
+    }
+
+    public Mesh(FloatBuffer dataBuffer, int dataLen, IntBuffer indicesBuffer, int idxLen) {
+        if (idxLen == 0 || dataLen == 0) {
+            this.vertexCount = 0;
+            this.vaoId = -1;
+            this.vboId = -1;
+            this.eboId = -1;
+            return;
+        }
+        this.vertexCount = idxLen;
+        
+        calculateAABB(dataBuffer, dataLen);
+
+        vaoId = glGenVertexArrays();
+        glBindVertexArray(vaoId);
+        
+        vboId = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, vboId);
+        glBufferData(GL_ARRAY_BUFFER, dataBuffer, GL_STATIC_DRAW);
+        
+        setupAttributes();
+        
+        eboId = glGenBuffers();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboId);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
+        
+        glBindVertexArray(0);
+    }
+
+    private void setupAttributes() {
         int stride = 16 * Float.BYTES;
         glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0);
         glEnableVertexAttribArray(0);
@@ -59,29 +94,9 @@ public class Mesh {
         glEnableVertexAttribArray(6);
         glVertexAttribPointer(7, 1, GL_FLOAT, false, stride, 15 * Float.BYTES);
         glEnableVertexAttribArray(7);
-        
-        com.za.zenith.utils.NioBufferPool.returnFloat(dataBuffer);
-        
-        eboId = glGenBuffers();
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboId);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
-        com.za.zenith.utils.NioBufferPool.returnInt(indicesBuffer);
-        
-        glBindVertexArray(0);
     }
 
-    public Mesh(FloatBuffer dataBuffer, int dataLen, IntBuffer indicesBuffer, int idxLen) {
-        if (idxLen == 0 || dataLen == 0) {
-            this.vertexCount = 0;
-            this.vaoId = -1;
-            this.vboId = -1;
-            this.eboId = -1;
-            if (dataBuffer != null) com.za.zenith.utils.NioBufferPool.returnFloat(dataBuffer);
-            if (indicesBuffer != null) com.za.zenith.utils.NioBufferPool.returnInt(indicesBuffer);
-            return;
-        }
-        this.vertexCount = idxLen;
-        
+    private void calculateAABB(FloatBuffer dataBuffer, int dataLen) {
         minX = Float.MAX_VALUE; minY = Float.MAX_VALUE; minZ = Float.MAX_VALUE;
         maxX = -Float.MAX_VALUE; maxY = -Float.MAX_VALUE; maxZ = -Float.MAX_VALUE;
         
@@ -94,44 +109,9 @@ public class Mesh {
             maxX = Math.max(maxX, px); maxY = Math.max(maxY, py); maxZ = Math.max(maxZ, pz);
         }
         dataBuffer.reset();
-
-        vaoId = glGenVertexArrays();
-        glBindVertexArray(vaoId);
-        
-        vboId = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, vboId);
-        glBufferData(GL_ARRAY_BUFFER, dataBuffer, GL_STATIC_DRAW);
-        
-        int stride = 16 * Float.BYTES;
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(1, 4, GL_FLOAT, false, stride, 3 * Float.BYTES);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(2, 3, GL_FLOAT, false, stride, 7 * Float.BYTES);
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(3, 1, GL_FLOAT, false, stride, 10 * Float.BYTES);
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(4, 1, GL_FLOAT, false, stride, 11 * Float.BYTES);
-        glEnableVertexAttribArray(4);
-        glVertexAttribPointer(5, 1, GL_FLOAT, false, stride, 12 * Float.BYTES);
-        glEnableVertexAttribArray(5);
-        glVertexAttribPointer(6, 2, GL_FLOAT, false, stride, 13 * Float.BYTES);
-        glEnableVertexAttribArray(6);
-        glVertexAttribPointer(7, 1, GL_FLOAT, false, stride, 15 * Float.BYTES);
-        glEnableVertexAttribArray(7);
-        
-        com.za.zenith.utils.NioBufferPool.returnFloat(dataBuffer);
-        
-        eboId = glGenBuffers();
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, eboId);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
-        com.za.zenith.utils.NioBufferPool.returnInt(indicesBuffer);
-        
-        glBindVertexArray(0);
     }
 
-    // Interleaved Constructor (16 floats per vertex)
-    // 0-2: pos, 3-6: tex, 7-9: norm, 10: blockType, 11: neighborMask, 12: weight, 13-14: light, 15: ao
+    // Interleaved Constructor
     public Mesh(float[] interleavedData, int dataLen, int[] indices, int idxLen, boolean isInterleaved) {
         if (idxLen == 0 || dataLen == 0) {
             this.vertexCount = 0;
@@ -161,32 +141,7 @@ public class Mesh {
         glBindBuffer(GL_ARRAY_BUFFER, vboId);
         glBufferData(GL_ARRAY_BUFFER, dataBuffer, GL_STATIC_DRAW);
         
-        int stride = 16 * Float.BYTES;
-        // Position (3)
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0);
-        glEnableVertexAttribArray(0);
-        // TexCoords (4)
-        glVertexAttribPointer(1, 4, GL_FLOAT, false, stride, 3 * Float.BYTES);
-        glEnableVertexAttribArray(1);
-        // Normals (3)
-        glVertexAttribPointer(2, 3, GL_FLOAT, false, stride, 7 * Float.BYTES);
-        glEnableVertexAttribArray(2);
-        // BlockType (1)
-        glVertexAttribPointer(3, 1, GL_FLOAT, false, stride, 10 * Float.BYTES);
-        glEnableVertexAttribArray(3);
-        // NeighborMask (1)
-        glVertexAttribPointer(4, 1, GL_FLOAT, false, stride, 11 * Float.BYTES);
-        glEnableVertexAttribArray(4);
-        // Weight (1)
-        glVertexAttribPointer(5, 1, GL_FLOAT, false, stride, 12 * Float.BYTES);
-        glEnableVertexAttribArray(5);
-        // Light (2)
-        glVertexAttribPointer(6, 2, GL_FLOAT, false, stride, 13 * Float.BYTES);
-        glEnableVertexAttribArray(6);
-        // AO (1)
-        glVertexAttribPointer(7, 1, GL_FLOAT, false, stride, 15 * Float.BYTES);
-        glEnableVertexAttribArray(7);
-        
+        setupAttributes();
         com.za.zenith.utils.NioBufferPool.returnFloat(dataBuffer);
         
         eboId = glGenBuffers();
@@ -314,5 +269,3 @@ public class Mesh {
         if (vaoId != -1) glDeleteVertexArrays(vaoId);
     }
 }
-
-

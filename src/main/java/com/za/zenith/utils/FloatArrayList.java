@@ -5,19 +5,21 @@ import java.util.Arrays;
 public class FloatArrayList {
     private float[] data;
     private int size;
+    private final int initialCapacity;
 
     public FloatArrayList() {
         this(1024);
     }
 
     public FloatArrayList(int capacity) {
+        this.initialCapacity = capacity;
         data = new float[capacity];
         size = 0;
     }
 
     public void add(float element) {
         if (size == data.length) {
-            data = Arrays.copyOf(data, data.length * 2);
+            data = Arrays.copyOf(data, Math.max(16, data.length * 2));
         }
         data[size++] = element;
     }
@@ -27,26 +29,29 @@ public class FloatArrayList {
         return data[index];
     }
 
-    public int size() {
-        return size;
-    }
+    public int size() { return size; }
+    public boolean isEmpty() { return size == 0; }
 
-    public boolean isEmpty() {
-        return size == 0;
-    }
-
+    /**
+     * Стандартная очистка без изменения емкости массива.
+     */
     public void clear() {
         size = 0;
     }
 
-    public float[] getInternalArray() {
-        return data;
+    /**
+     * Очистка с проверкой емкости. Если массив превысил лимит, он будет сброшен до начального размера.
+     * Помогает предотвратить утечки в ThreadLocal.
+     */
+    public void clear(int maxRetention) {
+        size = 0;
+        if (data.length > maxRetention) {
+            data = new float[initialCapacity];
+        }
     }
 
-    public void trimToSize() {
-        if (size < data.length) {
-            data = Arrays.copyOf(data, size);
-        }
+    public float[] getInternalArray() {
+        return data;
     }
 
     public float[] toArray() {
