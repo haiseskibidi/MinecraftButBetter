@@ -35,7 +35,7 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
         if (solid) flags |= FLAG_SOLID;
         if (transparent) flags |= FLAG_TRANSPARENT;
         if (identifier != null && identifier.toString().contains("leaves")) flags |= FLAG_LEAVES;
-        if (tinted) flags |= FLAG_TINTED;
+        if (tinted || tags.contains("zenith:tinted")) flags |= FLAG_TINTED;
         if (fullCube) flags |= FLAG_FULL_CUBE;
     }
 

@@ -567,7 +567,8 @@ public class ChunkMeshGenerator {
                         VoxelShape shape = block.getShape();
                         if (shape == null) continue;
 
-                        boolean isTranslucent = def.hasTag("zenith:glass");
+                        boolean isLeaves = def.is(BlockDefinition.FLAG_LEAVES);
+                        boolean isTranslucent = def.is(BlockDefinition.FLAG_TRANSPARENT) && !isLeaves;
                         MeshData currentTarget = isTranslucent ? chunkTranslucent : chunkOpaque;
 
                         int worldX = cx * Chunk.CHUNK_SIZE + x;
@@ -611,15 +612,17 @@ public class ChunkMeshGenerator {
                                     drawFace = true;
                                 } else if (nType == 0) {
                                     drawFace = true;
+                                } else if (isTranslucent && nType == blockType) {
+                                    // AAA OPTIMIZATION: Do not render faces between two identical translucent blocks (water-water, glass-glass)
+                                    drawFace = false;
                                 } else if (neighborDef != null && neighborDef.is(BlockDefinition.FLAG_LEAVES)) {
-                                    // SPECIAL CASE: Leaves should NOT cull each other
-                                    drawFace = !def.is(BlockDefinition.FLAG_LEAVES) || (nType != blockType);
-                                    if (def.is(BlockDefinition.FLAG_LEAVES) && neighborDef.is(BlockDefinition.FLAG_LEAVES)) drawFace = true;
+                                    // SPECIAL CASE: Leaves should NOT cull each other unless they are identical and we want Fancy/Fast graphics logic
+                                    // For Zenith, we always render internal leaf faces for depth.
+                                    drawFace = !isLeaves || (nType != blockType);
+                                    if (isLeaves && neighborDef.is(BlockDefinition.FLAG_LEAVES)) drawFace = true;
                                 } else if (neighborDef != null && neighborDef.hasTag("treecapitator")) {
                                     drawFace = (nType != blockType);
                                 } else if ((neighborDef == null || !neighborDef.is(BlockDefinition.FLAG_TRANSPARENT)) && !neighborDef.isAlwaysRender()) {
-                                    drawFace = false;
-                                } else if (isTranslucent && neighborDef != null && neighborDef.hasTag("zenith:glass")) {
                                     drawFace = false;
                                 } else {
                                     drawFace = true;
@@ -631,7 +634,7 @@ public class ChunkMeshGenerator {
                                         for (int i = 0; i < 4; i++) {
                                             int rawN = neighborhood.getRawBlockData(worldX + faceNeighbors[face][i][0], worldY + faceNeighbors[face][i][1], worldZ + faceNeighbors[face][i][2]);
                                             BlockDefinition nDef = BlockRegistry.getBlock(rawN >> 8);
-                                            if (nDef != null && nDef.hasTag("zenith:glass")) {
+                                            if (nDef != null && nDef.is(BlockDefinition.FLAG_TRANSPARENT)) {
                                                 neighborMask += (float)Math.pow(2, i);
                                             }
                                         }
@@ -642,7 +645,7 @@ public class ChunkMeshGenerator {
                                     if (isTranslucent) {
                                         faceBlockType = -(faceBlockType + 2000.0f);
                                     } else if (def != null && def.is(BlockDefinition.FLAG_TINTED)) {
-                                        // TINT TOP AND SIDES FOR GRASS BLOCKS (to support overlays)
+                                        // TINT TOP AND SIDES FOR GRASS BLOCKS AND LEAVES
                                         boolean isGrassBlock = def.getIdentifier().getPath().contains("grass_block");
                                         if (!isGrassBlock || face <= 4) { // 4 is Top, 0-3 are Sides
                                             faceBlockType = -(faceBlockType + 1.0f);

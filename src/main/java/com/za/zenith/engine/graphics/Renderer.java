@@ -417,7 +417,7 @@ public class Renderer {
         blockShader.setVector3f("ambientLight", ambient);
 
         // Collect all positions from damage map to hide them in chunk mesh
-        java.util.Set<com.za.zenith.world.BlockPos> damagedPositions = world.getBlockDamageMap().keySet();
+        java.util.Set<Long> damagedPositions = world.getBlockDamageMap().keySet();
         int hiddenCount = Math.min(damagedPositions.size(), 16);
         blockShader.setInt("uHiddenCount", hiddenCount);
         
@@ -428,10 +428,15 @@ public class Renderer {
             idx = 1;
         }
 
-        for (com.za.zenith.world.BlockPos dpos : damagedPositions) {
+        for (long packedPos : damagedPositions) {
             if (idx >= 16) break;
-            if (dpos.equals(breakingPos)) continue; // Already added at 0
-            blockShader.setVector3f("uHiddenPositions[" + idx + "]", (float)dpos.x(), (float)dpos.y(), (float)dpos.z());
+            int bx = (int) (packedPos >> 38);
+            int by = (int) ((packedPos >> 28) & 0x3FF);
+            int bz = (int) (packedPos & 0x3FFFFFFL);
+            
+            if (breakingPos != null && bx == breakingPos.x() && by == breakingPos.y() && bz == breakingPos.z()) continue; 
+            
+            blockShader.setVector3f("uHiddenPositions[" + idx + "]", (float)bx, (float)by, (float)bz);
             idx++;
         }
         
@@ -689,8 +694,13 @@ public class Renderer {
         });
 
         // 2. Render all damaged blocks and their holes
-        for (Map.Entry<com.za.zenith.world.BlockPos, World.BlockDamageInstance> entry : world.getBlockDamageMap().entrySet()) {
-            com.za.zenith.world.BlockPos pos = entry.getKey();
+        for (Map.Entry<Long, World.BlockDamageInstance> entry : world.getBlockDamageMap().entrySet()) {
+            long packed = entry.getKey();
+            int bx = (int) (packed >> 38);
+            int by = (int) ((packed >> 28) & 0x3FF);
+            int bz = (int) (packed & 0x3FFFFFFL);
+            com.za.zenith.world.BlockPos pos = new com.za.zenith.world.BlockPos(bx, by, bz);
+
             // Skip current breaking block as it has its own special rendering
             if (breakingPos != null && pos.equals(breakingPos)) continue;
 

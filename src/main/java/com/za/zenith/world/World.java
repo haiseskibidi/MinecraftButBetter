@@ -138,11 +138,19 @@ public class World {
         public void resetLastHitTime() { this.lastHitTime = System.currentTimeMillis(); }
     }
 
-    private final Map<BlockPos, BlockDamageInstance> blockDamageMap = new ConcurrentHashMap<>();
+    private final Map<Long, BlockDamageInstance> blockDamageMap = new ConcurrentHashMap<>();
 
-    public Map<BlockPos, BlockDamageInstance> getBlockDamageMap() {
+    public Map<Long, BlockDamageInstance> getBlockDamageMap() {
         return blockDamageMap;
     }
+
+    private long packBlockPos(int x, int y, int z) {
+        return ((long) x & 0x3FFFFFFL) << 38 | ((long) y & 0x3FFL) << 28 | ((long) z & 0x3FFFFFFL);
+    }
+    
+    private int unpackBlockX(long packed) { return (int) (packed >> 38); }
+    private int unpackBlockY(long packed) { return (int) ((packed >> 28) & 0x3FF); }
+    private int unpackBlockZ(long packed) { return (int) (packed & 0x3FFFFFFL); }
 
     private Player player;
     private final TerrainGenerator terrainGenerator;
@@ -297,12 +305,25 @@ public class World {
                     Chunk chunk = entry.getValue();
                     com.za.zenith.world.lighting.LightManager.onChunkUnload(chunk);
                     
-                    // Clear damage info for this chunk
-                    int minX = cx * Chunk.CHUNK_SIZE;
-                    int minZ = cz * Chunk.CHUNK_SIZE;
-                    int maxX = minX + Chunk.CHUNK_SIZE;
-                    int maxZ = minZ + Chunk.CHUNK_SIZE;
-                    blockDamageMap.keySet().removeIf(pos -> pos.x() >= minX && pos.x() < maxX && pos.z() >= minZ && pos.z() < maxZ);
+                    // Clear damage info for this chunk using packed coordinates
+                    blockDamageMap.keySet().removeIf(packedPos -> {
+                        int bx = unpackBlockX(packedPos);
+                        int bz = unpackBlockZ(packedPos);
+                        return (bx >> 4) == cx && (bz >> 4) == cz;
+                    });
+
+                    // Clear block entities for this chunk
+                    blockEntities.keySet().removeIf(pos -> {
+                        if ((pos.x() >> 4) == cx && (pos.z() >> 4) == cz) {
+                            BlockEntity be = blockEntities.get(pos);
+                            if (be != null) {
+                                be.setRemoved();
+                                if (be instanceof ITickable) tickableBlockEntities.remove(be);
+                            }
+                            return true;
+                        }
+                        return false;
+                    });
 
                     for (java.util.function.Consumer<Chunk> listener : unloadListeners) {
                         listener.accept(chunk);
@@ -588,8 +609,8 @@ public class World {
         // Heal blocks over time and fade scars
         if (!blockDamageMap.isEmpty()) {
             long currentTime = System.currentTimeMillis();
-            for (java.util.Map.Entry<BlockPos, BlockDamageInstance> entry : blockDamageMap.entrySet()) {
-                BlockPos pos = entry.getKey();
+            for (java.util.Map.Entry<Long, BlockDamageInstance> entry : blockDamageMap.entrySet()) {
+                long packed = entry.getKey();
                 BlockDamageInstance info = entry.getValue();
 
                 // --- HEALING DELAY ---
@@ -597,7 +618,10 @@ public class World {
                 if (currentTime - info.getLastHitTime() < 5000) continue;
 
                 float damage = info.getDamage();
-                int blockType = getBlock(pos).getType();
+                int bx = unpackBlockX(packed);
+                int by = unpackBlockY(packed);
+                int bz = unpackBlockZ(packed);
+                int blockType = getRawBlockData(bx, by, bz) >> 8;
                 com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(blockType);
 
                 if (def.getHealingSpeed() > 0) {
@@ -606,7 +630,7 @@ public class World {
                     float newDamage = damage - healAmount;
 
                     if (newDamage <= 0) {
-                        blockDamageMap.remove(pos);
+                        blockDamageMap.remove(packed);
                     } else {
                         info.setDamage(newDamage);
 
@@ -614,7 +638,6 @@ public class World {
                         List<Vector4f> history = info.getHitHistory();
                         if (!history.isEmpty()) {
                             // Target total intensity across all scars based on health
-                            // 16 is max history size in shader. If damage is 50%, target total intensity is 8.0
                             float targetTotalIntensity = (newDamage / maxHealth) * 16.0f;
 
                             float currentTotalIntensity = 0;
@@ -651,12 +674,16 @@ public class World {
     }
 
     public float getBlockDamage(BlockPos pos) {
-        BlockDamageInstance info = blockDamageMap.get(pos);
+        return getBlockDamage(pos.x(), pos.y(), pos.z());
+    }
+
+    public float getBlockDamage(int x, int y, int z) {
+        BlockDamageInstance info = blockDamageMap.get(packBlockPos(x, y, z));
         return (info != null) ? info.getDamage() : 0.0f;
     }
 
     public List<Vector4f> getBlockHitHistory(BlockPos pos) {
-        BlockDamageInstance info = blockDamageMap.get(pos);
+        BlockDamageInstance info = blockDamageMap.get(packBlockPos(pos.x(), pos.y(), pos.z()));
         return (info != null) ? info.getHitHistory() : new ArrayList<>();
     }
 
@@ -665,10 +692,11 @@ public class World {
     }
 
     public void setBlockDamage(BlockPos pos, float damage, List<Vector4f> history) {
+        long packed = packBlockPos(pos.x(), pos.y(), pos.z());
         if (damage <= 0.0f) {
-            blockDamageMap.remove(pos);
+            blockDamageMap.remove(packed);
         } else {
-            BlockDamageInstance info = blockDamageMap.get(pos);
+            BlockDamageInstance info = blockDamageMap.get(packed);
             if (info != null) {
                 info.setDamage(damage);
                 info.resetLastHitTime(); // Refresh the delay on every hit
@@ -686,7 +714,7 @@ public class World {
                     targetHistory.remove(0);
                 }
             } else {
-                blockDamageMap.put(pos, new BlockDamageInstance(damage, getBlock(pos).copy(), new ArrayList<>(history)));
+                blockDamageMap.put(packed, new BlockDamageInstance(damage, getBlock(pos).copy(), new ArrayList<>(history)));
             }
         }
     }
@@ -738,10 +766,11 @@ public class World {
     }
 
     public Block getBlock(int x, int y, int z) {
-        BlockPos pos = new BlockPos(x, y, z);
-        BlockDamageInstance damageInstance = blockDamageMap.get(pos);
-        if (damageInstance != null) {
-            return damageInstance.getBlock();
+        if (!blockDamageMap.isEmpty()) {
+            BlockDamageInstance damageInstance = blockDamageMap.get(packBlockPos(x, y, z));
+            if (damageInstance != null) {
+                return damageInstance.getBlock();
+            }
         }
 
         long packed = ChunkPos.pack(x >> 4, z >> 4);
