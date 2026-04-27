@@ -1,7 +1,14 @@
 {
   "identifier": "zenith:plains",
-  "temperature": 0.5,
-  "humidity": 0.4,
+  "climate_points": [
+    {
+      "temperature": 0.5,
+      "humidity": 0.4,
+      "continentalness": 0.0,
+      "erosion": 0.5,
+      "weirdness": 0.0
+    }
+  ],
   "base_height": 64,
   "height_variation": 10,
   "surface_block": "zenith:grass_block",

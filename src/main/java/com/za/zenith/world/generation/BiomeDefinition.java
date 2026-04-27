@@ -9,11 +9,34 @@ import java.util.List;
 public class BiomeDefinition {
     private transient Identifier id;
     
-    private float temperature;
-    private float humidity;
+    @SerializedName("climate_points")
+    private List<ClimatePoint> climatePoints = new ArrayList<>();
+    
+    private float temperature; // Legacy support
+    private float humidity;    // Legacy support
     
     @SerializedName("base_height")
-    private int baseHeight = 64; // Default world height
+    private int baseHeight = 64; 
+
+    public static class ClimatePoint {
+        public float temperature;
+        public float humidity;
+        public float continentalness;
+        public float erosion;
+        public float weirdness;
+        public float offset = 0.0f; // Дополнительное смещение для приоритета
+    }
+
+    public List<ClimatePoint> getClimatePoints() {
+        if (climatePoints.isEmpty()) {
+            // Создаем точку по умолчанию из легаси полей
+            ClimatePoint p = new ClimatePoint();
+            p.temperature = temperature;
+            p.humidity = humidity;
+            climatePoints.add(p);
+        }
+        return climatePoints;
+    }
     
     @SerializedName("height_variation")
     private int heightVariation = 15;

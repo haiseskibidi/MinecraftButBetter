@@ -126,6 +126,15 @@
     - `HUDRenderer.java`: Отрисовка HUD. Реализована полная поддержка `hud.json` и динамическое масштабирование имен предметов.
     - `InventoryScreenRenderer.java`: Отрисовка инвентарей. Исправлено цветовое кодирование отрицательных статов в тултипах.
 
+## World Generation (v2.0 UPDATED)
+### com.za.zenith.world.generation
+- **BiomeDefinition.java**: (UPDATED) Модель данных биома. Поддерживает список `ClimatePoint` для 5D маппинга и легаси-поля для обратной совместимости.
+- **BiomeGenerator.java**: (UPDATED) Ядро климатической системы. Использует 5 слоев шума (Temp, Hum, Cont, Eros, Weir). Внедрен метод `getClimateParams` для оптимизированного сэмплирования углов чанка и `getBiomeFromParams` для выбора биома по интерполированным значениям.
+- **SimplexNoise.java**: Генератор шума Перлина/Симплекс.
+
+### com.za.zenith.world.generation.pipeline.steps
+- **TerrainStep.java**: (UPDATED) Генератор рельефа. Реализует **Interpolated Parameter Sampling**: вычисляет 5 параметров климата только по углам чанка (16x16) и интерполирует их для каждой колонки. Это гарантирует плавность переходов и снижает нагрузку на CPU. Рельеф напрямую зависит от `continentalness` и `erosion`.
+
 ## Entity System (v5.6 NEW)
 ### com.za.zenith.entities.Entity (UPDATED)
 Назначение: Базовый класс для всех сущностей (игрок, мобы, предметы).

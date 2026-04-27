@@ -1,7 +1,14 @@
 {
   "identifier": "zenith:forest",
-  "temperature": 0.45,
-  "humidity": 0.6,
+  "climate_points": [
+    {
+      "temperature": 0.45,
+      "humidity": 0.6,
+      "continentalness": 0.1,
+      "erosion": 0.4,
+      "weirdness": 0.0
+    }
+  ],
   "base_height": 68,
   "height_variation": 20,
   "surface_block": "zenith:grass_block",

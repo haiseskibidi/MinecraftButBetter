@@ -1,0 +1,12 @@
+{
+  "identifier": "zenith:snow",
+  "translationKey": "block.zenith.snow",
+  "solid": true,
+  "transparent": false,
+  "hardness": 0.2,
+  "particle_material": "generic",
+  "textures": {
+    "all": "snow.png"
+  },
+  "tags": ["zenith:mineable/shovel"]
+}

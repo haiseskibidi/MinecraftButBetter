@@ -55,6 +55,12 @@ public class TerrainStep implements GenerationStep {
         double p01 = (peaksNoise.octaveNoise(startX, startZ + 16, 5, 0.6, 0.02) + 1.0) / 2.0;
         double p11 = (peaksNoise.octaveNoise(startX + 16, startZ + 16, 5, 0.6, 0.02) + 1.0) / 2.0;
 
+        // Climate parameters at corners
+        float[] cl00 = biomeGenerator.getClimateParams(startX, startZ);
+        float[] cl10 = biomeGenerator.getClimateParams(startX + 16, startZ);
+        float[] cl01 = biomeGenerator.getClimateParams(startX, startZ + 16);
+        float[] cl11 = biomeGenerator.getClimateParams(startX + 16, startZ + 16);
+
         for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
             for (int z = 0; z < Chunk.CHUNK_SIZE; z++) {
                 int worldX = startX + x;
@@ -79,7 +85,14 @@ public class TerrainStep implements GenerationStep {
                                          b01.heightVariation * (1 - tx) * tz + 
                                          b11.heightVariation * tx * tz;
 
-                BiomeDefinition exactBiome = biomeGenerator.getBiome(worldX, worldZ);
+                // Interpolate climate params
+                float iTemp = (float) (cl00[0]*(1-tx)*(1-tz) + cl10[0]*tx*(1-tz) + cl01[0]*(1-tx)*tz + cl11[0]*tx*tz);
+                float iHum  = (float) (cl00[1]*(1-tx)*(1-tz) + cl10[1]*tx*(1-tz) + cl01[1]*(1-tx)*tz + cl11[1]*tx*tz);
+                float iCont = (float) (cl00[2]*(1-tx)*(1-tz) + cl10[2]*tx*(1-tz) + cl01[2]*(1-tx)*tz + cl11[2]*tx*tz);
+                float iEros = (float) (cl00[3]*(1-tx)*(1-tz) + cl10[3]*tx*(1-tz) + cl01[3]*(1-tx)*tz + cl11[3]*tx*tz);
+                float iWeir = (float) (cl00[4]*(1-tx)*(1-tz) + cl10[4]*tx*(1-tz) + cl01[4]*(1-tx)*tz + cl11[4]*tx*tz);
+
+                BiomeDefinition exactBiome = biomeGenerator.getBiomeFromParams(iTemp, iHum, iCont, iEros, iWeir);
                 if (exactBiome == null) continue;
 
                 // Interpolated FBM values
@@ -88,10 +101,15 @@ public class TerrainStep implements GenerationStep {
                 double peaks = p00 * (1 - tx) * (1 - tz) + p10 * tx * (1 - tz) + p01 * (1 - tx) * tz + p11 * tx * tz;
 
                 // Complex terrain calculation using interpolated values
-                double baseTerrain = (continentalness * 30.0) - (erosion * 15.0 * erosionFactor);
-                double peaksOffset = peaks * heightVariation * (1.0 - erosion); 
+                // Continentalness определяет базовый уровень (океан -> суша -> горы)
+                double continentalnessEffect = (continentalness * 2.0 - 1.0) * 40.0; // [-40, 40]
                 
-                int surfaceY = (int)baseHeight + (int) baseTerrain + (int) peaksOffset;
+                // Erosion сглаживает рельеф. Низкая эрозия (ближе к 0) позволяет Peaks проявляться сильнее.
+                double erosionEffect = (1.0 - erosion) * heightVariation * erosionFactor;
+                
+                double peaksOffset = peaks * erosionEffect; 
+                
+                int surfaceY = (int)baseHeight + (int) continentalnessEffect + (int) peaksOffset;
                 
                 if (surfaceY < MIN_HEIGHT) surfaceY = MIN_HEIGHT;
                 if (surfaceY >= Chunk.CHUNK_HEIGHT - 10) surfaceY = Chunk.CHUNK_HEIGHT - 10;

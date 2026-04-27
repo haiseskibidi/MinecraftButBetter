@@ -50,6 +50,7 @@ public class Blocks {
     public static BlockDefinition CYAN_CONCRETE;
     public static BlockDefinition GRAY_CONCRETE;
     public static BlockDefinition WHITE_CONCRETE;
+    public static BlockDefinition SNOW;
     public static BlockDefinition STONE_SLAB;
     public static BlockDefinition STONE_STAIRS;
     public static BlockDefinition BRICK_SLAB;

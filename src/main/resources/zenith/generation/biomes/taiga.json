@@ -1,7 +1,14 @@
 {
   "identifier": "zenith:taiga",
-  "temperature": 0.2,
-  "humidity": 0.7,
+  "climate_points": [
+    {
+      "temperature": 0.2,
+      "humidity": 0.7,
+      "continentalness": 0.2,
+      "erosion": 0.3,
+      "weirdness": 0.0
+    }
+  ],
   "base_height": 72,
   "height_variation": 40,
   "surface_block": "zenith:grass_block",

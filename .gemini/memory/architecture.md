@@ -9,7 +9,11 @@
 2.  **Advanced Rendering Architecture (Zenith v4.0)**:
     - **Consolidated Chunk Meshes (Draw Call Batching)**: Вместо раздельных VBO на каждую секцию, весь чанк (24 секции) объединяется в **два меша** (Opaque и Translucent). Это сокращает количество вызовов отрисовки в 24 раза, радикально снижая нагрузку на драйвер GPU.
     - **Packed Interleaved Vertex Format**: Вершины используют упакованный формат (16 float / 64 байта), включающий `Pos, UV, Norm, BlockInfo, NeighborMask, Weight, Light, AO`. Это обеспечивает идеальную локальность кэша (AoS).
-    - **Asynchronous Lighting Pipeline (Stage 4)**: Расчеты освещения (BFS) полностью отделены от генерации ландшафта. Используется выделенный `lightExecutor`. Чанки проходят строгую цепочку готовности: `Terrain -> Staging -> Async Light -> Ready`.
+    - **Asynchronous Multi-Noise Pipeline (Stage 4 UPDATED)**: 
+        - **5D Climate Space**: Генерация и выбор биома переведены в пятимерное пространство параметров (Temperature, Humidity, Continentalness, Erosion, Weirdness).
+        - **Interpolated Parameter Sampling**: Для оптимизации производительности 5 слоев шума сэмплируются только в 4 углах чанка. Значения для каждой колонки вычисляются через билинейную интерполяцию, что снижает нагрузку на CPU при выборе биома в 64 раза.
+        - **Terrain-Biome Coupling**: Расчет высоты в `TerrainStep` теперь использует те же параметры (Continentalness, Erosion), что и система выбора биома, обеспечивая физическую корректность ландшафта (горы там, где низкая эрозия).
+        - **Async Execution**: Все расчеты шумов выполняются в фоновом `lightExecutor` до этапа мешинга. Чанки проходят строгую цепочку готовности: `Terrain -> Staging -> Async Light -> Ready`.
     - **Radial Spiral Priority**: Алгоритм спирали обеспечивает приоритетную загрузку и мешинг чанков от центра (игрока) к краям, исключая визуальные дыры.
     - **Threaded Mesh Generation (v1.1 UPDATED)**: Процесс построения геометрии полностью асинхронен. Внедрены жесткие лимиты потоков и динамическая пересортировка задач по дистанции до игрока.
     - **Spatial Item Merging (Zenith v4.0 NEW)**: Система слияния предметов (`ItemEntity.tryMerge`) переведена на пространственное хэширование через `itemSpatialMap` в `World`. Вместо перебора всех сущностей ($O(N^2)$), предметы проверяют только соседей в своем чанке ($O(1)$), что исключает падение FPS при длительном копании.
