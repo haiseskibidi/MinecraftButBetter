@@ -192,6 +192,28 @@ public class HUDRenderer {
                 text = text.replace("{biome}", "Unknown");
             }
 
+            // Targeted block info
+            com.za.zenith.world.physics.RaycastResult hit = game.getHighlightedBlock();
+            if (hit != null && hit.isHit()) {
+                com.za.zenith.world.blocks.Block b = game.getWorld().getBlock(hit.getBlockPos());
+                com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(b.getType());
+                if (def != null) {
+                    text = text.replace("{t_id}", def.getIdentifier().toString());
+                    text = text.replace("{t_meta}", String.valueOf(b.getMetadata() & 0xFF));
+                    
+                    StringBuilder flagsStr = new StringBuilder();
+                    if (def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_SOLID)) flagsStr.append("S");
+                    if (def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_TRANSPARENT)) flagsStr.append("T");
+                    if (b.isNatural()) flagsStr.append("N");
+                    if (def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_TINTED)) flagsStr.append("C");
+                    if (def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_LEAVES)) flagsStr.append("L");
+                    
+                    text = text.replace("{t_flags}", flagsStr.toString());
+                }
+            } else {
+                text = text.replace("{t_id}", "None").replace("{t_meta}", "-").replace("{t_flags}", "");
+            }
+
             int fontSize = el.fontSize;
             int textWidth = renderer.getFontRenderer().getStringWidth(text, fontSize);
             int[] elementPos = calculateElementPos(el, sw, sh, textWidth, fontSize);

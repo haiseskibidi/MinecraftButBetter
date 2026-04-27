@@ -49,6 +49,30 @@
       "fontSize": 14,
       "color": [0.0, 0.8, 1.0, 1.0],
       "condition": "debug_mode"
+    },
+    "targeted_block": {
+      "type": "text",
+      "text": "Target: {t_id} (M:{t_meta}) [{t_flags}]",
+      "anchor": "top_right",
+      "alignX": "right",
+      "alignY": "top",
+      "x": "-10px",
+      "y": "82px",
+      "fontSize": 14,
+      "color": [0.0, 1.0, 0.5, 1.0],
+      "condition": "debug_mode"
+    },
+    "debug_legend": {
+      "type": "text",
+      "text": "Flags: S-Solid, T-Transp, N-Natural, C-Tint, L-Leaves",
+      "anchor": "top_right",
+      "alignX": "right",
+      "alignY": "top",
+      "x": "-10px",
+      "y": "100px",
+      "fontSize": 11,
+      "color": [0.7, 0.7, 0.7, 1.0],
+      "condition": "debug_mode"
     }
   }
 }
