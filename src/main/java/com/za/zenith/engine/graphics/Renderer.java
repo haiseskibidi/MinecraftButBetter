@@ -300,7 +300,10 @@ public class Renderer {
 
         renderScene(camera, world, networkClient, alpha, finalLightDir, currentAmbient);
 
-        if (highlightedBlock != null && highlightedBlock.isHit()) renderBlockHighlight(camera, world, highlightedBlock, alpha);
+        if (highlightedBlock != null && highlightedBlock.isHit()) {
+            blockShader.setBoolean("uIsDynamic", true);
+            renderBlockHighlight(camera, world, highlightedBlock, alpha);
+        }
         if (previewPos != null && previewMesh != null) renderPreviewBlock(camera, alpha);
 
         renderViewModel(camera, world.getPlayer(), currentAmbient);
@@ -614,8 +617,11 @@ public class Renderer {
         }
         glDepthMask(true);
         
-        // DISABLE DISCARD for all overlay/proxy rendering
+        // DISABLE DISCARD and SPAWN ANIMATION for all dynamic rendering
         blockShader.setInt("uHiddenCount", 0);
+        blockShader.setFloat("uChunkSpawnTime", -100.0f);
+        vPool3.set(-1.0f, -1.0f, -1.0f);
+        blockShader.setVector3f("uOverrideLight", vPool3);
 
         if (holeMesh != null) {
             modelMatrix.identity().translate(breakingPos.x(), breakingPos.y(), breakingPos.z());
@@ -634,13 +640,8 @@ public class Renderer {
 
         renderPersistentScars(camera, world, alpha, hiddenCount);
         
-        resetShaderState();
         renderEntities(camera, world, alpha);
-        
-        resetShaderState();
         renderBlockEntities(camera, world, alpha);
-        
-        resetShaderState();
         renderPlayers(camera, world, networkClient, alpha);
     }
 
@@ -825,33 +826,18 @@ public class Renderer {
             float block = lastEntityChunk.getBlockLight(x & 15, y, z & 15);
             vPool1.set(sun, block, 1.0f);
             blockShader.setVector3f("uOverrideLight", vPool1);
+            blockShader.setFloat("uChunkSpawnTime", lastEntityChunk.getFirstSpawnTime());
         } else {
             vPool1.set(15.0f, 0.0f, 1.0f);
             blockShader.setVector3f("uOverrideLight", vPool1);
+            blockShader.setFloat("uChunkSpawnTime", -100.0f);
         }
-    }
-
-    private void resetShaderState() {
-        blockShader.use();
-        blockShader.setInt("uHiddenCount", 0);
-        blockShader.setBoolean("uIsProxy", false);
-        blockShader.setFloat("uBreakingProgress", 0.0f);
-        blockShader.setInt("uHitCount", 0);
-        vPool3.set(-1.0f, -1.0f, -1.0f);
-        blockShader.setVector3f("uOverrideLight", vPool3);
-        vPool1.set(1.0f);
-        blockShader.setVector3f("uWobbleScale", vPool1);
-        vPool1.set(0.0f);
-        blockShader.setVector3f("uWobbleOffset", vPool1);
-        blockShader.setFloat("uWobbleShake", 0.0f);
     }
 
     private void renderEntities(Camera camera, World world, float alpha) {
         if (world.getEntities().isEmpty()) return;
 
         blockShader.use();
-        // CRITICAL: Ensure hidden block masks (from digging) are NOT applied to entities
-        blockShader.setInt("uHiddenCount", 0);
         blockShader.setBoolean("uIsProxy", false);
 
         for (com.za.zenith.entities.Entity entity : world.getEntities()) {

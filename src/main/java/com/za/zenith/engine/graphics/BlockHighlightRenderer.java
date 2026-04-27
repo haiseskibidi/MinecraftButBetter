@@ -103,14 +103,16 @@ public class BlockHighlightRenderer {
         int nz = pos.z() + face.getDz();
         
         com.za.zenith.world.chunks.ChunkPos cp = com.za.zenith.world.chunks.ChunkPos.fromBlockPos(nx, nz);
-        com.za.zenith.world.chunks.Chunk chunk = world.getChunk(cp);
+        com.za.zenith.world.chunks.Chunk chunk = world.getChunkInternal(cp.x(), cp.z());
         
         if (chunk != null && ny >= 0 && ny < com.za.zenith.world.chunks.Chunk.CHUNK_HEIGHT) {
             float sun = chunk.getSunlight(nx & 15, ny, nz & 15);
             float block = chunk.getBlockLight(nx & 15, ny, nz & 15);
             blockShader.setVector3f("uOverrideLight", new Vector3f(sun, block, 1.0f));
+            blockShader.setFloat("uChunkSpawnTime", chunk.getFirstSpawnTime());
         } else {
             blockShader.setVector3f("uOverrideLight", new Vector3f(15.0f, 0.0f, 1.0f));
+            blockShader.setFloat("uChunkSpawnTime", -100.0f);
         }
     }
 
