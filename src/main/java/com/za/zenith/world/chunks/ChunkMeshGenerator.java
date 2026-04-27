@@ -621,7 +621,13 @@ public class ChunkMeshGenerator {
                                     drawFace = !isLeaves || (nType != blockType);
                                     if (isLeaves && neighborDef.is(BlockDefinition.FLAG_LEAVES)) drawFace = true;
                                 } else if (neighborDef != null && neighborDef.hasTag("treecapitator")) {
-                                    drawFace = (nType != blockType);
+                                    if (face >= 4) {
+                                        // ALWAYS draw top/bottom faces for logs to avoid holes during mining animations
+                                        drawFace = true;
+                                    } else {
+                                        // Sides are still culled if types are identical
+                                        drawFace = (nType != blockType);
+                                    }
                                 } else if ((neighborDef == null || !neighborDef.is(BlockDefinition.FLAG_TRANSPARENT)) && !neighborDef.isAlwaysRender()) {
                                     drawFace = false;
                                 } else {
