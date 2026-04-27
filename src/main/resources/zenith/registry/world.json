@@ -1,7 +1,7 @@
 {
   "initialTime": 6000,
-  "dayCycleSpeed": 100.0,
-  "dayLength": 24000,
+  "dayCycleSpeed": 10.0,
+  "dayLength": 240000,
   "sunriseTime": 0,
   "sunsetTime": 12000,
   "sunLightColor": [

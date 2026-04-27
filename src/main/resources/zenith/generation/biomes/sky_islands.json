@@ -1,0 +1,19 @@
+{
+  "identifier": "zenith:sky_islands",
+  "terrain_type": "islands",
+  "climate_points": [
+    {
+      "temperature": 0.5,
+      "humidity": 0.5,
+      "continentalness": 0.0,
+      "erosion": 0.5,
+      "weirdness": 0.8
+    }
+  ],
+  "surface_block": "zenith:grass_block",
+  "underground_block": "zenith:dirt",
+  "tree_density": 0.05,
+  "features": [
+    { "id": "zenith:oak_tree", "weight": 100 }
+  ]
+}

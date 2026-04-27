@@ -1,0 +1,9 @@
+{
+  "identifier": "zenith:temperate",
+  "allowed_biomes": [
+    "zenith:plains",
+    "zenith:forest",
+    "zenith:desert",
+    "zenith:sky_islands"
+  ]
+}

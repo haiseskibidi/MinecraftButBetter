@@ -14,6 +14,7 @@ import com.za.zenith.engine.graphics.ui.UIEffectsRenderer;
 import com.za.zenith.engine.graphics.ui.UIRenderer;
 import com.za.zenith.utils.I18n;
 import com.za.zenith.world.items.ItemStack;
+import com.za.zenith.world.generation.BiomeDefinition;
 
 import java.util.List;
 
@@ -182,6 +183,14 @@ public class HUDRenderer {
                 .replace("{z}", String.format(java.util.Locale.US, "%.2f", pos.z))
                 .replace("{cx}", String.valueOf((int)pos.x >> 4))
                 .replace("{cz}", String.valueOf((int)pos.z >> 4));
+            
+            // Add Biome info
+            BiomeDefinition biome = game.getWorld().getBiomeManager().getBiome((int)pos.x, (int)pos.z);
+            if (biome != null) {
+                text = text.replace("{biome}", biome.getId().toString());
+            } else {
+                text = text.replace("{biome}", "Unknown");
+            }
 
             int fontSize = el.fontSize;
             int textWidth = renderer.getFontRenderer().getStringWidth(text, fontSize);

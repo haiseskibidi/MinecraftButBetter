@@ -1,0 +1,11 @@
+{
+  "identifier": "zenith:andesite",
+  "hardness": 2.0,
+  "resistance": 6.0,
+  "tool_type": "pickaxe",
+  "mining_level": 1,
+  "sounds": "stone",
+  "texture": {
+    "all": "zenith:blocks/andesite"
+  }
+}

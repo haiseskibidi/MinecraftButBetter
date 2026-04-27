@@ -1,19 +1,21 @@
 {
   "identifier": "zenith:snowy_peaks",
+  "terrain_type": "mountain",
   "climate_points": [
     {
       "temperature": 0.0,
-      "humidity": 0.5,
-      "continentalness": 0.5,
-      "erosion": 0.05,
-      "weirdness": 0.2
+      "humidity": 0.3,
+      "continentalness": 0.8,
+      "erosion": 0.1,
+      "weirdness": 0.9
     }
   ],
-  "base_height": 110,
-  "height_variation": 80,
+  "surface_rules": [
+    { "max_depth": 1, "block": "zenith:snow" },
+    { "max_depth": 4, "block": "zenith:stone" }
+  ],
   "surface_block": "zenith:snow",
   "underground_block": "zenith:stone",
   "tree_density": 0.0,
-  "erosion_factor": 0.2,
   "features": []
 }

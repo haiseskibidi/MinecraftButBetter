@@ -1,0 +1,160 @@
+{
+  "type": "zenith:add",
+  "argument1": {
+    "type": "zenith:add",
+    "argument1": {
+      "type": "zenith:add",
+      "argument1": {
+        "type": "zenith:spline",
+        "coordinate": "zenith:continentalness",
+        "points": [
+          [0.0, 20.0],
+          [0.2, 55.0],
+          [0.35, 63.0],
+          [0.5, 65.0],
+          [0.8, 70.0],
+          [1.0, 85.0]
+        ]
+      },
+      "argument2": {
+        "type": "zenith:mul",
+        "argument1": -1.0,
+        "argument2": {
+          "type": "zenith:spline",
+          "coordinate": "zenith:y",
+          "points": [
+            [0.0, 0.0],
+            [256.0, 256.0]
+          ]
+        }
+      }
+    },
+    "argument2": {
+      "type": "zenith:add",
+      "argument1": {
+        "type": "zenith:add",
+        "argument1": {
+          "type": "zenith:mul",
+          "argument1": {
+            "type": "zenith:spline",
+            "coordinate": "zenith:weirdness",
+            "points": [
+              [0.0, 0.0],
+              [0.6, 0.0],
+              [0.75, 25.0],
+              [0.9, 90.0],
+              [1.0, 160.0]
+            ]
+          },
+          "argument2": {
+            "type": "zenith:square",
+            "argument": {
+              "type": "zenith:add",
+              "argument1": 1.0,
+              "argument2": {
+                "type": "zenith:mul",
+                "argument1": -1.0,
+                "argument2": {
+                  "type": "zenith:abs",
+                  "argument": {
+                    "type": "zenith:noise",
+                    "noise": "zenith:ridges",
+                    "xz_scale": 0.003,
+                    "y_scale": 0.0,
+                    "octaves": 4,
+                    "amplitude": 1.0
+                  }
+                }
+              }
+            }
+          }
+        },
+        "argument2": {
+          "type": "zenith:mul",
+          "argument1": {
+            "type": "zenith:spline",
+            "coordinate": "zenith:erosion",
+            "points": [
+              [0.0, 40.0],
+              [0.2, 20.0],
+              [0.4, 8.0],
+              [0.6, 3.0],
+              [0.8, 1.0],
+              [1.0, 0.0]
+            ]
+          },
+          "argument2": {
+            "type": "zenith:terrace",
+            "step_size": 10.0,
+            "smooth_scale": 0.2,
+            "argument": {
+              "type": "zenith:noise",
+              "noise": "zenith:terrain_3d",
+              "xz_scale": 0.005,
+              "y_scale": 0.003,
+              "octaves": 4,
+              "amplitude": 1.0
+            }
+          }
+        }
+      },
+      "argument2": {
+        "type": "zenith:add",
+        "argument1": {
+          "type": "zenith:mul",
+          "argument1": -100.0,
+          "argument2": {
+            "type": "zenith:clamp",
+            "min": 0.0,
+            "max": 1.0,
+            "argument": {
+              "type": "zenith:add",
+              "argument1": -0.65,
+              "argument2": {
+                "type": "zenith:noise",
+                "noise": "zenith:caves",
+                "xz_scale": 0.015,
+                "y_scale": 0.015,
+                "octaves": 2,
+                "amplitude": 1.0
+              }
+            }
+          }
+        },
+        "argument2": {
+          "type": "zenith:noise",
+          "noise": "zenith:micro_detail",
+          "xz_scale": 0.08,
+          "y_scale": 0.08,
+          "octaves": 2,
+          "amplitude": 1.0
+        }
+      }
+    }
+  },
+  "argument2": {
+    "type": "zenith:mul",
+    "argument1": -200.0,
+    "argument2": {
+      "type": "zenith:mul",
+      "argument1": {
+        "type": "zenith:spline",
+        "coordinate": "zenith:weirdness",
+        "points": [
+          [0.0, 0.0],
+          [0.72, 0.0],
+          [0.8, 1.0],
+          [0.85, 0.0],
+          [1.0, 0.0]
+        ]
+      },
+      "argument2": {
+        "type": "zenith:y_clamped_gradient",
+        "bottom_y": 0.0,
+        "top_y": 80.0,
+        "bottom_value": 1.0,
+        "top_value": 0.0
+      }
+    }
+  }
+}

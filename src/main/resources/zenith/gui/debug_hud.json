@@ -26,6 +26,18 @@
       "color": [0.0, 0.8, 1.0, 1.0],
       "condition": "debug_mode"
     },
+    "biome": {
+      "type": "text",
+      "text": "Biome: {biome}",
+      "anchor": "top_right",
+      "alignX": "right",
+      "alignY": "top",
+      "x": "-10px",
+      "y": "46px",
+      "fontSize": 14,
+      "color": [0.0, 0.8, 1.0, 1.0],
+      "condition": "debug_mode"
+    },
     "chunk": {
       "type": "text",
       "text": "Chunk: {cx}, {cz}",
@@ -33,7 +45,7 @@
       "alignX": "right",
       "alignY": "top",
       "x": "-10px",
-      "y": "46px",
+      "y": "64px",
       "fontSize": 14,
       "color": [0.0, 0.8, 1.0, 1.0],
       "condition": "debug_mode"

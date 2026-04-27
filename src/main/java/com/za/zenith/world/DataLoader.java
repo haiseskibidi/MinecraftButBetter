@@ -81,6 +81,7 @@ public class DataLoader {
         // 3. Register structures (depends on blocks)
         for (String ns : namespaces) {
             loadStructures(ns);
+            loadDensityFunctions(ns);
             loadBiomes(ns);
         }
         com.za.zenith.world.generation.structures.PrefabManager.init();
@@ -697,6 +698,44 @@ public class DataLoader {
                     } catch (Exception e) {}
                 });
             }
+        }
+    }
+
+    private static void loadDensityFunctions(String namespace) {
+        List<String> files = listResources(namespace + "/generation/density_functions");
+        if (!files.isEmpty()) {
+            for (String file : files) {
+                loadResource(namespace + "/generation/density_functions/" + file, el -> parseDensityFunction(namespace, file, el));
+            }
+        }
+    }
+
+    private static void parseDensityFunction(String namespace, String fileName, JsonElement el) {
+        try {
+            Identifier id = Identifier.of(namespace + ":" + fileName.replace(".json", ""));
+            com.za.zenith.world.generation.density.DensityFunctionRegistry.register(id, el);
+        } catch (Exception e) {
+            Logger.error("Failed to parse density function " + fileName + ": " + e.getMessage());
+        }
+    }
+
+    private static void loadZones(String namespace) {
+        List<String> files = listResources(namespace + "/generation/zones");
+        if (!files.isEmpty()) {
+            for (String file : files) {
+                loadResource(namespace + "/generation/zones/" + file, DataLoader::parseZone);
+            }
+        }
+    }
+
+    private static void parseZone(JsonElement el) {
+        try {
+            JsonObject obj = el.getAsJsonObject();
+            com.za.zenith.world.generation.zones.ZoneDefinition zone = GSON.fromJson(obj, com.za.zenith.world.generation.zones.ZoneDefinition.class);
+            zone.setId(Identifier.of(obj.get("identifier").getAsString()));
+            com.za.zenith.world.generation.zones.ZoneRegistry.register(zone);
+        } catch (Exception e) {
+            Logger.error("Failed to parse zone: " + e.getMessage());
         }
     }
 

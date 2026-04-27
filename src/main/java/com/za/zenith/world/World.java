@@ -146,6 +146,7 @@ public class World {
 
     private Player player;
     private final TerrainGenerator terrainGenerator;
+    private final com.za.zenith.world.generation.BiomeGenerator biomeGenerator;
     private final long seed;
     private boolean generating = false;
 
@@ -156,6 +157,7 @@ public class World {
         this.tickableBlockEntities = new CopyOnWriteArrayList<>();
         this.seed = System.currentTimeMillis(); // Random seed each time
         com.za.zenith.utils.Logger.info("Generating new world with seed: %d", seed);
+        this.biomeGenerator = new com.za.zenith.world.generation.BiomeGenerator(seed);
         this.terrainGenerator = new TerrainGenerator(seed);
         this.lightEngine = new com.za.zenith.world.lighting.LightEngine(this);
         this.worldTime = WorldSettings.getInstance().initialTime;
@@ -172,6 +174,7 @@ public class World {
         this.tickableBlockEntities = new CopyOnWriteArrayList<>();
         this.seed = seed;
         com.za.zenith.utils.Logger.info("Generating new world with seed: %d", seed);
+        this.biomeGenerator = new com.za.zenith.world.generation.BiomeGenerator(seed);
         this.terrainGenerator = new TerrainGenerator(seed);
         this.lightEngine = new com.za.zenith.world.lighting.LightEngine(this);
         this.worldTime = WorldSettings.getInstance().initialTime;
@@ -674,6 +677,10 @@ public class World {
 
     public void setPlayer(Player player) {
         this.player = player;
+    }
+
+    public com.za.zenith.world.generation.BiomeGenerator getBiomeManager() {
+        return biomeGenerator;
     }
 
     public Player getPlayer() {

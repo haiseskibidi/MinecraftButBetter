@@ -1,0 +1,9 @@
+{
+  "identifier": "zenith:cold",
+  "allowed_biomes": [
+    "zenith:taiga",
+    "zenith:snowy_peaks",
+    "zenith:plains",
+    "zenith:sky_islands"
+  ]
+}

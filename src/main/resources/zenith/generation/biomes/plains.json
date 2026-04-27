@@ -1,20 +1,22 @@
 {
   "identifier": "zenith:plains",
+  "terrain_type": "flat",
   "climate_points": [
     {
       "temperature": 0.5,
-      "humidity": 0.4,
-      "continentalness": 0.0,
-      "erosion": 0.5,
+      "humidity": 0.5,
+      "continentalness": 0.2,
+      "erosion": 0.8,
       "weirdness": 0.0
     }
   ],
-  "base_height": 64,
-  "height_variation": 10,
   "surface_block": "zenith:grass_block",
   "underground_block": "zenith:dirt",
-  "tree_density": 0.05,
-  "erosion_factor": 1.2,
+  "surface_rules": [
+    { "max_depth": 1, "min_noise": 0.8, "block": "zenith:dirt" },
+    { "max_depth": 1, "min_noise": 0.9, "block": "zenith:gravel" }
+  ],
+  "tree_density": 0.01,
   "features": [
     { "id": "zenith:oak_tree", "weight": 100 }
   ]

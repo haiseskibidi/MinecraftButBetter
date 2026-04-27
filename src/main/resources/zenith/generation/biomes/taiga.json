@@ -3,18 +3,15 @@
   "climate_points": [
     {
       "temperature": 0.2,
-      "humidity": 0.7,
-      "continentalness": 0.2,
+      "humidity": 0.4,
+      "continentalness": 0.4,
       "erosion": 0.3,
-      "weirdness": 0.0
+      "weirdness": 0.5
     }
   ],
-  "base_height": 72,
-  "height_variation": 40,
   "surface_block": "zenith:grass_block",
   "underground_block": "zenith:dirt",
-  "tree_density": 0.3,
-  "erosion_factor": 0.6,
+  "tree_density": 0.12,
   "features": [
     { "id": "zenith:spruce_tree", "weight": 100 }
   ]

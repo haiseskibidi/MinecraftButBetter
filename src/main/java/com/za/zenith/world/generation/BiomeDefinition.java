@@ -7,13 +7,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class BiomeDefinition {
+    public enum TerrainType {
+        @SerializedName("flat") FLAT,
+        @SerializedName("rolling") ROLLING,
+        @SerializedName("mountain") MOUNTAIN,
+        @SerializedName("islands") ISLANDS
+    }
+
     private transient Identifier id;
     
+    @SerializedName("terrain_type")
+    private TerrainType terrainType = TerrainType.ROLLING;
+
     @SerializedName("climate_points")
     private List<ClimatePoint> climatePoints = new ArrayList<>();
     
-    private float temperature; // Legacy support
-    private float humidity;    // Legacy support
+    private float temperature; 
+    private float humidity;    
     
     @SerializedName("base_height")
     private int baseHeight = 64; 
@@ -24,23 +34,9 @@ public class BiomeDefinition {
         public float continentalness;
         public float erosion;
         public float weirdness;
-        public float offset = 0.0f; // Дополнительное смещение для приоритета
+        public float offset = 0.0f; 
     }
 
-    public List<ClimatePoint> getClimatePoints() {
-        if (climatePoints.isEmpty()) {
-            // Создаем точку по умолчанию из легаси полей
-            ClimatePoint p = new ClimatePoint();
-            p.temperature = temperature;
-            p.humidity = humidity;
-            climatePoints.add(p);
-        }
-        return climatePoints;
-    }
-    
-    @SerializedName("height_variation")
-    private int heightVariation = 15;
-    
     @SerializedName("surface_block")
     private String surfaceBlock = "zenith:grass_block";
     
@@ -50,31 +46,36 @@ public class BiomeDefinition {
     @SerializedName("tree_density")
     private double treeDensity = 0.0;
     
-    @SerializedName("erosion_factor")
-    private double erosionFactor = 1.0;
+    @SerializedName("surface_rules")
+    private List<com.za.zenith.world.generation.rules.SurfaceRule> surfaceRules = new ArrayList<>();
     
     private List<FeatureEntry> features = new ArrayList<>();
 
     public Identifier getId() { return id; }
     public void setId(Identifier id) { this.id = id; }
     
-    public float getTemperature() { return temperature; }
-    public float getHumidity() { return humidity; }
+    public TerrainType getTerrainType() { return terrainType; }
+    
+    public List<ClimatePoint> getClimatePoints() {
+        if (climatePoints.isEmpty()) {
+            ClimatePoint p = new ClimatePoint();
+            p.temperature = temperature;
+            p.humidity = humidity;
+            climatePoints.add(p);
+        }
+        return climatePoints;
+    }
     
     public int getBaseHeight() { return baseHeight; }
-    public int getHeightVariation() { return heightVariation; }
-    
     public Identifier getSurfaceBlock() { return Identifier.of(surfaceBlock); }
     public Identifier getUndergroundBlock() { return Identifier.of(undergroundBlock); }
-    
     public double getTreeDensity() { return treeDensity; }
-    public double getErosionFactor() { return erosionFactor; }
     public List<FeatureEntry> getFeatures() { return features; }
+    public List<com.za.zenith.world.generation.rules.SurfaceRule> getSurfaceRules() { return surfaceRules; }
 
     public static class FeatureEntry {
         private String id;
         private int weight;
-        
         public Identifier getId() { return Identifier.of(id); }
         public int getWeight() { return weight; }
     }

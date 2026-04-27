@@ -141,6 +141,10 @@ public class SimplexNoise {
     }
     
     public double octaveNoise(double x, double y, double z, int octaves, double persistence, double scale) {
+        return octaveNoise(x, y, z, octaves, persistence, scale, 2.0);
+    }
+    
+    public double octaveNoise(double x, double y, double z, int octaves, double persistence, double scale, double lacunarity) {
         double value = 0;
         double amplitude = 1;
         double frequency = scale;
@@ -150,7 +154,7 @@ public class SimplexNoise {
             value += noise(x * frequency, y * frequency, z * frequency) * amplitude;
             maxValue += amplitude;
             amplitude *= persistence;
-            frequency *= 2;
+            frequency *= lacunarity;
         }
         
         return value / maxValue;
