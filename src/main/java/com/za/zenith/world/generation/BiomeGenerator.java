@@ -19,25 +19,6 @@ public class BiomeGenerator {
     private final SimplexNoise warpNoiseZ;
     private final SimplexNoise ditherNoise;
 
-    // Глобальные сплайны формы ландшафта (1.18+ Style)
-    private static final List<float[]> OFFSET_SPLINE = List.of(
-        new float[]{-1.0f, 20f},  // Глубокий океан
-        new float[]{-0.4f, 55f},  // Мелководье
-        new float[]{-0.1f, 62f},  // Побережье
-        new float[]{0.1f, 65f},   // Равнины
-        new float[]{0.4f, 85f},   // Холмы
-        new float[]{0.7f, 110f},  // Плато
-        new float[]{1.0f, 170f}   // Высокогорья
-    );
-
-    private static final List<float[]> FACTOR_SPLINE = List.of(
-        new float[]{-1.0f, 3.5f}, // Низкая эрозия = Дикий рельеф (Горы)
-        new float[]{-0.5f, 1.8f},
-        new float[]{0.0f, 0.8f},  // Средняя эрозия = Холмы
-        new float[]{0.5f, 0.15f},
-        new float[]{1.0f, 0.03f}  // Высокая эрозия = Плоские поля
-    );
-
     public BiomeGenerator(long seed) {
         this.zoneManager = new ZoneManager(seed);
         this.temperatureNoise = new SimplexNoise(seed + 7000);
@@ -48,20 +29,6 @@ public class BiomeGenerator {
         this.warpNoiseX = new SimplexNoise(seed + 12000);
         this.warpNoiseZ = new SimplexNoise(seed + 13000);
         this.ditherNoise = new SimplexNoise(seed + 16000);
-    }
-
-    /**
-     * Возвращает базовую высоту (Y-level) на основе континентальности.
-     */
-    public double getBaseHeight(float continentalness) {
-        return SplineInterpolator.interpolate(OFFSET_SPLINE, continentalness);
-    }
-
-    /**
-     * Возвращает множитель амплитуды шума на основе эрозии.
-     */
-    public double getTerrainFactor(float erosion) {
-        return SplineInterpolator.interpolate(FACTOR_SPLINE, erosion);
     }
 
     public BiomeDefinition getBiome(int x, int z) {
