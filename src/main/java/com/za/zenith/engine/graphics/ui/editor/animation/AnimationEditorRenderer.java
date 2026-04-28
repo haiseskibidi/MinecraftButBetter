@@ -202,7 +202,7 @@ public class AnimationEditorRenderer {
             shader.setBoolean("isHand", isSelected || weight > 0.01f);
             shader.setFloat("uHandPartWeight", isSelected ? 1.0f : weight);
             shader.setFloat("uMiningHeat", isSelected ? 1.0f : 0.0f);
-            node.mesh.render();
+            node.mesh.render(shader);
             shader.setBoolean("isHand", false);
         }
         if (node.name.equals("socket_palm_r") && state.heldStack != null) {

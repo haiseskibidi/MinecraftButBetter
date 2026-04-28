@@ -35,7 +35,7 @@ public class ChunkMeshGenerator {
 
     public record RawMeshData(java.nio.FloatBuffer dataBuffer, int dataLen, java.nio.IntBuffer indicesBuffer, int idxLen, org.joml.Vector3f min, org.joml.Vector3f max) {
         public Mesh createMesh() {
-            return new Mesh(dataBuffer, dataLen, indicesBuffer, idxLen, min, max);
+            return new Mesh(dataBuffer, dataLen, indicesBuffer, idxLen, min, max, Mesh.VertexFormat.COMPRESSED_CHUNK);
         }
 
         public void cleanup() {
@@ -172,26 +172,32 @@ public class ChunkMeshGenerator {
                 float ao = calculateAO(neighborhood, wx, wy, wz, face, vx, vy, vz);
                 calculateSmoothLight(neighborhood, wx, wy, wz, face, vx, vy, vz, tempLightBuf);
 
+                int u16 = (int)(finalU * 65535.0f) & 0xFFFF;
+                int v16 = (int)(finalV * 65535.0f) & 0xFFFF;
+                int packedTex = u16 | (v16 << 16);
+
+                int texLayer = ((int)fullUv[2]) & 0xFFF;
+                int overLayer = (((int)overlayLayer) + 1) & 0xFFF;
+                int packedLayers = texLayer | (overLayer << 12) | ((face & 0x7) << 24);
+
+                int bType = ((int)blockTypeId) & 0xFFFF;
+                int nMask = ((int)neighborMask) & 0x3F;
+                int wt = weight > 0.5f ? 1 : 0;
+                int packedBlock = bType | (nMask << 16) | (wt << 22);
+
+                int l0 = ((int)tempLightBuf[0]) & 0xF;
+                int l1 = ((int)tempLightBuf[1]) & 0xF;
+                int aoi = ao > 0.8f ? 3 : (ao > 0.6f ? 2 : (ao > 0.4f ? 1 : 0));
+                int pPos = packedPos & 0xFFFF;
+                int packedLight = l0 | (l1 << 4) | (aoi << 8) | (pPos << 10);
+
                 interleavedData.add(px);
                 interleavedData.add(py);
                 interleavedData.add(pz);
-                
-                interleavedData.add(finalU);
-                interleavedData.add(finalV);
-                interleavedData.add(fullUv[2]);
-                interleavedData.add(overlayLayer);
-                
-                interleavedData.add(fn[v*3]);
-                interleavedData.add(fn[v*3+1]);
-                interleavedData.add(fn[v*3+2]);
-                
-                interleavedData.add(blockTypeId);
-                interleavedData.add(neighborMask);
-                interleavedData.add(weight);
-                
-                interleavedData.add(tempLightBuf[0]);
-                interleavedData.add(tempLightBuf[1]);
-                interleavedData.add(ao + packedPos * 10.0f);
+                interleavedData.add(Float.intBitsToFloat(packedTex));
+                interleavedData.add(Float.intBitsToFloat(packedLayers));
+                interleavedData.add(Float.intBitsToFloat(packedBlock));
+                interleavedData.add(Float.intBitsToFloat(packedLight));
             }
             
             for (int idx : FACE_INDICES) indices.add(vertexIndex + idx);
@@ -303,26 +309,45 @@ public class ChunkMeshGenerator {
                     weight = weightOffset + ((py > minY + 0.001f) ? 1.0f : 0.0f);
                 }
 
+                int u16 = (int)(uv[v*3] * 65535.0f) & 0xFFFF;
+                int v16 = (int)(uv[v*3+1] * 65535.0f) & 0xFFFF;
+                int packedTex = u16 | (v16 << 16);
+
+                int texLayer = ((int)uv[v*3+2]) & 0xFFF;
+                int overLayer = (((int)overlayLayer) + 1) & 0xFFF;
+                int face = 4;
+                if (fn[v*3+1] < -0.5f) face = 5;
+                else if (fn[v*3] > 0.5f) face = 2;
+                else if (fn[v*3] < -0.5f) face = 3;
+                else if (fn[v*3+2] > 0.5f) face = 0;
+                else if (fn[v*3+2] < -0.5f) face = 1;
+                int packedLayers = texLayer | (overLayer << 12) | ((face & 0x7) << 24);
+
+                int bType = ((int)blockTypeId) & 0xFFFF;
+                int nMask = 0;
+                int wt = weight > 0.5f ? 1 : 0;
+                int packedBlock = bType | (nMask << 16) | (wt << 22);
+
+                int l0 = ((int)light[0]) & 0xF;
+                int l1 = ((int)light[1]) & 0xF;
+                int aoi = ao > 0.8f ? 3 : (ao > 0.6f ? 2 : (ao > 0.4f ? 1 : 0));
+                
+                int lx = ((int)Math.floor(fp[v*3])) & 15;
+                int lz = ((int)Math.floor(fp[v*3+2])) & 15;
+                int ly = (int)Math.floor(py);
+                if (ly < 0) ly = 0;
+                if (ly > 255) ly = 255;
+                int pPos = (lx + lz * 16 + ly * 256) & 0xFFFF;
+                
+                int packedLight = l0 | (l1 << 4) | (aoi << 8) | (pPos << 10);
+
                 interleavedData.add(fp[v*3]);
                 interleavedData.add(py);
                 interleavedData.add(fp[v*3+2]);
-                
-                interleavedData.add(uv[v*3]);
-                interleavedData.add(uv[v*3+1]);
-                interleavedData.add(uv[v*3+2]);
-                interleavedData.add(overlayLayer);
-                
-                interleavedData.add(fn[v*3]);
-                interleavedData.add(fn[v*3+1]);
-                interleavedData.add(fn[v*3+2]);
-                
-                interleavedData.add(blockTypeId);
-                interleavedData.add(0.0f); // neighborMask
-                interleavedData.add(weight);
-                
-                interleavedData.add(light[0]);
-                interleavedData.add(light[1]);
-                interleavedData.add(ao);
+                interleavedData.add(Float.intBitsToFloat(packedTex));
+                interleavedData.add(Float.intBitsToFloat(packedLayers));
+                interleavedData.add(Float.intBitsToFloat(packedBlock));
+                interleavedData.add(Float.intBitsToFloat(packedLight));
             }
             for (int idx : FACE_INDICES) indices.add(vertexIndex + idx);
             vertexIndex += 4;

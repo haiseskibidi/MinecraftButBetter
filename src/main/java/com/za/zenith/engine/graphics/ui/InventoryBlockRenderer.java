@@ -100,12 +100,11 @@ public class InventoryBlockRenderer {
             
             glEnable(GL_DEPTH_TEST);
             glDepthFunc(GL_LEQUAL);
-            glClear(GL_DEPTH_BUFFER_BIT); 
-            
-            mesh.render();
-            
-            glDisable(GL_DEPTH_TEST);
-            
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+            mesh.render(inventoryShader);
+
+            glDisable(GL_DEPTH_TEST);            
             // Восстанавливаем предыдущее состояние Scissor
             if (wasScissor) {
                 glScissor(oldScissor[0], oldScissor[1], oldScissor[2], oldScissor[3]);

@@ -36,22 +36,14 @@ public class BlockHighlightRenderer {
         blockShader.use();
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
         blockShader.setMatrix4f("view", camera.getViewMatrix(alpha));
+        blockShader.setBoolean("uIsCompressed", false);
+        blockShader.setFloat("uChunkSpawnTime", -100.0f); // Disable reveal animation
         
-        // Vertices are now shifted by -0.5 on X and Z, so we center at pos.x + 0.5 and pos.z + 0.5.
-        modelMatrix.identity()
-            .translate(pos.x() + 0.5f, pos.y(), pos.z() + 0.5f)
-            .scale(1.002f);
-            
-        blockShader.setMatrix4f("model", modelMatrix);
-        blockShader.setInt("highlightPass", 1);
-        blockShader.setVector3f("highlightColor", new Vector3f(0.2f, 0.2f, 0.2f));
-        
-        // Smart light for highlight: sample neighbor in hit direction
         setNeighborLight(world, pos, highlightedBlock.getSide(), blockShader);
         
         com.za.zenith.world.blocks.BlockDefinition blockDef = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
         blockShader.setFloat("uSwayOverride", (blockDef != null && blockDef.isSway()) ? 1.0f : 0.0f);
-        
+
         boolean isProxy = false;
         float scaleX = 1.0f, scaleY = 1.0f, scaleZ = 1.0f;
         float offsetX = 0.0f, offsetY = 0.0f, offsetZ = 0.0f;
@@ -61,9 +53,9 @@ public class BlockHighlightRenderer {
             isProxy = true;
             com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(currentBreakingBlock.getType());
             String animName = (def != null && def.getWobbleAnimation() != null) ? def.getWobbleAnimation() : "block_wobble";
-            
+
             com.za.zenith.entities.parkour.animation.AnimationProfile profile = com.za.zenith.entities.parkour.animation.AnimationRegistry.get(animName);
-            
+
             if (profile != null) {
                 float normTimer = wobbleTimer / Math.max(0.001f, profile.getDuration());
                 scaleX = profile.evaluate("scale_x", normTimer, 1.0f);
@@ -75,19 +67,20 @@ public class BlockHighlightRenderer {
                 shake = profile.evaluate("shake", normTimer, 0.0f);
             }
         }
-        
+
         blockShader.setVector3f("uWobbleScale", new Vector3f(scaleX, scaleY, scaleZ));
         blockShader.setVector3f("uWobbleOffset", new Vector3f(offsetX, offsetY, offsetZ));
         blockShader.setFloat("uWobbleShake", shake);
         blockShader.setFloat("uWobbleTime", wobbleTimer);
         blockShader.setBoolean("uIsProxy", isProxy);
-
+        
+        // Vertices are now shifted by -0.5 on X and Z, so we center at pos.x + 0.5 and pos.z + 0.5.
         modelMatrix.identity()
             .translate(pos.x() + 0.5f, pos.y(), pos.z() + 0.5f)
-            .scale(1.002f); // Tiny expansion to wrap around the block mesh perfectly
+            .scale(1.002f);
             
         blockShader.setMatrix4f("model", modelMatrix);
-        mesh.render(GL_LINES);
+        mesh.render(GL_LINES, blockShader);
         
         blockShader.setVector3f("uOverrideLight", new Vector3f(-1.0f, -1.0f, -1.0f));
         blockShader.setBoolean("uIsProxy", false);
@@ -109,10 +102,8 @@ public class BlockHighlightRenderer {
             float sun = chunk.getSunlight(nx & 15, ny, nz & 15);
             float block = chunk.getBlockLight(nx & 15, ny, nz & 15);
             blockShader.setVector3f("uOverrideLight", new Vector3f(sun, block, 1.0f));
-            blockShader.setFloat("uChunkSpawnTime", chunk.getFirstSpawnTime());
         } else {
             blockShader.setVector3f("uOverrideLight", new Vector3f(15.0f, 0.0f, 1.0f));
-            blockShader.setFloat("uChunkSpawnTime", -100.0f);
         }
     }
 

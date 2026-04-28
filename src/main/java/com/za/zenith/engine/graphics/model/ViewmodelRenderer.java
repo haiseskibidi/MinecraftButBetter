@@ -122,10 +122,8 @@ public class ViewmodelRenderer {
             shader.setBoolean("isHand", partWeight > 0.01f);
             shader.setFloat("uHandPartWeight", partWeight);
             shader.setFloat("uMiningHeat", heat);
-            
-            node.mesh.render();
-            shader.setBoolean("isHand", false);
-        }
+            node.mesh.render(shader);
+            shader.setBoolean("isHand", false);        }
         for (ModelNode child : node.children) {
             renderNode(child, shader, heat);
         }

@@ -7,8 +7,13 @@
     - **Cross-System Consistency**: Единые шейдеры для мира, viewmodel, инвентаря и частиц гарантируют идентичное отображение цветов.
 
 2.  **Advanced Rendering Architecture (Zenith v1.0)**:
+    - **Vertex Compression Engine (v1.0 NEW)**:
+        - **Bit-Packed Vertex Layout**: Размер вершины сокращен с 64 до 28 байт (7 float). Позиция сохранена в `vec3`, остальные данные (UV, слои, освещение, AO, маски, нормали) упакованы в 4 float.
+        - **Shader-side Unpacking**: Распаковка данных (сдвиги, маскирование) выполняется в `vertex.glsl` с использованием `floatBitsToUint`.
+        - **Front-to-Back Sorting**: Рендерер сортирует чанки от ближних к дальним перед отрисовкой непрозрачного слоя. Это позволяет GPU отсекать перекрытые пиксели на ранней стадии (Early Z-test).
+        - **Encapsulated State Management**: Логика переключения формата вершин инкапсулирована в `Mesh.render(Shader)`. Меш сам определяет свой формат (`isCompressed()`) и выставляет униформу `uIsCompressed` шейдеру, что исключает визуальные баги ("черные объекты") из-за утечки состояний.
+    - **Packed Interleaved Vertex Format (Legacy)**: Вершины старого формата (16 float / 64 байта) по-прежнему поддерживаются для совместимости, используя те же шейдеры через флаг сжатия.
     - **Consolidated Chunk Meshes (Draw Call Batching)**: Вместо раздельных VBO на каждую секцию, весь чанк (24 секции) объединяется в **два меша** (Opaque и Translucent). Это сокращает количество вызовов отрисовки в 24 раза, радикально снижая нагрузку на драйвер GPU.
-    - **Packed Interleaved Vertex Format**: Вершины используют упакованный формат (16 float / 64 байта), включающий `Pos, UV, Norm, BlockInfo, NeighborMask, Weight, Light, AO`. Это обеспечивает идеальную локальность кэша (AoS).
     - **World Generation v4.0 (Density Function AST Engine) [NEW]**:
         - **Abstract Syntax Tree (AST)**: Плотность мира вычисляется не одной функцией, а деревом объектов `DensityFunction`. Это позволяет комбинировать шум, сплайны и градиенты в любой последовательности через JSON-конфиг.
         - **Coordinate-Space Functions**: Специализированные узлы (Spline, Terrace) позволяют трансформировать плотность в зависимости от макро-параметров климата или высоты.

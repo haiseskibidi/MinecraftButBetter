@@ -1,10 +1,10 @@
 #version 330 core
 
 layout(location = 0) in vec3 position;
-layout(location = 1) in vec4 texCoord;
-layout(location = 2) in vec3 normal;
-layout(location = 3) in float blockTypeAttr;
-layout(location = 4) in float neighborDataAttr;
+layout(location = 1) in vec4 texCoordOrPackedTex;
+layout(location = 2) in vec3 normalOrPackedLayers;
+layout(location = 3) in vec4 blockTypeOrPackedBlock;
+layout(location = 4) in vec4 neighborOrPackedLight;
 layout(location = 5) in float verticalWeightAttr;
 layout(location = 6) in vec2 lightAttr;
 layout(location = 7) in float aoAttr;
@@ -14,6 +14,7 @@ uniform mat4 view;
 uniform mat4 model;
 
 uniform bool uIsProxy;
+uniform bool uIsCompressed;
 uniform vec3 uWobbleScale;
 uniform vec3 uWobbleOffset;
 uniform float uWobbleShake;
@@ -43,59 +44,90 @@ void main() {
     vChunkAge = uTime - uChunkSpawnTime;
     if (vChunkAge < 0.0) vChunkAge += 3600.0;
     
-    fragTexCoord = texCoord;
+    vec4 finalTexCoord;
+    vec3 finalNormal;
+    float finalBlockType;
+    float finalNeighborData;
+    float finalVerticalWeight;
+    vec2 finalLight;
+    float finalAO;
+    int packedPos = 0;
+
+    if (uIsCompressed) {
+        uint packedTex = floatBitsToUint(texCoordOrPackedTex.x);
+        finalTexCoord = vec4(float(packedTex & 0xFFFFu) / 65535.0, float((packedTex >> 16) & 0xFFFFu) / 65535.0, 0.0, -1.0);
+
+        uint packedLayers = floatBitsToUint(normalOrPackedLayers.x);
+        finalTexCoord.z = float(packedLayers & 0xFFFu);
+        finalTexCoord.w = float((packedLayers >> 12) & 0xFFFu) - 1.0;
+        
+        uint nIndex = (packedLayers >> 24) & 0x7u;
+        vec3 faceNormals[6] = vec3[](vec3(0,0,1), vec3(0,0,-1), vec3(1,0,0), vec3(-1,0,0), vec3(0,1,0), vec3(0,-1,0));
+        if (nIndex < 6u) finalNormal = faceNormals[nIndex];
+        else finalNormal = vec3(0, 1, 0);
+
+        uint packedBlock = floatBitsToUint(blockTypeOrPackedBlock.x);
+        int bType = int(packedBlock & 0xFFFFu);
+        if ((bType & 0x8000) != 0) bType |= 0xFFFF0000;
+        finalBlockType = float(bType);
+        finalNeighborData = float((packedBlock >> 16) & 0x3Fu);
+        finalVerticalWeight = float((packedBlock >> 22) & 0x1u);
+
+        uint packedLight = floatBitsToUint(neighborOrPackedLight.x);
+        finalLight = vec2(float(packedLight & 0xFu), float((packedLight >> 4) & 0xFu));
+        float aoIdx = float((packedLight >> 8) & 0x3u);
+        finalAO = (aoIdx == 3.0) ? 1.0 : (aoIdx == 2.0) ? 0.8 : (aoIdx == 1.0) ? 0.6 : 0.4;
+        packedPos = int((packedLight >> 10) & 0xFFFFu);
+    } else {
+        finalTexCoord = texCoordOrPackedTex;
+        finalNormal = normalOrPackedLayers;
+        finalBlockType = blockTypeOrPackedBlock.x;
+        finalNeighborData = neighborOrPackedLight.x;
+        finalVerticalWeight = verticalWeightAttr;
+        finalLight = lightAttr;
+        
+        packedPos = int(aoAttr / 10.0);
+        finalAO = aoAttr - float(packedPos) * 10.0;
+    }
+
+    fragTexCoord = finalTexCoord;
 
     if (uOverrideLight.x >= 0.0) {
         vLight = uOverrideLight.xy;
         vAO = uOverrideLight.z;
     } else {
-        vLight = lightAttr;
-
-        // Unpack block position from aoAttr
-        int packedPos = int(aoAttr / 10.0);
-        vAO = aoAttr - float(packedPos) * 10.0;
+        vLight = finalLight;
+        vAO = finalAO;
     }
-
-    // Default packedPos for dynamic entities (overridden if attributes used)
-    int packedPos = 0;
-    if (uOverrideLight.x < 0.0) {
-        packedPos = int(aoAttr / 10.0);
-    }    
+   
     int localX = packedPos % 16;
     int localZ = (packedPos / 16) % 16;
     int localY = packedPos / 256;
     
     vec3 chunkWorldPos = vec3(model * vec4(0.0, 0.0, 0.0, 1.0));
-    // Use floor(x + 0.1) to avoid floating point precision issues that cause +1 offset
     vBlockPos = ivec3(floor(chunkWorldPos + vec3(float(localX), float(localY), float(localZ)) + 0.1));
     
-    // Normal Lockdown: Always use original un-animated model matrix for normals to keep lighting stable
-    fragNormal = normalize(mat3(model) * normal);
+    fragNormal = normalize(mat3(model) * finalNormal);
     
     vec3 worldPos = vec3(model * vec4(position, 1.0));
     vBreakingIntensity = 0.0;
 
-    // AAA Smooth Rising Reveal effect
     if (vChunkAge < 1.0 && !uIsProxy) {
         float revealProgress = clamp(vChunkAge, 0.0, 1.0);
-        // Exponential smoothing for the rise
         float offset = -4.0 * (1.0 - pow(revealProgress, 3.0));
         worldPos.y += offset;
     }
 
     vLocalPos = position;
     if (uIsProxy) {
-        vec3 localDeformed = position; // Start with perfect mathematical alignment
-        
-        // Only apply deformation math if actually wobbling to prevent floating point drift outlines
+        vec3 localDeformed = position;
         if (uWobbleScale != vec3(1.0) || uWobbleOffset != vec3(0.0) || uWobbleShake > 0.0) {
             vec3 localCenter = vec3(0.0, 0.5, 0.0);
             vec3 dir = position - localCenter;
             localDeformed = localCenter + (dir * uWobbleScale) + uWobbleOffset;
             
-            // Hytale-style smooth rotational wobble
             if (uWobbleShake > 0.0) {
-                float time = uWobbleTime * 35.0; // Speed of the wobble
+                float time = uWobbleTime * 35.0;
                 float angleZ = sin(time) * 0.06 * uWobbleShake;
                 float angleX = cos(time * 0.8) * 0.06 * uWobbleShake;
                 
@@ -113,17 +145,15 @@ void main() {
                 localDeformed = localCenter + rotZ * rotX * (localDeformed - localCenter);
             }
         }
-
         worldPos = vec3(model * vec4(localDeformed, 1.0));
         vBreakingIntensity = 1.0;
     }
     
-    // Apply wind swaying for grass (texCoord.w is overlayLayer, verticalWeightAttr is weight)
     float swayIntense = (uSwayOverride < 0.0) ? 1.0 : uSwayOverride;
-    worldPos = applyFoliageWind(worldPos, position, texCoord.w, uTime, uIsProxy, verticalWeightAttr, swayIntense);
+    worldPos = applyFoliageWind(worldPos, position, finalTexCoord.w, uTime, uIsProxy, finalVerticalWeight, swayIntense);
 
     fragPos = worldPos;
-    blockType = blockTypeAttr;
-    neighborData = neighborDataAttr;
+    blockType = finalBlockType;
+    neighborData = finalNeighborData;
     gl_Position = projection * view * vec4(worldPos, 1.0);
 }

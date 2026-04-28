@@ -28,7 +28,7 @@ public class HeldItemRenderer {
             shader.setBoolean("isHand", false);
             shader.setFloat("uMiningHeat", heat);
             shader.setMatrix4f("model", modelMatrix);
-            mesh.render();
+            mesh.render(shader);
         }
     }
 

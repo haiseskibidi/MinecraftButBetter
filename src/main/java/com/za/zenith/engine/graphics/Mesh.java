@@ -9,6 +9,11 @@ import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.opengl.GL30.*;
 
 public class Mesh {
+    public enum VertexFormat {
+        STANDARD, // 16 floats (64 bytes)
+        COMPRESSED_CHUNK // 7 floats (28 bytes)
+    }
+
     private final int vaoId;
     private final int vboId;
     private final int eboId;
@@ -16,11 +21,14 @@ public class Mesh {
     private float minX, minY, minZ;
     private float maxX, maxY, maxZ;
     private org.joml.Vector3f graspOffset = new org.joml.Vector3f(0);
+    private VertexFormat format = VertexFormat.STANDARD;
     
     public void setGraspOffset(org.joml.Vector3f offset) { this.graspOffset = offset; }
     public org.joml.Vector3f getGraspOffset() { return graspOffset; }
+    public boolean isCompressed() { return format == VertexFormat.COMPRESSED_CHUNK; }
     
-    public Mesh(FloatBuffer dataBuffer, int dataLen, IntBuffer indicesBuffer, int idxLen, org.joml.Vector3f min, org.joml.Vector3f max) {
+    public Mesh(FloatBuffer dataBuffer, int dataLen, IntBuffer indicesBuffer, int idxLen, org.joml.Vector3f min, org.joml.Vector3f max, VertexFormat format) {
+        this.format = format;
         if (idxLen == 0 || dataLen == 0) {
             this.vertexCount = 0;
             this.vaoId = -1;
@@ -46,6 +54,10 @@ public class Mesh {
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, indicesBuffer, GL_STATIC_DRAW);
         
         glBindVertexArray(0);
+    }
+    
+    public Mesh(FloatBuffer dataBuffer, int dataLen, IntBuffer indicesBuffer, int idxLen, org.joml.Vector3f min, org.joml.Vector3f max) {
+        this(dataBuffer, dataLen, indicesBuffer, idxLen, min, max, VertexFormat.STANDARD);
     }
 
     public Mesh(FloatBuffer dataBuffer, int dataLen, IntBuffer indicesBuffer, int idxLen) {
@@ -77,31 +89,51 @@ public class Mesh {
     }
 
     private void setupAttributes() {
-        int stride = 16 * Float.BYTES;
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(1, 4, GL_FLOAT, false, stride, 3 * Float.BYTES);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(2, 3, GL_FLOAT, false, stride, 7 * Float.BYTES);
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(3, 1, GL_FLOAT, false, stride, 10 * Float.BYTES);
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(4, 1, GL_FLOAT, false, stride, 11 * Float.BYTES);
-        glEnableVertexAttribArray(4);
-        glVertexAttribPointer(5, 1, GL_FLOAT, false, stride, 12 * Float.BYTES);
-        glEnableVertexAttribArray(5);
-        glVertexAttribPointer(6, 2, GL_FLOAT, false, stride, 13 * Float.BYTES);
-        glEnableVertexAttribArray(6);
-        glVertexAttribPointer(7, 1, GL_FLOAT, false, stride, 15 * Float.BYTES);
-        glEnableVertexAttribArray(7);
+        if (format == VertexFormat.COMPRESSED_CHUNK) {
+            int stride = 7 * Float.BYTES;
+            // location = 0: position (vec3)
+            glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0);
+            glEnableVertexAttribArray(0);
+            // location = 1: packedTex (float)
+            glVertexAttribPointer(1, 1, GL_FLOAT, false, stride, 3 * Float.BYTES);
+            glEnableVertexAttribArray(1);
+            // location = 2: packedLayers (float)
+            glVertexAttribPointer(2, 1, GL_FLOAT, false, stride, 4 * Float.BYTES);
+            glEnableVertexAttribArray(2);
+            // location = 3: packedBlock (float)
+            glVertexAttribPointer(3, 1, GL_FLOAT, false, stride, 5 * Float.BYTES);
+            glEnableVertexAttribArray(3);
+            // location = 4: packedLight (float)
+            glVertexAttribPointer(4, 1, GL_FLOAT, false, stride, 6 * Float.BYTES);
+            glEnableVertexAttribArray(4);
+        } else {
+            int stride = 16 * Float.BYTES;
+            glVertexAttribPointer(0, 3, GL_FLOAT, false, stride, 0);
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(1, 4, GL_FLOAT, false, stride, 3 * Float.BYTES);
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(2, 3, GL_FLOAT, false, stride, 7 * Float.BYTES);
+            glEnableVertexAttribArray(2);
+            glVertexAttribPointer(3, 1, GL_FLOAT, false, stride, 10 * Float.BYTES);
+            glEnableVertexAttribArray(3);
+            glVertexAttribPointer(4, 1, GL_FLOAT, false, stride, 11 * Float.BYTES);
+            glEnableVertexAttribArray(4);
+            glVertexAttribPointer(5, 1, GL_FLOAT, false, stride, 12 * Float.BYTES);
+            glEnableVertexAttribArray(5);
+            glVertexAttribPointer(6, 2, GL_FLOAT, false, stride, 13 * Float.BYTES);
+            glEnableVertexAttribArray(6);
+            glVertexAttribPointer(7, 1, GL_FLOAT, false, stride, 15 * Float.BYTES);
+            glEnableVertexAttribArray(7);
+        }
     }
 
     private void calculateAABB(FloatBuffer dataBuffer, int dataLen) {
         minX = Float.MAX_VALUE; minY = Float.MAX_VALUE; minZ = Float.MAX_VALUE;
         maxX = -Float.MAX_VALUE; maxY = -Float.MAX_VALUE; maxZ = -Float.MAX_VALUE;
         
+        int step = (format == VertexFormat.COMPRESSED_CHUNK) ? 7 : 16;
         dataBuffer.mark();
-        for (int i = 0; i < dataLen; i += 16) {
+        for (int i = 0; i < dataLen; i += step) {
             float px = dataBuffer.get(i);
             float py = dataBuffer.get(i+1);
             float pz = dataBuffer.get(i+2);
@@ -124,7 +156,8 @@ public class Mesh {
         
         minX = Float.MAX_VALUE; minY = Float.MAX_VALUE; minZ = Float.MAX_VALUE;
         maxX = -Float.MAX_VALUE; maxY = -Float.MAX_VALUE; maxZ = -Float.MAX_VALUE;
-        for (int i = 0; i < dataLen; i += 16) {
+        int step = (format == VertexFormat.COMPRESSED_CHUNK) ? 7 : 16;
+        for (int i = 0; i < dataLen; i += step) {
             float px = interleavedData[i];
             float py = interleavedData[i+1];
             float pz = interleavedData[i+2];
@@ -240,6 +273,32 @@ public class Mesh {
         glBindVertexArray(vaoId);
         glDrawElements(glMode, vertexCount, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
+    }
+
+    /**
+     * Renders the mesh and automatically manages the 'uIsCompressed' uniform in the shader.
+     */
+    public void render(Shader shader) {
+        render(GL_TRIANGLES, shader);
+    }
+
+    /**
+     * Renders the mesh with specific GL mode and automatically manages the 'uIsCompressed' uniform in the shader.
+     */
+    public void render(int glMode, Shader shader) {
+        if (vaoId == -1) return;
+        
+        boolean compressed = isCompressed();
+        shader.setBoolean("uIsCompressed", compressed);
+        
+        glBindVertexArray(vaoId);
+        glDrawElements(glMode, vertexCount, GL_UNSIGNED_INT, 0);
+        glBindVertexArray(0);
+        
+        // Reset state only if it was compressed, to avoid unnecessary uniform calls
+        if (compressed) {
+            shader.setBoolean("uIsCompressed", false);
+        }
     }
     
     public org.joml.Vector3f getMin() {

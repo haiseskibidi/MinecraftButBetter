@@ -385,12 +385,16 @@ public class Renderer {
         blockShader.use();
         blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
         blockShader.setMatrix4f("view", camera.getViewMatrix(alpha));
+        blockShader.setBoolean("uIsCompressed", false);
+        blockShader.setFloat("uSwayOverride", 0.0f);
+        blockShader.setFloat("uChunkSpawnTime", -100.0f);
+        
         // Add 0.5f to x and z to center the mesh which is offset by -0.5f in ChunkMeshGenerator
         modelMatrix.identity().translate(previewPos.x() + 0.5f, previewPos.y(), previewPos.z() + 0.5f);
         blockShader.setMatrix4f("model", modelMatrix);
         blockShader.setInt("previewPass", 1);
         blockShader.setFloat("previewAlpha", 0.35f);
-        previewMesh.render();
+        previewMesh.render(blockShader);
         blockShader.setInt("previewPass", 0);
         glEnable(GL_CULL_FACE);
     }
@@ -601,6 +605,8 @@ public class Renderer {
         }
 
         // 3. Render loaded meshes
+        blockShader.setBoolean("uIsCompressed", true);
+        
         // Opaque: Front-to-back (already sorted)
         for (Chunk chunk : visibleChunks) {
             ChunkMeshGenerator.ChunkMeshResult result = chunkMeshes.get(chunk);
@@ -608,7 +614,7 @@ public class Renderer {
                 modelMatrix.identity().translate(chunk.getPosition().x() * Chunk.CHUNK_SIZE, 0, chunk.getPosition().z() * Chunk.CHUNK_SIZE);
                 blockShader.setMatrix4f("model", modelMatrix);
                 blockShader.setFloat("uChunkSpawnTime", chunk.getFirstSpawnTime());
-                result.opaqueMesh().render();
+                result.opaqueMesh().render(blockShader);
             }
         }
         
@@ -621,7 +627,7 @@ public class Renderer {
                 modelMatrix.identity().translate(chunk.getPosition().x() * Chunk.CHUNK_SIZE, 0, chunk.getPosition().z() * Chunk.CHUNK_SIZE);
                 blockShader.setMatrix4f("model", modelMatrix);
                 blockShader.setFloat("uChunkSpawnTime", chunk.getFirstSpawnTime());
-                result.translucentMesh().render();
+                result.translucentMesh().render(blockShader);
             }
         }
         glDepthMask(true);
@@ -640,7 +646,7 @@ public class Renderer {
             Chunk c = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(breakingPos.x(), breakingPos.z()));
             if (c != null) blockShader.setFloat("uChunkSpawnTime", c.getFirstSpawnTime());
             
-            holeMesh.render();
+            holeMesh.render(blockShader);
         }
         
         if (breakingPos != null && breakingMesh != null && currentBreakingBlock != null) {
@@ -722,7 +728,7 @@ public class Renderer {
                 Chunk c = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(pos.x(), pos.z()));
                 if (c != null) blockShader.setFloat("uChunkSpawnTime", c.getFirstSpawnTime());
 
-                hole.render();
+                hole.render(blockShader);
                 blockShader.setInt("uHiddenCount", hiddenCount); // RESTORE hidden count
             }
 
@@ -762,7 +768,7 @@ public class Renderer {
                 modelMatrix.identity().translate(pos.x() + 0.5f, pos.y(), pos.z() + 0.5f);
                 blockShader.setMatrix4f("model", modelMatrix);
                 
-                mesh.render();
+                mesh.render(blockShader);
                 blockShader.setBoolean("uIsProxy", false); // Ensure proxy mode is disabled for next hole
             }
         }
@@ -771,7 +777,14 @@ public class Renderer {
 
     private void renderBreakingProxyBlock(Camera camera, World world, float alpha) {
         blockShader.use();
+        blockShader.setBoolean("uIsCompressed", false);
+        blockShader.setFloat("uSwayOverride", -1.0f); // Use attribute (for leaves)
         
+        // Sync with chunk reveal animation
+        Chunk c = world.getChunk(com.za.zenith.world.chunks.ChunkPos.fromBlockPos(breakingPos.x(), breakingPos.z()));
+        if (c != null) blockShader.setFloat("uChunkSpawnTime", c.getFirstSpawnTime());
+        else blockShader.setFloat("uChunkSpawnTime", -100.0f);
+
         // Evaluate Animation Profile
         com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(currentBreakingBlock.getType());
         String animName = (def != null && def.getWobbleAnimation() != null) ? def.getWobbleAnimation() : "block_wobble";
@@ -815,7 +828,7 @@ public class Renderer {
             // Add 0.5f to x and z to center the mesh which is offset by -0.5f in ChunkMeshGenerator
             modelMatrix.identity().translate(breakingPos.x() + 0.5f, breakingPos.y(), breakingPos.z() + 0.5f);
             blockShader.setMatrix4f("model", modelMatrix);
-            breakingMesh.render();
+            breakingMesh.render(blockShader);
             blockShader.setBoolean("uIsProxy", false);
         }
     }
@@ -880,7 +893,7 @@ public class Renderer {
                     default: vPool1.set(0.5f, 0.5f, 0.5f); break;
                 }
                 blockShader.setVector3f("highlightColor", vPool1);
-                playerMesh.render();
+                playerMesh.render(blockShader);
             } else if (entity instanceof com.za.zenith.entities.ItemEntity itemEntity) {
                 // Optimization: Cull distant items from rendering
                 com.za.zenith.entities.Player player = world.getPlayer();
@@ -937,7 +950,7 @@ public class Renderer {
 
                     blockShader.setMatrix4f("model", modelMatrix);
                     blockShader.setInt("highlightPass", 0);
-                    mesh.render();
+                    mesh.render(blockShader);
                 }
             } else if (entity instanceof com.za.zenith.entities.ResourceEntity resource) {
                 com.za.zenith.world.items.Item item = resource.getStack().getItem();
@@ -960,7 +973,7 @@ public class Renderer {
 
                     blockShader.setMatrix4f("model", modelMatrix);
                     blockShader.setInt("highlightPass", 0);
-                    mesh.render();
+                    mesh.render(blockShader);
                 }
             } else if (entity instanceof com.za.zenith.entities.DecorationEntity decoration) {
                 com.za.zenith.entities.EntityDefinition def = decoration.getDefinition();
@@ -989,7 +1002,7 @@ public class Renderer {
 
                     blockShader.setMatrix4f("model", modelMatrix);
                     blockShader.setInt("highlightPass", 0);
-                    mesh.render();
+                    mesh.render(blockShader);
                 }
             } else {
                 if (playerMesh == null) createPlayerMesh();
@@ -999,7 +1012,7 @@ public class Renderer {
 
                 blockShader.setMatrix4f("model", modelMatrix);
                 blockShader.setInt("highlightPass", 0);
-                playerMesh.render();
+                playerMesh.render(blockShader);
             }
         }
         blockShader.setInt("highlightPass", 0);
@@ -1051,7 +1064,7 @@ public class Renderer {
 
                         blockShader.setMatrix4f("model", modelMatrix);
                         blockShader.setInt("highlightPass", 0);
-                        mesh.render();
+                        mesh.render(blockShader);
                     }
                 }
             }
@@ -1068,7 +1081,8 @@ public class Renderer {
             blockShader.setInt("highlightPass", 1);
             vPool1.set(0.3f, 0.6f, 1.0f);
             blockShader.setVector3f("highlightColor", vPool1);
-            playerMesh.render();
+            
+            playerMesh.render(blockShader);
         }
         blockShader.setInt("highlightPass", 0);
     }
