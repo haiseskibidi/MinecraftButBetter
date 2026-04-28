@@ -852,7 +852,7 @@ public class World {
         removeBlockEntity(pos);
 
         // IMPORTANT: Clear any damage/proxy data at this position immediately
-        blockDamageMap.remove(pos);
+        blockDamageMap.remove(packBlockPos(x, y, z));
 
         long packed = ChunkPos.pack(x >> 4, z >> 4);
         Chunk chunk = chunks.get(packed);

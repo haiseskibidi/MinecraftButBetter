@@ -360,7 +360,10 @@ public class ChunkMeshGenerator {
 
         public Mesh build() {
             RawMeshData raw = buildRaw();
-            return raw != null ? raw.createMesh() : null;
+            if (raw == null) return null;
+            Mesh mesh = raw.createMesh();
+            raw.cleanup(); // CRITICAL: Return buffers to pool
+            return mesh;
         }
     }
 
