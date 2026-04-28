@@ -715,7 +715,7 @@ public class Renderer {
             if (hole != null) {
                 blockShader.setBoolean("uIsProxy", false);
                 blockShader.setInt("uHiddenCount", 0); // Temporary disable discard to show hole
-                modelMatrix.identity().translate(pos.x() + 0.5f, pos.y(), pos.z() + 0.5f);
+                modelMatrix.identity().translate(pos.x(), pos.y(), pos.z());
                 blockShader.setMatrix4f("model", modelMatrix);
                 
                 // Sync rising animation for persistent holes

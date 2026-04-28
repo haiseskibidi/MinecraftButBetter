@@ -140,12 +140,31 @@ public class ItemEntity extends Entity {
 
     private void processSleeping(float deltaTime, World world) {
         mergeTimer += deltaTime;
-        if (mergeTimer >= 1.0f) { 
+        if (mergeTimer >= 1.0f) {
             mergeTimer = 0;
             tryMerge(world);
         }
-        if (world.getWorldTime() % 1.5f < deltaTime) {
-             if (world.getBlock((int)Math.floor(position.x), (int)Math.floor(position.y - 0.05f), (int)Math.floor(position.z)).isAir()) {
+
+        // 1. MAGNET CHECK (Optimization-friendly)
+        com.za.zenith.entities.Player player = world.getPlayer();
+        if (player != null && !player.getInventory().isFull()) {
+            float dx = player.getPosition().x - position.x;
+            float dy = (player.getPosition().y + player.getHeight() * 0.5f) - position.y;
+            float dz = player.getPosition().z - position.z;
+            float distSq = dx*dx + dy*dy + dz*dz;
+
+            if (distSq < 100.0f) { // Only check detailed magnet component if player is within 10 blocks
+                com.za.zenith.world.items.component.MagneticComponent magnet = player.getInventory().getActiveComponent(com.za.zenith.world.items.component.MagneticComponent.class);
+                if (magnet != null && distSq < magnet.attractionRadius * magnet.attractionRadius) {
+                    isSleeping = false;
+                    isBeingAttracted = true;
+                    isLockedOnPlayer = true;
+                    return; 
+                }
+            }
+        }
+
+        if (world.getWorldTime() % 1.5f < deltaTime) {             if (world.getBlock((int)Math.floor(position.x), (int)Math.floor(position.y - 0.05f), (int)Math.floor(position.z)).isAir()) {
                 isSleeping = false;
                 onGround = false;
                 sleepTimer = 0;
