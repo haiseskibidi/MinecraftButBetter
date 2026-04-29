@@ -18,17 +18,53 @@ public class Mesh {
     private final int vboId;
     private final int eboId;
     private final int vertexCount;
+    private final int baseVertex;
+    private final int firstIndex;
+    private final int poolVersion;
+    private final MeshPool pool;
     private float minX, minY, minZ;
     private float maxX, maxY, maxZ;
     private org.joml.Vector3f graspOffset = new org.joml.Vector3f(0);
     private VertexFormat format = VertexFormat.STANDARD;
+
+    public int getBaseVertex() { return baseVertex; }
+    public int getFirstIndex() { return firstIndex; }
+    public int getVertexCount() { return vertexCount; }
+    public int getPoolVersion() { return poolVersion; }
+    public MeshPool getPool() { return pool; }
+    public int getVaoId() { return vaoId; }
     
     public void setGraspOffset(org.joml.Vector3f offset) { this.graspOffset = offset; }
     public org.joml.Vector3f getGraspOffset() { return graspOffset; }
     public boolean isCompressed() { return format == VertexFormat.COMPRESSED_CHUNK; }
+
+    /**
+     * Pooling constructor for COMPRESSED_CHUNK format.
+     */
+    public Mesh(MeshPool pool, FloatBuffer dataBuffer, IntBuffer indicesBuffer, org.joml.Vector3f min, org.joml.Vector3f max) {
+        this.format = VertexFormat.COMPRESSED_CHUNK;
+        this.pool = pool;
+        
+        MeshPool.Allocation alloc = pool.allocate(dataBuffer, indicesBuffer);
+        this.vertexCount = alloc.indexCount();
+        this.baseVertex = alloc.baseVertex();
+        this.firstIndex = alloc.firstIndex();
+        this.poolVersion = alloc.poolVersion();
+        
+        this.vaoId = -1;
+        this.vboId = -1;
+        this.eboId = -1;
+        
+        this.minX = min.x; this.minY = min.y; this.minZ = min.z;
+        this.maxX = max.x; this.maxY = max.y; this.maxZ = max.z;
+    }
     
     public Mesh(FloatBuffer dataBuffer, int dataLen, IntBuffer indicesBuffer, int idxLen, org.joml.Vector3f min, org.joml.Vector3f max, VertexFormat format) {
         this.format = format;
+        this.pool = null;
+        this.baseVertex = 0;
+        this.firstIndex = 0;
+        this.poolVersion = -1;
         if (idxLen == 0 || dataLen == 0) {
             this.vertexCount = 0;
             this.vaoId = -1;
@@ -61,6 +97,10 @@ public class Mesh {
     }
 
     public Mesh(FloatBuffer dataBuffer, int dataLen, IntBuffer indicesBuffer, int idxLen) {
+        this.pool = null;
+        this.baseVertex = 0;
+        this.firstIndex = 0;
+        this.poolVersion = -1;
         if (idxLen == 0 || dataLen == 0) {
             this.vertexCount = 0;
             this.vaoId = -1;
@@ -143,8 +183,11 @@ public class Mesh {
         dataBuffer.reset();
     }
 
-    // Interleaved Constructor
     public Mesh(float[] interleavedData, int dataLen, int[] indices, int idxLen, boolean isInterleaved) {
+        this.pool = null;
+        this.baseVertex = 0;
+        this.firstIndex = 0;
+        this.poolVersion = -1;
         if (idxLen == 0 || dataLen == 0) {
             this.vertexCount = 0;
             this.vaoId = -1;

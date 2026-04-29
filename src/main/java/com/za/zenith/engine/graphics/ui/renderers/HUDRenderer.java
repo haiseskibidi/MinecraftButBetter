@@ -182,7 +182,9 @@ public class HUDRenderer {
                 .replace("{y}", String.format(java.util.Locale.US, "%.2f", pos.y))
                 .replace("{z}", String.format(java.util.Locale.US, "%.2f", pos.z))
                 .replace("{cx}", String.valueOf((int)pos.x >> 4))
-                .replace("{cz}", String.valueOf((int)pos.z >> 4));
+                .replace("{cz}", String.valueOf((int)pos.z >> 4))
+                .replace("{sections}", String.valueOf(game.getRenderer().getVisibleSectionsCount()))
+                .replace("{dc}", String.valueOf(game.getRenderer().getDrawCallCount()));
             
             // Add Biome info
             BiomeDefinition biome = game.getWorld().getBiomeManager().getBiome((int)pos.x, (int)pos.z);

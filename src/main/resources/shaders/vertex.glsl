@@ -5,9 +5,10 @@ layout(location = 1) in vec4 texCoordOrPackedTex;
 layout(location = 2) in vec3 normalOrPackedLayers;
 layout(location = 3) in vec4 blockTypeOrPackedBlock;
 layout(location = 4) in vec4 neighborOrPackedLight;
-layout(location = 5) in float verticalWeightAttr;
-layout(location = 6) in vec2 lightAttr;
-layout(location = 7) in float aoAttr;
+layout(location = 5) in vec4 aInstanceData; // MultiDraw: x,y,z = pos, w = spawnTime
+layout(location = 6) in float verticalWeightAttr;
+layout(location = 7) in vec2 lightAttr;
+layout(location = 8) in float aoAttr;
 
 #include "include/global_data.glsl"
 
@@ -15,6 +16,7 @@ uniform mat4 model;
 
 uniform bool uIsProxy;
 uniform bool uIsCompressed;
+uniform bool uIsBatch; // New: True if rendering via MultiDrawBatch
 uniform vec3 uWobbleScale;
 uniform vec3 uWobbleOffset;
 uniform float uWobbleShake;
@@ -40,7 +42,18 @@ out float vChunkAge;
 flat out ivec3 vBlockPos;
 
 void main() {
-    vChunkAge = gSunDirection.w - uChunkSpawnTime;
+    vec3 actualChunkPos;
+    float actualSpawnTime;
+    
+    if (uIsBatch) {
+        actualChunkPos = aInstanceData.xyz;
+        actualSpawnTime = aInstanceData.w;
+    } else {
+        actualChunkPos = vec3(model[3][0], model[3][1], model[3][2]);
+        actualSpawnTime = uChunkSpawnTime;
+    }
+
+    vChunkAge = gSunDirection.w - actualSpawnTime;
     if (vChunkAge < 0.0) vChunkAge += 3600.0;
     
     vec4 finalTexCoord;
@@ -103,12 +116,21 @@ void main() {
     int localZ = (packedPos / 16) % 16;
     int localY = packedPos / 256;
     
-    vec3 chunkWorldPos = vec3(model * vec4(0.0, 0.0, 0.0, 1.0));
-    vBlockPos = ivec3(floor(chunkWorldPos + vec3(float(localX), float(localY), float(localZ)) + 0.1));
+    vBlockPos = ivec3(floor(actualChunkPos + vec3(float(localX), float(localY), float(localZ)) + 0.1));
     
-    fragNormal = normalize(mat3(model) * finalNormal);
+    if (uIsBatch) {
+        fragNormal = finalNormal; // Simplified: chunks usually have identity rotation
+    } else {
+        fragNormal = normalize(mat3(model) * finalNormal);
+    }
     
-    vec3 worldPos = vec3(model * vec4(position, 1.0));
+    vec3 worldPos;
+    if (uIsBatch) {
+        worldPos = actualChunkPos + position;
+    } else {
+        worldPos = vec3(model * vec4(position, 1.0));
+    }
+    
     vBreakingIntensity = 0.0;
 
     if (vChunkAge < 1.0 && !uIsProxy) {

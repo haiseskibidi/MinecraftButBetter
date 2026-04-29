@@ -20,12 +20,22 @@ public class Chunk {
     private long lastMeshCounter = -1;
     private volatile boolean isReady = false;
     
-    private final float firstSpawnTime;
+    private float firstSpawnTime;
     private long lastSeenFrame = 0;
+    private com.za.zenith.world.chunks.ChunkMeshGenerator.ChunkMeshResult currentMeshResult;
 
     public long getLastSeenFrame() { return lastSeenFrame; }
     public void setLastSeenFrame(long frame) { this.lastSeenFrame = frame; }
     public float getFirstSpawnTime() { return firstSpawnTime; }
+    public void setFirstSpawnTime(float time) { this.firstSpawnTime = time; }
+
+    public com.za.zenith.world.chunks.ChunkMeshGenerator.ChunkMeshResult getCurrentMeshResult() {
+        return currentMeshResult;
+    }
+
+    public void setCurrentMeshResult(com.za.zenith.world.chunks.ChunkMeshGenerator.ChunkMeshResult result) {
+        this.currentMeshResult = result;
+    }
 
     public Chunk(ChunkPos position) {
         this.position = position;

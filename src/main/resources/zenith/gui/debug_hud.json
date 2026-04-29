@@ -73,6 +73,18 @@
       "fontSize": 11,
       "color": [0.7, 0.7, 0.7, 1.0],
       "condition": "debug_mode"
+    },
+    "render_stats": {
+      "type": "text",
+      "text": "S: {sections} | DC: {dc}",
+      "anchor": "top_right",
+      "alignX": "right",
+      "alignY": "top",
+      "x": "-10px",
+      "y": "118px",
+      "fontSize": 14,
+      "color": [1.0, 0.5, 0.0, 1.0],
+      "condition": "debug_mode"
     }
   }
 }

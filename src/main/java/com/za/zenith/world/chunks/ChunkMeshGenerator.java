@@ -1,6 +1,7 @@
 package com.za.zenith.world.chunks;
 
 import com.za.zenith.engine.graphics.Mesh;
+import com.za.zenith.engine.graphics.MeshPool;
 import com.za.zenith.world.World;
 import com.za.zenith.world.BlockPos;
 import com.za.zenith.world.blocks.Block;
@@ -26,15 +27,18 @@ public class ChunkMeshGenerator {
     };
     private static final int[] FACE_INDICES = {0,1,2, 2,3,0};
     
-    public record ChunkMeshResult(long version, Mesh opaqueMesh, Mesh translucentMesh, float spawnTime) {
+    public record ChunkMeshResult(long version, Mesh[] opaqueSections, Mesh[] translucentSections, float spawnTime) {
         public void cleanup() {
-            if (opaqueMesh != null) opaqueMesh.cleanup();
-            if (translucentMesh != null) translucentMesh.cleanup();
+            if (opaqueSections != null) for (Mesh m : opaqueSections) if (m != null) m.cleanup();
+            if (translucentSections != null) for (Mesh m : translucentSections) if (m != null) m.cleanup();
         }
     }
 
     public record RawMeshData(java.nio.FloatBuffer dataBuffer, int dataLen, java.nio.IntBuffer indicesBuffer, int idxLen, org.joml.Vector3f min, org.joml.Vector3f max) {
-        public Mesh createMesh() {
+        public Mesh createMesh(MeshPool pool) {
+            if (pool != null) {
+                return new Mesh(pool, dataBuffer, indicesBuffer, min, max);
+            }
             return new Mesh(dataBuffer, dataLen, indicesBuffer, idxLen, min, max, Mesh.VertexFormat.COMPRESSED_CHUNK);
         }
 
@@ -44,17 +48,20 @@ public class ChunkMeshGenerator {
         }
     }
 
-    public record RawChunkMeshResult(RawMeshData opaque, RawMeshData translucent, long version) {
-        public ChunkMeshResult upload() {
-            Mesh opaqueMesh = (opaque != null) ? opaque.createMesh() : null;
-            Mesh translucentMesh = (translucent != null) ? translucent.createMesh() : null;
-            float st = (float)(org.lwjgl.glfw.GLFW.glfwGetTime() % 3600.0);
-            return new ChunkMeshResult(version, opaqueMesh, translucentMesh, st);
+    public record RawChunkMeshResult(RawMeshData[] opaque, RawMeshData[] translucent, long version, float firstSpawnTime) {
+        public ChunkMeshResult upload(MeshPool pool) {
+            Mesh[] opaqueMeshes = new Mesh[Chunk.NUM_SECTIONS];
+            Mesh[] translucentMeshes = new Mesh[Chunk.NUM_SECTIONS];
+            for (int i = 0; i < Chunk.NUM_SECTIONS; i++) {
+                if (opaque != null && opaque[i] != null) opaqueMeshes[i] = opaque[i].createMesh(pool);
+                if (translucent != null && translucent[i] != null) translucentMeshes[i] = translucent[i].createMesh(pool);
+            }
+            return new ChunkMeshResult(version, opaqueMeshes, translucentMeshes, firstSpawnTime);
         }
 
         public void cleanup() {
-            if (opaque != null) opaque.cleanup();
-            if (translucent != null) translucent.cleanup();
+            if (opaque != null) for (RawMeshData r : opaque) if (r != null) r.cleanup();
+            if (translucent != null) for (RawMeshData r : translucent) if (r != null) r.cleanup();
         }
     }
 
@@ -386,7 +393,7 @@ public class ChunkMeshGenerator {
         public Mesh build() {
             RawMeshData raw = buildRaw();
             if (raw == null) return null;
-            Mesh mesh = raw.createMesh();
+            Mesh mesh = raw.createMesh(null);
             raw.cleanup(); // CRITICAL: Return buffers to pool
             return mesh;
         }
@@ -539,14 +546,15 @@ public class ChunkMeshGenerator {
     }
 
     public static ChunkMeshResult generateMesh(Chunk chunk, World world, DynamicTextureAtlas atlas) {
-        return generateRawMesh(chunk, world, atlas).upload();
+        return generateRawMesh(chunk, world, atlas).upload(null);
     }
 
     public static RawChunkMeshResult generateRawMesh(Chunk chunk, World world, DynamicTextureAtlas atlas) {
         MeshData chunkOpaque = threadOpaque.get();
         MeshData chunkTranslucent = threadTranslucent.get();
-        chunkOpaque.clear();
-        chunkTranslucent.clear();
+        
+        RawMeshData[] opaqueResults = new RawMeshData[Chunk.NUM_SECTIONS];
+        RawMeshData[] translucentResults = new RawMeshData[Chunk.NUM_SECTIONS];
 
         ChunkNeighborhood neighborhood = new ChunkNeighborhood(world, chunk.getPosition().x(), chunk.getPosition().z());
         long version = chunk.getDirtyCounter();
@@ -566,6 +574,12 @@ public class ChunkMeshGenerator {
         for (int secIdx = 0; secIdx < Chunk.NUM_SECTIONS; secIdx++) {
             ChunkSection section = chunk.getSections()[secIdx];
             if (section == null || section.isEmpty()) continue;
+
+            // NEW: Calculate visibility mask for occlusion culling
+            section.calculateVisibility(chunk, secIdx);
+
+            chunkOpaque.clear();
+            chunkTranslucent.clear();
 
             int startY = secIdx * ChunkSection.SECTION_SIZE;
             for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
@@ -641,19 +655,14 @@ public class ChunkMeshGenerator {
                                 } else if (nType == 0) {
                                     drawFace = true;
                                 } else if (isTranslucent && nType == blockType) {
-                                    // AAA OPTIMIZATION: Do not render faces between two identical translucent blocks (water-water, glass-glass)
                                     drawFace = false;
                                 } else if (neighborDef != null && neighborDef.is(BlockDefinition.FLAG_LEAVES)) {
-                                    // SPECIAL CASE: Leaves should NOT cull each other unless they are identical and we want Fancy/Fast graphics logic
-                                    // For Zenith, we always render internal leaf faces for depth.
                                     drawFace = !isLeaves || (nType != blockType);
                                     if (isLeaves && neighborDef.is(BlockDefinition.FLAG_LEAVES)) drawFace = true;
                                 } else if (neighborDef != null && neighborDef.hasTag("treecapitator")) {
                                     if (face >= 4) {
-                                        // ALWAYS draw top/bottom faces for logs to avoid holes during mining animations
                                         drawFace = true;
                                     } else {
-                                        // Sides are still culled if types are identical
                                         drawFace = (nType != blockType);
                                     }
                                 } else if ((neighborDef == null || !neighborDef.is(BlockDefinition.FLAG_TRANSPARENT)) && !neighborDef.isAlwaysRender()) {
@@ -679,9 +688,8 @@ public class ChunkMeshGenerator {
                                     if (isTranslucent) {
                                         faceBlockType = -(faceBlockType + 2000.0f);
                                     } else if (def != null && def.is(BlockDefinition.FLAG_TINTED)) {
-                                        // TINT TOP AND SIDES FOR GRASS BLOCKS AND LEAVES
                                         boolean isGrassBlock = def.getIdentifier().getPath().contains("grass_block");
-                                        if (!isGrassBlock || face <= 4) { // 4 is Top, 0-3 are Sides
+                                        if (!isGrassBlock || face <= 4) { 
                                             faceBlockType = -(faceBlockType + 1.0f);
                                         }
 
@@ -705,9 +713,11 @@ public class ChunkMeshGenerator {
                     }
                 }
             }
+            opaqueResults[secIdx] = chunkOpaque.buildRaw();
+            translucentResults[secIdx] = chunkTranslucent.buildRaw();
         }
 
-        return new RawChunkMeshResult(chunkOpaque.buildRaw(), chunkTranslucent.buildRaw(), version);
+        return new RawChunkMeshResult(opaqueResults, translucentResults, version, chunk.getFirstSpawnTime());
     }
 
     private static void addCrossPlane(MeshData data, float ox, float oy, float oz, float x0, float z0, float x1, float z1, float[] uvs, float blockTypeId, float overlayLayer, float weightOffset, ChunkNeighborhood neighborhood, int wx, int wy, int wz) {
