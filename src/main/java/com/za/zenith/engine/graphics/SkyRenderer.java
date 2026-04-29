@@ -64,11 +64,6 @@ public class SkyRenderer {
         updateTextures(settings);
 
         shader.use();
-        
-        // View matrix WITHOUT translation for sky
-        Matrix4f viewMatrix = new Matrix4f(camera.getViewMatrix(0)).setTranslation(0, 0, 0);
-        shader.setMatrix4f("projection", camera.getProjectionMatrix());
-        shader.setMatrix4f("view", viewMatrix);
 
         glDisable(GL_DEPTH_TEST);
         glDepthMask(false);

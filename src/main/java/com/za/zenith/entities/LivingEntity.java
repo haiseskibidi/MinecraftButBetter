@@ -49,6 +49,12 @@ public abstract class LivingEntity extends Entity {
 
     public float getHealth() { return health; }
     public float getMaxHealth() { return maxHealth; }
+
+    @Override
+    protected void onUpdate(float deltaTime, com.za.zenith.world.World world) {
+        applyGravity(deltaTime);
+        move(world, velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
+    }
 }
 
 

@@ -6,6 +6,8 @@ layout(location = 2) in vec3 normalOrPackedLayers;
 layout(location = 3) in vec4 blockTypeOrPackedBlock;
 layout(location = 4) in vec4 neighborOrPackedLight;
 
+#include "include/global_data.glsl"
+
 uniform mat4 projection;
 uniform mat4 view;
 uniform mat4 model;

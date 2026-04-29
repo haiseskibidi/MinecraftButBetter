@@ -63,15 +63,15 @@ public class DebugRenderer {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
         uiShader.use();
-        uiShader.setUniform("projection", projectionMatrix);
+        uiShader.setMatrix4f("projection", projectionMatrix);
         
         // Рисуем черную полупрозрачную подложку
         Matrix4f modelMatrix = new Matrix4f()
             .translate(5, 5, 0)  // позиция
             .scale(120, 20, 1);  // размер
         
-        uiShader.setUniform("model", modelMatrix);
-        uiShader.setUniform("color", 0.0f, 0.0f, 0.0f, 0.7f); // черный полупрозрачный
+        uiShader.setMatrix4f("model", modelMatrix);
+        uiShader.setVector4f("color", new org.joml.Vector4f(0.0f, 0.0f, 0.0f, 0.7f)); // черный полупрозрачный
         
         backgroundMesh.render();
         

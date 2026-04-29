@@ -9,8 +9,8 @@ in float overlayLayer;
 out vec4 fragColor;
 
 uniform sampler2DArray textureSampler;
-uniform vec3 ambientLight;
-uniform vec3 uGrassColor = vec3(0.486, 0.784, 0.314);
+
+#include "include/global_data.glsl"
 
 #include "include/lighting.glsl"
 
@@ -38,7 +38,7 @@ void main() {
     // --- Maximum Performance Lighting ---
     // Remove all dot products and light loops for shards.
     // Just use boosted ambient for a clean, consistent look.
-    vec3 lighting = ambientLight * 1.6 + 0.1;
+    vec3 lighting = uAmbientColor * 1.6 + 0.1;
 
     fragColor = vec4(baseColor * lighting, texColor.a * fragAlpha);
 }

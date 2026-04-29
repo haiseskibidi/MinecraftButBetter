@@ -91,11 +91,7 @@ public class ParticleRenderer {
         if (particles.isEmpty()) return;
 
         shader.use();
-        shader.setMatrix4f("projection", camera.getProjectionMatrix());
-        shader.setMatrix4f("view", camera.getViewMatrix(alpha));
         shader.setLights("uLights", com.za.zenith.world.lighting.LightManager.getActiveLights());
-        shader.setVector3f("ambientLight", ambient);
-        shader.setVector3f("uGrassColor", ColorProvider.getGrassColor());
         
         // Обычный блендинг. Выключаем Culling!
         glDisable(GL_CULL_FACE);

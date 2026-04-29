@@ -37,8 +37,19 @@ public class Shader {
         
         glDeleteShader(vertexShader);
         glDeleteShader(fragmentShader);
+
+        // Automatically bind to global render context
+        RenderContext.bindShader(this);
         
         Logger.info("Shader program created successfully");
+    }
+
+    public int getProgramId() {
+        return programId;
+    }
+
+    public boolean hasUniform(String name) {
+        return glGetUniformLocation(programId, name) != -1;
     }
 
     private String resolveIncludes(String source, String currentPath) {

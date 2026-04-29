@@ -49,16 +49,12 @@ public abstract class Entity {
         return removed;
     }
 
-    public void update(float deltaTime, World world) {
-        // Сохраняем состояние начала тика
+    public final void update(float deltaTime, World world) {
+        // Гарантированно сохраняем состояние начала тика для интерполяции
         prevPosition.set(position);
         prevRotation.set(rotation);
         
-        if (!flying) {
-            velocity.y = Math.max(velocity.y + GRAVITY * deltaTime, TERMINAL_VELOCITY);
-        }
-        
-        move(world, velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
+        onUpdate(deltaTime, world);
 
         // Snap very small residual velocities to zero
         if (Math.abs(velocity.x) < 0.005f) velocity.x = 0f;
@@ -66,13 +62,34 @@ public abstract class Entity {
         if (onGround && Math.abs(velocity.y) < 0.005f) velocity.y = 0f;
     }
 
+    /**
+     * Реализация логики конкретной сущности.
+     */
+    protected abstract void onUpdate(float deltaTime, World world);
+
+    protected void applyGravity(float deltaTime) {
+        if (!flying) {
+            velocity.y = Math.max(velocity.y + GRAVITY * deltaTime, TERMINAL_VELOCITY);
+        }
+    }
+
     public Vector3f getInterpolatedPosition(float alpha) {
         return new Vector3f(prevPosition).lerp(position, alpha);
     }
 
     public Vector3f getInterpolatedRotation(float alpha) {
-        // Линейная интерполяция углов (для кувыркания предметов достаточно)
-        return new Vector3f(prevRotation).lerp(rotation, alpha);
+        Vector3f result = new Vector3f();
+        result.x = lerpAngle(prevRotation.x, rotation.x, alpha);
+        result.y = lerpAngle(prevRotation.y, rotation.y, alpha);
+        result.z = lerpAngle(prevRotation.z, rotation.z, alpha);
+        return result;
+    }
+
+    private float lerpAngle(float start, float end, float t) {
+        float diff = end - start;
+        while (diff < -Math.PI) diff += Math.PI * 2;
+        while (diff > Math.PI) diff -= Math.PI * 2;
+        return start + diff * t;
     }
 
     protected void move(World world, float dx, float dy, float dz) {

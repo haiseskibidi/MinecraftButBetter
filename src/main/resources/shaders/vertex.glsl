@@ -9,8 +9,8 @@ layout(location = 5) in float verticalWeightAttr;
 layout(location = 6) in vec2 lightAttr;
 layout(location = 7) in float aoAttr;
 
-uniform mat4 projection;
-uniform mat4 view;
+#include "include/global_data.glsl"
+
 uniform mat4 model;
 
 uniform bool uIsProxy;
@@ -19,7 +19,6 @@ uniform vec3 uWobbleScale;
 uniform vec3 uWobbleOffset;
 uniform float uWobbleShake;
 uniform float uWobbleTime;
-uniform float uTime;
 uniform float uSwayOverride; // -1.0 = use attribute, 0.0 = force static, 1.0 = force sway
 uniform vec3 uOverrideLight; // x=sun, y=block, z=ao. If x >= 0.0, use this instead of attributes.
 
@@ -41,7 +40,7 @@ out float vChunkAge;
 flat out ivec3 vBlockPos;
 
 void main() {
-    vChunkAge = uTime - uChunkSpawnTime;
+    vChunkAge = gSunDirection.w - uChunkSpawnTime;
     if (vChunkAge < 0.0) vChunkAge += 3600.0;
     
     vec4 finalTexCoord;
@@ -150,10 +149,10 @@ void main() {
     }
     
     float swayIntense = (uSwayOverride < 0.0) ? 1.0 : uSwayOverride;
-    worldPos = applyFoliageWind(worldPos, position, finalTexCoord.w, uTime, uIsProxy, finalVerticalWeight, swayIntense);
+    worldPos = applyFoliageWind(worldPos, position, finalTexCoord.w, gSunDirection.w, uIsProxy, finalVerticalWeight, swayIntense);
 
     fragPos = worldPos;
     blockType = finalBlockType;
     neighborData = finalNeighborData;
-    gl_Position = projection * view * vec4(worldPos, 1.0);
+    gl_Position = gProjection * gView * vec4(worldPos, 1.0);
 }

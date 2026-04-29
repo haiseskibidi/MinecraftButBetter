@@ -41,9 +41,10 @@ public class ResourceEntity extends Entity {
     }
 
     @Override
-    public void update(float delta, com.za.zenith.world.World world) {
+    protected void onUpdate(float delta, com.za.zenith.world.World world) {
         // Вызываем базовую физику (гравитацию), чтобы предмет падал, если сломать блок под ним
-        super.update(delta, world);
+        applyGravity(delta);
+        move(world, velocity.x * delta, velocity.y * delta, velocity.z * delta);
     }
 }
 

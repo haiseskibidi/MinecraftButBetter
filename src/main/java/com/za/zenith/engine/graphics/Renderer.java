@@ -185,6 +185,7 @@ public class Renderer {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         
+        RenderContext.init();
         blockShader = new Shader("src/main/resources/shaders/vertex.glsl", "src/main/resources/shaders/fragment.glsl");
         atlas = new DynamicTextureAtlas(16);
         for (com.za.zenith.world.blocks.BlockDefinition def : com.za.zenith.world.blocks.BlockRegistry.getRegistry().values()) {
@@ -239,6 +240,23 @@ public class Renderer {
     public void render(Window window, Camera camera, World world, RaycastResult highlightedBlock, com.za.zenith.network.GameClient networkClient, float alpha, float deltaTime) {
         vfxManager.update(deltaTime, world.getPlayer(), GameLoop.getInstance().getInputManager().getMiningController());
         
+        // Calculate time of day for global state
+        com.za.zenith.world.WorldSettings worldSettings = com.za.zenith.world.WorldSettings.getInstance();
+        float worldTime = world.getWorldTime();
+        float dayLength = worldSettings.dayLength;
+        float timeRatio = worldTime / dayLength;
+        float angle = (timeRatio - 0.25f) * (float)Math.PI * 2.0f;
+        lightDirection.set(0.2f, -(float)Math.cos(angle), (float)Math.sin(angle)).normalize();
+        float sunIntensity = Math.max(0.0f, (float)Math.cos(angle));
+        float moonIntensity = Math.max(0.0f, -(float)Math.cos(angle));
+        Vector3f finalLightDir = new Vector3f(lightDirection);
+        if (moonIntensity > sunIntensity) finalLightDir.negate();
+        Vector3f ambCol = new Vector3f(worldSettings.ambientColor[0], worldSettings.ambientColor[1], worldSettings.ambientColor[2]);
+        Vector3f currentAmbient = new Vector3f(ambCol).mul(0.2f + 0.8f * sunIntensity + 0.3f * moonIntensity);
+
+        // SYNC GLOBAL RENDER STATE (UBO)
+        RenderContext.update(world, camera, alpha, finalLightDir, currentAmbient);
+
         // Resize framebuffers if window changed
         msaaFramebuffer.resize(window.getWidth(), window.getHeight());
         resolveFramebuffer.resize(window.getWidth(), window.getHeight());
@@ -247,26 +265,6 @@ public class Renderer {
         msaaFramebuffer.bind();
         glEnable(GL_MULTISAMPLE);
         glEnable(GL_SAMPLE_ALPHA_TO_COVERAGE);
-
-        // Calculate time of day
-        com.za.zenith.world.WorldSettings worldSettings = com.za.zenith.world.WorldSettings.getInstance();
-        float worldTime = world.getWorldTime();
-        float dayLength = worldSettings.dayLength;
-        float timeRatio = worldTime / dayLength;
-        
-        // 6000 is noon (0.25). 18000 is midnight (0.75).
-        float angle = (timeRatio - 0.25f) * (float)Math.PI * 2.0f;
-
-        lightDirection.set(0.2f, -(float)Math.cos(angle), (float)Math.sin(angle)).normalize();
-        
-        float sunIntensity = Math.max(0.0f, (float)Math.cos(angle));
-        float moonIntensity = Math.max(0.0f, -(float)Math.cos(angle));
-
-        // Use light from the moon if it's night
-        Vector3f finalLightDir = new Vector3f(lightDirection);
-        if (moonIntensity > sunIntensity) {
-            finalLightDir.negate();
-        }
 
         // Sky color interpolation
         Vector3f daySky = new Vector3f(0.6f, 0.8f, 1.0f);
@@ -279,29 +277,21 @@ public class Renderer {
         // Render Sky (Sun/Moon)
         skyRenderer.render(camera, lightDirection);
 
-        // Blend Light Colors
-        Vector3f sunCol = new Vector3f(worldSettings.sunLightColor[0], worldSettings.sunLightColor[1], worldSettings.sunLightColor[2]);
-        Vector3f moonCol = new Vector3f(worldSettings.moonLightColor[0], worldSettings.moonLightColor[1], worldSettings.moonLightColor[2]);
-        Vector3f ambCol = new Vector3f(worldSettings.ambientColor[0], worldSettings.ambientColor[1], worldSettings.ambientColor[2]);
-
         // Update LightManager
         com.za.zenith.world.lighting.LightManager.update(world, world.getPlayer());
         
         // Add Sun as a directional light source
         com.za.zenith.world.lighting.LightData sunData = new com.za.zenith.world.lighting.LightData();
         sunData.type = com.za.zenith.world.lighting.LightData.Type.DIRECTIONAL;
-        sunData.color.set(sunCol).mul(sunIntensity).add(new Vector3f(moonCol).mul(moonIntensity * 0.5f));
+        sunData.color.set(new Vector3f(worldSettings.sunLightColor[0], worldSettings.sunLightColor[1], worldSettings.sunLightColor[2])).mul(sunIntensity).add(new Vector3f(worldSettings.moonLightColor[0], worldSettings.moonLightColor[1], worldSettings.moonLightColor[2]).mul(moonIntensity * 0.5f));
         sunData.intensity = 1.0f;
         com.za.zenith.world.lighting.LightSource sunSource = new com.za.zenith.world.lighting.LightSource(sunData);
         sunSource.direction.set(finalLightDir);
         com.za.zenith.world.lighting.LightManager.addDirectionalLight(sunSource);
 
-        Vector3f currentAmbient = new Vector3f(ambCol).mul(0.2f + 0.8f * sunIntensity + 0.3f * moonIntensity);
-
         renderScene(camera, world, networkClient, alpha, finalLightDir, currentAmbient);
 
         if (highlightedBlock != null && highlightedBlock.isHit()) {
-            blockShader.setBoolean("uIsDynamic", true);
             renderBlockHighlight(camera, world, highlightedBlock, alpha);
         }
         if (previewPos != null && previewMesh != null) renderPreviewBlock(camera, alpha);
@@ -339,11 +329,13 @@ public class Renderer {
         
         viewmodelShader.use();
         atlas.bind();
+        
+        // Custom Projection for ViewModel (FOV 70)
         Matrix4f viewModelProjection = new Matrix4f().setPerspective((float)Math.toRadians(70.0f), camera.getAspectRatio(), 0.01f, 1000.0f);
-        viewmodelShader.setMatrix4f("projection", viewModelProjection);
+        viewmodelShader.setMatrix4f("projection", viewModelProjection); 
         viewmodelShader.setMatrix4f("view", new Matrix4f().identity());
         
-        Matrix4f viewMatrix = camera.getViewMatrix(1.0f); // Use current view matrix for transformation
+        Matrix4f viewMatrix = camera.getViewMatrix(1.0f); 
         java.util.List<com.za.zenith.world.lighting.LightSource> worldLights = com.za.zenith.world.lighting.LightManager.getActiveLights();
         java.util.List<com.za.zenith.world.lighting.LightSource> viewLights = new java.util.ArrayList<>();
         
@@ -355,12 +347,6 @@ public class Renderer {
         }
 
         viewmodelShader.setLights("uLights", viewLights);
-        viewmodelShader.setVector3f("ambientLight", currentAmbient);
-        viewmodelShader.setVector3f("uGrassColor", ColorProvider.getGrassColor());
-        
-        // Normalize time
-        float normalizedTime = (float)(org.lwjgl.glfw.GLFW.glfwGetTime() % 3600.0);
-        viewmodelShader.setFloat("uTime", normalizedTime);
         
         // Состояние рук
         viewmodelShader.setVector3f("uCondition", new Vector3f(player.getDirt(), player.getBlood(), player.getWetness()));
@@ -383,8 +369,6 @@ public class Renderer {
     private void renderPreviewBlock(Camera camera, float alpha) {
         glDisable(GL_CULL_FACE);
         blockShader.use();
-        blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
-        blockShader.setMatrix4f("view", camera.getViewMatrix(alpha));
         blockShader.setBoolean("uIsCompressed", false);
         blockShader.setFloat("uSwayOverride", 0.0f);
         blockShader.setFloat("uChunkSpawnTime", -100.0f);
@@ -408,17 +392,9 @@ public class Renderer {
 
         blockShader.use();
         atlas.bind();
-        blockShader.setMatrix4f("projection", camera.getProjectionMatrix());
-        blockShader.setMatrix4f("view", camera.getViewMatrix(alpha));
-        
-        // Normalize time to maintain float precision for sine/cosine animation
-        float normalizedTime = (float)(org.lwjgl.glfw.GLFW.glfwGetTime() % 3600.0);
-        blockShader.setFloat("uTime", normalizedTime);
         blockShader.setFloat("uSwayOverride", -1.0f);
-        blockShader.setVector3f("uGrassColor", ColorProvider.getGrassColor());
         
         blockShader.setLights("uLights", com.za.zenith.world.lighting.LightManager.getActiveLights());
-        blockShader.setVector3f("ambientLight", ambient);
 
         // Collect all positions from damage map to hide them in chunk mesh
         java.util.Set<Long> damagedPositions = world.getBlockDamageMap().keySet();

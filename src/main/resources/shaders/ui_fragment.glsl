@@ -1,5 +1,7 @@
 #version 330 core
 
+#include "include/global_data.glsl"
+
 in vec2 fragTexCoord;
 in vec2 vPos;
 out vec4 fragColor;
@@ -26,7 +28,6 @@ uniform float hoverProgress = 0.0; // 0.0 to 1.0
 // Sensory Iris (Noise Indicator)
 uniform int isIris = 0;
 uniform float uNoise = 0.0;
-uniform float uTime = 0.0;
 
 // SDF for a chamfered rectangle
 float sdChamferedRect(vec2 p, vec2 b, float r) {

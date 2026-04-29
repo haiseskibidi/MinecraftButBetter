@@ -27,8 +27,9 @@ public class ScoutEntity extends LivingEntity {
     }
 
     @Override
-    public void update(float deltaTime, World world) {
-        super.update(deltaTime, world);
+    protected void onUpdate(float deltaTime, World world) {
+        applyGravity(deltaTime);
+        move(world, velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
         
         // AI Logic
         updateAI(deltaTime, world);

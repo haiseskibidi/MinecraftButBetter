@@ -12,10 +12,11 @@ in float vAO;
 in float vChunkAge;
 flat in ivec3 vBlockPos;
 
+#include "include/global_data.glsl"
+
 out vec4 fragColor;
 
 uniform sampler2DArray textureSampler;
-uniform vec3 ambientLight;
 uniform float glassLayer;   
 uniform int highlightPass; // 1 = solid color mode, 0 = texture mode
 uniform vec3 highlightColor;
@@ -30,8 +31,6 @@ uniform float uWobbleTime;
 uniform vec3 uHiddenPositions[16];
 uniform int uHiddenCount;
 uniform bool uIsProxy;
-uniform vec3 uGrassColor = vec3(0.486, 0.784, 0.314);
-uniform float uTime;
 
 uniform vec3 uCondition; // x=dirt, y=blood, z=wetness
 uniform bool isHand = false;
@@ -125,7 +124,7 @@ void main() {
         if (uLights[i].type == 1) { // Directional (Sun/Moon)
             // 1. Direct toon-shaded sunlight (provides volume and steps)
             // Scaled to 0.8 to leave room for scattered component and prevent overexposure
-            vec3 directSun = calculateLighting(fragNormal, uLights[i].direction, uLights[i].color * sunlightMask * 0.8, vec3(0.0));
+            vec3 directSun = calculateLighting(fragNormal, uSunDirection, uLights[i].color * sunlightMask * 0.8, vec3(0.0));
             
             // 2. Scattered/Volumetric sunlight (illuminates backfaces in lit areas)
             // Scaled to 0.2. Total (Direct + Scattered) will be 1.0 on the surface.
@@ -139,7 +138,7 @@ void main() {
     }
     
     // Final lighting assembly
-    vec3 lighting = ambientLight * vec3(0.85, 0.88, 0.95); // Start with ambient
+    vec3 lighting = uAmbientColor * vec3(0.85, 0.88, 0.95); // Start with ambient
     lighting += sunLightContribution;                     // Add sun/moon
     lighting += totalDynamicLight;                        // Add lamps/torches
     

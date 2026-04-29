@@ -121,8 +121,6 @@ public class GameLoop {
             float elapsedTime = timer.getDeltaF();
             accumulator += elapsedTime;
             
-            input();
-            
             while (accumulator >= interval) {
                 update(interval); // Fixed Physics Update
                 accumulator -= interval;
@@ -131,13 +129,14 @@ public class GameLoop {
             // Calculate interpolation alpha [0..1]
             float alpha = accumulator / interval;
             
+            input(elapsedTime);
             render(alpha, elapsedTime); // Render with interpolation and deltaTime
             
             sync(elapsedTime);
         }
     }
     
-    private void input() {
+    private void input(float deltaTime) {
         com.za.zenith.engine.graphics.ui.Screen active = com.za.zenith.engine.graphics.ui.ScreenManager.getInstance().getActiveScreen();
         
         boolean f8Key = inputManager.isActionPressed("editor_toggle");
@@ -181,7 +180,7 @@ public class GameLoop {
         }
         f9Pressed = f9Key;
 
-        highlightedBlock = inputManager.input(window, camera, player, timer.getDeltaF(), renderer, world, networkClient);
+        highlightedBlock = inputManager.input(window, camera, player, deltaTime, renderer, world, networkClient);
     }
 
     public void toggleJournal() {
@@ -301,9 +300,11 @@ public class GameLoop {
 
         // High-Frequency Animation Update (Right before render)
         if (!paused) {
-            player.updateAnimations(timer.getDeltaF(), world);
-            
+            player.updateAnimations(deltaTime, world);
+
             // Sync animated offsets to camera (High-frequency)
+
+
             camera.setPitchOffset(player.getCameraPitchOffset());
             camera.setRollOffset(player.getCameraRollOffset());
             camera.setFovOffset(player.getFovOffset());

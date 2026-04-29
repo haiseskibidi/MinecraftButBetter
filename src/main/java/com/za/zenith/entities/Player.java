@@ -122,11 +122,17 @@ public class Player extends LivingEntity {
     public com.za.zenith.engine.graphics.model.Viewmodel getViewmodel() { return viewmodel; }
     
     @Override
-    public void update(float deltaTime, World world) {
+    protected void onUpdate(float deltaTime, World world) {
         // Save velocity BEFORE physics clears it on impact
         preUpdateVelocityY = velocity.y;
         
-        super.update(deltaTime, world);
+        // Physics and Movement handled by super.move() or manual logic here
+        // Note: Player uses a lot of custom movement logic, but we still use applyGravity or manual gravity
+        if (!flying) {
+            velocity.y = Math.max(velocity.y + GRAVITY * deltaTime, TERMINAL_VELOCITY);
+        }
+        
+        move(world, velocity.x * deltaTime, velocity.y * deltaTime, velocity.z * deltaTime);
 
         // Update RPG stats from equipment
         updateEquipmentStats();
@@ -371,6 +377,9 @@ public class Player extends LivingEntity {
             itemPitchOffset = tItP;
             itemYawOffset = tItYw;
             itemRollOffset = tItR + (leanAmount * 0.5f);
+            
+            // Set it true here if no viewmodel or nodes found later
+            if (viewmodel == null) physicsInitialized = true;
         }
 
         parkourCameraTilt += (targetTilt - parkourCameraTilt) * syncLerp * deltaTime;

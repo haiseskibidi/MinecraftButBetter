@@ -36,7 +36,7 @@ public class ItemEntity extends Entity {
     }
     
     @Override
-    public void update(float deltaTime, World world) {
+    protected void onUpdate(float deltaTime, World world) {
         age += deltaTime;
         if (age > com.za.zenith.world.physics.PhysicsSettings.getInstance().itemDespawnTime) {
             setRemoved();
@@ -57,9 +57,6 @@ public class ItemEntity extends Entity {
             lastChunkPos = newPos;
         }
 
-        prevPosition.set(position);
-        prevRotation.set(rotation);
-        
         if (pickupDelay > 0) pickupDelay -= deltaTime;
 
         // 0. ITEM MERGING (Every frame while moving, less when sleeping)

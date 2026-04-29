@@ -15,17 +15,16 @@ out vec3 vColor;
 out vec3 vNormal;
 out float overlayLayer;
 
-uniform mat4 projection;
-uniform mat4 view;
+#include "include/global_data.glsl"
 
 void main() {
     vec3 worldPos = instPosRoll.xyz;
     float roll = instPosRoll.w;
     float scale = instVisual.x;
     
-    // BILLBOARDING: Extract camera right and up vectors from view matrix
-    vec3 camRight = vec3(view[0][0], view[1][0], view[2][0]);
-    vec3 camUp = vec3(view[0][1], view[1][1], view[2][1]);
+    // BILLBOARDING: Extract camera right and up vectors from gView matrix
+    vec3 camRight = vec3(gView[0][0], gView[1][0], gView[2][0]);
+    vec3 camUp = vec3(gView[0][1], gView[1][1], gView[2][1]);
     
     // Apply 2D Roll (rotation around camera-facing axis)
     float cosR = cos(roll);
@@ -38,7 +37,7 @@ void main() {
     
     vec3 vertexWorldPos = worldPos + (camRight * rotatedPos.x * scale) + (camUp * rotatedPos.y * scale);
     
-    gl_Position = projection * view * vec4(vertexWorldPos, 1.0);
+    gl_Position = gProjection * gView * vec4(vertexWorldPos, 1.0);
     
     // Pass to fragment
     fragTexCoord = vec3(aTexCoord * 0.25 + instTexData.yz, instTexData.x);
@@ -47,5 +46,5 @@ void main() {
     vColor = instColor;
     
     // Normal for billboards is always facing camera
-    vNormal = -vec3(view[0][2], view[1][2], view[2][2]);
+    vNormal = -vec3(gView[0][2], gView[1][2], gView[2][2]);
 }

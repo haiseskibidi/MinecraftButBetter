@@ -166,9 +166,10 @@ public class DataLoader {
     }
 
     private static void loadActions(String namespace) {
-        List<String> actionNames = listResources(namespace + "/actions");
-        for (String name : actionNames) {
-            String path = namespace + "/actions/" + name + ".json";
+        List<String> files = com.za.zenith.utils.ResourceScanner.listResources(namespace + "/actions");
+        for (String file : files) {
+            String path = namespace + "/actions/" + file;
+            String name = file.endsWith(".json") ? file.substring(0, file.length() - 5) : file;
             String raw = readAndSnapshot(path);
             if (raw == null) continue;
             try {
@@ -182,14 +183,15 @@ public class DataLoader {
     }
 
     private static void loadParkourAnimations() {
-        List<String> files = listResources("zenith/animations");
+        List<String> files = com.za.zenith.utils.ResourceScanner.listResources("zenith/animations");
         for (String fileName : files) {
-            String path = "zenith/animations/" + fileName + ".json";
+            String path = "zenith/animations/" + fileName;
+            String name = fileName.endsWith(".json") ? fileName.substring(0, fileName.length() - 5) : fileName;
             String raw = readAndSnapshot(path);
             if (raw == null) continue;
             try {
                 JsonObject animObj = GSON.fromJson(raw, JsonObject.class);
-                com.za.zenith.entities.parkour.animation.AnimationProfile anim = new com.za.zenith.entities.parkour.animation.AnimationProfile(fileName);
+                com.za.zenith.entities.parkour.animation.AnimationProfile anim = new com.za.zenith.entities.parkour.animation.AnimationProfile(name);
                 anim.setSourcePath(path);
                 
                 if (animObj.has("duration")) anim.setDuration(animObj.get("duration").getAsFloat());
@@ -241,7 +243,7 @@ public class DataLoader {
                         anim.addTrack(trackKey, track);
                     }
                 }
-                com.za.zenith.entities.parkour.animation.AnimationRegistry.register(fileName, anim);
+                com.za.zenith.entities.parkour.animation.AnimationRegistry.register(name, anim);
             } catch (Exception e) {
                 Logger.error("Failed to load animation " + fileName + ": " + e.getMessage());
             }
@@ -282,7 +284,7 @@ public class DataLoader {
 
     private static void loadJournalCategories(String namespace) {
         String path = namespace + "/journal/categories";
-        List<String> files = listResources(path);
+        List<String> files = com.za.zenith.utils.ResourceScanner.listResources(path);
         for (String file : files) {
             try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path + "/" + file)) {
                 if (is == null) continue;
@@ -312,7 +314,7 @@ public class DataLoader {
 
     private static void loadJournalEntries(String namespace) {
         String path = namespace + "/journal/entries";
-        List<String> files = listResources(path);
+        List<String> files = com.za.zenith.utils.ResourceScanner.listResources(path);
         for (String file : files) {
             try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path + "/" + file)) {
                 if (is == null) continue;
@@ -361,7 +363,7 @@ public class DataLoader {
 
     private static void loadGUIs(String namespace) {
         String path = namespace + "/gui";
-        List<String> files = listResources(path);
+        List<String> files = com.za.zenith.utils.ResourceScanner.listResources(path);
         if (!files.isEmpty()) {
             for (String file : files) {
                 loadResource(path + "/" + file, DataLoader::parseGUI);
@@ -382,7 +384,7 @@ public class DataLoader {
 
     private static void loadGrips(String namespace) {
         String path = namespace + "/grips";
-        List<String> files = listResources(path);
+        List<String> files = com.za.zenith.utils.ResourceScanner.listResources(path);
         if (!files.isEmpty()) {
             for (String file : files) {
                 try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path + "/" + file)) {
@@ -405,7 +407,7 @@ public class DataLoader {
 
     private static void loadModels(String namespace) {
         String path = namespace + "/models/viewmodel";
-        List<String> files = listResources(path);
+        List<String> files = com.za.zenith.utils.ResourceScanner.listResources(path);
         if (!files.isEmpty()) {
             for (String file : files) {
                 try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(path + "/" + file)) {
@@ -444,7 +446,7 @@ public class DataLoader {
 
     private static void loadRecipes(String namespace) {
         String path = namespace + "/recipes";
-        List<String> files = listResources(path);
+        List<String> files = com.za.zenith.utils.ResourceScanner.listResources(path);
         if (!files.isEmpty()) {
             for (String file : files) {
                 Logger.info("Loading recipe file: " + file);
@@ -452,7 +454,7 @@ public class DataLoader {
             }
             Logger.info("Loaded recipes for namespace: " + namespace);
         } else {
-            Logger.warn("No recipes found in namespace: " + namespace + " (listResources returned empty)");
+            Logger.warn("No recipes found in namespace: " + namespace);
         }
     }
 
@@ -1329,33 +1331,9 @@ public class DataLoader {
 
     /**
      * Возвращает список файлов в папке ресурсов.
-     * Работает через чтение списка из специального индексного файла или 
-     * (в будущем) через сканирование JAR.
+     * Теперь использует автоматическое сканирование.
      */
     private static List<String> listResources(String path) {
-        List<String> files = new ArrayList<>();
-        // Для простоты реализации "сканирования" без сложных библиотек,
-        // мы ищем файл '.index' в каждой папке ресурсов.
-        String indexPath = path + "/.index";
-        try (InputStream is = DataLoader.class.getClassLoader().getResourceAsStream(indexPath)) {
-            if (is != null) {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (!line.trim().isEmpty()) {
-                        String cleanName = line.trim();
-                        if (cleanName.startsWith("\uFEFF")) {
-                            cleanName = cleanName.substring(1); // Удаляем BOM если есть
-                        }
-                        files.add(cleanName);
-                    }
-                }
-            } else {
-                Logger.warn("Index file not found in resources: " + indexPath);
-            }
-        } catch (Exception e) {
-            Logger.warn("Could not read index for " + path + ": " + e.getMessage());
-        }
-        return files;
+        return com.za.zenith.utils.ResourceScanner.listResources(path);
     }
 }
