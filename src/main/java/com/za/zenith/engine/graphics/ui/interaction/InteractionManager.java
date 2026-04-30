@@ -96,6 +96,14 @@ public class InteractionManager {
             if (player.isSneaking() != rule.sneak()) return false;
         }
 
+        // 2.3 Check Hand State
+        if (rule.handEmpty() != null) {
+            if ((held == null) != rule.handEmpty()) return false;
+        }
+        if (rule.handFull() != null) {
+            if ((held != null) != rule.handFull()) return false;
+        }
+
         // 3. Check Condition
         if (rule.condition() != null) {
             if (be instanceof BlockInfoProvider provider) {

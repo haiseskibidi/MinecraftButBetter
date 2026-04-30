@@ -11,6 +11,8 @@ public record InteractionRule(
     String heldTag,        // Тег предмета в руке
     String blockItemTag,   // Тег предмета внутри блока
     Boolean sneak,         // true = обязательно приседать
+    Boolean handEmpty,     // true = рука должна быть пуста
+    Boolean handFull,      // true = в руке должен быть любой предмет
     String button,         // "LMB", "RMB"
     Float minY,            // Минимальная локальная высота попадания (0.0 - 1.0)
     String hint,           // Ключ локализации

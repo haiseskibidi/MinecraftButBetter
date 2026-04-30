@@ -240,6 +240,7 @@
   "ui.interaction.napping": "Обтесать",
   "ui.interaction.place_item": "Положить предмет",
   "ui.interaction.take_item": "Забрать предмет",
+  "ui.interaction.take_all": "Забрать всё",
   "ui.interaction.firing": "Идет обжиг...",
   "ui.interaction.toggle": "Переключить",
   "ui.interaction.open": "Открыть",

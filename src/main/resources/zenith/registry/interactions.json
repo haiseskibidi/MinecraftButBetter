@@ -1,7 +1,13 @@
 {
   "zenith:stump": [
-    { "condition": "is_empty", "minY": 0.8, "button": "RMB", "hint": "ui.interaction.place_item" },
-    { "condition": "has_item", "minY": 0.8, "sneak": true, "button": "RMB", "hint": "ui.interaction.take_item" }
+    { "condition": "is_empty", "handFull": true, "minY": 0.8, "button": "RMB", "hint": "ui.interaction.place_item" },
+    { "condition": "has_item", "sneak": false, "handEmpty": true, "minY": 0.8, "button": "RMB", "hint": "ui.interaction.take_item" },
+    { "condition": "has_item", "sneak": true, "minY": 0.8, "button": "RMB", "hint": "ui.interaction.take_all" }
+  ],
+  "zenith:scavenger_table": [
+    { "condition": "is_empty", "handFull": true, "minY": 0.8, "button": "RMB", "hint": "ui.interaction.place_item" },
+    { "condition": "has_item", "sneak": false, "handEmpty": true, "minY": 0.8, "button": "RMB", "hint": "ui.interaction.take_item" },
+    { "condition": "has_item", "sneak": true, "minY": 0.8, "button": "RMB", "hint": "ui.interaction.take_all" }
   ],
   "zenith:pit_kiln": [
     { "condition": "is_burning", "hint": "ui.interaction.firing", "show_progress": true }

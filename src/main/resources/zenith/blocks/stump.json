@@ -1,7 +1,6 @@
 {
   "identifier": "zenith:stump",
   "translationKey": "block.zenith.stump",
-  "type": "stump",
   "breaking_pattern": "default",
   "solid": true,
   "transparent": false,
@@ -11,5 +10,18 @@
     "top": "stripped_oak_log_top.png",
     "bottom": "oak_log_top.png",
     "side": "oak_log.png"
-  }
+  },
+  "components": [
+    {
+      "type": "zenith:crafting_surface",
+      "slots": 9,
+      "grid_size": 3,
+      "recipe_type": "in_world_crafting"
+    },
+    {
+      "type": "zenith:carvable",
+      "final_block": "zenith:stripped_oak_log",
+      "required_hits": 10
+    }
+  ]
 }

@@ -1,7 +1,6 @@
 {
   "identifier": "zenith:chest",
   "translationKey": "block.zenith.chest",
-  "type": "chest",
   "solid": true,
   "transparent": false,
   "textures": {
@@ -9,5 +8,12 @@
   },
   "mining_logic": {
     "strategy": "instant"
-  }
+  },
+  "components": [
+    {
+      "type": "zenith:container",
+      "inventory_size": 27,
+      "gui_id": "zenith:chest"
+    }
+  ]
 }

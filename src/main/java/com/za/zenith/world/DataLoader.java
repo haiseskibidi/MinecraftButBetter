@@ -32,7 +32,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DataLoader {
-    private static final Gson GSON = new Gson();
+    private static final Gson GSON = new com.google.gson.GsonBuilder()
+        .registerTypeAdapter(com.za.zenith.world.blocks.component.BlockComponent.class, new com.za.zenith.world.blocks.component.BlockComponentAdapter())
+        .create();
     private static final java.util.Map<String, String> factorySnapshots = new java.util.HashMap<>();
 
     public static String getSnapshot(String path) {
@@ -46,6 +48,7 @@ public class DataLoader {
         BlockRegistry.registerBlock(airDef);
         
         List<String> namespaces = loadNamespaces();
+        com.za.zenith.world.blocks.component.BlockComponentRegistry.init();
         com.za.zenith.entities.parkour.animation.EasingRegistry.init();
         for (String ns : namespaces) {
             loadBlocks(ns);
@@ -881,12 +884,6 @@ public class DataLoader {
                 def.setParticleMaterial(com.za.zenith.world.particles.ShardParticle.MAT_LEAVES);
             }
 
-            if (def instanceof com.za.zenith.world.blocks.ChestBlockDefinition chestDef) {
-                if (obj.has("inventory_size")) {
-                    chestDef.setInventorySize(obj.get("inventory_size").getAsInt());
-                }
-            }
-
             if (obj.has("breaking_pattern")) {
                 String pattern = obj.get("breaking_pattern").getAsString().toLowerCase();
                 int patternId = switch(pattern) {
@@ -1001,6 +998,16 @@ public class DataLoader {
             } else if (def.isTinted()) {
                 // Если блок тонируемый, он по умолчанию считается растительностью
                 def.setParticleMaterial(com.za.zenith.world.particles.ShardParticle.MAT_LEAVES);
+            }
+
+            if (obj.has("components") && obj.get("components").isJsonArray()) {
+                JsonArray compArr = obj.getAsJsonArray("components");
+                for (JsonElement compEl : compArr) {
+                    com.za.zenith.world.blocks.component.BlockComponent component = GSON.fromJson(compEl, com.za.zenith.world.blocks.component.BlockComponent.class);
+                    if (component != null) {
+                        def.addComponent(component);
+                    }
+                }
             }
 
             // Если форма не задана явно, и блок прозрачный - пробуем автогенерацию

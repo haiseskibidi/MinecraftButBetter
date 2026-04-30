@@ -1,6 +1,10 @@
 package com.za.zenith.world;
 
 public record BlockPos(int x, int y, int z) {
+    public BlockPos offset(com.za.zenith.utils.Direction dir) {
+        return new BlockPos(x + dir.getDx(), y + dir.getDy(), z + dir.getDz());
+    }
+
     public BlockPos offset(int dx, int dy, int dz) {
         return new BlockPos(x + dx, y + dy, z + dz);
     }

@@ -99,6 +99,17 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
     private float cleaningAmount = 0.0f;
     @SerializedName("firingTemperature")
     private float firingTemperature = 0.0f;
+    @SerializedName("components")
+    private final List<com.za.zenith.world.blocks.component.BlockComponent> components = new ArrayList<>();
+
+    public void addComponent(com.za.zenith.world.blocks.component.BlockComponent component) {
+        components.add(component);
+    }
+
+    public List<com.za.zenith.world.blocks.component.BlockComponent> getComponents() {
+        return components;
+    }
+
     @SerializedName("wobble_animation")
     private String wobbleAnimation = "block_wobble";
     @SerializedName("breaking_pattern")
@@ -435,6 +446,12 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
      * @param dir Направление к изменившемуся соседу
      */
     public void onNeighborChange(com.za.zenith.world.World world, BlockPos pos, Block neighborBlock, com.za.zenith.utils.Direction dir) {
+        if (components != null) {
+            for (var component : components) {
+                component.onNeighborChanged(world, pos, pos.offset(dir));
+            }
+        }
+        
         // Базовая логика: если блоку нужна опора и блок снизу стал воздухом — разрушаемся
         if (requiresSupport && dir == com.za.zenith.utils.Direction.DOWN) {
             if (neighborBlock.isAir()) {
@@ -486,10 +503,34 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
         return shape;
     }
 
+    public com.za.zenith.world.physics.VoxelShape getShape(com.za.zenith.world.World world, BlockPos pos, byte metadata) {
+        com.za.zenith.world.physics.VoxelShape base = getShape(metadata);
+        if (world == null || pos == null || components.isEmpty()) return base;
+
+        java.util.List<com.za.zenith.world.physics.AABB> dynamicBoxes = new java.util.ArrayList<>(base.getBoxes());
+        boolean changed = false;
+        for (var component : components) {
+            int before = dynamicBoxes.size();
+            component.addDynamicBoxes(world, pos, dynamicBoxes);
+            if (dynamicBoxes.size() > before) changed = true;
+        }
+
+        if (!changed) return base;
+        
+        com.za.zenith.world.physics.VoxelShape complex = new com.za.zenith.world.physics.VoxelShape();
+        for (var box : dynamicBoxes) complex.addBox(box);
+        return complex;
+    }
+
     /**
      * @return true, если блок имеет логику взаимодействия на ПКМ.
      */
     public boolean hasOnUse() {
+        if (components != null) {
+            for (var component : components) {
+                if (component.hasOnUse()) return true;
+            }
+        }
         return false;
     }
 
@@ -498,7 +539,12 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
      * Если список пуст, взаимодействие работает по всему хитбоксу (если hasOnUse = true).
      */
     public java.util.List<InteractionZone> getInteractionZones(com.za.zenith.world.World world, BlockPos pos) {
-        return java.util.Collections.emptyList();
+        if (components == null || components.isEmpty()) return java.util.Collections.emptyList();
+        java.util.List<InteractionZone> zones = new java.util.ArrayList<>();
+        for (var component : components) {
+            zones.addAll(component.getInteractionZones(world, pos));
+        }
+        return zones;
     }
 
     public boolean isInteractableAt(com.za.zenith.world.World world, BlockPos pos, org.joml.Vector3f localHit) {
@@ -521,6 +567,11 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
      * @return true, если действие было поглощено и стандартная обработка не требуется.
      */
     public boolean onUse(com.za.zenith.world.World world, BlockPos pos, com.za.zenith.entities.Player player, com.za.zenith.world.items.ItemStack heldStack, float hitX, float hitY, float hitZ) {
+        if (components != null) {
+            for (var component : components) {
+                if (component.onUse(world, pos, player, heldStack, hitX, hitY, hitZ)) return true;
+            }
+        }
         return false;
     }
 
@@ -528,6 +579,11 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
      * Вызывается при нажатии ЛКМ по блоку.
      */
     public boolean onLeftClick(com.za.zenith.world.World world, BlockPos pos, com.za.zenith.entities.Player player, com.za.zenith.world.items.ItemStack heldStack, float hitX, float hitY, float hitZ, boolean isNewClick) {
+        if (components != null) {
+            for (var component : components) {
+                if (component.onLeftClick(world, pos, player, heldStack, hitX, hitY, hitZ, isNewClick)) return true;
+            }
+        }
         return false;
     }
 
@@ -536,17 +592,25 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
      * Переопределяется в подклассах для блоков с логикой.
      */
     public BlockEntity createBlockEntity(BlockPos pos) {
+        if (!components.isEmpty()) {
+            return new com.za.zenith.world.blocks.entity.ModularBlockEntity(pos);
+        }
         return null;
     }
 
     public boolean hasBlockEntity() {
-        return false;
+        return !components.isEmpty();
     }
 
     /**
      * Вызывается непосредственно перед тем, как блок будет заменен на воздух или другой блок игроком.
      */
     public void onDestroyed(com.za.zenith.world.World world, BlockPos pos, Block block, com.za.zenith.entities.Player player) {
+        if (components != null) {
+            for (var component : components) {
+                component.onBreak(world, pos, player);
+            }
+        }
     }
 
     /**

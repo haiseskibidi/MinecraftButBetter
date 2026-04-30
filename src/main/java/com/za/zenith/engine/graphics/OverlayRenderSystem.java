@@ -133,21 +133,41 @@ public class OverlayRenderSystem {
         for (var be : world.getBlockEntities().values()) {
             carvingRenderer.render(be, atlas, shader, RenderContext.getMatrix(), wrapper, breakingPos, wobbleTimer);
             
-            if (be instanceof com.za.zenith.world.blocks.entity.ICraftingSurface stump) {
-                int count = stump.getActiveSlotsCount();
+            if (be instanceof com.za.zenith.world.blocks.entity.ModularBlockEntity modular) {
+                var block = world.getBlock(be.getPos());
+                var def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
+                if (def == null) continue;
+
+                com.za.zenith.world.blocks.component.CraftingSurfaceComponent surface = null;
+                for (var component : def.getComponents()) {
+                    if (component instanceof com.za.zenith.world.blocks.component.CraftingSurfaceComponent c) {
+                        surface = c;
+                        break;
+                    }
+                }
+
+                // Отрисовываем только если это "поверхность для крафта"
+                if (surface == null) continue;
+
+                int count = 0;
+                for (int i = 0; i < modular.size(); i++) {
+                    if (modular.getStack(i) != null) count++;
+                }
                 if (count == 0) continue;
                 
                 var p = be.getPos();
                 sampleLightAt(world, p.x(), p.y() + 1, p.z(), shader);
                 
-                for (int i = 0; i < 9; i++) {
-                    var stack = stump.getStackInSlot(i);
+                int gridSize = surface.getGridSize();
+                
+                for (int i = 0; i < modular.size(); i++) {
+                    var stack = modular.getStack(i);
                     if (stack == null) continue;
                     var item = stack.getItem();
                     Mesh mesh = MeshRegistry.getItemMesh(item, atlas);
                     
                     if (mesh != null) {
-                        var t = com.za.zenith.world.blocks.CraftingLayoutEngine.getSlotTransform(i, count);
+                        var t = com.za.zenith.world.blocks.CraftingLayoutEngine.getSlotTransform(i, count, gridSize);
                         float s = (item.isBlock() ? 0.4f : item.getDroppedScale() * 0.6f) * t.y;
                         Matrix4f model = RenderContext.getMatrix();
                         model.translate(p.x() + 0.5f + t.x, p.y() + 1.02f, p.z() + 0.5f + t.z);

@@ -78,6 +78,10 @@ public class Block {
     public VoxelShape getShape() {
         return BlockRegistry.getBlock(type).getShape(metadata);
     }
+
+    public VoxelShape getShape(com.za.zenith.world.World world, com.za.zenith.world.BlockPos pos) {
+        return BlockRegistry.getBlock(type).getShape(world, pos, metadata);
+    }
     
     @Override
     public boolean equals(Object obj) {

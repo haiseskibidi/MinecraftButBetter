@@ -5,10 +5,17 @@
   "transparent": false,
   "hardness": 2.5,
   "requiredTool": "axe",
-  "type": "scavenger_table",
   "textures": {
     "top": "stonecutter_top.png",
     "bottom": "black_concrete.png",
     "side": "oak_planks.png"
-  }
+  },
+  "components": [
+    {
+      "type": "zenith:crafting_surface",
+      "slots": 9,
+      "grid_size": 3,
+      "recipe_type": "in_world_crafting"
+    }
+  ]
 }

@@ -2,6 +2,12 @@
 
 ## Реализованные фичи
 
+- **Modular Block System (Block Components)**:
+  - **Composition over Inheritance**: Блоки переведены на компонентную модель (`Container`, `CraftingSurface`, `Carvable`).
+  - **Dynamic Hitboxes**: Реализована поддержка "честных" хитбоксов для предметов на поверхностях через расширение Raycast (`addDynamicBoxes`).
+  - **Data-Driven Blocks**: Описание блоков и их поведения полностью вынесено в JSON.
+  - **Advanced In-World Crafting**: Новая схема взаимодействия (ПКМ для манипуляций, Shift+ПКМ для сбора) с контекстными подсказками.
+
 - **Modular Rendering Architecture (Zenith v2.0)**:
   - **Modular Pipeline**: Бывший монолит `Renderer.java` разделен на `RenderPipeline`, `RenderContext`, `MeshRegistry`, `ChunkRenderSystem`, `EntityRenderSystem` и `OverlayRenderSystem`.
   - **Global Uniform Buffer (UBO)**: Все глобальные данные (Матрицы, Время, Свет) в едином `std140` буфере.
@@ -23,6 +29,7 @@
 - **Zenith WorldGen v1.1 (100% Data-Driven)**: Declarative Density, AST Engine, 5D Climate.
 
 ## В работе (Next Phase: GPU Optimization)
+- **Decoupled Input System**: Вынос логики взаимодействия блоков в специализированные контроллеры компонентов.
 - **Level of Detail (LOD) (Phase 3)**: Упрощенная геометрия для дальних дистанций.
 - **Zero-Alloc Phase 4**: Переработка системы частиц на пулы объектов.
 - **Enhanced Entity AI**: Расширение логики поведения мобов на основе новой системы `onUpdate`.

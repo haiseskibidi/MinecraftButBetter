@@ -7,7 +7,6 @@ import com.za.zenith.world.TreecapitatorService;
 import com.za.zenith.entities.Player;
 import com.za.zenith.world.items.ItemStack;
 import com.za.zenith.world.items.Items;
-import com.za.zenith.world.blocks.entity.StumpBlockEntity;
 
 public class LogBlockDefinition extends BlockDefinition {
     public LogBlockDefinition(int id, Identifier identifier, String translationKey, boolean solid, boolean transparent) {
@@ -49,12 +48,12 @@ public class LogBlockDefinition extends BlockDefinition {
                 int intermediateId = BlockRegistry.getRegistry().getId(recipe.getIntermediateBlock());
                 world.setBlock(pos, new Block(intermediateId));
                 
-                StumpBlockEntity be = (StumpBlockEntity) world.getBlockEntity(pos);
+                com.za.zenith.world.blocks.entity.ModularBlockEntity be = (com.za.zenith.world.blocks.entity.ModularBlockEntity) world.getBlockEntity(pos);
                 if (be != null) {
-                    be.setCarvingMask(0);
+                    be.setFloat("carve_mask", 0);
                     // Применяем первый удар сразу, чтобы не нужно было нажимать 2 раза
                     int index = CarvingLayoutEngine.getZoneIndex(hitX, hitZ);
-                    be.setCarvingBit(index);
+                    be.setFloat("carve_mask", (float)(1 << index));
                 }
                 
                 com.za.zenith.utils.Logger.info("Started carving %s into %s at zone %d", recipe.getInputBlock(), recipe.getIntermediateBlock(), CarvingLayoutEngine.getZoneIndex(hitX, hitZ));

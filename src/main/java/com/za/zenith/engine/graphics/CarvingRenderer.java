@@ -4,7 +4,7 @@ import com.za.zenith.world.BlockPos;
 import org.joml.Matrix4f;
 
 import com.za.zenith.world.blocks.entity.BlockEntity;
-import com.za.zenith.world.blocks.entity.StumpBlockEntity;
+import com.za.zenith.world.blocks.entity.ModularBlockEntity;
 import com.za.zenith.world.blocks.BlockRegistry;
 import com.za.zenith.world.blocks.BlockDefinition;
 import com.za.zenith.world.blocks.Block;
@@ -16,17 +16,19 @@ public class CarvingRenderer {
     private Mesh fullFaceMesh;
 
     public void render(BlockEntity be, DynamicTextureAtlas atlas, Shader shader, Matrix4f modelMatrix, Renderer renderer, BlockPos breakingPos, float wobbleTimer) {
-        if (be instanceof StumpBlockEntity stump) {
-            renderStump(stump, atlas, shader, modelMatrix, breakingPos, wobbleTimer);
+        if (be instanceof ModularBlockEntity modular) {
+            renderModular(modular, atlas, shader, modelMatrix, breakingPos, wobbleTimer);
         }
     }
 
-    private void renderStump(StumpBlockEntity stump, DynamicTextureAtlas atlas, Shader shader, Matrix4f modelMatrix, BlockPos breakingPos, float wobbleTimer) {
-        int mask = stump.getCarvingMask();
-        BlockPos pos = stump.getPos();
+    private void renderModular(ModularBlockEntity modular, DynamicTextureAtlas atlas, Shader shader, Matrix4f modelMatrix, BlockPos breakingPos, float wobbleTimer) {
+        int mask = (int) modular.getFloat("carve_mask", -1);
+        if (mask < 0) return; // Нет маски для отрисовки
         
-        if (stump.getWorld() == null) return;
-        int blockType = stump.getWorld().getBlock(pos).getType();
+        BlockPos pos = modular.getPos();
+        
+        if (modular.getWorld() == null) return;
+        int blockType = modular.getWorld().getBlock(pos).getType();
         com.za.zenith.world.blocks.BlockTextures textures = com.za.zenith.world.blocks.BlockRegistry.getTextures(blockType);
         if (textures == null || textures.getTop() == null) return;
         
