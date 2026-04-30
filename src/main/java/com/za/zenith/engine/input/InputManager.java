@@ -109,6 +109,8 @@ public class InputManager {
     public void setFirstMouse(boolean fm) { this.firstMouse = fm; }
     public boolean isInWindow() { return inWindow; }
     public Vector2f getPreviousMousePos() { return previousPos; }
+    public float getMouseX() { return currentPos.x; }
+    public float getMouseY() { return currentPos.y; }
     public boolean isLeftMousePressed() { return leftMousePressed; }
     public void setLeftMousePressed(boolean pressed) { this.leftMousePressed = pressed; }
     public boolean isRightMousePressed() { return rightMousePressed; }
