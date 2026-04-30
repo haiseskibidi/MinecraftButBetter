@@ -31,6 +31,8 @@ public class Application {
             System.err.println("Usage: java -jar game.jar [singleplayer|host <name>|client <name> <server_ip>]");
             System.exit(1);
         }
+        
+        System.exit(0);
     }
 }
 

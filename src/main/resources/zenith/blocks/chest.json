@@ -3,7 +3,7 @@
   "translationKey": "block.zenith.chest",
   "type": "chest",
   "solid": true,
-  "transparent": true,
+  "transparent": false,
   "textures": {
     "all": "oak_planks.png"
   },

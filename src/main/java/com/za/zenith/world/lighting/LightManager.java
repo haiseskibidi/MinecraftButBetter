@@ -18,7 +18,8 @@ public class LightManager {
     
     private static final Map<com.za.zenith.world.BlockPos, LightSource> activeEmitters = new ConcurrentHashMap<>();
     private static final List<LightSource> directionalLights = new ArrayList<>();
-    private static final List<LightSource> activeDynamicLights = new ArrayList<>(); // Result for renderer
+    private static final List<LightSource> activeDynamicLights = new ArrayList<>(); 
+    private static final List<LightSource> combinedLights = new ArrayList<>(); // Reusable result list
 
     public static void update(World world, Player player) {
         activeDynamicLights.clear();
@@ -30,13 +31,14 @@ public class LightManager {
         if (player.getInventory().getSelectedItemStack() != null) {
             com.za.zenith.world.items.Item item = player.getInventory().getSelectedItemStack().getItem();
             if (item.getLightData() != null) {
+                // Optimization: reuse or pool if needed, but Item light is rare enough for now
                 activeDynamicLights.add(createSource(item.getLightData(), new Vector3f(player.getPosition()).add(0, 1.5f, 0), player.getRotation(), time));
             }
         }
 
         // 2. Block Emitters (Static/Registered)
         Vector3f pPos = player.getPosition();
-        float renderRangeSq = 48 * 48; // Standard block light render distance
+        float renderRangeSq = 48 * 48; 
         for (LightSource source : activeEmitters.values()) {
             if (source.position.distanceSquared(pPos) < renderRangeSq) {
                 activeDynamicLights.add(source);
@@ -63,7 +65,6 @@ public class LightManager {
     }
 
     public static void onChunkLoad(Chunk chunk) {
-        // Scan chunk for emitters using sections to skip empty air
         for (int sec = 0; sec < Chunk.NUM_SECTIONS; sec++) {
             com.za.zenith.world.chunks.ChunkSection section = chunk.getSection(sec);
             if (section == null || section.isEmpty()) continue;
@@ -94,7 +95,6 @@ public class LightManager {
         int minZ = chunk.getPosition().z() * Chunk.CHUNK_SIZE;
         int maxX = minX + Chunk.CHUNK_SIZE;
         int maxZ = minZ + Chunk.CHUNK_SIZE;
-
         activeEmitters.keySet().removeIf(pos -> pos.x() >= minX && pos.x() < maxX && pos.z() >= minZ && pos.z() < maxZ);
     }
 
@@ -114,25 +114,27 @@ public class LightManager {
     }
 
     public static void addDirectionalLight(LightSource source) {
-        directionalLights.clear(); // Assume single main directional light for now
+        directionalLights.clear();
         directionalLights.add(source);
     }
 
     public static List<LightSource> getActiveLights() {
-        List<LightSource> result = new ArrayList<>(directionalLights);
-        int slots = MAX_DYNAMIC_LIGHTS - result.size();
+        combinedLights.clear();
+        combinedLights.addAll(directionalLights);
+        int slots = MAX_DYNAMIC_LIGHTS - combinedLights.size();
         if (slots > 0) {
             int toAdd = Math.min(slots, activeDynamicLights.size());
             for (int i = 0; i < toAdd; i++) {
-                result.add(activeDynamicLights.get(i));
+                combinedLights.add(activeDynamicLights.get(i));
             }
         }
-        return result;
+        return combinedLights;
     }
 
     public static void clearAll() {
         activeDynamicLights.clear();
         directionalLights.clear();
         activeEmitters.clear();
+        combinedLights.clear();
     }
 }

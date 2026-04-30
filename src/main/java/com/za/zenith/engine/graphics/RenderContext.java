@@ -14,14 +14,15 @@ import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL31.*;
 
 /**
- * RenderContext manages global shader data using Uniform Buffer Objects (UBO).
- * This eliminates the need to manually set common uniforms (time, light, matrices) in every shader.
+ * RenderContext manages global shader data using Uniform Buffer Objects (UBO)
+ * and provides object pools for JOML objects to ensure Zero Alloc rendering.
  */
 public class RenderContext {
     public static final int GLOBAL_BINDING_POINT = 0;
     private static int uboId;
-    private static final FloatBuffer uboBuffer = BufferUtils.createFloatBuffer(64); // Enough for 2 mats + vectors + floats
+    private static final FloatBuffer uboBuffer = BufferUtils.createFloatBuffer(64); 
 
+    // Scene Data
     private static float time;
     private static final Vector3f sunDirection = new Vector3f();
     private static final Vector3f ambientColor = new Vector3f();
@@ -29,6 +30,31 @@ public class RenderContext {
     private static final Matrix4f projectionMatrix = new Matrix4f();
     private static final Vector3f cameraPos = new Vector3f();
     private static final Vector3f grassColor = new Vector3f();
+
+    // Zero Alloc Pools
+    private static final Matrix4f[] matrixPool = new Matrix4f[256];
+    private static final Vector3f[] vectorPool = new Vector3f[512];
+    private static int matrixIdx = 0;
+    private static int vectorIdx = 0;
+
+    static {
+        for (int i = 0; i < matrixPool.length; i++) matrixPool[i] = new Matrix4f();
+        for (int i = 0; i < vectorPool.length; i++) vectorPool[i] = new Vector3f();
+    }
+
+    /**
+     * Returns a pooled Matrix4f initialized to identity.
+     */
+    public static Matrix4f getMatrix() {
+        return matrixPool[matrixIdx++ % matrixPool.length].identity();
+    }
+
+    /**
+     * Returns a pooled Vector3f initialized to zero.
+     */
+    public static Vector3f getVector() {
+        return vectorPool[vectorIdx++ % vectorPool.length].set(0);
+    }
 
     public static void init() {
         uboId = glGenBuffers();
@@ -97,10 +123,29 @@ public class RenderContext {
         int blockIndex = glGetUniformBlockIndex(shader.getProgramId(), "GlobalData");
         if (blockIndex != -1) {
             glUniformBlockBinding(shader.getProgramId(), blockIndex, GLOBAL_BINDING_POINT);
-            Logger.info("Bound shader program " + shader.getProgramId() + " to GlobalData UBO");
-        } else {
-            // Some shaders (like UI) might not use global data, which is fine
         }
+    }
+
+    /**
+     * Resets block shader flags to a clean baseline state.
+     * Prevents state leakage between different rendering passes.
+     */
+    public static void resetBlockShader(Shader shader) {
+        shader.use();
+        shader.setBoolean("uIsBatch", false);
+        shader.setBoolean("uIsCompressed", false);
+        shader.setBoolean("uIsProxy", false);
+        shader.setBoolean("useMask", false);
+        shader.setBoolean("previewPass", false);
+        shader.setBoolean("isHand", false);
+        shader.setFloat("brightnessMultiplier", 1.0f);
+        shader.setInt("highlightPass", 0);
+        shader.setInt("uHitCount", 0);
+        shader.setFloat("uBreakingProgress", 0.0f);
+        shader.setInt("uBreakingPattern", 0);
+        shader.setFloat("uSwayOverride", -1.0f);
+        shader.setVector3f("uOverrideLight", -1.0f, -1.0f, -1.0f);
+        shader.setFloat("uChunkSpawnTime", -100.0f);
     }
 
     public static void cleanup() {

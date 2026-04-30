@@ -311,13 +311,11 @@ public class GameLoop {
             camera.setOffsets(player.getCameraOffsetX(), player.getCameraOffsetY(), player.getCameraOffsetZ());
         }
 
-        renderer.render(window, camera, world, highlightedBlock, networkClient, alpha, deltaTime);
+        renderer.render(window, camera, world, highlightedBlock, networkClient, alpha, deltaTime, inputManager);
         
+        // Napping is a special modal state, kept outside the pipeline for now
         if (currentNappingSession != null) com.za.zenith.engine.graphics.ui.NappingGUI.render(renderer.getUIRenderer(), window.getWidth(), window.getHeight(), currentNappingSession);
         
-        renderer.getUIRenderer().renderHUDOverlay(window.getWidth(), window.getHeight());
-        renderer.getUIRenderer().renderLootboxOpening(window.getWidth(), window.getHeight());
-
         // Render Active Screen (like Pause Menu) or Inventory
         if (inventoryOpen) {
             renderer.getUIRenderer().renderInventory(window.getWidth(), window.getHeight(), renderer.getAtlas());
