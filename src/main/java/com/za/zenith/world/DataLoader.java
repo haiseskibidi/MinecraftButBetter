@@ -62,10 +62,10 @@ public class DataLoader {
         com.za.zenith.world.items.stats.RarityRegistry.init();
         
         for (String ns : namespaces) {
-            loadStats(ns);
-            loadRarities(ns);
-            loadAffixRarities(ns);
-            loadAffixes(ns);
+            new com.za.zenith.engine.resources.loaders.stats.StatDataLoader().load(ns);
+            new com.za.zenith.engine.resources.loaders.stats.RarityDataLoader().load(ns);
+            new com.za.zenith.engine.resources.loaders.stats.AffixRarityDataLoader().load(ns);
+            new com.za.zenith.engine.resources.loaders.stats.AffixDataLoader().load(ns);
             loadGrips(ns); // Загружаем хваты ДО предметов!
         }
 
@@ -114,10 +114,10 @@ public class DataLoader {
 
         loadParkourAnimations();
         loadScavengeSettings();
-        loadPhysicsSettings();
-        loadWorldSettings();
-        loadGenerationSettings();
-        loadSkySettings();
+        new com.za.zenith.engine.resources.loaders.settings.PhysicsSettingsLoader().load("zenith");
+        new com.za.zenith.engine.resources.loaders.settings.WorldSettingsLoader().load("zenith");
+        new com.za.zenith.engine.resources.loaders.settings.GenerationSettingsLoader().load("zenith");
+        new com.za.zenith.engine.resources.loaders.settings.SkySettingsLoader().load("zenith");
     }
 
     private static String readAndSnapshot(String path) {
@@ -129,42 +129,6 @@ public class DataLoader {
         } catch (Exception e) {
             Logger.error("Failed to read and snapshot " + path + ": " + e.getMessage());
             return null;
-        }
-    }
-
-    private static void loadGenerationSettings() {
-        String path = "zenith/registry/generation.json";
-        String raw = readAndSnapshot(path);
-        if (raw == null) return;
-        com.za.zenith.world.generation.GenerationSettings settings = GSON.fromJson(raw, com.za.zenith.world.generation.GenerationSettings.class);
-        if (settings != null) {
-            settings.setSourcePath(path);
-            com.za.zenith.world.generation.GenerationSettings.setInstance(settings);
-            Logger.info("Loaded generation settings");
-        }
-    }
-
-    private static void loadSkySettings() {
-        String path = "zenith/registry/celestial.json";
-        String raw = readAndSnapshot(path);
-        if (raw == null) return;
-        com.za.zenith.engine.graphics.SkySettings settings = GSON.fromJson(raw, com.za.zenith.engine.graphics.SkySettings.class);
-        if (settings != null) {
-            settings.setSourcePath(path);
-            com.za.zenith.engine.graphics.SkySettings.setInstance(settings);
-            Logger.info("Loaded sky settings");
-        }
-    }
-
-    private static void loadWorldSettings() {
-        String path = "zenith/registry/world.json";
-        String raw = readAndSnapshot(path);
-        if (raw == null) return;
-        com.za.zenith.world.WorldSettings settings = GSON.fromJson(raw, com.za.zenith.world.WorldSettings.class);
-        if (settings != null) {
-            settings.setSourcePath(path);
-            com.za.zenith.world.WorldSettings.setInstance(settings);
-            Logger.info("Loaded world settings");
         }
     }
 
