@@ -96,6 +96,35 @@ public class MyNewComponent implements ItemComponent {
 
 ---
 
+## 3.5. Компоненты Блоков (Block Components) и ModularBlockEntity
+**Правило:** Запрещено наследовать классы блоков (например `ChestBlockDefinition`). Вся уникальная логика (инвентарь, крафт, рубка) должна реализовываться через `BlockComponent` и `ModularBlockEntity`.
+
+### Blueprint: Data-Driven Блок с компонентами
+Вместо создания `MyCustomMachineBlockEntity` используется универсальный `ModularBlockEntity`, который парсит JSON.
+```json
+{
+  "identifier": "zenith:my_machine",
+  "components": {
+    "container": { "slots": 9, "isCustomLayout": false },
+    "crafting_surface": { "gridSize": 3 }
+  }
+}
+```
+
+### Blueprint: Взаимодействие с компонентом блока
+```java
+BlockDefinition def = BlockRegistry.getBlock(blockType);
+ContainerComponent container = def.getComponent(ContainerComponent.class);
+
+if (container != null) {
+    ModularBlockEntity mbe = (ModularBlockEntity) world.getBlockEntity(pos);
+    // Работаем с инвентарем через mbe
+    ItemStack stack = mbe.getStackInSlot(0);
+}
+```
+
+---
+
 ## 4. Система Регистрации (Data-Driven Registries)
 **Правило:** Никаких хардкодных числовых ID (`int id = 5`). Движок назначает их динамически. Везде используется `Identifier`.
 
