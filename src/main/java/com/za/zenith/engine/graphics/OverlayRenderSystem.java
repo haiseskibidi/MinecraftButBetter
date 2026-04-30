@@ -138,13 +138,7 @@ public class OverlayRenderSystem {
                 var def = com.za.zenith.world.blocks.BlockRegistry.getBlock(block.getType());
                 if (def == null) continue;
 
-                com.za.zenith.world.blocks.component.CraftingSurfaceComponent surface = null;
-                for (var component : def.getComponents()) {
-                    if (component instanceof com.za.zenith.world.blocks.component.CraftingSurfaceComponent c) {
-                        surface = c;
-                        break;
-                    }
-                }
+                var surface = def.getComponent(com.za.zenith.world.blocks.component.CraftingSurfaceComponent.class);
 
                 // Отрисовываем только если это "поверхность для крафта"
                 if (surface == null) continue;

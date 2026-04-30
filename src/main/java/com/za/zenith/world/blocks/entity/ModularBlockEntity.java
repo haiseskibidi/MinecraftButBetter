@@ -18,8 +18,34 @@ public class ModularBlockEntity extends BlockEntity implements IInventory, ITick
     private final Map<String, Float> floatProperties = new HashMap<>();
     private final Map<String, String> stringProperties = new HashMap<>();
 
+    // --- Standard Property Keys ---
+    public static final String PROP_CARVE_MASK = "carve_mask";
+    public static final String PROP_CRAFT_PROGRESS = "craft_progress";
+    public static final String PROP_CRAFT_HITS = "craft_hits";
+    public static final String PROP_ENERGY = "energy";
+    public static final String PROP_MAX_ENERGY = "max_energy";
+
     public ModularBlockEntity(BlockPos pos) {
         super(pos);
+    }
+
+    /**
+     * Автоматически инициализирует инвентарь, если он еще не создан, 
+     * опрашивая все компоненты блока о требуемом количестве слотов.
+     */
+    public void ensureInventory(com.za.zenith.world.blocks.BlockDefinition def) {
+        if (inventory != null) return;
+        
+        int totalSlots = 0;
+        for (var comp : def.getComponents()) {
+            if (comp instanceof com.za.zenith.world.blocks.component.InventoryProvider provider) {
+                totalSlots = Math.max(totalSlots, provider.getRequiredInventorySize());
+            }
+        }
+        
+        if (totalSlots > 0) {
+            initInventory(totalSlots);
+        }
     }
 
     public void initInventory(int size) {

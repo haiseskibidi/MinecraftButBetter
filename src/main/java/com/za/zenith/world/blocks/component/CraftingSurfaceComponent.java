@@ -23,13 +23,18 @@ import java.util.List;
  * - Shift + RMB: забрать ВСЁ.
  * - LMB: крафт.
  */
-public class CraftingSurfaceComponent extends BlockComponent {
+public class CraftingSurfaceComponent extends BlockComponent implements InventoryProvider {
     @SerializedName("recipe_type")
     private String recipeType = "in_world_crafting";
     @SerializedName("slots")
     private int slots = 9;
     @SerializedName("grid_size")
     private int gridSize = 3; 
+
+    @Override
+    public int getRequiredInventorySize() {
+        return slots;
+    }
 
     @Override
     public boolean hasOnUse() {
@@ -77,10 +82,6 @@ public class CraftingSurfaceComponent extends BlockComponent {
         var be = world.getBlockEntity(pos);
         if (!(be instanceof ModularBlockEntity modular)) return false;
 
-        if (modular.size() == 0) {
-            modular.initInventory(slots);
-        }
-
         // 1. Shift + ПКМ: Забрать ВСЁ
         if (player.isSneaking()) {
             boolean takenAny = false;
@@ -94,8 +95,8 @@ public class CraftingSurfaceComponent extends BlockComponent {
                 }
             }
             if (takenAny) {
-                modular.setFloat("craft_hits", 0);
-                modular.setFloat("craft_progress", 0);
+                modular.setFloat(ModularBlockEntity.PROP_CRAFT_HITS, 0);
+                modular.setFloat(ModularBlockEntity.PROP_CRAFT_PROGRESS, 0);
             }
             return takenAny;
         }
@@ -109,8 +110,8 @@ public class CraftingSurfaceComponent extends BlockComponent {
             if (existing != null) {
                 if (player.getInventory().addItem(existing)) {
                     modular.setStack(slot, null);
-                    modular.setFloat("craft_hits", 0);
-                    modular.setFloat("craft_progress", 0);
+                    modular.setFloat(ModularBlockEntity.PROP_CRAFT_HITS, 0);
+                    modular.setFloat(ModularBlockEntity.PROP_CRAFT_PROGRESS, 0);
                     return true;
                 }
             }
@@ -127,8 +128,8 @@ public class CraftingSurfaceComponent extends BlockComponent {
             if (heldStack.getCount() <= 0) {
                 player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), null);
             }
-            modular.setFloat("craft_hits", 0);
-            modular.setFloat("craft_progress", 0);
+            modular.setFloat(ModularBlockEntity.PROP_CRAFT_HITS, 0);
+            modular.setFloat(ModularBlockEntity.PROP_CRAFT_PROGRESS, 0);
             return true;
         } else {
             // В слот с предметом
@@ -136,8 +137,8 @@ public class CraftingSurfaceComponent extends BlockComponent {
                 // Тот же предмет - забираем
                 if (player.getInventory().addItem(existing)) {
                     modular.setStack(slot, null);
-                    modular.setFloat("craft_hits", 0);
-                    modular.setFloat("craft_progress", 0);
+                    modular.setFloat(ModularBlockEntity.PROP_CRAFT_HITS, 0);
+                    modular.setFloat(ModularBlockEntity.PROP_CRAFT_PROGRESS, 0);
                     return true;
                 }
             } else {
@@ -147,8 +148,8 @@ public class CraftingSurfaceComponent extends BlockComponent {
                     ItemStack fromHand = heldStack.copy();
                     modular.setStack(slot, fromHand);
                     player.getInventory().setStackInSlot(player.getInventory().getSelectedSlot(), fromSurface);
-                    modular.setFloat("craft_hits", 0);
-                    modular.setFloat("craft_progress", 0);
+                    modular.setFloat(ModularBlockEntity.PROP_CRAFT_HITS, 0);
+                    modular.setFloat(ModularBlockEntity.PROP_CRAFT_PROGRESS, 0);
                     return true;
                 }
             }
@@ -195,11 +196,11 @@ public class CraftingSurfaceComponent extends BlockComponent {
             if (surfaceDef == null) continue;
 
             if (recipe.matches(inputs, tool != null ? tool.getItem().getIdentifier() : com.za.zenith.world.items.Items.HAND.getIdentifier(), surfaceDef.getIdentifier())) {
-                float currentHits = be.getFloat("craft_hits", 0) + 1.0f;
+                float currentHits = be.getFloat(ModularBlockEntity.PROP_CRAFT_HITS, 0) + 1.0f;
                 
                 if (currentHits >= recipe.getRequiredHits()) {
-                    be.setFloat("craft_hits", 0);
-                    be.setFloat("craft_progress", 0);
+                    be.setFloat(ModularBlockEntity.PROP_CRAFT_HITS, 0);
+                    be.setFloat(ModularBlockEntity.PROP_CRAFT_PROGRESS, 0);
                     for (int i = 0; i < be.size(); i++) be.setStack(i, null);
                     
                     ItemStack result = recipe.getResult().copy();
@@ -207,8 +208,8 @@ public class CraftingSurfaceComponent extends BlockComponent {
                         world.spawnItem(result, pos.x() + 0.5f, pos.y() + 1.1f, pos.z() + 0.5f);
                     }
                 } else {
-                    be.setFloat("craft_hits", currentHits);
-                    be.setFloat("craft_progress", currentHits / (float)recipe.getRequiredHits());
+                    be.setFloat(ModularBlockEntity.PROP_CRAFT_HITS, currentHits);
+                    be.setFloat(ModularBlockEntity.PROP_CRAFT_PROGRESS, currentHits / (float)recipe.getRequiredHits());
                 }
                 return true;
             }

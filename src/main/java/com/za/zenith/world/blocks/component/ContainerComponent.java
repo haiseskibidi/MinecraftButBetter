@@ -13,11 +13,16 @@ import com.za.zenith.utils.Identifier;
 /**
  * Компонент инвентаря для блоков (сундуки и т.д.).
  */
-public class ContainerComponent extends BlockComponent {
+public class ContainerComponent extends BlockComponent implements InventoryProvider {
     @SerializedName("inventory_size")
     private int inventorySize = 27;
     @SerializedName("gui_id")
     private String guiId = "zenith:chest";
+
+    @Override
+    public int getRequiredInventorySize() {
+        return inventorySize;
+    }
 
     @Override
     public boolean hasOnUse() {
@@ -30,10 +35,6 @@ public class ContainerComponent extends BlockComponent {
 
         var be = world.getBlockEntity(pos);
         if (!(be instanceof ModularBlockEntity modular)) return false;
-
-        if (modular.size() == 0) {
-            modular.initInventory(inventorySize);
-        }
 
         int sw = GameLoop.getInstance().getWindow().getWidth();
         int sh = GameLoop.getInstance().getWindow().getHeight();

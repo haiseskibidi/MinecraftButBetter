@@ -46,6 +46,7 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
     @Override
     public void onLiveReload() {
         computeFlags();
+        updateTraits();
         // Мгновенное обновление мира при изменении свойств блока
         com.za.zenith.engine.graphics.Renderer r = com.za.zenith.engine.core.GameLoop.getInstance().getRenderer();
         if (r != null) r.rebuildAllChunks();
@@ -102,8 +103,31 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
     @SerializedName("components")
     private final List<com.za.zenith.world.blocks.component.BlockComponent> components = new ArrayList<>();
 
+    private transient com.za.zenith.world.blocks.component.BlockComponent traitCraftingSurface;
+    private transient com.za.zenith.world.blocks.component.BlockComponent traitCarvable;
+
     public void addComponent(com.za.zenith.world.blocks.component.BlockComponent component) {
         components.add(component);
+        updateTraits();
+    }
+
+    private void updateTraits() {
+        traitCraftingSurface = null;
+        traitCarvable = null;
+        for (var comp : components) {
+            if (comp instanceof com.za.zenith.world.blocks.component.CraftingSurfaceComponent) traitCraftingSurface = comp;
+            if (comp instanceof com.za.zenith.world.blocks.component.CarvableComponent) traitCarvable = comp;
+        }
+    }
+
+    public <T extends com.za.zenith.world.blocks.component.BlockComponent> T getComponent(Class<T> clazz) {
+        if (clazz.isInstance(traitCraftingSurface)) return clazz.cast(traitCraftingSurface);
+        if (clazz.isInstance(traitCarvable)) return clazz.cast(traitCarvable);
+
+        for (var comp : components) {
+            if (clazz.isInstance(comp)) return clazz.cast(comp);
+        }
+        return null;
     }
 
     public List<com.za.zenith.world.blocks.component.BlockComponent> getComponents() {
@@ -593,7 +617,9 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
      */
     public BlockEntity createBlockEntity(BlockPos pos) {
         if (!components.isEmpty()) {
-            return new com.za.zenith.world.blocks.entity.ModularBlockEntity(pos);
+            var be = new com.za.zenith.world.blocks.entity.ModularBlockEntity(pos);
+            be.ensureInventory(this);
+            return be;
         }
         return null;
     }

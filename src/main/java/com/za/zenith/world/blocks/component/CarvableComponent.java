@@ -29,12 +29,12 @@ public class CarvableComponent extends BlockComponent {
             if (!(be instanceof ModularBlockEntity modular)) return false;
 
             int index = CarvingLayoutEngine.getZoneIndex(hitX, hitZ);
-            int mask = (int) modular.getFloat("carve_mask", 0);
+            int mask = (int) modular.getFloat(ModularBlockEntity.PROP_CARVE_MASK, 0);
             
             // Если эта зона еще не обтёсана
             if ((mask & (1 << index)) == 0) {
                 mask |= (1 << index);
-                modular.setFloat("carve_mask", (float) mask);
+                modular.setFloat(ModularBlockEntity.PROP_CARVE_MASK, (float) mask);
                 
                 player.swing();
                 

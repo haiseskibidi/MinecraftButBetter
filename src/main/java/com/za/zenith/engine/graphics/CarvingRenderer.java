@@ -22,7 +22,7 @@ public class CarvingRenderer {
     }
 
     private void renderModular(ModularBlockEntity modular, DynamicTextureAtlas atlas, Shader shader, Matrix4f modelMatrix, BlockPos breakingPos, float wobbleTimer) {
-        int mask = (int) modular.getFloat("carve_mask", -1);
+        int mask = (int) modular.getFloat(ModularBlockEntity.PROP_CARVE_MASK, -1);
         if (mask < 0) return; // Нет маски для отрисовки
         
         BlockPos pos = modular.getPos();
