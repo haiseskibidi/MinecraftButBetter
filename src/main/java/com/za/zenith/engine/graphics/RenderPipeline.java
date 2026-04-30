@@ -292,8 +292,7 @@ public class RenderPipeline {
     }
 
     public void rebuildMeshes() {
-        entitySystem.rebuildMeshes();
-        overlaySystem.rebuildMeshes();
+        MeshRegistry.rebuild();
     }
 
     public void cleanup() {
