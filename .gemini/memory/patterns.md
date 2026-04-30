@@ -252,3 +252,49 @@ float deltaYaw = rotVec.y * currentSens;
 ### 10.3. Визуальная диагностика (Debug Visibility)
 - **Инспекция**: Любой критический флаг (`NATURAL`, `TINTED`, `STRENGTH`) должен быть виден в дебаг-панели (F3/F9).
 - **Принцип**: Если механика не работает, причина должна быть видна в свойствах объекта, а не только в коде.
+
+---
+
+## 11. Модульные системы рендеринга (Modular Rendering Systems)
+**Правило:** Логика отрисовки различных типов объектов (чанков, сущностей, оверлеев) должна быть разделена на независимые системы, управляемые через `RenderPipeline`.
+
+### Blueprint: Специализированная система рендеринга
+```java
+public class MyNewRenderSystem {
+    private final MultiDrawBatch batch;
+
+    public MyNewRenderSystem(MeshPool pool) {
+        this.batch = new MultiDrawBatch(pool);
+    }
+
+    public void render(SceneState state, RenderContext ctx) {
+        // 1. Подготовка данных (Culling, Sorting)
+        // 2. Настройка шейдера через ctx
+        // 3. Наполнение батча (batch.put)
+        // 4. Отрисовка (batch.render)
+    }
+}
+```
+
+---
+
+## 12. Zero-Allocation Rendering
+**Правило:** В методах отрисовки, вызываемых 60+ раз в секунду, **ЗАПРЕЩЕНО** использовать оператор `new`. Используйте пулы объектов из `RenderContext`.
+
+### Blueprint: Использование пулов в рендеринге
+```java
+public void renderEntity(Entity entity, RenderContext ctx, float alpha) {
+    // Получаем временную матрицу из пула
+    Matrix4f modelMatrix = ctx.getMatrix(); 
+
+    // Выполняем расчеты
+    modelMatrix.identity()
+               .translate(entity.getInterpolatedPosition(alpha))
+               .rotate(entity.getInterpolatedRotation(alpha));
+
+    // Передаем в шейдер
+    shader.setMatrix4f("model", modelMatrix);
+
+    // Пул автоматически сбрасывается в начале следующего кадра в RenderContext
+}
+```

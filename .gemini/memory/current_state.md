@@ -2,15 +2,21 @@
 
 ## Реализованные фичи
 
-- **Zenith GPU Optimization Suite (v1.5)**:
-  - **MultiDraw Batching (Phase 2)**: Мир отрисовывается через `glMultiDrawElementsIndirect`. Количество Draw Calls снижено с ~1000 до 2-4 на кадр.
-  - **Mesh Pooling**: Централизованный буфер на 1.5 ГБ (1ГБ Вершины, 512МБ Индексы). Нулевое переключение VBO/EBO при отрисовке мира.
-  - **Occlusion Culling (Phase 1)**: BFS обход с проверкой масок связности секций (Cave Culling). Чанки, не видимые из текущей позиции (например, в пещерах), не отправляются на GPU.
-  - **Wrap-around Protection**: Система версионности пула мешей. При заполнении буфера происходит полная очистка и пересборка мешей, исключая порчу данных.
-  - **Robust BFS**: Алгоритм видимости теперь корректно работает в пустоте (за пределами загруженных чанков).
-  - **Global Uniform Buffer (UBO)**: Все глобальные данные (Матрицы, Время, Свет) в `std140` буфере.
+- **Modular Rendering Architecture (Zenith v2.0)**:
+  - **Modular Pipeline**: Бывший монолит `Renderer.java` разделен на `RenderPipeline`, `RenderContext`, `MeshRegistry`, `ChunkRenderSystem`, `EntityRenderSystem` и `OverlayRenderSystem`.
+  - **Global Uniform Buffer (UBO)**: Все глобальные данные (Матрицы, Время, Свет) в едином `std140` буфере.
+  - **Zero-Alloc Strategy**: Использование пулов объектов (матрицы, векторы) в рендеринге для минимизации нагрузки на GC.
+  - **Resource Scanning Engine**: Унифицированный поиск ресурсов (JSON, текстуры) через `ResourceScanner`.
+  - **MultiDraw Batching (Phase 2)**: Мир отрисовывается через `glMultiDrawElementsIndirect`. Количество Draw Calls снижено до 2-4 на кадр.
+  - **Mesh Pooling**: Централизованный буфер на 1.5 ГБ. Нулевое переключение VBO/EBO при отрисовке мира.
+  - **Occlusion Culling (Phase 1)**: BFS обход с проверкой масок связности секций (Cave Culling).
+  - **Robust BFS**: Алгоритм видимости корректно работает в пустоте.
 
 - **Vertex Compression Engine**: Размер вершины 28 байт. Front-to-Back сортировка для Early Z.
+
+- **Entity Lifecycle Refactor (v1.1)**:
+  - **onUpdate Lifecycle**: Переход на защищенный метод `onUpdate` для разделения системной и пользовательской логики сущностей.
+  - **Rotation Interpolation**: Исправлено дерганье при вращении через `lerpAngle`.
 
 - **Treecapitator & Naturalness System**: Система срубания деревьев и флаг природности блоков.
 
@@ -19,6 +25,7 @@
 ## В работе (Next Phase: GPU Optimization)
 - **Level of Detail (LOD) (Phase 3)**: Упрощенная геометрия для дальних дистанций.
 - **Zero-Alloc Phase 4**: Переработка системы частиц на пулы объектов.
+- **Enhanced Entity AI**: Расширение логики поведения мобов на основе новой системы `onUpdate`.
 
 ## Roadmap
 - [x] Milestone 3: Моддинг-API и Расширяемость.
