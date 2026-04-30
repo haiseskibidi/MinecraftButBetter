@@ -14,5 +14,23 @@
   ],
   "zenith:campfire": [
     { "hint": "ui.interaction.warm_up" }
+  ],
+  "zenith:oak_log": [
+    { "heldTag": "zenith:axes", "button": "LMB", "hint": "ui.interaction.chop" }
+  ],
+  "zenith:birch_log": [
+    { "heldTag": "zenith:axes", "button": "LMB", "hint": "ui.interaction.chop" }
+  ],
+  "zenith:spruce_log": [
+    { "heldTag": "zenith:axes", "button": "LMB", "hint": "ui.interaction.chop" }
+  ],
+  "zenith:acacia_log": [
+    { "heldTag": "zenith:axes", "button": "LMB", "hint": "ui.interaction.chop" }
+  ],
+  "zenith:dark_oak_log": [
+    { "heldTag": "zenith:axes", "button": "LMB", "hint": "ui.interaction.chop" }
+  ],
+  "zenith:jungle_log": [
+    { "heldTag": "zenith:axes", "button": "LMB", "hint": "ui.interaction.chop" }
   ]
 }

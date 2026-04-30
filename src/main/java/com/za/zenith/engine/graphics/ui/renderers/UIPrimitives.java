@@ -27,6 +27,10 @@ public class UIPrimitives {
         uiShader.setInt("useTexture", 0);
         uiShader.setInt("isSlot", 0);
         uiShader.setInt("isGradient", 0);
+        uiShader.setInt("isIris", 0);
+        uiShader.setInt("isCrosshair", 0);
+        uiShader.setFloat("uProgress", 0.0f);
+        uiShader.setFloat("hoverProgress", 0.0f);
         
         float scaleX = (float)width / sw;
         float scaleY = (float)height / sh;
@@ -50,6 +54,8 @@ public class UIPrimitives {
         uiShader.setInt("useTexture", 0);
         uiShader.setInt("isSlot", 0);
         uiShader.setInt("isGradient", 1);
+        uiShader.setInt("isIris", 0);
+        uiShader.setInt("isCrosshair", 0);
         
         float scaleX = (float)width / sw;
         float scaleY = (float)height / sh;
@@ -88,6 +94,8 @@ public class UIPrimitives {
         uiShader.use();
         uiShader.setInt("useTexture", 0);
         uiShader.setInt("isSlot", 1); // Use SDF for highlights too!
+        uiShader.setInt("isIris", 0);
+        uiShader.setInt("isCrosshair", 0);
         uiShader.setUniform("uvOffset", 0.0f, 0.0f, 0.0f, 0.0f);
         uiShader.setUniform("uvScale", 1.0f, 1.0f, 0.0f, 0.0f);
         
@@ -135,11 +143,13 @@ public class UIPrimitives {
             uiShader.setInt("useArray", 0);
             uiShader.setInt("isGrayscale", 0);
             uiShader.setInt("isSlot", 0);
+            uiShader.setInt("isIris", 0);
+            uiShader.setInt("isCrosshair", 0);
             
             float scaleX = (float)width / sw;
             float scaleY = (float)height / sh;
             float posX = (2.0f * x / sw) - 1.0f + scaleX;
-            float posY = 1.0f - (2.0f * y / sw) - scaleY;
+            float posY = 1.0f - (2.0f * y / sh) - scaleY;
             
             uiShader.setUniform("scale", scaleX, scaleY, 0.0f, 0.0f);
             uiShader.setUniform("position_offset", posX, posY, 0.0f, 0.0f);

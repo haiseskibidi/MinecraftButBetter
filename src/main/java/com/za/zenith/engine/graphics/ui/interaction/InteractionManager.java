@@ -31,8 +31,11 @@ public class InteractionManager {
             Type type = new TypeToken<Map<String, List<InteractionRule>>>(){}.getType();
             Map<String, List<InteractionRule>> data = gson.fromJson(new InputStreamReader(in), type);
             
+            registry.clear();
             for (Map.Entry<String, List<InteractionRule>> entry : data.entrySet()) {
-                registry.put(Identifier.of(entry.getKey()), entry.getValue());
+                Identifier id = Identifier.of(entry.getKey());
+                registry.put(id, entry.getValue());
+                Logger.info("REGISTERED INTERACTION: " + id + " (" + entry.getValue().size() + " rules)");
             }
             Logger.info("InteractionManager initialized with %d blocks", registry.size());
         } catch (Exception e) {
@@ -41,17 +44,31 @@ public class InteractionManager {
     }
 
     public static InteractionRule getBestRule(com.za.zenith.entities.Player player, Identifier blockId, BlockEntity be, ItemStack held, com.za.zenith.utils.Direction side, org.joml.Vector3f localHit) {
+        com.za.zenith.world.blocks.BlockDefinition def = com.za.zenith.world.blocks.BlockRegistry.getBlock(blockId);
+        if (def != null && localHit != null) {
+            com.za.zenith.world.World world = com.za.zenith.engine.core.GameLoop.getInstance().getWorld();
+            // Если у блока есть зоны взаимодействия, проверяем попадание в них
+            if (!def.getInteractionZones(world, be != null ? be.getPos() : null).isEmpty()) {
+                if (!def.isInteractableAt(world, be != null ? be.getPos() : null, localHit)) {
+                    return null;
+                }
+            }
+        }
+
         List<InteractionRule> rules = registry.get(blockId);
         if (rules == null) return null;
 
         for (InteractionRule rule : rules) {
-            if (checkRule(player, rule, be, held, side, localHit)) return rule;
+            if (checkRule(player, rule, be, held, side, localHit)) {
+                return rule;
+            }
         }
+        
         return null;
     }
 
     private static boolean checkRule(com.za.zenith.entities.Player player, InteractionRule rule, BlockEntity be, ItemStack held, com.za.zenith.utils.Direction side, org.joml.Vector3f localHit) {
-        // 1. Check minY (Vertical range)
+        // 1. Check minY
         if (rule.minY() != null) {
             if (localHit == null || localHit.y < rule.minY()) return false;
         }
@@ -84,12 +101,12 @@ public class InteractionManager {
             if (be instanceof BlockInfoProvider provider) {
                 String status = provider.getDynamicStatus();
                 switch (rule.condition()) {
-                    case "has_item": return status != null && !status.equals("empty");
-                    case "is_empty": return status == null || status.equals("empty");
-                    case "is_burning": return be instanceof com.za.zenith.world.blocks.entity.PitKilnBlockEntity pk && pk.isBurning();
-                    // Add more conditions as needed
+                    case "has_item": return "has_item".equals(status);
+                    case "is_empty": return "empty".equals(status);
+                    case "is_burning": 
+                        return be instanceof com.za.zenith.world.blocks.entity.PitKilnBlockEntity pk && pk.isBurning();
                 }
-            }
+            } else return false;
         }
 
         return true;

@@ -141,7 +141,8 @@ public class MinimapRenderer {
         
         renderMarkers(x, y, size, player, sw, sh);
         
-        glEnable(GL_DEPTH_TEST);
+        glDisable(GL_DEPTH_TEST);
+        renderer.getShader().use();
     }
 
     private void renderMarkers(int x, int y, int size, Player player, int sw, int sh) {
