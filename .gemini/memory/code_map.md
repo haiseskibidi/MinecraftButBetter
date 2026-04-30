@@ -238,6 +238,15 @@
 Назначение: Главная сущность игрока.
 Функции: Управление инвентарем, статами (голод, стамина), паркуром и анимациями. Поддерживает методы `swing()` (удар) и `interact()` (быстрый сбор/подбор). Поддерживает методы `swing()` (удар) и `interact()` (быстрый сбор/подбор).
 
+### com.za.zenith.engine.input (UPDATED v2.0)
+Назначение: Архитектура ввода на основе Domain Controllers.
+- **InputManager.java**: Event Dispatcher. Хранит глобальный контекст и делегирует события (Raycast, клики, клавиши) специализированным контроллерам. Полностью очищен от хардкода GLFW.
+- **handlers/SystemInputHandler.java**: (NEW) Обработка системных горячих клавиш (F, F3, F9, Z, Q).
+- **handlers/MovementInputHandler.java**: (NEW) Расчет вектора движения, прыжков, физики камеры (pitch/yaw) и взаимодействия с паркуром.
+- **handlers/InventoryInputHandler.java**: (NEW) Логика UI инвентаря: курсор, Drag & Drop, слияние стаков (Shift+клик), NappingGUI.
+- **handlers/InteractionInputHandler.java**: (NEW) Взаимодействие с миром: ЛКМ (добыча, атака), ПКМ (установка блоков, еда, лутбоксы).
+- **handlers/HotbarInputHandler.java**: (NEW) Выбор слотов хотбара 1-9 и копирование предметов разработчика.
+
 ### com.za.zenith.engine.input.MiningController (NEW)
 Назначение: Контроллер процесса добычи блоков.
 Функции: Управляет таймерами (cooldown, breakingDelay), генерирует Weak Spots, рассчитывает прогресс разрушения. Автоматически выбирает тип анимации (`swing` vs `interact`) на основе прочности блока. Передает данные для отрисовки прокси-блока в `Renderer`.

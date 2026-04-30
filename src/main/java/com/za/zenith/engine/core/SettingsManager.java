@@ -60,6 +60,27 @@ public class SettingsManager {
         keyBinds.put("debug_menu", GLFW.GLFW_KEY_F3);
         keyBinds.put("editor_toggle", GLFW.GLFW_KEY_F8);
         keyBinds.put("live_inspector", GLFW.GLFW_KEY_F9);
+        
+        // System and Toggle Actions
+        keyBinds.put("toggle_fly", GLFW.GLFW_KEY_F);
+        keyBinds.put("toggle_fxaa", GLFW.GLFW_KEY_G);
+        keyBinds.put("toggle_vertical_mode", GLFW.GLFW_KEY_R);
+        keyBinds.put("sort_inventory", GLFW.GLFW_KEY_Z);
+        
+        // Hotbar Actions
+        keyBinds.put("slot_1", GLFW.GLFW_KEY_1);
+        keyBinds.put("slot_2", GLFW.GLFW_KEY_2);
+        keyBinds.put("slot_3", GLFW.GLFW_KEY_3);
+        keyBinds.put("slot_4", GLFW.GLFW_KEY_4);
+        keyBinds.put("slot_5", GLFW.GLFW_KEY_5);
+        keyBinds.put("slot_6", GLFW.GLFW_KEY_6);
+        keyBinds.put("slot_7", GLFW.GLFW_KEY_7);
+        keyBinds.put("slot_8", GLFW.GLFW_KEY_8);
+        keyBinds.put("slot_9", GLFW.GLFW_KEY_9);
+        
+        // Mouse Actions (using GLFW_MOUSE_BUTTON constants)
+        keyBinds.put("attack_mine", GLFW.GLFW_MOUSE_BUTTON_1);
+        keyBinds.put("interact_place", GLFW.GLFW_MOUSE_BUTTON_2);
     }
 
     public void load() {
