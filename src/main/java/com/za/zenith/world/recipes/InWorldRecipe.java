@@ -16,7 +16,13 @@ public class InWorldRecipe implements IRecipe {
     private final Identifier requiredSurface; // Опционально: ID блока (пень, стол и т.д.)
     private final int requiredHits;
     private final ItemStack result;
+    private String sourcePath;
 
+    @Override
+    public String getSourcePath() { return sourcePath; }
+
+    @Override
+    public void setSourcePath(String path) { this.sourcePath = path; }
     public InWorldRecipe(Identifier id, List<Identifier> ingredients, Identifier toolId, int requiredHits, ItemStack result) {
         this(id, ingredients, toolId, null, requiredHits, result);
     }

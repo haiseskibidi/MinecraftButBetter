@@ -13,7 +13,13 @@ public class StumpRecipe implements IRecipe {
     private final Identifier toolId;    // Инструмент, которым нужно бить (может быть null)
     private final int requiredHits;      // Количество необходимых ударов
     private final ItemStack result;      // Итоговый предмет
+    private String sourcePath;
 
+    @Override
+    public String getSourcePath() { return sourcePath; }
+
+    @Override
+    public void setSourcePath(String path) { this.sourcePath = path; }
     public StumpRecipe(Identifier id, Identifier inputId, Identifier toolId, int requiredHits, ItemStack result) {
         this.id = id;
         this.inputId = inputId;

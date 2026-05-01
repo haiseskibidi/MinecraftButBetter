@@ -3,6 +3,7 @@
   "translationKey": "block.zenith.glass",
   "solid": true,
   "transparent": true,
+  "translucent": true,
   "hardness": 0.3,
   "textures": {
     "all": "glass.png"

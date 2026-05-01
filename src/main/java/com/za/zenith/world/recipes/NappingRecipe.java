@@ -13,7 +13,13 @@ public class NappingRecipe implements IRecipe {
     private final List<Identifier> inputIds; 
     private final ItemStack result;
     private final boolean[] pattern; 
+    private String sourcePath;
 
+    @Override
+    public String getSourcePath() { return sourcePath; }
+
+    @Override
+    public void setSourcePath(String path) { this.sourcePath = path; }
     public NappingRecipe(Identifier id, List<Identifier> inputIds, ItemStack result, boolean[] pattern) {
         this.id = id;
         this.inputIds = inputIds;

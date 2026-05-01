@@ -4,7 +4,10 @@
   "texture": "zenith/textures/item/wooden_pickaxe.png",
   "maxStackSize": 1,
   "gender": "feminine",
-  "tags": ["zenith:tools", "zenith:melee"],
+  "tags": [
+    "zenith:tools",
+    "zenith:melee"
+  ],
   "components": {
     "zenith:tool": {
       "type": "pickaxe",

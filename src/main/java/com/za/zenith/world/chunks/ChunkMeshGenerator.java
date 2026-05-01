@@ -407,7 +407,7 @@ public class ChunkMeshGenerator {
         BlockDefinition def = BlockRegistry.getBlock(block.getType());
         if (def == null) return null;
         
-        boolean isTranslucent = def.hasTag("zenith:glass");
+        boolean isTranslucent = def.is(BlockDefinition.FLAG_TRANSLUCENT);
         
         float finalBlockType = (float)block.getType();
         if (def.isTinted()) {
@@ -610,7 +610,7 @@ public class ChunkMeshGenerator {
                         if (shape == null) continue;
 
                         boolean isLeaves = def.is(BlockDefinition.FLAG_LEAVES);
-                        boolean isTranslucent = def.is(BlockDefinition.FLAG_TRANSPARENT) && !isLeaves;
+                        boolean isTranslucent = def.is(BlockDefinition.FLAG_TRANSLUCENT);
                         MeshData currentTarget = isTranslucent ? chunkTranslucent : chunkOpaque;
 
                         int worldX = cx * Chunk.CHUNK_SIZE + x;
@@ -665,7 +665,9 @@ public class ChunkMeshGenerator {
                                     } else {
                                         drawFace = (nType != blockType);
                                     }
-                                } else if ((neighborDef == null || !neighborDef.is(BlockDefinition.FLAG_TRANSPARENT)) && !neighborDef.isAlwaysRender()) {
+                                } else if (neighborDef == null) {
+                                    drawFace = true;
+                                } else if (!neighborDef.is(BlockDefinition.FLAG_TRANSPARENT) && !neighborDef.isAlwaysRender()) {
                                     drawFace = false;
                                 } else {
                                     drawFace = true;

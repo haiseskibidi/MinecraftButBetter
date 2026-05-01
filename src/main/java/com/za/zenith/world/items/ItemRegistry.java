@@ -33,7 +33,32 @@ public class ItemRegistry {
     }
 
     public static void registerItem(Item item) {
+        Item oldItem = REGISTRY.get(item.getIdentifier());
         REGISTRY.register(item.getIdentifier(), item.getId(), item);
+        
+        // --- HOT RELOAD SYNC ---
+        // If we are replacing an existing item, we must update all ItemStacks 
+        // currently held by the player/world to point to the new instance.
+        if (oldItem != null && oldItem != item) {
+            com.za.zenith.engine.core.GameLoop game = com.za.zenith.engine.core.GameLoop.getInstance();
+            if (game != null && game.getPlayer() != null) {
+                com.za.zenith.entities.Player player = game.getPlayer();
+                if (player.getInventory() != null) {
+                    for (ItemStack stack : player.getInventory().getAllStacks()) {
+                        if (stack != null && stack.getItem() == oldItem) {
+                            // Use reflection to update the private 'item' field in ItemStack
+                            try {
+                                java.lang.reflect.Field itemField = ItemStack.class.getDeclaredField("item");
+                                itemField.setAccessible(true);
+                                itemField.set(stack, item);
+                            } catch (Exception e) {
+                                com.za.zenith.utils.Logger.error("Failed to sync ItemStack during hot-reload: " + e.getMessage());
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     public static Item getItem(int id) {

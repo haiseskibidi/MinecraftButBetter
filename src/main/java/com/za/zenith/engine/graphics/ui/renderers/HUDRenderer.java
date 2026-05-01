@@ -206,6 +206,7 @@ public class HUDRenderer {
                     StringBuilder flagsStr = new StringBuilder();
                     if (def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_SOLID)) flagsStr.append("S");
                     if (def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_TRANSPARENT)) flagsStr.append("T");
+                    if (def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_TRANSLUCENT)) flagsStr.append("Tr");
                     if (b.isNatural()) flagsStr.append("N");
                     if (def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_TINTED)) flagsStr.append("C");
                     if (def.is(com.za.zenith.world.blocks.BlockDefinition.FLAG_LEAVES)) flagsStr.append("L");

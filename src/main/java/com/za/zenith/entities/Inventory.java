@@ -524,6 +524,22 @@ public class Inventory implements IInventory {
         }
     }
 
+    public List<ItemStack> getAllStacks() {
+        List<ItemStack> all = new ArrayList<>();
+        for (int i = 0; i < TOTAL_SIZE; i++) {
+            if (slots[i] != null) all.add(slots[i]);
+        }
+        // Also check contents of bags/pouches
+        for (SlotGroup group : groups) {
+            if (group.getId().equals("pouch") && group.isActive()) {
+                for (Slot slot : group.getSlots()) {
+                    if (slot.getStack() != null) all.add(slot.getStack());
+                }
+            }
+        }
+        return all;
+    }
+
     private void dropStack(ItemStack stack, Player player, World world, Camera camera, boolean fullStack) {
         Vector3f lookDir = new Vector3f(0, 0, -1).rotateX(camera.getRotation().x).rotateY(camera.getRotation().y).normalize();
         Vector3f pos = new Vector3f(player.getPosition()).add(0, 1.5f, 0).add(new Vector3f(lookDir).mul(0.5f));

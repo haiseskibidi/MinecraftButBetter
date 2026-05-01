@@ -45,6 +45,10 @@ public class AnimationProfile implements com.za.zenith.utils.LiveReloadable {
         tracks.put(param, track);
     }
 
+    public void clearTracks() {
+        tracks.clear();
+    }
+
     public boolean hasTrack(String param) {
         return tracks.containsKey(param);
     }

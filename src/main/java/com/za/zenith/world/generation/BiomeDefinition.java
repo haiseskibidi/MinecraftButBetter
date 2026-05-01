@@ -6,7 +6,15 @@ import com.za.zenith.utils.Identifier;
 import java.util.ArrayList;
 import java.util.List;
 
-public class BiomeDefinition {
+public class BiomeDefinition implements com.za.zenith.utils.LiveReloadable {
+    private transient String sourcePath;
+
+    @Override
+    public String getSourcePath() { return sourcePath; }
+
+    @Override
+    public void setSourcePath(String path) { this.sourcePath = path; }
+
     public enum TerrainType {
         @SerializedName("flat") FLAT,
         @SerializedName("rolling") ROLLING,

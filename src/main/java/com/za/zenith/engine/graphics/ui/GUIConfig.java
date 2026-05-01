@@ -6,7 +6,15 @@ import java.util.List;
 /**
  * Configuration for a GUI screen loaded from JSON.
  */
-public class GUIConfig {
+public class GUIConfig implements com.za.zenith.utils.LiveReloadable {
+    private transient String sourcePath;
+
+    @Override
+    public String getSourcePath() { return sourcePath; }
+
+    @Override
+    public void setSourcePath(String path) { this.sourcePath = path; }
+
     @SerializedName(value = "identifier", alternate = {"id"})
     public String identifier;
     public String title;

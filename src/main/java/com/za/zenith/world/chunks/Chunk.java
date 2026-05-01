@@ -282,7 +282,16 @@ public class Chunk {
             int localY = y & 15;
             for (int z = 0; z < CHUNK_SIZE; z++) {
                 for (int x = 0; x < CHUNK_SIZE; x++) {
-                    outBlockData[baseIdx + z * 16 + x] = palette.get(indices[localY * 256 + z * 16 + x]);
+                    int palIdx = indices[localY * 256 + z * 16 + x] & 0xFFFF;
+                    if (palIdx < palette.size()) {
+                        outBlockData[baseIdx + z * 16 + x] = palette.get(palIdx);
+                    } else {
+                        com.za.zenith.utils.Logger.error("Palette corruption in chunk %s at local [%d, %d, %d]: Index %d out of bounds for palette size %d. Resetting to Air.", 
+                            position, x, y, z, palIdx, palette.size());
+                        outBlockData[baseIdx + z * 16 + x] = 0;
+                        // Attempt to repair the index in the section
+                        sec.setBlockIndex(x, localY, z, (short)0, false, true);
+                    }
                 }
             }
         }

@@ -64,7 +64,7 @@
     },
     "debug_legend": {
       "type": "text",
-      "text": "Flags: S-Solid, T-Transp, N-Natural, C-Tint, L-Leaves",
+      "text": "Flags: S-Solid, T-Transp, Tr-Transl, N-Natural, C-Tint, L-Leaves",
       "anchor": "top_right",
       "alignX": "right",
       "alignY": "top",

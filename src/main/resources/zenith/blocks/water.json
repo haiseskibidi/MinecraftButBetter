@@ -3,6 +3,7 @@
   "translationKey": "block.zenith.water",
   "solid": false,
   "transparent": true,
+  "translucent": true,
   "replaceable": true,
   "textures": {
     "all": "water.png"

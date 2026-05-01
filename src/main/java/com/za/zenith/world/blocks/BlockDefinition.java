@@ -29,11 +29,13 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
     public static final int FLAG_LEAVES = 4;
     public static final int FLAG_TINTED = 8;
     public static final int FLAG_FULL_CUBE = 16;
+    public static final int FLAG_TRANSLUCENT = 32;
 
     public void computeFlags() {
         flags = 0;
         if (solid) flags |= FLAG_SOLID;
         if (transparent) flags |= FLAG_TRANSPARENT;
+        if (translucent) flags |= FLAG_TRANSLUCENT;
         if (identifier != null && identifier.toString().contains("leaves")) flags |= FLAG_LEAVES;
         if (tinted || tags.contains("zenith:tinted")) flags |= FLAG_TINTED;
         if (fullCube) flags |= FLAG_FULL_CUBE;
@@ -58,6 +60,7 @@ public class BlockDefinition implements com.za.zenith.utils.LiveReloadable {
     private String name;
     private boolean solid;
     private boolean transparent;
+    private boolean translucent;
     private float hardness = 1.0f; // Default hardness
     private String requiredTool = "none"; // pickaxe, shovel, axe, crowbar, knife
     

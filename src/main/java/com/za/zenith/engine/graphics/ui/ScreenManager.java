@@ -42,8 +42,16 @@ public class ScreenManager {
         return activeScreen;
     }
 
+    private int lastSw = -1, lastSh = -1;
+
     public void render(UIRenderer renderer, int sw, int sh, com.za.zenith.engine.graphics.DynamicTextureAtlas atlas) {
         if (activeScreen != null) {
+            // Auto-reinit on resize
+            if (sw != lastSw || sh != lastSh) {
+                activeScreen.init(sw, sh);
+                lastSw = sw;
+                lastSh = sh;
+            }
             activeScreen.render(renderer, sw, sh, atlas);
         }
     }

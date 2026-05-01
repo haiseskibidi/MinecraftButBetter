@@ -102,6 +102,11 @@ public class MiningController {
         boolean shouldHit = false;
 
         float currentDamage = world.getBlockDamage(hitPos);
+        Block currentBlock = world.getBlock(hitPos);
+        if (currentBlock.isAir()) {
+            reset();
+            return;
+        }
 
         float interval = blockDef.getInteractionCooldown();
         if (currentItem != null) {

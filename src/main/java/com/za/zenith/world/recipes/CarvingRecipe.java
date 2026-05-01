@@ -8,17 +8,24 @@ import com.za.zenith.world.items.ItemStack;
  */
 public class CarvingRecipe implements IRecipe {
     private final Identifier id;
-    private final Identifier inputBlock;
+    private final Identifier input;
     private final Identifier tool;
-    private final Identifier intermediateBlock;
-    private final Identifier resultBlock;
+    private final Identifier intermediate;
+    private final Identifier result;
+    private String sourcePath;
 
-    public CarvingRecipe(Identifier id, Identifier inputBlock, Identifier tool, Identifier intermediateBlock, Identifier resultBlock) {
+    @Override
+    public String getSourcePath() { return sourcePath; }
+
+    @Override
+    public void setSourcePath(String path) { this.sourcePath = path; }
+
+    public CarvingRecipe(Identifier id, Identifier input, Identifier tool, Identifier intermediate, Identifier result) {
         this.id = id;
-        this.inputBlock = inputBlock;
+        this.input = input;
         this.tool = tool;
-        this.intermediateBlock = intermediateBlock;
-        this.resultBlock = resultBlock;
+        this.intermediate = intermediate;
+        this.result = result;
     }
 
     @Override
@@ -27,13 +34,11 @@ public class CarvingRecipe implements IRecipe {
     @Override
     public String getType() { return "carving"; }
 
-    public Identifier getInputBlock() { return inputBlock; }
+    public Identifier getInputBlock() { return input; }
     public Identifier getTool() { return tool; }
-    public Identifier getIntermediateBlock() { return intermediateBlock; }
-    public Identifier getResultBlock() { return resultBlock; }
+    public Identifier getIntermediateBlock() { return intermediate; }
+    public Identifier getResultBlock() { return result; }
 
     @Override
     public ItemStack getResult() { return null; } // Не используется для этого типа
 }
-
-

@@ -160,6 +160,27 @@ public class ItemMeshGenerator {
 
         org.joml.Vector3f graspOffset = new org.joml.Vector3f(finalGraspX, finalGraspY, 0);
 
+        // --- Анализ толщины рукоятки (Grip Width) ---
+        float gMinX = Float.MAX_VALUE;
+        float gMaxX = -Float.MAX_VALUE;
+        boolean gFound = false;
+        float searchY = finalGraspY + 0.05f; // Сканируем чуть выше самой нижней точки хвата
+        float margin = 0.03f; 
+        
+        for (int[] p : pixels) {
+            float px = (float) p[0] / width - centerX;
+            float py = (float) p[1] / height - centerY;
+            float rotY = px * sinR + py * cosR;
+            
+            if (Math.abs(rotY - searchY) <= margin) {
+                float rotX = px * cosR - py * sinR;
+                gMinX = Math.min(gMinX, rotX);
+                gMaxX = Math.max(gMaxX, rotX);
+                gFound = true;
+            }
+        }
+        float actualGripWidth = gFound ? (gMaxX - gMinX) : (maxX - minX);
+
         // --- Генерация меша ---
         List<Float> positions = new ArrayList<>();
         List<Float> texCoords = new ArrayList<>();
@@ -237,6 +258,7 @@ public class ItemMeshGenerator {
 
         Mesh finalMesh = new Mesh(posArr, texArr, normArr, blockTypes, indArr);
         finalMesh.setGraspOffset(graspOffset);
+        finalMesh.setGripWidth(actualGripWidth);
         return finalMesh;
     }
 

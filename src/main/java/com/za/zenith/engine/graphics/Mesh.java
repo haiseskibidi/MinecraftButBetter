@@ -24,6 +24,7 @@ public class Mesh {
     private final MeshPool pool;
     private float minX, minY, minZ;
     private float maxX, maxY, maxZ;
+    private float gripWidth = -1.0f;
     private org.joml.Vector3f graspOffset = new org.joml.Vector3f(0);
     private VertexFormat format = VertexFormat.STANDARD;
 
@@ -353,9 +354,11 @@ public class Mesh {
     }
 
     public float getGripWidth(float gripY, float margin) {
-        // Not perfectly accurate without positions array, but good enough for viewmodel (we just use max-min X)
+        if (gripWidth >= 0) return gripWidth;
         return maxX - minX;
     }
+
+    public void setGripWidth(float w) { this.gripWidth = w; }
 
     public org.joml.Vector3f getHorizontalCenterOffset() {
         return new org.joml.Vector3f(

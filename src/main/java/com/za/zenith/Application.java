@@ -4,6 +4,13 @@ import com.za.zenith.engine.core.GameLoop;
 
 public class Application {
     public static void main(String[] args) {
+        try {
+            System.setOut(new java.io.PrintStream(System.out, true, "UTF-8"));
+            System.setErr(new java.io.PrintStream(System.err, true, "UTF-8"));
+        } catch (java.io.UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+        
         GameLoop game = new GameLoop();
         
         if (args.length == 0) {
