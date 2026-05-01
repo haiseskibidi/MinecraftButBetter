@@ -263,10 +263,52 @@ float baseSens = 0.002f; // Базовый множитель
 float currentSens = SettingsManager.getInstance().getMouseSensitivity() * baseSens;
 float deltaYaw = rotVec.y * currentSens;
 ```
+## 12. Модульная загрузка и Hot Reload (Asset Management Pattern)
+**Правило:** Загрузка данных должна быть делегирована специализированным загрузчикам. Объекты данных должны поддерживать горячую перезагрузку без перезапуска игры.
+
+### Blueprint: Реализация LiveReloadable
+```java
+public class MyData implements LiveReloadable {
+    private transient String sourcePath;
+    @Override public String getSourcePath() { return sourcePath; }
+    @Override public void setSourcePath(String path) { this.sourcePath = path; }
+}
+```
+
+### Blueprint: Синхронизация при Hot Reload (Reflection)
+```java
+// При обновлении базового объекта (например, Item)
+if (oldObject != null && oldObject != newObject) {
+    // Находим все ссылки на старый объект и обновляем их
+    for (var stack : inventory.getAllStacks()) {
+        if (stack.getItem() == oldObject) {
+            Field field = ItemStack.class.getDeclaredField("item");
+            field.setAccessible(true);
+            field.set(stack, newObject);
+        }
+    }
+}
+```
+
+## 13. Разделение прозрачности (Rendering Passes Pattern)
+**Правило:** Не путать геометрическую прозрачность (куллинг) с визуальной (блендинг).
+
+- **Transparent (FLAG_TRANSPARENT)**: "Блок не заполняет весь куб". Используется в `ChunkMeshGenerator` для отрисовки граней соседей. Рисуется в **Opaque Pass** с записью в Depth Buffer.
+- **Translucent (FLAG_TRANSLUCENT)**: "Блок как стекло/вода". Рисуется в **Translucent Pass** (в самом конце) без записи в Depth Buffer для правильного смешивания (alpha blending).
+
+### Blueprint: JSON конфигурация
+```json
+// Плита (неполный блок, но не стекло)
+{ "transparent": true, "translucent": false } 
+
+// Стекло (и неполный, и прозрачный)
+{ "transparent": true, "translucent": true }
+```
 
 ---
 
-## 10. Safety Contracts & Regression Prevention
+## 14. Safety Contracts & Regression Prevention (v2.5 UPDATED)
+...
 Чтобы избежать регрессий при изменении смежных систем (например, WorldGen и Mechanics), необходимо следовать контрактам:
 
 ### 10.1. Контракт "Натуральности" (Naturalness Contract)

@@ -298,6 +298,23 @@
 Назначение: Реестр скелетных моделей.
 Функции: Загружает и хранит ViewmodelDefinition из ресурсов.
 
+## Data Management (Asset Manager v2.5 UPDATED)
+### com.za.zenith.engine.resources.loaders
+- **ActionDataLoader.java**: Загрузка определений действий игрока.
+- **BlockDataLoader.java**: Загрузка параметров блоков и компонентов.
+- **ItemDataLoader.java**: Загрузка предметов и ItemComponents.
+- **RecipeDataLoader.java**: Унифицированный загрузчик всех типов рецептов (Stump, Napping, etc.).
+- **JournalCategoryLoader/EntryLoader.java**: Загрузка структуры Дневника Выжившего.
+- **EntityDataLoader.java**: Загрузка определений сущностей.
+- **GUIDataLoader.java**: Загрузка конфигураций интерфейсов.
+
+### com.za.zenith.world.chunks
+- **ChunkMeshGenerator.java**: (v3.0 UPDATED) Генератор геометрии. Внедрена поддержка `FLAG_TRANSLUCENT` для разделения пасов. Устранены критические NPE при обращении к соседям.
+- **Chunk.java**: (v1.1 UPDATED) Добавлена защита от повреждения палитры (`Palette Corruption Guard`) с автоматическим восстановлением индексов.
+
+### com.za.zenith.engine.input
+- **MiningController.java**: (v2.1 UPDATED) Контроллер добычи. Добавлена защита от обработки "воздуха" (автоматический сброс при срубании дерева), предотвращающая вылеты JIT-компилятора.
+
 ## Inventory System (NEW)
 ### com.za.zenith.world.inventory.ItemInventory
 Назначение: Реализация `IInventory` для предметов-контейнеров (рюкзаки, мешочки).
