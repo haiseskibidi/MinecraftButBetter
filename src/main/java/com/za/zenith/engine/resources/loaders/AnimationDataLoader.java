@@ -74,6 +74,7 @@ public class AnimationDataLoader extends AbstractJsonLoader<AnimationProfile> {
                 }
             }
             AnimationRegistry.register(name, anim);
+            anim.onLiveReload();
         } catch (Exception e) {
             Logger.error("Failed to parse animation " + sourcePath + ": " + e.getMessage());
         }

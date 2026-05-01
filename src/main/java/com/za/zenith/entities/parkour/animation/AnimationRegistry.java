@@ -17,9 +17,22 @@ public class AnimationRegistry {
             groupName = name.substring(0, name.lastIndexOf('_'));
         }
         
-        groups.computeIfAbsent(groupName, k -> new ArrayList<>()).add(animation);
-        // Also register with full name for direct access
-        groups.computeIfAbsent(name, k -> new ArrayList<>()).add(animation);
+        List<AnimationProfile> group = groups.computeIfAbsent(groupName, k -> new ArrayList<>());
+        // Replace if exists with same name, otherwise add
+        boolean found = false;
+        for (int i = 0; i < group.size(); i++) {
+            if (group.get(i).getName().equals(name)) {
+                group.set(i, animation);
+                found = true;
+                break;
+            }
+        }
+        if (!found) group.add(animation);
+
+        // Also register full name as a separate group for direct access
+        List<AnimationProfile> directGroup = groups.computeIfAbsent(name, k -> new ArrayList<>());
+        directGroup.clear(); // For direct name, we always want the latest one
+        directGroup.add(animation);
     }
 
     public static AnimationProfile get(String groupName) {
