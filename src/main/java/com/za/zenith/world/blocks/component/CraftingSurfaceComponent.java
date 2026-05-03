@@ -204,9 +204,9 @@ public class CraftingSurfaceComponent extends BlockComponent implements Inventor
                     for (int i = 0; i < be.size(); i++) be.setStack(i, null);
                     
                     ItemStack result = recipe.getResult().copy();
-                    if (!player.getInventory().addItem(result)) {
-                        world.spawnItem(result, pos.x() + 0.5f, pos.y() + 1.1f, pos.z() + 0.5f);
-                    }
+                    // Помещаем результат на поверхность (в центр для 3х3 или первый свободный)
+                    int resultSlot = (gridSize == 3 && be.size() >= 5) ? 4 : 0;
+                    be.setStack(resultSlot, result);
                 } else {
                     be.setFloat(ModularBlockEntity.PROP_CRAFT_HITS, currentHits);
                     be.setFloat(ModularBlockEntity.PROP_CRAFT_PROGRESS, currentHits / (float)recipe.getRequiredHits());
