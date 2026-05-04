@@ -36,6 +36,9 @@ public class DensityFunctionParser {
             case "zenith:min" -> new MathFunction(MathFunction.Type.MIN, parse(obj.get("argument1")), parse(obj.get("argument2")));
             case "zenith:abs" -> new AbsFunction(parse(obj.get("argument")));
             case "zenith:square" -> new SquareFunction(parse(obj.get("argument")));
+            case "zenith:smin" -> new SmoothMinFunction(parse(obj.get("argument1")), parse(obj.get("argument2")), obj.has("smoothness") ? obj.get("smoothness").getAsDouble() : 0.1);
+            case "zenith:smax" -> new SmoothMaxFunction(parse(obj.get("argument1")), parse(obj.get("argument2")), obj.has("smoothness") ? obj.get("smoothness").getAsDouble() : 0.1);
+            case "zenith:tubular_cave" -> new TubularCaveFunction(parse(obj.get("thickness")), parse(obj.get("noise1")), parse(obj.get("noise2")));
             case "zenith:clamp" -> new ClampFunction(parse(obj.get("argument")), obj.get("min").getAsDouble(), obj.get("max").getAsDouble());
             case "zenith:terrace" -> new TerraceFunction(parse(obj.get("argument")), obj.get("step_size").getAsDouble(), obj.has("smooth_scale") ? obj.get("smooth_scale").getAsDouble() : 1.0);
             case "zenith:cache2d" -> new Cache2DFunction(parse(obj.get("argument")));

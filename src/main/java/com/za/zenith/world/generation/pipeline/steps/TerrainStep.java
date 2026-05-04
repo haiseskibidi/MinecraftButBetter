@@ -15,6 +15,8 @@ import com.za.zenith.utils.ArrayPool;
 public class TerrainStep implements GenerationStep {
     private final NoiseRouter noiseRouter;
     private final BiomeGenerator biomeGenerator;
+    private final com.za.zenith.world.generation.aquifers.AquiferManager aquiferManager;
+    private final com.za.zenith.world.generation.caves.SubterraneanBiomeManager subterraneanBiomeManager;
     
     private static final int HORIZ_STEP = 4;
     private static final int VERT_STEP = 4;
@@ -25,6 +27,8 @@ public class TerrainStep implements GenerationStep {
     public TerrainStep(long seed) {
         this.biomeGenerator = new BiomeGenerator(seed);
         this.noiseRouter = new NoiseRouter(seed, biomeGenerator);
+        this.aquiferManager = new com.za.zenith.world.generation.aquifers.AquiferManager(seed);
+        this.subterraneanBiomeManager = new com.za.zenith.world.generation.caves.SubterraneanBiomeManager();
     }
 
     @Override
@@ -69,46 +73,48 @@ public class TerrainStep implements GenerationStep {
                 float noiseVal = biomeGenerator.getClimateParams(worldX, worldZ)[0];
 
                 int currentSurfaceY = -1;
+                boolean isUnderground = false;
 
                 for (int y = Chunk.CHUNK_HEIGHT - 1; y >= 0; y--) {
+                    if (y == 0) {
+                        chunk.setBlock(x, y, z, bedrockId, 0);
+                        continue;
+                    }
+
                     double density = sampleInterpolatedFlat(densityGrid, x, y, z);
 
                     if (density > 0.0) {
+                        isUnderground = true;
                         if (currentSurfaceY == -1) currentSurfaceY = y;
                         int depth = currentSurfaceY - y;
 
-                        if (y == 0) {
-                            chunk.setBlock(x, y, z, bedrockId, 0);
-                        } else {
-                            boolean ruleMatched = false;
-                            if (biome.getSurfaceRules() != null && !biome.getSurfaceRules().isEmpty()) {
-                                for (com.za.zenith.world.generation.rules.SurfaceRule rule : biome.getSurfaceRules()) {
-                                    if (rule.evaluate(worldX, y - Chunk.LOGICAL_OFFSET_Y, worldZ, noiseVal, depth)) {
-                                        var blockDef = rule.getBlock();
-                                        if (blockDef != null) {
-                                            chunk.setBlock(x, y, z, blockDef.getId(), 0);
-                                            ruleMatched = true;
-                                            break;
-                                        }
+                        boolean ruleMatched = false;
+                        if (biome.getSurfaceRules() != null && !biome.getSurfaceRules().isEmpty()) {
+                            for (com.za.zenith.world.generation.rules.SurfaceRule rule : biome.getSurfaceRules()) {
+                                if (rule.evaluate(worldX, y - Chunk.LOGICAL_OFFSET_Y, worldZ, noiseVal, depth)) {
+                                    var blockDef = rule.getBlock();
+                                    if (blockDef != null) {
+                                        chunk.setBlock(x, y, z, blockDef.getId(), 0);
+                                        ruleMatched = true;
+                                        break;
                                     }
                                 }
                             }
-                            
-                            if (!ruleMatched) {
-                                if (y == currentSurfaceY) {
-                                    chunk.setBlock(x, y, z, surfaceId, 0);
-                                } else if (y > currentSurfaceY - 4) {
-                                    chunk.setBlock(x, y, z, undergroundId, 0);
-                                } else {
-                                    chunk.setBlock(x, y, z, stoneId, 0);
-                                }
+                        }
+                        
+                        if (!ruleMatched) {
+                            if (y == currentSurfaceY) {
+                                chunk.setBlock(x, y, z, surfaceId, 0);
+                            } else if (y > currentSurfaceY - 4) {
+                                chunk.setBlock(x, y, z, undergroundId, 0);
+                            } else {
+                                chunk.setBlock(x, y, z, stoneId, 0);
                             }
                         }
                     } else {
-                        currentSurfaceY = -1;
-                        // Logical Sea Level 62 = Internal 128 + 62 = 190
-                        if (y < 190 && y >= 128) {
-                            chunk.setBlock(x, y, z, waterId, 0);
+                        com.za.zenith.world.blocks.BlockDefinition fluid = aquiferManager.getFluidState(worldX, y, worldZ, isUnderground);
+                        if (fluid != null) {
+                            chunk.setBlock(x, y, z, fluid.getId(), 0);
                         }
                     }
                 }
@@ -149,5 +155,8 @@ public class TerrainStep implements GenerationStep {
 
     @Override
     public void generateStructures(World world, Chunk chunk) {
+        for (com.za.zenith.world.generation.caves.ICaveDecorator decorator : subterraneanBiomeManager.getDecoratorsForChunk(chunk.getPosition().x(), chunk.getPosition().z())) {
+            decorator.decorate(world, chunk);
+        }
     }
 }
