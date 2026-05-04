@@ -146,7 +146,7 @@
   },
   "argument2": {
     "type": "zenith:mul",
-    "argument1": -200.0,
+    "argument1": -75.0,
     "argument2": {
       "type": "zenith:mul",
       "argument1": {
@@ -165,8 +165,8 @@
       },
       "argument2": {
         "type": "zenith:y_clamped_gradient",
-        "bottom_y": 0.0,
-        "top_y": 80.0,
+        "bottom_y": 40.0,
+        "top_y": 100.0,
         "bottom_value": 1.0,
         "top_value": 0.0
       }
